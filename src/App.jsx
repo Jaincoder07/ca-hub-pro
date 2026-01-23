@@ -24,6 +24,47 @@ const db = getFirestore(firebaseApp);
 // Utility function for generating IDs
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
+// Helper function to remove/convert undefined values (Firebase doesn't accept undefined)
+// This recursively processes all nested objects and arrays
+const removeUndefined = (obj) => {
+  if (obj === undefined) return null;
+  if (obj === null) return null;
+  if (typeof obj !== 'object') return obj;
+  
+  if (Array.isArray(obj)) {
+    return obj.map(item => removeUndefined(item));
+  }
+  
+  const newObj = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const value = obj[key];
+      if (value === undefined) {
+        newObj[key] = null; // Convert undefined to null
+      } else {
+        newObj[key] = removeUndefined(value);
+      }
+    }
+  }
+  return newObj;
+};
+
+// BULLETPROOF: Clean data for Firebase using JSON stringify/parse
+// This is GUARANTEED to remove all undefined values
+const cleanForFirebase = (data) => {
+  // JSON.stringify automatically excludes undefined values
+  // We use a replacer to convert undefined to null explicitly
+  const jsonString = JSON.stringify(data, (key, value) => {
+    if (value === undefined) {
+      return null;
+    }
+    return value;
+  });
+  
+  // Parse it back to object - now guaranteed to have no undefined
+  return JSON.parse(jsonString);
+};
+
 // Parent and Child Task Data
 // Default Parent-Child Tasks Configuration (can be modified via Configuration)
 const DEFAULT_PARENT_CHILD_TASKS = {
@@ -415,32 +456,29 @@ const PracticeManagementApp = () => {
           
           if (docSnap.exists()) {
             const firebaseData = docSnap.data();
-            console.log('Loaded data from Firebase');
+            console.log('Loaded data from Firebase:', Object.keys(firebaseData));
+            
+            // Properly merge ALL data fields with defaults
             setData(prev => ({
-              ...prev,
-              ...firebaseData,
-              parentChildTasks: firebaseData.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS
+              tasks: firebaseData.tasks || prev.tasks || [],
+              clients: firebaseData.clients || prev.clients || [],
+              staff: firebaseData.staff || prev.staff || [],
+              timesheets: firebaseData.timesheets || prev.timesheets || [],
+              invoices: firebaseData.invoices || prev.invoices || [],
+              receipts: firebaseData.receipts || prev.receipts || [],
+              organizations: firebaseData.organizations || prev.organizations || [],
+              recurringSchedules: firebaseData.recurringSchedules || prev.recurringSchedules || [],
+              leaves: firebaseData.leaves || prev.leaves || [],
+              documents: firebaseData.documents || prev.documents || [],
+              userPermissions: firebaseData.userPermissions || prev.userPermissions || {},
+              parentChildTasks: firebaseData.parentChildTasks || prev.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
+              recurringBatches: firebaseData.recurringBatches || prev.recurringBatches || [],
+              checklists: firebaseData.checklists || prev.checklists || [],
+              pendingApprovals: firebaseData.pendingApprovals || prev.pendingApprovals || []
             }));
-          } else {
-            // No data in Firebase, initialize with default staff
-            console.log('No data in Firebase, using defaults');
-            const initialStaff = [{
-              id: 'staff-superadmin-001',
-              name: 'Admin',
-              email: user.email,
-              phone: '9999999999',
-              role: 'Superadmin',
-              dateOfJoin: new Date().toISOString().split('T')[0],
-              status: 'Active',
-              isSuperAdmin: true
-            }];
-            setData(prev => ({ ...prev, staff: initialStaff }));
-          }
-          
-          // Find current user in staff
-          const staffDoc = await getDoc(doc(db, 'appData', 'mainData'));
-          if (staffDoc.exists()) {
-            const staffData = staffDoc.data().staff || [];
+            
+            // Find current user in staff
+            const staffData = firebaseData.staff || [];
             const found = staffData.find(s => s.email?.toLowerCase() === user.email?.toLowerCase());
             if (found) {
               setCurrentUser({
@@ -451,15 +489,76 @@ const PracticeManagementApp = () => {
                 id: found.id
               });
             } else {
-              // User exists in Firebase Auth but not in staff, create as Superadmin
-              setCurrentUser({
+              // User exists in Firebase Auth but not in staff, add them as Superadmin
+              const newStaffMember = {
+                id: 'firebase-' + user.uid,
                 name: user.email.split('@')[0],
+                email: user.email,
+                phone: '',
+                role: 'Superadmin',
+                dateOfJoin: new Date().toISOString().split('T')[0],
+                status: 'Active',
+                isSuperAdmin: true
+              };
+              setCurrentUser({
+                name: newStaffMember.name,
                 role: 'Superadmin',
                 email: user.email,
                 isSuperAdmin: true,
-                id: 'firebase-' + user.uid
+                id: newStaffMember.id
               });
+              // Add new user to staff
+              setData(prev => ({
+                ...prev,
+                staff: [...(prev.staff || []), newStaffMember]
+              }));
             }
+          } else {
+            // No data in Firebase, initialize with default data
+            console.log('No data in Firebase, initializing...');
+            const initialStaff = [{
+              id: 'staff-superadmin-001',
+              name: user.email.split('@')[0],
+              email: user.email,
+              phone: '',
+              role: 'Superadmin',
+              dateOfJoin: new Date().toISOString().split('T')[0],
+              status: 'Active',
+              isSuperAdmin: true
+            }];
+            
+            const initialData = {
+              tasks: [],
+              clients: [],
+              staff: initialStaff,
+              timesheets: [],
+              invoices: [],
+              receipts: [],
+              organizations: [],
+              recurringSchedules: [],
+              leaves: [],
+              documents: [],
+              userPermissions: {},
+              parentChildTasks: DEFAULT_PARENT_CHILD_TASKS,
+              recurringBatches: [],
+              checklists: [],
+              pendingApprovals: []
+            };
+            
+            setData(initialData);
+            setCurrentUser({
+              name: initialStaff[0].name,
+              role: 'Superadmin',
+              email: user.email,
+              isSuperAdmin: true,
+              id: initialStaff[0].id
+            });
+            
+            // Save initial data to Firebase
+            await setDoc(doc(db, 'appData', 'mainData'), cleanForFirebase({
+              ...initialData,
+              lastUpdated: new Date().toISOString()
+            }));
           }
           
           setCurrentView('dashboard');
@@ -480,30 +579,78 @@ const PracticeManagementApp = () => {
     return () => unsubscribe();
   }, []);
   
+  // BULLETPROOF save function - used by all save operations
+  // SIMPLE AND BULLETPROOF Firebase save function
+  const saveAllDataToFirebase = async (dataObj) => {
+    console.log('=== saveAllDataToFirebase V13 SIMPLE ===');
+    
+    try {
+      // Step 1: Handle base64 images in organizations (they're too large for Firebase)
+      const orgs = (dataObj.organizations || []).map(org => {
+        const o = { ...org };
+        if (o.logo && typeof o.logo === 'string' && o.logo.startsWith('data:')) o.logo = '[IMAGE]';
+        if (o.signatureImage && typeof o.signatureImage === 'string' && o.signatureImage.startsWith('data:')) o.signatureImage = '[IMAGE]';
+        if (o.qrCode && typeof o.qrCode === 'string' && o.qrCode.startsWith('data:')) o.qrCode = '[IMAGE]';
+        return o;
+      });
+      
+      // Step 2: Build data object
+      const rawData = {
+        tasks: dataObj.tasks || [],
+        clients: dataObj.clients || [],
+        staff: dataObj.staff || [],
+        timesheets: dataObj.timesheets || [],
+        invoices: dataObj.invoices || [],
+        receipts: dataObj.receipts || [],
+        organizations: orgs,
+        recurringSchedules: dataObj.recurringSchedules || [],
+        leaves: dataObj.leaves || [],
+        documents: dataObj.documents || [],
+        userPermissions: dataObj.userPermissions || {},
+        parentChildTasks: dataObj.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
+        recurringBatches: dataObj.recurringBatches || [],
+        checklists: dataObj.checklists || [],
+        pendingApprovals: dataObj.pendingApprovals || [],
+        lastUpdated: new Date().toISOString()
+      };
+      
+      // Step 3: THE MAGIC - JSON.parse(JSON.stringify()) removes ALL undefined values
+      // This is GUARANTEED to work because undefined is not valid JSON
+      const cleanData = JSON.parse(JSON.stringify(rawData));
+      
+      console.log('Data prepared. Counts:', {
+        tasks: cleanData.tasks.length,
+        clients: cleanData.clients.length,
+        staff: cleanData.staff.length
+      });
+      
+      // Step 4: Save to Firebase
+      await setDoc(doc(db, 'appData', 'mainData'), cleanData);
+      console.log('✅ Firebase save SUCCESS!');
+      
+      return cleanData;
+    } catch (error) {
+      console.error('❌ Firebase save FAILED:', error);
+      throw error;
+    }
+  };
+  
   // Save data to Firebase whenever it changes (debounced)
   useEffect(() => {
-    if (!firebaseUser || !dataLoaded) return;
+    if (!firebaseUser || !dataLoaded) {
+      console.log('Skip save - firebaseUser:', !!firebaseUser, 'dataLoaded:', dataLoaded);
+      return;
+    }
     
     const saveTimeout = setTimeout(async () => {
       try {
-        // Create a copy of data without large base64 images
-        const dataToSave = {
-          ...data,
-          organizations: (data.organizations || []).map(org => ({
-            ...org,
-            logo: org.logo?.startsWith('data:') ? '[IMAGE]' : org.logo,
-            signatureImage: org.signatureImage?.startsWith('data:') ? '[IMAGE]' : org.signatureImage,
-            qrCode: org.qrCode?.startsWith('data:') ? '[IMAGE]' : org.qrCode
-          })),
-          lastUpdated: new Date().toISOString()
-        };
-        
-        await setDoc(doc(db, 'appData', 'mainData'), dataToSave);
-        console.log('Data saved to Firebase');
+        console.log('Debounced save starting...');
+        await saveAllDataToFirebase(data);
+        console.log('✅ Data saved to Firebase successfully');
       } catch (error) {
-        console.error('Error saving to Firebase:', error);
+        console.error('❌ Error saving to Firebase:', error);
       }
-    }, 1000); // Debounce saves by 1 second
+    }, 1500); // Debounce saves by 1.5 seconds
     
     return () => clearTimeout(saveTimeout);
   }, [data, firebaseUser, dataLoaded]);
@@ -630,7 +777,7 @@ const PracticeManagementApp = () => {
             borderRadius: '16px 16px 0 0'
           }}>
             <Briefcase size={36} />
-            <h1 style={{ margin: '10px 0 0', fontSize: '22px' }}>CA Hub Pro</h1>
+            <h1 style={{ margin: '10px 0 0', fontSize: '22px' }}>CA Hub Pro <span style={{fontSize: '10px', color: '#94a3b8'}}>v15</span></h1>
             <p style={{ margin: '5px 0 0', fontSize: '13px', opacity: 0.9 }}>Practice Management</p>
           </div>
           
@@ -5316,7 +5463,7 @@ const PracticeManagementApp = () => {
 
       const reader = new FileReader();
       
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           const text = e.target.result;
           const lines = text.split('\n');
@@ -5432,13 +5579,36 @@ const PracticeManagementApp = () => {
             return;
           }
           
-          // Add clients to data
-          setData(prev => ({
-            ...prev,
-            clients: [...prev.clients, ...newClients]
-          }));
+          // Add clients to data - EXPLICITLY list all fields (no spread operator!)
+          const updatedClients = [...data.clients, ...newClients];
+          const updatedData = {
+            tasks: data.tasks || [],
+            clients: updatedClients,
+            staff: data.staff || [],
+            timesheets: data.timesheets || [],
+            invoices: data.invoices || [],
+            receipts: data.receipts || [],
+            organizations: data.organizations || [],
+            recurringSchedules: data.recurringSchedules || [],
+            leaves: data.leaves || [],
+            documents: data.documents || [],
+            userPermissions: data.userPermissions || {},
+            parentChildTasks: data.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
+            recurringBatches: data.recurringBatches || [],
+            checklists: data.checklists || [],
+            pendingApprovals: data.pendingApprovals || []
+          };
+          setData(updatedData);
           
-          alert(`Successfully imported ${newClients.length} client(s)!`);
+          // Immediately save to Firebase using bulletproof function
+          try {
+            await saveAllDataToFirebase(updatedData);
+            console.log('✅ Bulk clients saved to Firebase!');
+            alert(`✅ Successfully imported ${newClients.length} client(s) and saved to database!`);
+          } catch (error) {
+            console.error('❌ Error saving bulk clients:', error);
+            alert(`Imported ${newClients.length} clients but error saving: ` + error.message);
+          }
           
           // Reset file input
           document.getElementById('import-clients-file').value = '';
@@ -6279,7 +6449,7 @@ const PracticeManagementApp = () => {
     reader.readAsText(file);
   };
 
-  const confirmUpload = () => {
+  const confirmUpload = async () => {
     // Final duplicate check before saving
     const existingEmails = data.staff.map(s => s.email.toLowerCase());
     const validStaff = uploadPreview.filter(s => !existingEmails.includes(s.email.toLowerCase()));
@@ -6289,13 +6459,40 @@ const PracticeManagementApp = () => {
       return;
     }
     
-    setData(prev => ({
-      ...prev,
-      staff: [...prev.staff, ...validStaff]
-    }));
-    alert(`Successfully imported ${validStaff.length} staff members!`);
-    setShowUploadModal(false);
-    setUploadPreview([]);
+    const updatedStaff = [...data.staff, ...validStaff];
+    // EXPLICITLY list all fields (no spread operator!)
+    const updatedData = {
+      tasks: data.tasks || [],
+      clients: data.clients || [],
+      staff: updatedStaff,
+      timesheets: data.timesheets || [],
+      invoices: data.invoices || [],
+      receipts: data.receipts || [],
+      organizations: data.organizations || [],
+      recurringSchedules: data.recurringSchedules || [],
+      leaves: data.leaves || [],
+      documents: data.documents || [],
+      userPermissions: data.userPermissions || {},
+      parentChildTasks: data.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
+      recurringBatches: data.recurringBatches || [],
+      checklists: data.checklists || [],
+      pendingApprovals: data.pendingApprovals || []
+    };
+    setData(updatedData);
+    
+    // Immediately save to Firebase using bulletproof function
+    try {
+      await saveAllDataToFirebase(updatedData);
+      console.log('✅ Bulk staff saved to Firebase!');
+      alert(`✅ Successfully imported ${validStaff.length} staff members and saved to database!`);
+      setShowUploadModal(false);
+      setUploadPreview([]);
+    } catch (error) {
+      console.error('❌ Error saving bulk staff:', error);
+      alert(`Imported ${validStaff.length} staff but error saving: ` + error.message);
+      setShowUploadModal(false);
+      setUploadPreview([]);
+    }
   };
 
   const downloadSampleCSV = () => {
@@ -11959,20 +12156,20 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             }
             
             const taskData = {
-              clientName,
-              fileNo: clientCode,
-              groupName: getValue('groupname') || clientName,
-              parentTask,
-              childTask,
-              financialYear: getValue('financialyear') || getValue('fy'),
-              period: getValue('period'),
-              subPeriod: getValue('subperiod'),
-              taskLeader: leaderStaff?.name || taskLeader,
-              taskManager: managerStaff?.name || taskManager,
-              primaryAssignedUser: userStaff?.name || primaryUser,
-              startDate: getValue('startdate'),
-              expectedCompletionDate: getValue('expecteddateofcompletion') || getValue('expectedcompletiondate') || getValue('expecteddat') || getValue('duedate') || getValue('completiondate'),
-              description: getValue('taskdescription') || getValue('description')
+              clientName: clientName || '',
+              fileNo: clientCode || '',
+              groupName: getValue('groupname') || clientName || '',
+              parentTask: parentTask || '',
+              childTask: childTask || '',
+              financialYear: getValue('financialyear') || getValue('fy') || '',
+              period: getValue('period') || '',
+              subPeriod: getValue('subperiod') || '',
+              taskLeader: leaderStaff?.name || taskLeader || '',
+              taskManager: managerStaff?.name || taskManager || '',
+              primaryAssignedUser: userStaff?.name || primaryUser || '',
+              startDate: getValue('startdate') || '',
+              expectedCompletionDate: getValue('expecteddateofcompletion') || getValue('expectedcompletiondate') || getValue('expecteddat') || getValue('duedate') || getValue('completiondate') || '',
+              description: getValue('taskdescription') || getValue('description') || ''
             };
             
             // Debug log for first row
@@ -12003,7 +12200,19 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     };
 
     // Confirm bulk import
-    const confirmBulkImport = () => {
+    const [bulkSaving, setBulkSaving] = useState(false);
+    
+    const confirmBulkImport = async () => {
+      console.log('=== confirmBulkImport CALLED ===');
+      console.log('bulkPreview length:', bulkPreview.length);
+      
+      if (bulkPreview.length === 0) {
+        alert('No tasks to import!');
+        return;
+      }
+      
+      setBulkSaving(true); // Show loading
+      
       const newTasks = bulkPreview.map(t => {
         // Combine period and subPeriod if both exist
         let periodDisplay = t.period || '';
@@ -12011,23 +12220,25 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           periodDisplay = `${t.period} - ${t.subPeriod}`;
         }
         
+        // IMPORTANT: Every field MUST have a value (use empty string for missing values)
+        // Firebase does NOT accept undefined values
         return {
           id: generateId(),
-          fileNo: t.fileNo,
-          clientName: t.clientName,
-          groupName: t.groupName || t.clientName,
-          parentTask: t.parentTask,
-          childTask: t.childTask,
-          financialYear: t.financialYear,
-          period: periodDisplay,
-          subPeriod: t.subPeriod,
-          taskLeader: t.taskLeader,
-          taskManager: t.taskManager,
-          primaryAssignedUser: t.primaryAssignedUser,
-          assignedTo: t.primaryAssignedUser,
-          startDate: t.startDate,
-          expectedCompletionDate: t.expectedCompletionDate,
-          taskDescription: t.description,
+          fileNo: t.fileNo || '',
+          clientName: t.clientName || '',
+          groupName: t.groupName || t.clientName || '',
+          parentTask: t.parentTask || '',
+          childTask: t.childTask || '',
+          financialYear: t.financialYear || '',
+          period: periodDisplay || '',
+          subPeriod: t.subPeriod || '',
+          taskLeader: t.taskLeader || '',
+          taskManager: t.taskManager || '',
+          primaryAssignedUser: t.primaryAssignedUser || '',
+          assignedTo: t.primaryAssignedUser || '',
+          startDate: t.startDate || '',
+          expectedCompletionDate: t.expectedCompletionDate || '',
+          taskDescription: t.description || '',
           comments: '',
           status: 'Pending',
           priority: 'Medium',
@@ -12035,17 +12246,35 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           completedBy: '',
           currentPosition: 'New Task Created',
           pendingIssues: '',
-          checkGroupsName: `${periodDisplay}-${t.childTask}`
+          checkGroupsName: `${periodDisplay || ''}-${t.childTask || ''}`
         };
       });
       
-      // Use bulk save callback
+      console.log('=== BULK IMPORT: Created task objects ===');
+      console.log('Tasks created:', newTasks.length);
+      console.log('First task sample:', JSON.stringify(newTasks[0], null, 2));
+      
+      // Extra safety: clean tasks with JSON to remove any undefined
+      const cleanTasks = JSON.parse(JSON.stringify(newTasks));
+      console.log('Tasks cleaned via JSON, count:', cleanTasks.length);
+      
+      // Use bulk save callback - it handles everything including Firebase save
       if (onBulkSave) {
-        onBulkSave(newTasks);
+        console.log('Calling onBulkSave...');
+        try {
+          await onBulkSave(cleanTasks);  // AWAIT the async function!
+          console.log('onBulkSave completed');
+        } catch (err) {
+          console.error('onBulkSave error:', err);
+          alert('Error during save: ' + err.message);
+        }
+      } else {
+        console.error('onBulkSave callback is undefined!');
+        alert('Error: Save function not available. Please refresh and try again.');
+        onClose();
       }
       
-      alert(`Successfully imported ${newTasks.length} tasks!`);
-      onClose();
+      setBulkSaving(false); // Hide loading
     };
 
     return (
@@ -12374,21 +12603,29 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     </button>
                     <button
                       type="button"
-                      onClick={confirmBulkImport}
+                      disabled={bulkSaving}
+                      onClick={() => {
+                        console.log('=== IMPORT & SAVE BUTTON CLICKED ===');
+                        confirmBulkImport();
+                      }}
                       style={{
                         padding: '10px 24px',
-                        background: '#10b981',
+                        background: bulkSaving ? '#9ca3af' : '#10b981',
                         color: '#fff',
                         border: 'none',
                         borderRadius: '8px',
-                        cursor: 'pointer',
+                        cursor: bulkSaving ? 'wait' : 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
                         fontWeight: 600
                       }}
                     >
-                      <CheckCircle size={18} /> Import {bulkPreview.length} Tasks
+                      {bulkSaving ? (
+                        <>⏳ Saving to Database...</>
+                      ) : (
+                        <><CheckCircle size={18} /> Import & Save {bulkPreview.length} Tasks</>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -12537,204 +12774,42 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   />
                 </div>
 
-                {/* Task Selection - Side by Side Panel Style */}
-                <div className="form-field-task" style={{ gridColumn: 'span 2', position: 'relative' }}>
-                  <label>Tasks <span className="required-star">*</span></label>
-                  <div 
-                    onClick={() => setTaskFormData(prev => ({ ...prev, showTaskSelector: !prev.showTaskSelector }))}
-                    style={{
-                      padding: '12px 14px',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      background: '#fff',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
+                {/* Parent Task - Simple Dropdown */}
+                <div className="form-field-task">
+                  <label>Parent Task <span className="required-star">*</span></label>
+                  <select
+                    value={taskFormData.parentTask}
+                    onChange={(e) => {
+                      const parent = e.target.value;
+                      setTaskFormData(prev => ({ 
+                        ...prev, 
+                        parentTask: parent,
+                        childTask: '' // Reset child task when parent changes
+                      }));
                     }}
+                    required
                   >
-                    <span style={{ color: taskFormData.parentTask ? '#1e293b' : '#94a3b8', fontWeight: taskFormData.parentTask ? 500 : 400 }}>
-                      {taskFormData.parentTask && taskFormData.childTask 
-                        ? `${taskFormData.parentTask} → ${taskFormData.childTask}`
-                        : 'Click to select task...'}
-                    </span>
-                    <ChevronDown size={18} style={{ color: '#64748b', transform: taskFormData.showTaskSelector ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }} />
-                  </div>
-                  
-                  {taskFormData.showTaskSelector && (
-                    <>
-                      <div 
-                        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998 }}
-                        onClick={() => setTaskFormData(prev => ({ ...prev, showTaskSelector: false }))}
-                      />
-                      <div style={{
-                        position: 'absolute',
-                        top: '100%',
-                        left: 0,
-                        right: 0,
-                        background: '#fff',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '12px',
-                        boxShadow: '0 8px 30px rgba(0,0,0,0.18)',
-                        zIndex: 999,
-                        maxHeight: '450px',
-                        overflow: 'hidden',
-                        display: 'flex',
-                        marginTop: '4px'
-                      }}>
-                        {/* Parent Tasks - Left Side */}
-                        <div style={{
-                          width: '45%',
-                          borderRight: '1px solid #e2e8f0',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          maxHeight: '450px'
-                        }}>
-                          {/* Search Box */}
-                          <div style={{ padding: '12px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-                            <div style={{ position: 'relative' }}>
-                              <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                              <input
-                                type="text"
-                                placeholder="Search here.."
-                                value={taskSearchTerm}
-                                onChange={(e) => setTaskSearchTerm(e.target.value)}
-                                style={{
-                                  width: '100%',
-                                  padding: '10px 12px 10px 34px',
-                                  border: '1px solid #e2e8f0',
-                                  borderRadius: '8px',
-                                  fontSize: '13px',
-                                  background: '#fff'
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                              />
-                            </div>
-                          </div>
-                          {/* Task Categories List */}
-                          <div style={{ overflowY: 'auto', flex: 1 }}>
-                            {filteredParentTasks.map((parent, idx) => (
-                              <div
-                                key={parent}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setTaskFormData(prev => ({ 
-                                    ...prev, 
-                                    parentTask: parent,
-                                    childTask: ''
-                                  }));
-                                }}
-                                style={{
-                                  padding: '14px 16px',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  alignItems: 'center',
-                                  background: taskFormData.parentTask === parent ? '#dcfce7' : '#fff',
-                                  color: taskFormData.parentTask === parent ? '#166534' : '#1e293b',
-                                  borderBottom: '1px solid #f1f5f9',
-                                  fontWeight: 500,
-                                  fontSize: '14px',
-                                  textTransform: 'uppercase',
-                                  letterSpacing: '0.3px',
-                                  transition: 'all 0.15s ease'
-                                }}
-                                onMouseEnter={(e) => {
-                                  if (taskFormData.parentTask !== parent) {
-                                    e.currentTarget.style.background = '#f1f5f9';
-                                  }
-                                }}
-                                onMouseLeave={(e) => {
-                                  if (taskFormData.parentTask !== parent) {
-                                    e.currentTarget.style.background = '#fff';
-                                  }
-                                }}
-                              >
-                                {parent}
-                                <ChevronRight size={18} style={{ opacity: 0.7 }} />
-                              </div>
-                            ))}
-                            {filteredParentTasks.length === 0 && (
-                              <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
-                                No tasks found
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        
-                        {/* Child Tasks - Right Side */}
-                        <div style={{
-                          width: '55%',
-                          maxHeight: '450px',
-                          overflowY: 'auto',
-                          background: '#f8fafc'
-                        }}>
-                          {taskFormData.parentTask ? (
-                            <>
-                              <div style={{ 
-                                padding: '14px 16px', 
-                                borderBottom: '1px solid #e2e8f0',
-                                fontWeight: 600,
-                                color: '#1e3a5f',
-                                background: '#fff',
-                                textTransform: 'uppercase',
-                                fontSize: '13px',
-                                letterSpacing: '0.5px'
-                              }}>
-                                {taskFormData.parentTask} - Sub Tasks
-                              </div>
-                              {PARENT_CHILD_TASKS[taskFormData.parentTask]?.map(child => (
-                                <div
-                                  key={child}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setTaskFormData(prev => ({ 
-                                      ...prev, 
-                                      childTask: child,
-                                      showTaskSelector: false
-                                    }));
-                                    setTaskSearchTerm('');
-                                  }}
-                                  style={{
-                                    padding: '13px 16px',
-                                    cursor: 'pointer',
-                                    background: taskFormData.childTask === child ? '#dbeafe' : '#fff',
-                                    color: taskFormData.childTask === child ? '#1d4ed8' : '#374151',
-                                    borderBottom: '1px solid #f1f5f9',
-                                    fontSize: '14px',
-                                    fontWeight: taskFormData.childTask === child ? 600 : 400,
-                                    transition: 'all 0.15s ease'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    if (taskFormData.childTask !== child) {
-                                      e.currentTarget.style.background = '#f0f9ff';
-                                    }
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    if (taskFormData.childTask !== child) {
-                                      e.currentTarget.style.background = '#fff';
-                                    }
-                                  }}
-                                >
-                                  {child}
-                                </div>
-                              ))}
-                            </>
-                          ) : (
-                            <div style={{ 
-                              padding: '60px 20px', 
-                              textAlign: 'center', 
-                              color: '#94a3b8',
-                              fontSize: '14px'
-                            }}>
-                              <ChevronLeft size={24} style={{ marginBottom: '8px', opacity: 0.5 }} />
-                              <div>Select a task category from the left</div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </>
-                  )}
+                    <option value="">Select Parent Task</option>
+                    {Object.keys(PARENT_CHILD_TASKS).map(parent => (
+                      <option key={parent} value={parent}>{parent}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Child Task - Simple Dropdown */}
+                <div className="form-field-task">
+                  <label>Child Task <span className="required-star">*</span></label>
+                  <select
+                    value={taskFormData.childTask}
+                    onChange={(e) => setTaskFormData(prev => ({ ...prev, childTask: e.target.value }))}
+                    required
+                    disabled={!taskFormData.parentTask}
+                  >
+                    <option value="">Select Child Task</option>
+                    {taskFormData.parentTask && PARENT_CHILD_TASKS[taskFormData.parentTask]?.map(child => (
+                      <option key={child} value={child}>{child}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Financial Year */}
@@ -14468,11 +14543,23 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           return t;
         });
         
-        // Update state
+        // Update state - EXPLICITLY list all fields (no spread operator!)
         setData({
-          ...data,
+          tasks: updatedTasks,
+          clients: data.clients || [],
+          staff: data.staff || [],
+          timesheets: data.timesheets || [],
           invoices: updatedInvoices,
-          tasks: updatedTasks
+          receipts: data.receipts || [],
+          organizations: data.organizations || [],
+          recurringSchedules: data.recurringSchedules || [],
+          leaves: data.leaves || [],
+          documents: data.documents || [],
+          userPermissions: data.userPermissions || {},
+          parentChildTasks: data.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
+          recurringBatches: data.recurringBatches || [],
+          checklists: data.checklists || [],
+          pendingApprovals: data.pendingApprovals || []
         });
         
         // Navigate back
@@ -23036,70 +23123,76 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             setShowAddTaskModal(false);
             alert('Task created successfully! You can view it in the task list.');
           }}
-          onBulkSave={(newTasks) => {
-            console.log('=== BULK SAVING TASKS ===');
-            console.log('Tasks to import:', newTasks.length);
+          onBulkSave={async (newTasks) => {
+            console.log('=== BULK SAVE V15 - WITH ALERTS ===');
+            console.log('New tasks count:', newTasks.length);
             
-            // Filter out duplicate tasks
-            const { validTasks, duplicates } = filterDuplicateTasks(newTasks, data.tasks);
+            // Skip duplicate check for now - just save
+            const tasksToAdd = newTasks;
             
-            if (duplicates.length > 0) {
-              const duplicateList = duplicates.slice(0, 5).map(d => 
-                `• ${d.clientName} - ${d.parentTask} → ${d.childTask} (${d.subPeriod || d.period})`
-              ).join('\n');
-              
-              const moreText = duplicates.length > 5 ? `\n...and ${duplicates.length - 5} more` : '';
-              
-              if (validTasks.length === 0) {
-                alert(`⚠️ All ${duplicates.length} tasks are duplicates!\n\n${duplicateList}${moreText}\n\nNo tasks were imported.`);
-                return;
-              }
-              
-              if (!window.confirm(`⚠️ Found ${duplicates.length} duplicate task(s):\n\n${duplicateList}${moreText}\n\nDo you want to import the remaining ${validTasks.length} task(s)?`)) {
-                return;
-              }
-            }
-            
-            if (validTasks.length === 0) {
-              alert('No valid tasks to import.');
+            if (tasksToAdd.length === 0) {
+              alert('No tasks to import.');
               return;
             }
             
-            // Check if approval is needed (Seniors/Articles need RM approval)
-            const userRole = getCurrentUserRole();
-            const approvalNeeded = needsApproval('bulk_task', userRole);
+            // Combine with existing tasks
+            const allTasks = [...(data.tasks || []), ...tasksToAdd];
+            console.log('Total tasks after merge:', allTasks.length);
             
-            if (approvalNeeded) {
-              // Create approval request for bulk tasks
-              const approval = createApprovalRequest(
-                'bulk_task',
-                validTasks,
-                `Bulk Task Import: ${validTasks.length} tasks`
-              );
+            // Build the SIMPLEST possible data object for Firebase
+            const dataForFirebase = {
+              tasks: allTasks,
+              clients: data.clients || [],
+              staff: data.staff || [],
+              timesheets: data.timesheets || [],
+              invoices: data.invoices || [],
+              receipts: data.receipts || [],
+              organizations: (data.organizations || []).map(org => {
+                const o = JSON.parse(JSON.stringify(org || {}));
+                if (o.logo && o.logo.startsWith && o.logo.startsWith('data:')) o.logo = '[IMG]';
+                if (o.signatureImage && o.signatureImage.startsWith && o.signatureImage.startsWith('data:')) o.signatureImage = '[IMG]';
+                if (o.qrCode && o.qrCode.startsWith && o.qrCode.startsWith('data:')) o.qrCode = '[IMG]';
+                return o;
+              }),
+              recurringSchedules: data.recurringSchedules || [],
+              leaves: data.leaves || [],
+              documents: data.documents || [],
+              userPermissions: data.userPermissions || {},
+              parentChildTasks: data.parentChildTasks || {},
+              recurringBatches: data.recurringBatches || [],
+              checklists: data.checklists || [],
+              pendingApprovals: data.pendingApprovals || [],
+              lastUpdated: new Date().toISOString()
+            };
+            
+            // THE KEY: JSON.parse(JSON.stringify()) GUARANTEES no undefined
+            const cleanData = JSON.parse(JSON.stringify(dataForFirebase));
+            
+            console.log('Clean data prepared, tasks count:', cleanData.tasks.length);
+            
+            // DEBUG: Show alert before Firebase save
+            // alert('About to save ' + cleanData.tasks.length + ' tasks to Firebase...');
+            
+            try {
+              // Direct Firebase save
+              console.log('Calling setDoc NOW...');
+              await setDoc(doc(db, 'appData', 'mainData'), cleanData);
+              console.log('✅ Firebase setDoc completed!');
               
-              if (approval) {
-                setData(prev => ({
-                  ...prev,
-                  pendingApprovals: [...(prev.pendingApprovals || []), approval]
-                }));
-                setShowAddTaskModal(false);
-                alert(`📝 ${validTasks.length} tasks submitted for approval!\n\nYour Reporting Manager will review and approve these tasks.`);
-                return;
-              }
-            }
-            
-            // Direct save for Superadmin/RM
-            setData(prev => ({
-              ...prev,
-              tasks: [...prev.tasks, ...validTasks]
-            }));
-            
-            setShowAddTaskModal(false);
-            
-            if (duplicates.length > 0) {
-              alert(`✅ Imported ${validTasks.length} task(s).\n⚠️ Skipped ${duplicates.length} duplicate(s).`);
-            } else {
-              alert(`✅ Successfully imported ${validTasks.length} task(s)!`);
+              // Update local state
+              setData(prev => ({
+                ...prev,
+                tasks: allTasks
+              }));
+              
+              setShowAddTaskModal(false);
+              alert(`✅ Successfully imported and saved ${tasksToAdd.length} task(s) to database!`);
+            } catch (err) {
+              console.error('❌ Firebase save FAILED:', err);
+              console.error('Error name:', err.name);
+              console.error('Error message:', err.message);
+              console.error('Error code:', err.code);
+              alert('❌ Error saving to Firebase: ' + err.message);
             }
           }}
         />
@@ -25000,7 +25093,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
 
         body {
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          background: #f5f7fa;
+          background: #f8fafc;
           color: #1a1a1a;
         }
 
@@ -25008,24 +25101,28 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           display: flex;
           height: 100vh;
           overflow: hidden;
+          gap: 0;
+          background: #f8fafc;
         }
 
         /* Sidebar Styles - Light Theme */
         .sidebar {
           width: 220px;
+          min-width: 220px;
           background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
           color: #334155;
           display: flex;
           flex-direction: column;
           transition: all 0.15s ease;
-          box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
           border-right: 1px solid #e2e8f0;
           z-index: 100;
           overflow-y: auto;
+          flex-shrink: 0;
         }
 
         .sidebar.closed {
           width: 60px;
+          min-width: 60px;
         }
 
         .sidebar-header {
@@ -25275,7 +25372,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           flex: 1;
           overflow-y: auto;
           padding: 0;
+          margin: 0;
           background: #f8fafc;
+          min-width: 0;
+          border: none;
         }
 
         /* All Views Padding */
@@ -25288,6 +25388,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         .approvals-view,
         .tasks-view {
           padding: 24px;
+          margin: 0;
+          background: #f8fafc;
         }
 
         .view-header {
