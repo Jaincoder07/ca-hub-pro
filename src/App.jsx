@@ -2635,7 +2635,7 @@ const PracticeManagementApp = () => {
                 onClick={() => setCurrentView('packages')}
                 style={{background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', borderRadius: '12px', padding: '16px', cursor: 'pointer', border: '1px solid #fcd34d'}}>
                 <div style={{fontSize: '24px', fontWeight: '700', color: '#92400e'}}>{(() => {
-                  const pkgs = data.packages || [];
+                  const pkgs = (data.packages || []).filter(p => !p.renewed);
                   const sixtyDays = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
                   return pkgs.filter(p => {
                     const ed = new Date(p.endDate);
@@ -2648,7 +2648,7 @@ const PracticeManagementApp = () => {
                 onClick={() => setCurrentView('packages')}
                 style={{background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)', borderRadius: '12px', padding: '16px', cursor: 'pointer', border: '1px solid #fca5a5'}}>
                 <div style={{fontSize: '24px', fontWeight: '700', color: '#991b1b'}}>{(() => {
-                  const pkgs = data.packages || [];
+                  const pkgs = (data.packages || []).filter(p => !p.renewed);
                   return pkgs.filter(p => new Date(p.endDate) < today).length;
                 })()}</div>
                 <div style={{fontSize: '12px', fontWeight: '600', color: '#dc2626'}}>⚠️ Expired Packages</div>
@@ -2660,7 +2660,7 @@ const PracticeManagementApp = () => {
               onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(245, 158, 11, 0.1)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
               <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#d97706'}}>📦 Packages Due for Renewal ({(() => {
-                const pkgs = data.packages || [];
+                const pkgs = (data.packages || []).filter(p => !p.renewed);
                 const sixtyDays = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
                 return pkgs.filter(p => {
                   const ed = new Date(p.endDate);
@@ -2669,7 +2669,7 @@ const PracticeManagementApp = () => {
               })()})</h3>
               <div style={{overflowX: 'auto', maxHeight: '300px', overflowY: 'auto'}}>
                 {(() => {
-                  const pkgs = data.packages || [];
+                  const pkgs = (data.packages || []).filter(p => !p.renewed);
                   const sixtyDays = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
                   const duePkgs = pkgs.filter(p => {
                     const ed = new Date(p.endDate);
@@ -2718,6 +2718,7 @@ const PracticeManagementApp = () => {
                 })()}
               </div>
               {(data.packages || []).filter(p => {
+                if (p.renewed) return false;
                 const sixtyDays = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
                 const ed = new Date(p.endDate);
                 return ed <= sixtyDays && ed >= today;
@@ -2922,7 +2923,7 @@ const PracticeManagementApp = () => {
                 onClick={() => setCurrentView('packages')}
                 style={{background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', borderRadius: '12px', padding: '16px', cursor: 'pointer', border: '1px solid #fcd34d'}}>
                 <div style={{fontSize: '24px', fontWeight: '700', color: '#92400e'}}>{(() => {
-                  const pkgs = data.packages || [];
+                  const pkgs = (data.packages || []).filter(p => !p.renewed);
                   const todayNow = new Date();
                   const sixtyDays = new Date(todayNow.getTime() + (60 * 24 * 60 * 60 * 1000));
                   return pkgs.filter(p => {
@@ -2936,7 +2937,7 @@ const PracticeManagementApp = () => {
                 onClick={() => setCurrentView('packages')}
                 style={{background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)', borderRadius: '12px', padding: '16px', cursor: 'pointer', border: '1px solid #fca5a5'}}>
                 <div style={{fontSize: '24px', fontWeight: '700', color: '#991b1b'}}>{(() => {
-                  const pkgs = data.packages || [];
+                  const pkgs = (data.packages || []).filter(p => !p.renewed);
                   const todayNow = new Date();
                   return pkgs.filter(p => new Date(p.endDate) < todayNow).length;
                 })()}</div>
@@ -2947,7 +2948,7 @@ const PracticeManagementApp = () => {
             {/* Due for Renewal Packages */}
             <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
               <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#d97706'}}>📦 Packages Due for Renewal ({(() => {
-                const packages = data.packages || [];
+                const packages = (data.packages || []).filter(p => !p.renewed);
                 const today = new Date();
                 const sixtyDaysFromNow = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
                 return packages.filter(p => {
@@ -2957,7 +2958,7 @@ const PracticeManagementApp = () => {
               })()})</h3>
               <div style={{maxHeight: '300px', overflowY: 'auto'}}>
                 {(() => {
-                  const packages = data.packages || [];
+                  const packages = (data.packages || []).filter(p => !p.renewed);
                   const today = new Date();
                   const sixtyDaysFromNow = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
                   const duePackages = packages.filter(p => {
@@ -3007,6 +3008,7 @@ const PracticeManagementApp = () => {
                 })()}
               </div>
               {(data.packages || []).filter(p => {
+                if (p.renewed) return false;
                 const today = new Date();
                 const sixtyDaysFromNow = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
                 const endDate = new Date(p.endDate);
@@ -25293,26 +25295,50 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const today = new Date();
     const sixtyDaysFromNow = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
     
-    const totalPackageClients = packages.length;
-    const dueForRenewal = packages.filter(p => {
+    // Current packages = packages that haven't been renewed (active packages)
+    const currentPackages = packages.filter(p => !p.renewed);
+    
+    const totalPackageClients = currentPackages.length;
+    const dueForRenewal = currentPackages.filter(p => {
       const endDate = new Date(p.endDate);
       return endDate <= sixtyDaysFromNow && endDate >= today;
     });
-    const expiredPackages = packages.filter(p => new Date(p.endDate) < today);
-    const billedPackages = packages.filter(p => p.billed);
-    const unbilledPackages = packages.filter(p => !p.billed);
+    const expiredPackages = currentPackages.filter(p => new Date(p.endDate) < today);
     
-    // Filter packages
+    // Billed shows ALL billed packages (including historical/renewed ones)
+    const billedPackages = packages.filter(p => p.billed);
+    
+    // Unbilled shows only current unbilled packages
+    const unbilledPackages = currentPackages.filter(p => !p.billed);
+    
+    // Filter packages for display
     const filteredPackages = packages.filter(p => {
-      if (packageFilter === 'billed' && !p.billed) return false;
-      if (packageFilter === 'unbilled' && p.billed) return false;
+      // For "all" filter, show only current packages
+      if (packageFilter === 'all' && p.renewed) return false;
+      
+      // For "billed" filter, show ALL billed packages (including historical)
+      if (packageFilter === 'billed') {
+        if (!p.billed) return false;
+      }
+      
+      // For "unbilled" filter, show only current unbilled packages
+      if (packageFilter === 'unbilled') {
+        if (p.billed || p.renewed) return false;
+      }
+      
+      // For "dueRenewal" filter, show only current packages due for renewal
       if (packageFilter === 'dueRenewal') {
+        if (p.renewed) return false;
         const endDate = new Date(p.endDate);
         if (endDate > sixtyDaysFromNow || endDate < today) return false;
       }
+      
+      // For "expired" filter, show only current expired packages
       if (packageFilter === 'expired') {
+        if (p.renewed) return false;
         if (new Date(p.endDate) >= today) return false;
       }
+      
       if (searchTerm) {
         const search = searchTerm.toLowerCase();
         return (p.clientName || '').toLowerCase().includes(search) ||
@@ -25452,21 +25478,44 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       newStartDate.setDate(newStartDate.getDate() + 1);
       const newEndDate = calculateEndDate(newStartDate.toISOString().split('T')[0], pkg.frequency || 'Monthly');
       
-      const renewedPackage = {
-        ...pkg,
+      // Create a NEW package for the renewed period
+      const newPackage = {
+        id: 'pkg_' + Date.now(),
+        clientId: pkg.clientId,
+        clientName: pkg.clientName,
+        groupNo: pkg.groupNo,
+        clientCode: pkg.clientCode,
         startDate: newStartDate.toISOString().split('T')[0],
         endDate: newEndDate,
+        frequency: pkg.frequency || 'Monthly',
+        services: [...(pkg.services || [])],
+        totalAmount: pkg.totalAmount,
         billed: false,
+        notes: pkg.notes || '',
+        createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        renewalCount: (pkg.renewalCount || 0) + 1
+        createdBy: currentUser?.name || 'System',
+        renewalCount: (pkg.renewalCount || 0) + 1,
+        previousPackageId: pkg.id // Link to previous package
+      };
+      
+      // Mark the old package as renewed (historical) - it stays in billed list if it was billed
+      const updatedOldPackage = {
+        ...pkg,
+        renewed: true, // Mark as historical/renewed
+        renewedToId: newPackage.id, // Link to new package
+        updatedAt: new Date().toISOString()
       };
       
       setData(prev => ({
         ...prev,
-        packages: prev.packages.map(p => p.id === pkg.id ? renewedPackage : p)
+        packages: [
+          ...prev.packages.map(p => p.id === pkg.id ? updatedOldPackage : p),
+          newPackage
+        ]
       }));
       
-      alert(`Package renewed!\nNew period: ${newStartDate.toLocaleDateString('en-IN')} to ${new Date(newEndDate).toLocaleDateString('en-IN')}`);
+      alert(`Package renewed!\nNew period: ${newStartDate.toLocaleDateString('en-IN')} to ${new Date(newEndDate).toLocaleDateString('en-IN')}\n\nThe previous package record has been preserved.`);
     };
     
     // Toggle billed status
@@ -25641,15 +25690,26 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               ) : (
                 filteredPackages.map((pkg, idx) => {
                   const endDate = new Date(pkg.endDate);
-                  const isDueForRenewal = endDate <= sixtyDaysFromNow && endDate >= today;
-                  const isExpired = endDate < today;
+                  const isDueForRenewal = !pkg.renewed && endDate <= sixtyDaysFromNow && endDate >= today;
+                  const isExpired = !pkg.renewed && endDate < today;
+                  const isHistorical = pkg.renewed;
                   
                   return (
-                    <tr key={pkg.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                    <tr key={pkg.id} style={{
+                      background: isHistorical ? '#fef9e7' : (idx % 2 === 0 ? '#fff' : '#f0fdf4'),
+                      opacity: isHistorical ? 0.85 : 1
+                    }}>
                       <td style={{padding: '8px 12px', border: '1px solid #e5e7eb'}}>{idx + 1}</td>
                       <td style={{padding: '8px 12px', border: '1px solid #e5e7eb', fontWeight: '600'}}>{pkg.groupNo}</td>
                       <td style={{padding: '8px 12px', border: '1px solid #e5e7eb', color: '#6366f1', fontWeight: '500'}}>{pkg.clientCode}</td>
-                      <td style={{padding: '8px 12px', border: '1px solid #e5e7eb', fontWeight: '500'}}>{pkg.clientName}</td>
+                      <td style={{padding: '8px 12px', border: '1px solid #e5e7eb', fontWeight: '500'}}>
+                        {pkg.clientName}
+                        {isHistorical && (
+                          <span style={{marginLeft: '6px', padding: '2px 6px', borderRadius: '8px', fontSize: '9px', fontWeight: '600', background: '#fde68a', color: '#92400e'}}>
+                            Historical
+                          </span>
+                        )}
+                      </td>
                       <td style={{padding: '8px 12px', border: '1px solid #e5e7eb', fontSize: '11px', maxWidth: '180px'}}>
                         {getServiceNames(pkg.services)}
                       </td>
@@ -25668,19 +25728,20 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         {new Date(pkg.endDate).toLocaleDateString('en-IN')}
                         {isDueForRenewal && <span style={{display: 'block', fontSize: '9px'}}>Due for renewal</span>}
                         {isExpired && <span style={{display: 'block', fontSize: '9px'}}>Expired</span>}
+                        {isHistorical && <span style={{display: 'block', fontSize: '9px', color: '#92400e'}}>Renewed</span>}
                       </td>
                       <td style={{padding: '8px 12px', border: '1px solid #e5e7eb', textAlign: 'right', fontWeight: '600', color: '#059669'}}>
                         ₹{(pkg.totalAmount || 0).toLocaleString('en-IN')}
                       </td>
                       <td style={{padding: '8px 12px', border: '1px solid #e5e7eb', textAlign: 'center'}}>
                         <span 
-                          onClick={() => toggleBilled(pkg.id)}
+                          onClick={() => !isHistorical && toggleBilled(pkg.id)}
                           style={{
                             padding: '3px 10px',
                             borderRadius: '12px',
                             fontSize: '10px',
                             fontWeight: '600',
-                            cursor: 'pointer',
+                            cursor: isHistorical ? 'default' : 'pointer',
                             background: pkg.billed ? '#d1fae5' : '#fee2e2',
                             color: pkg.billed ? '#065f46' : '#991b1b'
                           }}
@@ -25690,20 +25751,24 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       </td>
                       <td style={{padding: '8px 12px', border: '1px solid #e5e7eb', textAlign: 'center'}}>
                         <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
-                          <button
-                            onClick={() => handleEdit(pkg)}
-                            style={{padding: '4px 8px', background: '#fef3c7', color: '#d97706', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}
-                            title="Edit"
-                          >
-                            <Edit size={12} />
-                          </button>
-                          <button
-                            onClick={() => handleRenew(pkg)}
-                            style={{padding: '4px 8px', background: '#dbeafe', color: '#2563eb', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}
-                            title="Renew"
-                          >
-                            <RefreshCw size={12} />
-                          </button>
+                          {!isHistorical && (
+                            <>
+                              <button
+                                onClick={() => handleEdit(pkg)}
+                                style={{padding: '4px 8px', background: '#fef3c7', color: '#d97706', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}
+                                title="Edit"
+                              >
+                                <Edit size={12} />
+                              </button>
+                              <button
+                                onClick={() => handleRenew(pkg)}
+                                style={{padding: '4px 8px', background: '#dbeafe', color: '#2563eb', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}
+                                title="Renew"
+                              >
+                                <RefreshCw size={12} />
+                              </button>
+                            </>
+                          )}
                           <button
                             onClick={() => handleDelete(pkg.id)}
                             style={{padding: '4px 8px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}
