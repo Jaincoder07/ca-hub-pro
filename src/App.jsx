@@ -444,6 +444,27 @@ const PracticeManagementApp = () => {
     }
   };
   
+  // Helper function to get agreed fee for a task from client's agreedFees configuration
+  const getClientAgreedFee = (clientId, parentTask, childTask) => {
+    if (!clientId) return null;
+    const client = data.clients.find(c => c.id === clientId);
+    if (!client || !client.agreedFees) return null;
+    
+    // Look for exact match of parent + child task
+    const exactMatch = client.agreedFees.find(
+      f => f.parentTask === parentTask && f.childTask === childTask
+    );
+    if (exactMatch) return parseFloat(exactMatch.fee) || 0;
+    
+    // Look for parent task only match (when child is empty or "All")
+    const parentMatch = client.agreedFees.find(
+      f => f.parentTask === parentTask && (!f.childTask || f.childTask === 'All')
+    );
+    if (parentMatch) return parseFloat(parentMatch.fee) || 0;
+    
+    return null;
+  };
+  
   // Firebase Auth State Listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -4466,8 +4487,8 @@ const PracticeManagementApp = () => {
       otherContact: { name: '', contact1: '', contact2: '', email1: '', email2: '' },
       updateContactList: false,
       
-      // Agreed Fees
-      agreedFees: Array(10).fill(null).map(() => ({ taskType: '', fee: '', frequency: '', remark: '' })),
+      // Agreed Fees - by Parent/Child Task
+      agreedFees: [{ parentTask: '', childTask: '', fee: '', frequency: '' }],
       
       // KYC Documents
       kycDocuments: [
@@ -4552,8 +4573,10 @@ const PracticeManagementApp = () => {
           secondaryOwner: editingClient.secondaryOwner || { name: '', contact1: '', contact2: '', email1: '', email2: '' },
           accountant: editingClient.accountant || { name: '', contact1: '', contact2: '', email1: '', email2: '' },
           otherContact: editingClient.otherContact || { name: '', contact1: '', contact2: '', email1: '', email2: '' },
-          // Agreed Fees
-          agreedFees: editingClient.agreedFees || Array(10).fill(null).map(() => ({ taskType: '', fee: '', frequency: '', remark: '' })),
+          // Agreed Fees - convert old format if needed
+          agreedFees: (editingClient.agreedFees && editingClient.agreedFees.length > 0) 
+            ? editingClient.agreedFees 
+            : [{ parentTask: '', childTask: '', fee: '', frequency: '' }],
           // KYC Documents
           kycDocuments: editingClient.kycDocuments || [
             { id: 1, name: 'PAN', file: null, remark: '' },
@@ -4649,7 +4672,7 @@ const PracticeManagementApp = () => {
         accountant: clientData.accountant || { name: '', contact1: '', contact2: '', email1: '', email2: '' },
         otherContact: clientData.otherContact || { name: '', contact1: '', contact2: '', email1: '', email2: '' },
         // Agreed Fees (filter out empty entries)
-        agreedFees: (clientData.agreedFees || []).filter(f => f.taskType || f.fee),
+        agreedFees: (clientData.agreedFees || []).filter(f => f.parentTask || f.fee),
         // KYC Documents (exclude file objects for Firebase, just keep metadata)
         kycDocuments: (clientData.kycDocuments || []).map(doc => ({
           id: doc.id,
@@ -5321,57 +5344,82 @@ const PracticeManagementApp = () => {
                 <div className="fees-content">
                   <h3 className="fees-title">
                     <DollarSign size={20} />
-                    AGREED FEES
+                    AGREED FEES BY TASK
                   </h3>
+                  <p style={{ color: '#64748b', fontSize: '12px', marginBottom: '16px' }}>
+                    Set agreed fees for specific task types. These fees will auto-populate when creating tasks for this client.
+                  </p>
 
-                  <table className="fees-table">
+                  <table className="fees-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
-                      <tr>
-                        <th>Sr. No.</th>
-                        <th>Task Type</th>
-                        <th>Agreed Fees</th>
-                        <th>Frequency</th>
-                        <th>Remark</th>
+                      <tr style={{ background: 'linear-gradient(180deg, #10b981 0%, #059669 100%)' }}>
+                        <th style={{ padding: '10px 8px', color: '#fff', fontSize: '11px', textTransform: 'uppercase', fontWeight: '600', width: '50px' }}>Sr.</th>
+                        <th style={{ padding: '10px 8px', color: '#fff', fontSize: '11px', textTransform: 'uppercase', fontWeight: '600', minWidth: '140px' }}>Parent Task</th>
+                        <th style={{ padding: '10px 8px', color: '#fff', fontSize: '11px', textTransform: 'uppercase', fontWeight: '600', minWidth: '160px' }}>Child Task</th>
+                        <th style={{ padding: '10px 8px', color: '#fff', fontSize: '11px', textTransform: 'uppercase', fontWeight: '600', width: '120px' }}>Agreed Fees (₹)</th>
+                        <th style={{ padding: '10px 8px', color: '#fff', fontSize: '11px', textTransform: 'uppercase', fontWeight: '600', width: '120px' }}>Frequency</th>
+                        <th style={{ padding: '10px 8px', color: '#fff', fontSize: '11px', textTransform: 'uppercase', fontWeight: '600', width: '60px' }}></th>
                       </tr>
                     </thead>
                     <tbody>
-                      {clientData.agreedFees.map((fee, idx) => (
-                        <tr key={idx}>
-                          <td>{idx + 1}</td>
-                          <td>
+                      {(clientData.agreedFees || []).map((fee, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? '#fff' : '#f8fafc' }}>
+                          <td style={{ padding: '8px', textAlign: 'center', fontWeight: '600', color: '#64748b' }}>{idx + 1}</td>
+                          <td style={{ padding: '8px' }}>
                             <select 
-                              value={fee.taskType}
+                              value={fee.parentTask || ''}
                               onChange={(e) => {
                                 const newFees = [...clientData.agreedFees];
-                                newFees[idx].taskType = e.target.value;
+                                newFees[idx] = { ...newFees[idx], parentTask: e.target.value, childTask: '' };
                                 setClientData({...clientData, agreedFees: newFees});
                               }}
+                              style={{ width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '13px' }}
                             >
-                              <option value="">Select</option>
+                              <option value="">Select Parent Task</option>
                               {Object.keys(PARENT_CHILD_TASKS).map(task => (
                                 <option key={task} value={task}>{task}</option>
                               ))}
                             </select>
                           </td>
-                          <td>
+                          <td style={{ padding: '8px' }}>
+                            <select 
+                              value={fee.childTask || ''}
+                              onChange={(e) => {
+                                const newFees = [...clientData.agreedFees];
+                                newFees[idx] = { ...newFees[idx], childTask: e.target.value };
+                                setClientData({...clientData, agreedFees: newFees});
+                              }}
+                              style={{ width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '13px' }}
+                              disabled={!fee.parentTask}
+                            >
+                              <option value="">Select Child Task</option>
+                              {(PARENT_CHILD_TASKS[fee.parentTask] || []).map(child => (
+                                <option key={child} value={child}>{child}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td style={{ padding: '8px' }}>
                             <input 
                               type="number" 
-                              value={fee.fee}
+                              value={fee.fee || ''}
+                              placeholder="0"
                               onChange={(e) => {
                                 const newFees = [...clientData.agreedFees];
-                                newFees[idx].fee = e.target.value;
+                                newFees[idx] = { ...newFees[idx], fee: e.target.value };
                                 setClientData({...clientData, agreedFees: newFees});
                               }}
+                              style={{ width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '13px' }}
                             />
                           </td>
-                          <td>
+                          <td style={{ padding: '8px' }}>
                             <select
-                              value={fee.frequency}
+                              value={fee.frequency || ''}
                               onChange={(e) => {
                                 const newFees = [...clientData.agreedFees];
-                                newFees[idx].frequency = e.target.value;
+                                newFees[idx] = { ...newFees[idx], frequency: e.target.value };
                                 setClientData({...clientData, agreedFees: newFees});
                               }}
+                              style={{ width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '13px' }}
                             >
                               <option value="">Select</option>
                               <option value="Monthly">Monthly</option>
@@ -5381,21 +5429,36 @@ const PracticeManagementApp = () => {
                               <option value="One-time">One-time</option>
                             </select>
                           </td>
-                          <td>
-                            <input 
-                              type="text"
-                              value={fee.remark}
-                              onChange={(e) => {
-                                const newFees = [...clientData.agreedFees];
-                                newFees[idx].remark = e.target.value;
-                                setClientData({...clientData, agreedFees: newFees});
-                              }}
-                            />
+                          <td style={{ padding: '8px', textAlign: 'center' }}>
+                            {clientData.agreedFees.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newFees = clientData.agreedFees.filter((_, i) => i !== idx);
+                                  setClientData({...clientData, agreedFees: newFees});
+                                }}
+                                style={{ background: '#fee2e2', border: 'none', borderRadius: '4px', padding: '6px 8px', cursor: 'pointer' }}
+                                title="Remove"
+                              >
+                                <Trash2 size={14} color="#dc2626" />
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
+                  
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newFee = { parentTask: '', childTask: '', fee: '', frequency: '' };
+                      setClientData({...clientData, agreedFees: [...(clientData.agreedFees || []), newFee]});
+                    }}
+                    style={{ marginTop: '12px', padding: '8px 16px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <Plus size={14} /> Add More Fee Entry
+                  </button>
                 </div>
               )}
 
@@ -5505,6 +5568,7 @@ const PracticeManagementApp = () => {
     const [showCreateClient, setShowCreateClient] = useState(false);
     const [editingClient, setEditingClient] = useState(null);
     const [viewingClient, setViewingClient] = useState(null);
+    const [clientViewTab, setClientViewTab] = useState('basic');
     const [activeClientTab, setActiveClientTab] = useState('enable');
     const [selectedClients, setSelectedClients] = useState([]);
     const [sortBy, setSortBy] = useState('default');
@@ -5937,6 +6001,8 @@ const PracticeManagementApp = () => {
                         <th>Email Id</th>
                         <th>PAN Card No.</th>
                         <th>Gstin</th>
+                        <th>GSTIN Password</th>
+                        <th>Income Tax Password</th>
                         <th>State</th>
                         <th>Aadhaar No.</th>
                       </tr>
@@ -5956,7 +6022,7 @@ const PracticeManagementApp = () => {
                               {hasActionPermission('canViewClients') && (
                               <button 
                                 className="edit-icon-btn" 
-                                onClick={() => setViewingClient(client)}
+                                onClick={() => { setViewingClient(client); setClientViewTab('basic'); }}
                                 title="View Details"
                                 style={{background: '#3b82f6', color: '#fff'}}
                               >
@@ -5983,6 +6049,8 @@ const PracticeManagementApp = () => {
                           <td>{client.email || ''}</td>
                           <td>{client.pan || ''}</td>
                           <td>{client.gstin || ''}</td>
+                          <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>{client.gstnPassword ? '••••••••' : '-'}</td>
+                          <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>{client.incomeTaxPassword ? '••••••••' : '-'}</td>
                           <td>{client.state || ''}</td>
                           <td>{client.aadhaar || ''}</td>
                         </tr>
@@ -6125,7 +6193,7 @@ const PracticeManagementApp = () => {
           />
         )}
 
-        {/* View Client Details Modal */}
+        {/* View Client Details Modal - Enhanced with Tabs */}
         {viewingClient && (
           <div style={{
             position: 'fixed',
@@ -6143,7 +6211,7 @@ const PracticeManagementApp = () => {
               background: '#fff',
               borderRadius: '16px',
               width: '95%',
-              maxWidth: '900px',
+              maxWidth: '1000px',
               maxHeight: '90vh',
               overflow: 'hidden',
               boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
@@ -6205,158 +6273,308 @@ const PracticeManagementApp = () => {
                 </div>
               </div>
 
-              {/* Modal Content */}
-              <div style={{padding: '24px', overflowY: 'auto', maxHeight: 'calc(90vh - 100px)'}}>
-                {/* Basic Info Section */}
-                <div style={{marginBottom: '24px'}}>
-                  <h3 style={{fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                    <span style={{width: '4px', height: '18px', background: '#3b82f6', borderRadius: '2px'}}></span>
-                    Basic Information
-                  </h3>
-                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px'}}>
-                    <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
-                      <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>Client Name</div>
-                      <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b'}}>{viewingClient.name || '-'}</div>
-                    </div>
-                    <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
-                      <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>Client Code</div>
-                      <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b'}}>{viewingClient.fileNo || '-'}</div>
-                    </div>
-                    <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
-                      <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>Group Name</div>
-                      <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b'}}>{viewingClient.groupName || '-'}</div>
-                    </div>
-                  </div>
+              {/* Modal Content with Tabs */}
+              <div style={{padding: '0', overflowY: 'auto', maxHeight: 'calc(90vh - 100px)'}}>
+                {/* Tab Navigation */}
+                <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', padding: '0 16px', overflowX: 'auto' }}>
+                  {[
+                    { id: 'basic', label: 'Basic Info' },
+                    { id: 'credentials', label: 'User IDs & Passwords', show: viewingClient.gstnUserId || viewingClient.tracesUserId || viewingClient.eWayBillUserId || viewingClient.incomeTaxUserId },
+                    { id: 'contacts', label: 'Contacts', show: viewingClient.primaryOwner?.name || viewingClient.secondaryOwner?.name || viewingClient.accountant?.name },
+                    { id: 'fees', label: 'Agreed Fees', show: viewingClient.agreedFees?.some(f => f.parentTask || f.fee) },
+                    { id: 'tasks', label: 'Tasks' }
+                  ].filter(tab => tab.show !== false).map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setClientViewTab(tab.id)}
+                      style={{
+                        padding: '12px 20px',
+                        border: 'none',
+                        background: clientViewTab === tab.id ? '#fff' : 'transparent',
+                        color: clientViewTab === tab.id ? '#10b981' : '#64748b',
+                        fontWeight: clientViewTab === tab.id ? '600' : '500',
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                        borderBottom: clientViewTab === tab.id ? '2px solid #10b981' : '2px solid transparent',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
                 </div>
 
-                {/* Contact Info Section */}
-                <div style={{marginBottom: '24px'}}>
-                  <h3 style={{fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                    <span style={{width: '4px', height: '18px', background: '#10b981', borderRadius: '2px'}}></span>
-                    Contact Information
-                  </h3>
-                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px'}}>
-                    <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
-                      <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>Phone</div>
-                      <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b'}}>{viewingClient.phone || '-'}</div>
-                    </div>
-                    <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
-                      <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>Email</div>
-                      <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b'}}>{viewingClient.email || '-'}</div>
-                    </div>
-                    <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
-                      <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>Address</div>
-                      <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b'}}>{viewingClient.address || '-'}</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Tax & Registration Section */}
-                <div style={{marginBottom: '24px'}}>
-                  <h3 style={{fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                    <span style={{width: '4px', height: '18px', background: '#f59e0b', borderRadius: '2px'}}></span>
-                    Tax & Registration Details
-                  </h3>
-                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px'}}>
-                    <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
-                      <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>PAN</div>
-                      <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b', fontFamily: 'monospace'}}>{viewingClient.pan || '-'}</div>
-                    </div>
-                    <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
-                      <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>GSTIN</div>
-                      <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b', fontFamily: 'monospace'}}>{viewingClient.gstin || '-'}</div>
-                    </div>
-                    <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
-                      <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>TAN</div>
-                      <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b', fontFamily: 'monospace'}}>{viewingClient.tan || '-'}</div>
-                    </div>
-                    <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
-                      <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>Aadhaar</div>
-                      <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b', fontFamily: 'monospace'}}>{viewingClient.aadhaar || '-'}</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Location Section */}
-                <div style={{marginBottom: '24px'}}>
-                  <h3 style={{fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                    <span style={{width: '4px', height: '18px', background: '#8b5cf6', borderRadius: '2px'}}></span>
-                    Location Details
-                  </h3>
-                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px'}}>
-                    <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
-                      <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>State</div>
-                      <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b'}}>{viewingClient.state || '-'}</div>
-                    </div>
-                    <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
-                      <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>City</div>
-                      <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b'}}>{viewingClient.city || '-'}</div>
-                    </div>
-                    <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
-                      <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>PIN Code</div>
-                      <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b'}}>{viewingClient.pincode || '-'}</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Services Section */}
-                {viewingClient.services && viewingClient.services.length > 0 && (
-                  <div style={{marginBottom: '24px'}}>
-                    <h3 style={{fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                      <span style={{width: '4px', height: '18px', background: '#ec4899', borderRadius: '2px'}}></span>
-                      Services
-                    </h3>
-                    <div style={{display: 'flex', flexWrap: 'wrap', gap: '8px'}}>
-                      {viewingClient.services.map((service, idx) => (
-                        <span key={idx} style={{
-                          padding: '6px 12px',
-                          background: '#dbeafe',
-                          color: '#1d4ed8',
-                          borderRadius: '20px',
-                          fontSize: '12px',
-                          fontWeight: '500'
-                        }}>
-                          {service}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Task Summary */}
-                <div>
-                  <h3 style={{fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                    <span style={{width: '4px', height: '18px', background: '#06b6d4', borderRadius: '2px'}}></span>
-                    Task Summary
-                  </h3>
-                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px'}}>
-                    {(() => {
-                      const clientTasks = data.tasks.filter(t => t.clientId === viewingClient.id || t.client === viewingClient.name);
-                      const openTasks = clientTasks.filter(t => !t.deleted && t.status !== 'Completed');
-                      const completedTasks = clientTasks.filter(t => t.status === 'Completed' || t.completedCheck);
-                      const totalBilled = data.invoices?.filter(inv => inv.clientId === viewingClient.id).reduce((sum, inv) => sum + (parseFloat(inv.totalAmount) || 0), 0) || 0;
-                      return (
-                        <>
-                          <div style={{background: '#eff6ff', padding: '16px', borderRadius: '8px', textAlign: 'center'}}>
-                            <div style={{fontSize: '24px', fontWeight: '700', color: '#3b82f6'}}>{clientTasks.length}</div>
-                            <div style={{fontSize: '11px', color: '#64748b', marginTop: '4px'}}>Total Tasks</div>
+                <div style={{ padding: '24px' }}>
+                  {/* Basic Info Tab */}
+                  {clientViewTab === 'basic' && (
+                    <>
+                      {/* Basic Info Section */}
+                      <div style={{marginBottom: '24px'}}>
+                        <h3 style={{fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                          <span style={{width: '4px', height: '18px', background: '#3b82f6', borderRadius: '2px'}}></span>
+                          Basic Information
+                        </h3>
+                        <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px'}}>
+                          <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
+                            <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>Client Name</div>
+                            <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b'}}>{viewingClient.name || '-'}</div>
                           </div>
-                          <div style={{background: '#fef3c7', padding: '16px', borderRadius: '8px', textAlign: 'center'}}>
-                            <div style={{fontSize: '24px', fontWeight: '700', color: '#f59e0b'}}>{openTasks.length}</div>
-                            <div style={{fontSize: '11px', color: '#64748b', marginTop: '4px'}}>Open Tasks</div>
+                          <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
+                            <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>Client Code</div>
+                            <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b'}}>{viewingClient.fileNo || '-'}</div>
                           </div>
-                          <div style={{background: '#dcfce7', padding: '16px', borderRadius: '8px', textAlign: 'center'}}>
-                            <div style={{fontSize: '24px', fontWeight: '700', color: '#10b981'}}>{completedTasks.length}</div>
-                            <div style={{fontSize: '11px', color: '#64748b', marginTop: '4px'}}>Completed</div>
+                          <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
+                            <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>Group Name</div>
+                            <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b'}}>{viewingClient.groupName || '-'}</div>
                           </div>
-                          <div style={{background: '#f0fdf4', padding: '16px', borderRadius: '8px', textAlign: 'center'}}>
-                            <div style={{fontSize: '24px', fontWeight: '700', color: '#16a34a'}}>₹{totalBilled.toLocaleString('en-IN')}</div>
-                            <div style={{fontSize: '11px', color: '#64748b', marginTop: '4px'}}>Total Billed</div>
+                        </div>
+                      </div>
+
+                      {/* Contact Info Section */}
+                      <div style={{marginBottom: '24px'}}>
+                        <h3 style={{fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                          <span style={{width: '4px', height: '18px', background: '#10b981', borderRadius: '2px'}}></span>
+                          Contact Information
+                        </h3>
+                        <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px'}}>
+                          <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
+                            <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>Phone</div>
+                            <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b'}}>{viewingClient.phone || '-'}</div>
                           </div>
-                        </>
-                      );
-                    })()}
-                  </div>
+                          <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
+                            <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>Email</div>
+                            <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b'}}>{viewingClient.email || '-'}</div>
+                          </div>
+                          <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
+                            <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>Address</div>
+                            <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b'}}>{viewingClient.address || '-'}</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Tax & Registration Section */}
+                      <div style={{marginBottom: '24px'}}>
+                        <h3 style={{fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                          <span style={{width: '4px', height: '18px', background: '#f59e0b', borderRadius: '2px'}}></span>
+                          Tax & Registration Details
+                        </h3>
+                        <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px'}}>
+                          <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
+                            <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>PAN</div>
+                            <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b', fontFamily: 'monospace'}}>{viewingClient.pan || '-'}</div>
+                          </div>
+                          <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
+                            <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>GSTIN</div>
+                            <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b', fontFamily: 'monospace'}}>{viewingClient.gstin || '-'}</div>
+                          </div>
+                          <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
+                            <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>TAN</div>
+                            <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b', fontFamily: 'monospace'}}>{viewingClient.tan || '-'}</div>
+                          </div>
+                          <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
+                            <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>Aadhaar</div>
+                            <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b', fontFamily: 'monospace'}}>{viewingClient.aadhaar || '-'}</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Location Section */}
+                      <div>
+                        <h3 style={{fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                          <span style={{width: '4px', height: '18px', background: '#8b5cf6', borderRadius: '2px'}}></span>
+                          Location Details
+                        </h3>
+                        <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px'}}>
+                          <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
+                            <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>State</div>
+                            <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b'}}>{viewingClient.state || '-'}</div>
+                          </div>
+                          <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
+                            <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>City</div>
+                            <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b'}}>{viewingClient.city || '-'}</div>
+                          </div>
+                          <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
+                            <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>Type of Client</div>
+                            <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b'}}>{viewingClient.typeOfClient || '-'}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Credentials Tab */}
+                  {clientViewTab === 'credentials' && (
+                    <div>
+                      <h3 style={{fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <span style={{width: '4px', height: '18px', background: '#3b82f6', borderRadius: '2px'}}></span>
+                        Portal Credentials
+                      </h3>
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ background: '#f8fafc' }}>
+                            <th style={{ padding: '12px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>Portal</th>
+                            <th style={{ padding: '12px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>User ID</th>
+                            <th style={{ padding: '12px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>Password</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {viewingClient.gstnUserId && (
+                            <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                              <td style={{ padding: '12px', fontWeight: '500' }}>GSTN</td>
+                              <td style={{ padding: '12px', fontFamily: 'monospace' }}>{viewingClient.gstnUserId}</td>
+                              <td style={{ padding: '12px', fontFamily: 'monospace' }}>{viewingClient.gstnPassword || '••••••••'}</td>
+                            </tr>
+                          )}
+                          {viewingClient.tracesUserId && (
+                            <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                              <td style={{ padding: '12px', fontWeight: '500' }}>Traces</td>
+                              <td style={{ padding: '12px', fontFamily: 'monospace' }}>{viewingClient.tracesUserId}</td>
+                              <td style={{ padding: '12px', fontFamily: 'monospace' }}>{viewingClient.tracesPassword || '••••••••'}</td>
+                            </tr>
+                          )}
+                          {viewingClient.eWayBillUserId && (
+                            <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                              <td style={{ padding: '12px', fontWeight: '500' }}>E-Way Bill</td>
+                              <td style={{ padding: '12px', fontFamily: 'monospace' }}>{viewingClient.eWayBillUserId}</td>
+                              <td style={{ padding: '12px', fontFamily: 'monospace' }}>{viewingClient.eWayBillPassword || '••••••••'}</td>
+                            </tr>
+                          )}
+                          {viewingClient.incomeTaxUserId && (
+                            <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                              <td style={{ padding: '12px', fontWeight: '500' }}>Income Tax</td>
+                              <td style={{ padding: '12px', fontFamily: 'monospace' }}>{viewingClient.incomeTaxUserId}</td>
+                              <td style={{ padding: '12px', fontFamily: 'monospace' }}>{viewingClient.incomeTaxPassword || '••••••••'}</td>
+                            </tr>
+                          )}
+                          {(viewingClient.otherCredentials || []).filter(c => c.portalName).map((cred, idx) => (
+                            <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                              <td style={{ padding: '12px', fontWeight: '500' }}>{cred.portalName}</td>
+                              <td style={{ padding: '12px', fontFamily: 'monospace' }}>{cred.userId}</td>
+                              <td style={{ padding: '12px', fontFamily: 'monospace' }}>{cred.password || '••••••••'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Contacts Tab */}
+                  {clientViewTab === 'contacts' && (
+                    <div>
+                      <h3 style={{fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <span style={{width: '4px', height: '18px', background: '#10b981', borderRadius: '2px'}}></span>
+                        Contact Persons
+                      </h3>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+                        {viewingClient.primaryOwner?.name && (
+                          <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px' }}>
+                            <div style={{ fontSize: '12px', color: '#10b981', fontWeight: '600', marginBottom: '8px' }}>PRIMARY OWNER</div>
+                            <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>{viewingClient.primaryOwner.name}</div>
+                            {viewingClient.primaryOwner.contact1 && <div style={{ fontSize: '13px', color: '#64748b' }}>📞 {viewingClient.primaryOwner.contact1}</div>}
+                            {viewingClient.primaryOwner.contact2 && <div style={{ fontSize: '13px', color: '#64748b' }}>📞 {viewingClient.primaryOwner.contact2}</div>}
+                            {viewingClient.primaryOwner.email1 && <div style={{ fontSize: '13px', color: '#64748b' }}>✉️ {viewingClient.primaryOwner.email1}</div>}
+                            {viewingClient.primaryOwner.email2 && <div style={{ fontSize: '13px', color: '#64748b' }}>✉️ {viewingClient.primaryOwner.email2}</div>}
+                          </div>
+                        )}
+                        {viewingClient.secondaryOwner?.name && (
+                          <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px' }}>
+                            <div style={{ fontSize: '12px', color: '#3b82f6', fontWeight: '600', marginBottom: '8px' }}>SECONDARY OWNER</div>
+                            <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>{viewingClient.secondaryOwner.name}</div>
+                            {viewingClient.secondaryOwner.contact1 && <div style={{ fontSize: '13px', color: '#64748b' }}>📞 {viewingClient.secondaryOwner.contact1}</div>}
+                            {viewingClient.secondaryOwner.email1 && <div style={{ fontSize: '13px', color: '#64748b' }}>✉️ {viewingClient.secondaryOwner.email1}</div>}
+                          </div>
+                        )}
+                        {viewingClient.accountant?.name && (
+                          <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px' }}>
+                            <div style={{ fontSize: '12px', color: '#f59e0b', fontWeight: '600', marginBottom: '8px' }}>ACCOUNTANT</div>
+                            <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>{viewingClient.accountant.name}</div>
+                            {viewingClient.accountant.contact1 && <div style={{ fontSize: '13px', color: '#64748b' }}>📞 {viewingClient.accountant.contact1}</div>}
+                            {viewingClient.accountant.email1 && <div style={{ fontSize: '13px', color: '#64748b' }}>✉️ {viewingClient.accountant.email1}</div>}
+                          </div>
+                        )}
+                        {viewingClient.otherContact?.name && (
+                          <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px' }}>
+                            <div style={{ fontSize: '12px', color: '#8b5cf6', fontWeight: '600', marginBottom: '8px' }}>OTHER CONTACT</div>
+                            <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>{viewingClient.otherContact.name}</div>
+                            {viewingClient.otherContact.contact1 && <div style={{ fontSize: '13px', color: '#64748b' }}>📞 {viewingClient.otherContact.contact1}</div>}
+                            {viewingClient.otherContact.email1 && <div style={{ fontSize: '13px', color: '#64748b' }}>✉️ {viewingClient.otherContact.email1}</div>}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Agreed Fees Tab */}
+                  {clientViewTab === 'fees' && (
+                    <div>
+                      <h3 style={{fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <span style={{width: '4px', height: '18px', background: '#f59e0b', borderRadius: '2px'}}></span>
+                        Agreed Fees by Task
+                      </h3>
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ background: 'linear-gradient(180deg, #10b981 0%, #059669 100%)' }}>
+                            <th style={{ padding: '12px', textAlign: 'left', fontSize: '11px', fontWeight: '600', color: '#fff', textTransform: 'uppercase' }}>Parent Task</th>
+                            <th style={{ padding: '12px', textAlign: 'left', fontSize: '11px', fontWeight: '600', color: '#fff', textTransform: 'uppercase' }}>Child Task</th>
+                            <th style={{ padding: '12px', textAlign: 'right', fontSize: '11px', fontWeight: '600', color: '#fff', textTransform: 'uppercase' }}>Agreed Fees</th>
+                            <th style={{ padding: '12px', textAlign: 'center', fontSize: '11px', fontWeight: '600', color: '#fff', textTransform: 'uppercase' }}>Frequency</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(viewingClient.agreedFees || []).filter(f => f.parentTask || f.fee).map((fee, idx) => (
+                            <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? '#fff' : '#f8fafc' }}>
+                              <td style={{ padding: '12px', fontWeight: '500' }}>{fee.parentTask || '-'}</td>
+                              <td style={{ padding: '12px' }}>{fee.childTask || '-'}</td>
+                              <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#10b981' }}>₹{parseFloat(fee.fee || 0).toLocaleString('en-IN')}</td>
+                              <td style={{ padding: '12px', textAlign: 'center' }}>
+                                <span style={{ padding: '4px 10px', background: '#dbeafe', color: '#1d4ed8', borderRadius: '12px', fontSize: '12px' }}>
+                                  {fee.frequency || '-'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Tasks Tab */}
+                  {clientViewTab === 'tasks' && (
+                    <div>
+                      <h3 style={{fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <span style={{width: '4px', height: '18px', background: '#06b6d4', borderRadius: '2px'}}></span>
+                        Task Summary
+                      </h3>
+                      <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '24px'}}>
+                        {(() => {
+                          const clientTasks = data.tasks.filter(t => t.clientId === viewingClient.id || t.clientName === viewingClient.name);
+                          const openTasks = clientTasks.filter(t => !t.deleted && t.status !== 'Completed' && !t.completedCheck);
+                          const completedTasks = clientTasks.filter(t => t.status === 'Completed' || t.completedCheck);
+                          const totalBilled = data.invoices?.filter(inv => inv.clientId === viewingClient.id).reduce((sum, inv) => sum + (parseFloat(inv.totalAmount) || 0), 0) || 0;
+                          return (
+                            <>
+                              <div style={{background: '#eff6ff', padding: '16px', borderRadius: '8px', textAlign: 'center'}}>
+                                <div style={{fontSize: '24px', fontWeight: '700', color: '#3b82f6'}}>{clientTasks.length}</div>
+                                <div style={{fontSize: '11px', color: '#64748b', marginTop: '4px'}}>Total Tasks</div>
+                              </div>
+                              <div style={{background: '#fef3c7', padding: '16px', borderRadius: '8px', textAlign: 'center'}}>
+                                <div style={{fontSize: '24px', fontWeight: '700', color: '#f59e0b'}}>{openTasks.length}</div>
+                                <div style={{fontSize: '11px', color: '#64748b', marginTop: '4px'}}>Open Tasks</div>
+                              </div>
+                              <div style={{background: '#dcfce7', padding: '16px', borderRadius: '8px', textAlign: 'center'}}>
+                                <div style={{fontSize: '24px', fontWeight: '700', color: '#10b981'}}>{completedTasks.length}</div>
+                                <div style={{fontSize: '11px', color: '#64748b', marginTop: '4px'}}>Completed</div>
+                              </div>
+                              <div style={{background: '#f0fdf4', padding: '16px', borderRadius: '8px', textAlign: 'center'}}>
+                                <div style={{fontSize: '24px', fontWeight: '700', color: '#16a34a'}}>₹{totalBilled.toLocaleString('en-IN')}</div>
+                                <div style={{fontSize: '11px', color: '#64748b', marginTop: '4px'}}>Total Billed</div>
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -17079,7 +17297,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                     <td style={{padding: '12px'}}>{task.period}</td>
                                     <td style={{padding: '12px'}}>{task.subPeriod || '-'}</td>
                                     <td style={{padding: '12px', textAlign: 'right'}}>₹{(task.billableCosting || 0).toLocaleString('en-IN')}</td>
-                                    <td style={{padding: '12px', textAlign: 'right'}}>₹{(task.agreedFees || 0).toLocaleString('en-IN')}</td>
+                                    <td style={{padding: '12px', textAlign: 'right'}}>₹{(parseFloat(task.agreedFees) || getClientAgreedFee(task.clientId, task.parentTask || task.taskType, task.childTask || task.subTask) || 0).toLocaleString('en-IN')}</td>
                                     <td style={{padding: '12px', textAlign: 'center'}}>
                                       <span style={{
                                         padding: '4px 10px',
@@ -17120,16 +17338,16 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                   financialYear: task.financialYear,
                                   narration: `${task.taskType || task.parentTask} - ${task.period}`,
                                   sacCode: '',
-                                  amount: task.agreedFees || task.billableCosting || 0,
+                                  amount: parseFloat(task.agreedFees) || getClientAgreedFee(task.clientId, task.parentTask || task.taskType, task.childTask || task.subTask) || task.billableCosting || 0,
                                   discount: 0,
-                                  netAmount: task.agreedFees || task.billableCosting || 0,
+                                  netAmount: parseFloat(task.agreedFees) || getClientAgreedFee(task.clientId, task.parentTask || task.taskType, task.childTask || task.subTask) || task.billableCosting || 0,
                                   remark: ''
                                 }));
                                 setMultipleTaskLineItems(lineItems);
                               } else {
                                 // Combined: single line item with all tasks
                                 const combinedNarration = selectedTasks.map(t => `${t.taskType || t.parentTask} - ${t.period}`).join(', ');
-                                const totalAmount = selectedTasks.reduce((sum, t) => sum + (t.agreedFees || t.billableCosting || 0), 0);
+                                const totalAmount = selectedTasks.reduce((sum, t) => sum + (parseFloat(t.agreedFees) || getClientAgreedFee(t.clientId, t.parentTask || t.taskType, t.childTask || t.subTask) || t.billableCosting || 0), 0);
                                 setMultipleTaskLineItems([{
                                   taskIds: selectedTasks.map(t => t.id),
                                   narrations: [{text: combinedNarration, amount: totalAmount, discount: 0}],
@@ -17881,9 +18099,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                     taskDescription: task.taskDescription || task.childTask || '',
                                     organizationId: '',
                                     billableCosting: task.billableCosting || '0.00',
-                                    agreedFees: task.agreedFees || task.fees || '0',
+                                    agreedFees: parseFloat(task.agreedFees) || getClientAgreedFee(task.clientId, task.parentTask || task.taskType, task.childTask || task.subTask) || task.fees || 0,
                                     billNo: '',
-                                    amount: task.agreedFees || task.fees || '0',
+                                    amount: parseFloat(task.agreedFees) || getClientAgreedFee(task.clientId, task.parentTask || task.taskType, task.childTask || task.subTask) || task.fees || 0,
                                     discount: '0',
                                     narration: `${task.parentTask} - ${task.childTask}`,
                                     remark: ''
@@ -18765,7 +18983,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           (data.tasks || []).filter(t => unbilledSelectedIds.includes(t.id)).forEach(task => {
                             details[task.id] = {
                               orgId: '',
-                              amount: parseFloat(task.agreedFees) || 0,
+                              amount: parseFloat(task.agreedFees) || getClientAgreedFee(task.clientId, task.parentTask || task.taskType, task.childTask || task.subTask) || 0,
                               tax: 0
                             };
                           });
@@ -18920,7 +19138,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 {taskStatus}
                               </span>
                             </td>
-                            <td style={{padding: '12px 10px', textAlign: 'right', fontWeight: '600', fontSize: '12px', color: '#0f172a', borderRight: '1px solid #e2e8f0'}}>₹{(parseFloat(task.agreedFees) || 0).toLocaleString('en-IN')}</td>
+                            <td style={{padding: '12px 10px', textAlign: 'right', fontWeight: '600', fontSize: '12px', color: '#0f172a', borderRight: '1px solid #e2e8f0'}}>
+                              ₹{(parseFloat(task.agreedFees) || getClientAgreedFee(task.clientId, task.parentTask || task.taskType, task.childTask || task.subTask) || 0).toLocaleString('en-IN')}
+                            </td>
                             <td style={{padding: '12px 10px', textAlign: 'center'}}>
                               <button
                                 onClick={() => setViewingUnbilledTask(task)}
@@ -18979,7 +19199,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       if (unbilledFilters.childTask) filtered = filtered.filter(t => t.childTask === unbilledFilters.childTask);
                       if (unbilledFilters.financialYear) filtered = filtered.filter(t => t.financialYear === unbilledFilters.financialYear);
                       if (unbilledFilters.period) filtered = filtered.filter(t => t.period === unbilledFilters.period);
-                      return filtered.reduce((sum, t) => sum + (parseFloat(t.agreedFees) || 0), 0).toLocaleString('en-IN');
+                      return filtered.reduce((sum, t) => sum + (parseFloat(t.agreedFees) || getClientAgreedFee(t.clientId, t.parentTask || t.taskType, t.childTask || t.subTask) || 0), 0).toLocaleString('en-IN');
                     })()}
                   </span>
                 </div>
@@ -19058,7 +19278,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
                         <div>
                           <div style={{fontSize: '10px', color: '#64748b'}}>Agreed Fees</div>
-                          <div style={{fontSize: '16px', fontWeight: '700', color: '#10b981'}}>₹{(parseFloat(viewingUnbilledTask.agreedFees) || 0).toLocaleString('en-IN')}</div>
+                          <div style={{fontSize: '16px', fontWeight: '700', color: '#10b981'}}>₹{(parseFloat(viewingUnbilledTask.agreedFees) || getClientAgreedFee(viewingUnbilledTask.clientId, viewingUnbilledTask.parentTask || viewingUnbilledTask.taskType, viewingUnbilledTask.childTask || viewingUnbilledTask.subTask) || 0).toLocaleString('en-IN')}</div>
                         </div>
                         <div>
                           <div style={{fontSize: '10px', color: '#64748b'}}>Govt. Fees</div>
@@ -19309,7 +19529,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                   </select>
                                 </td>
                                 <td style={{padding: '8px', textAlign: 'right', color: '#64748b', fontSize: '11px'}}>
-                                  ₹{(parseFloat(task.agreedFees) || 0).toLocaleString('en-IN')}
+                                  ₹{(parseFloat(task.agreedFees) || getClientAgreedFee(task.clientId, task.parentTask || task.taskType, task.childTask || task.subTask) || 0).toLocaleString('en-IN')}
                                 </td>
                                 <td style={{padding: '6px 8px'}}>
                                   <input
