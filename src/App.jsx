@@ -12360,9 +12360,12 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <p style={{ margin: '0 0 16px 0', color: '#64748b' }}>
                     Select your CSV file to upload
                   </p>
+                  
                   <input
                     type="file"
+                    id="bulk-task-file-input"
                     accept=".csv,.txt"
+                    style={{ display: 'none' }}
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (!file) {
@@ -12388,21 +12391,48 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             return;
                           }
                           
-                          const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+                          const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[^a-z0-9]/g, ''));
                           console.log('CSV Headers:', headers);
                           
-                          // Required columns
-                          const requiredCols = ['clientname', 'parenttask', 'childtask', 'financialyear', 'period', 'taskleader', 'taskmanager', 'primaryassigneduser'];
-                          const missingCols = requiredCols.filter(col => !headers.includes(col));
+                          // Required columns (flexible matching)
+                          const requiredCols = [
+                            { key: 'clientname', match: h => h.includes('clientname') || h === 'client' },
+                            { key: 'parenttask', match: h => h.includes('parenttask') || h === 'parent' },
+                            { key: 'childtask', match: h => h.includes('childtask') || h === 'child' },
+                            { key: 'financialyear', match: h => h.includes('financialyear') || h === 'fy' || h === 'year' },
+                            { key: 'period', match: h => h === 'period' },
+                            { key: 'taskleader', match: h => h.includes('taskleader') || h === 'leader' },
+                            { key: 'taskmanager', match: h => h.includes('taskmanager') || h === 'manager' },
+                            { key: 'primaryassigneduser', match: h => h.includes('primaryassigned') || h.includes('assigneduser') || h === 'assigned' }
+                          ];
+                          
+                          const missingCols = requiredCols.filter(req => !headers.some(h => req.match(h))).map(r => r.key);
                           
                           if (missingCols.length > 0) {
-                            setBulkError(`Missing required columns: ${missingCols.join(', ')}`);
+                            setBulkError(`Missing required columns: ${missingCols.join(', ')}\n\nExpected columns: clientname, parenttask, childtask, financialyear, period, taskleader, taskmanager, primaryassigneduser`);
                             return;
                           }
                           
-                          // Get column indices
+                          // Build column index map with flexible matching
                           const colIdx = {};
-                          headers.forEach((h, i) => colIdx[h] = i);
+                          headers.forEach((h, i) => {
+                            colIdx[h] = i;
+                            // Also map common variations
+                            if (h.includes('clientname') || h === 'client') colIdx['clientname'] = i;
+                            if (h.includes('parenttask') || h === 'parent') colIdx['parenttask'] = i;
+                            if (h.includes('childtask') || h === 'child') colIdx['childtask'] = i;
+                            if (h.includes('financialyear') || h === 'fy') colIdx['financialyear'] = i;
+                            if (h === 'period') colIdx['period'] = i;
+                            if (h.includes('subperiod')) colIdx['subperiod'] = i;
+                            if (h.includes('taskleader') || h === 'leader') colIdx['taskleader'] = i;
+                            if (h.includes('taskmanager') || h === 'manager') colIdx['taskmanager'] = i;
+                            if (h.includes('primaryassigned') || h.includes('assigneduser')) colIdx['primaryassigneduser'] = i;
+                            if (h.includes('fileno') || h.includes('clientcode')) colIdx['fileno'] = i;
+                            if (h.includes('groupname')) colIdx['groupname'] = i;
+                            if (h.includes('startdate')) colIdx['startdate'] = i;
+                            if (h.includes('expectedcompletion') || h.includes('duedate')) colIdx['expectedcompletiondate'] = i;
+                            if (h.includes('description')) colIdx['description'] = i;
+                          });
                           
                           const tasks = [];
                           const skippedRows = [];
@@ -12448,10 +12478,13 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             }
                             values.push(current.trim());
                             
-                            const getValue = (col) => values[colIdx[col]] || '';
+                            const getValue = (col) => {
+                              const idx = colIdx[col];
+                              return idx !== undefined ? (values[idx] || '') : '';
+                            };
                             
                             const clientName = getValue('clientname');
-                            const clientCode = getValue('fileno') || getValue('clientcode');
+                            const clientCode = getValue('fileno');
                             const parentTask = getValue('parenttask');
                             const childTask = getValue('childtask');
                             const taskLeader = getValue('taskleader');
@@ -12543,7 +12576,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               }
                             }
                             
-                            // 9. Validate Sub-Period
+                            // 9. Validate Sub-Period if provided
                             if (subPeriod && normalizedPeriod) {
                               const periodLower = normalizedPeriod.toLowerCase();
                               if (periodLower === 'monthly') {
@@ -12615,16 +12648,28 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       // Reset input so same file can be selected again
                       e.target.value = '';
                     }}
-                    style={{
-                      padding: '12px',
-                      border: '2px solid #3b82f6',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      width: '100%',
-                      maxWidth: '300px'
-                    }}
                   />
+                  
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('bulk-task-file-input').click()}
+                    style={{
+                      padding: '14px 28px',
+                      background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '10px',
+                      cursor: 'pointer',
+                      fontSize: '15px',
+                      fontWeight: '600',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+                    }}
+                  >
+                    <Upload size={18} /> Choose CSV File
+                  </button>
                   
                   {/* Validation Rules Info */}
                   <div style={{ marginTop: '20px', padding: '16px', background: '#eff6ff', borderRadius: '8px', border: '1px solid #bfdbfe', textAlign: 'left' }}>
