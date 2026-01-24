@@ -476,7 +476,8 @@ const PracticeManagementApp = () => {
               parentChildTasks: firebaseData.parentChildTasks || prev.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
               recurringBatches: firebaseData.recurringBatches || prev.recurringBatches || [],
               checklists: firebaseData.checklists || prev.checklists || [],
-              pendingApprovals: firebaseData.pendingApprovals || prev.pendingApprovals || []
+              pendingApprovals: firebaseData.pendingApprovals || prev.pendingApprovals || [],
+              dscRegister: firebaseData.dscRegister || prev.dscRegister || []
             }));
             
             // Find current user in staff
@@ -544,7 +545,8 @@ const PracticeManagementApp = () => {
               parentChildTasks: DEFAULT_PARENT_CHILD_TASKS,
               recurringBatches: [],
               checklists: [],
-              pendingApprovals: []
+              pendingApprovals: [],
+              dscRegister: []
             };
             
             setData(initialData);
@@ -613,6 +615,7 @@ const PracticeManagementApp = () => {
         recurringBatches: dataObj.recurringBatches || [],
         checklists: dataObj.checklists || [],
         pendingApprovals: dataObj.pendingApprovals || [],
+        dscRegister: dataObj.dscRegister || [],
         lastUpdated: new Date().toISOString()
       };
       
@@ -4515,12 +4518,13 @@ const PracticeManagementApp = () => {
         
         setClientData({
           ...getInitialState(), // Start with fresh state
+          // Basic Details
           fileNo: editingClient.fileNo || '',
           clientName: editingClient.name || '',
           email: editingClient.email || '',
           phone: editingClient.phone || '',
           dateOfEnrollment: editingClient.dateOfEnrollment || '',
-          groupName: generatedGroupName,
+          groupName: editingClient.groupName || generatedGroupName,
           address: editingClient.address || '',
           gstin: editingClient.gstin || '',
           pancard: editingClient.pan || '',
@@ -4532,7 +4536,33 @@ const PracticeManagementApp = () => {
           state: editingClient.state || '',
           country: editingClient.country || '',
           clientNotes: editingClient.notes || '',
-          showNotes: !!editingClient.notes
+          showNotes: !!editingClient.notes,
+          // User IDs & Passwords
+          gstnUserId: editingClient.gstnUserId || '',
+          gstnPassword: editingClient.gstnPassword || '',
+          tracesUserId: editingClient.tracesUserId || '',
+          tracesPassword: editingClient.tracesPassword || '',
+          eWayBillUserId: editingClient.eWayBillUserId || '',
+          eWayBillPassword: editingClient.eWayBillPassword || '',
+          incomeTaxUserId: editingClient.incomeTaxUserId || '',
+          incomeTaxPassword: editingClient.incomeTaxPassword || '',
+          otherCredentials: editingClient.otherCredentials || [],
+          // Contact Information
+          primaryOwner: editingClient.primaryOwner || { name: '', contact1: '', contact2: '', email1: '', email2: '' },
+          secondaryOwner: editingClient.secondaryOwner || { name: '', contact1: '', contact2: '', email1: '', email2: '' },
+          accountant: editingClient.accountant || { name: '', contact1: '', contact2: '', email1: '', email2: '' },
+          otherContact: editingClient.otherContact || { name: '', contact1: '', contact2: '', email1: '', email2: '' },
+          // Agreed Fees
+          agreedFees: editingClient.agreedFees || Array(10).fill(null).map(() => ({ taskType: '', fee: '', frequency: '', remark: '' })),
+          // KYC Documents
+          kycDocuments: editingClient.kycDocuments || [
+            { id: 1, name: 'PAN', file: null, remark: '' },
+            { id: 2, name: 'AADHAAR', file: null, remark: '' },
+            { id: 3, name: 'GST Certificate', file: null, remark: '' },
+            { id: 4, name: 'Incorporation Certificate', file: null, remark: '' },
+            { id: 5, name: 'TAN', file: null, remark: '' },
+            { id: 6, name: 'MOA & AOA', file: null, remark: '' },
+          ]
         });
       } else {
         // RESET FORM COMPLETELY when creating new client
@@ -4552,7 +4582,6 @@ const PracticeManagementApp = () => {
 
     const formSteps = [
       { id: 'basic', label: 'Basic Details' },
-      { id: 'bulk', label: 'Auto Bulk Task Batches' },
       { id: 'userids', label: 'User-IDs & Passwords' },
       { id: 'contact', label: 'Contact Information' },
       { id: 'fees', label: 'Agreed Fees' },
@@ -4565,31 +4594,28 @@ const PracticeManagementApp = () => {
         e.stopPropagation();
       }
       
-      alert('Step 1: Form submit handler called!');
-      console.log('Step 1: Form submitted!');
-      console.log('Step 2: Client Data:', clientData);
+      console.log('Form submitted, Client Data:', clientData);
       
       // Validate ONLY required fields: File No, Client Name, Group Name
       if (!clientData.fileNo || clientData.fileNo.trim() === '') {
-        alert('ERROR: File No is required!');
+        alert('File No is required!');
         return;
       }
       
       if (!clientData.clientName || clientData.clientName.trim() === '') {
-        alert('ERROR: Client Name is required!');
+        alert('Client Name is required!');
         return;
       }
       
       if (!clientData.groupName || clientData.groupName.trim() === '') {
-        alert('ERROR: Group Name is required! Current value: "' + clientData.groupName + '"');
+        alert('Group Name is required!');
         return;
       }
       
-      alert('Step 3: Validation passed, creating client object...');
-      
-      // Map form data to client object structure - ONLY save what user provides
+      // Map form data to client object structure - save ALL fields
       const newClient = {
         id: editingClient ? editingClient.id : generateId(),
+        // Basic Details
         name: clientData.clientName ? clientData.clientName.trim() : '',
         email: clientData.email ? clientData.email.trim() : '',
         phone: clientData.phone ? clientData.phone.trim() : '',
@@ -4603,38 +4629,48 @@ const PracticeManagementApp = () => {
         typeOfClient: clientData.typeOfClient ? clientData.typeOfClient.trim() : '',
         fixedAssignedUser: clientData.fixAssignedUser ? clientData.fixAssignedUser.trim() : '',
         clientIncharge: clientData.clientIncharge ? clientData.clientIncharge.trim() : '',
-        dateOfEnrollment: clientData.dateOfEnrollment ? clientData.dateOfEnrollment : '',
-        isOutOfIndia: clientData.isOutOfIndia ? true : false,
+        dateOfEnrollment: clientData.dateOfEnrollment || '',
+        isOutOfIndia: clientData.isOutOfIndia || false,
         country: clientData.country ? clientData.country.trim() : '',
         notes: clientData.clientNotes ? clientData.clientNotes.trim() : '',
-        disabled: false,
-        services: [],
-        outstanding: 0
+        // User IDs & Passwords
+        gstnUserId: clientData.gstnUserId || '',
+        gstnPassword: clientData.gstnPassword || '',
+        tracesUserId: clientData.tracesUserId || '',
+        tracesPassword: clientData.tracesPassword || '',
+        eWayBillUserId: clientData.eWayBillUserId || '',
+        eWayBillPassword: clientData.eWayBillPassword || '',
+        incomeTaxUserId: clientData.incomeTaxUserId || '',
+        incomeTaxPassword: clientData.incomeTaxPassword || '',
+        otherCredentials: clientData.otherCredentials || [],
+        // Contact Information
+        primaryOwner: clientData.primaryOwner || { name: '', contact1: '', contact2: '', email1: '', email2: '' },
+        secondaryOwner: clientData.secondaryOwner || { name: '', contact1: '', contact2: '', email1: '', email2: '' },
+        accountant: clientData.accountant || { name: '', contact1: '', contact2: '', email1: '', email2: '' },
+        otherContact: clientData.otherContact || { name: '', contact1: '', contact2: '', email1: '', email2: '' },
+        // Agreed Fees (filter out empty entries)
+        agreedFees: (clientData.agreedFees || []).filter(f => f.taskType || f.fee),
+        // KYC Documents (exclude file objects for Firebase, just keep metadata)
+        kycDocuments: (clientData.kycDocuments || []).map(doc => ({
+          id: doc.id,
+          name: doc.name,
+          remark: doc.remark || '',
+          hasFile: !!doc.file
+        })),
+        // Meta
+        disabled: editingClient ? editingClient.disabled : false,
+        services: editingClient ? editingClient.services : [],
+        outstanding: editingClient ? editingClient.outstanding : 0
       };
       
-      console.log('Step 4: New Client Object created:');
-      console.log('ID:', newClient.id);
-      console.log('Name:', newClient.name);
-      console.log('Email:', newClient.email);
-      console.log('FileNo:', newClient.fileNo);
-      console.log('GroupName:', newClient.groupName);
-      console.log('Address:', newClient.address);
-      console.log('GSTIN:', newClient.gstin);
-      console.log('PAN:', newClient.pan);
-      console.log('State:', newClient.state);
-      console.log('Full object:', newClient);
-      
-      console.log('Step 4: New Client Object:', newClient);
-      alert('Step 4: Client object created: ' + JSON.stringify(newClient));
+      console.log('Client object created:', newClient);
       
       try {
-        alert('Step 5: Calling onSave...');
         onSave(newClient, editingClient ? editingClient.id : null);
-        console.log('Step 6: onSave called successfully');
-        alert('Step 6: onSave completed successfully!');
+        console.log('Client saved successfully');
       } catch (error) {
         console.error('ERROR saving client:', error);
-        alert('ERROR creating client: ' + error.message);
+        alert('Error saving client: ' + error.message);
       }
     };
 
@@ -5042,59 +5078,9 @@ const PracticeManagementApp = () => {
             </div>
           )}
 
-          {/* Other Steps - Placeholder */}
+          {/* Other Steps */}
           {formStep !== 'basic' && (
             <div className="professional-form-body">
-              {formStep === 'bulk' && (
-                <div className="bulk-tasks-content">
-                  {/* Auto Bulk Task Batch */}
-                  <div className="bulk-section">
-                    <h3 className="bulk-section-title">
-                      <FileText size={20} />
-                      ADD/REMOVE FROM AUTO BULK TASK BATCH
-                    </h3>
-                    <div className="bulk-task-list">
-                      <label className="bulk-list-header">Add to Auto Bulk Task Batch</label>
-                      <div className="task-items-scroll">
-                        {[
-                          'Jigyasa Concurrent Audit Monthly',
-                          'Jigyasa IFF Monthly/ R1 Quarterly',
-                          'Ayaan IFF Monthly/ R1 Quarterly',
-                          'Jigyasa 3B Quarterly',
-                          'Ayaan 3B Quarterly',
-                          'Jigyasa 3B Monthly',
-                          'Ayaan 3B Monthly'
-                        ].map((task, idx) => (
-                          <div key={idx} className="task-item">
-                            <Plus size={16} />
-                            <span>{task}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Task Type Batch */}
-                  <div className="bulk-section">
-                    <h3 className="bulk-section-title">
-                      <FileText size={20} />
-                      ADD/REMOVE FROM TASK TYPE BATCH
-                    </h3>
-                    <div className="bulk-task-list">
-                      <label className="bulk-list-header">Add to Task Type Batch</label>
-                      <div className="task-items-scroll">
-                        {Object.keys(PARENT_CHILD_TASKS).map((task, idx) => (
-                          <div key={idx} className="task-item">
-                            <Plus size={16} />
-                            <span>{task}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {formStep === 'userids' && (
                 <div className="userids-content">
                   <h3 className="userids-title">
@@ -5117,14 +5103,14 @@ const PracticeManagementApp = () => {
                         <td>
                           <input 
                             type="text" 
-                            value={clientData.gstnUserId}
+                            value={clientData.gstnUserId || ''}
                             onChange={(e) => setClientData({...clientData, gstnUserId: e.target.value})}
                           />
                         </td>
                         <td>
                           <input 
                             type="password" 
-                            value={clientData.gstnPassword}
+                            value={clientData.gstnPassword || ''}
                             onChange={(e) => setClientData({...clientData, gstnPassword: e.target.value})}
                           />
                         </td>
@@ -5134,14 +5120,14 @@ const PracticeManagementApp = () => {
                         <td>
                           <input 
                             type="text"
-                            value={clientData.tracesUserId}
+                            value={clientData.tracesUserId || ''}
                             onChange={(e) => setClientData({...clientData, tracesUserId: e.target.value})}
                           />
                         </td>
                         <td>
                           <input 
                             type="password"
-                            value={clientData.tracesPassword}
+                            value={clientData.tracesPassword || ''}
                             onChange={(e) => setClientData({...clientData, tracesPassword: e.target.value})}
                           />
                         </td>
@@ -5151,14 +5137,14 @@ const PracticeManagementApp = () => {
                         <td>
                           <input 
                             type="text"
-                            value={clientData.eWayBillUserId}
+                            value={clientData.eWayBillUserId || ''}
                             onChange={(e) => setClientData({...clientData, eWayBillUserId: e.target.value})}
                           />
                         </td>
                         <td>
                           <input 
                             type="password"
-                            value={clientData.eWayBillPassword}
+                            value={clientData.eWayBillPassword || ''}
                             onChange={(e) => setClientData({...clientData, eWayBillPassword: e.target.value})}
                           />
                         </td>
@@ -5168,14 +5154,14 @@ const PracticeManagementApp = () => {
                         <td>
                           <input 
                             type="text"
-                            value={clientData.incomeTaxUserId}
+                            value={clientData.incomeTaxUserId || ''}
                             onChange={(e) => setClientData({...clientData, incomeTaxUserId: e.target.value})}
                           />
                         </td>
                         <td>
                           <input 
                             type="password"
-                            value={clientData.incomeTaxPassword}
+                            value={clientData.incomeTaxPassword || ''}
                             onChange={(e) => setClientData({...clientData, incomeTaxPassword: e.target.value})}
                           />
                         </td>
@@ -5191,18 +5177,77 @@ const PracticeManagementApp = () => {
                         <th><FileText size={18} /> Portal Name</th>
                         <th><User size={18} /> User ID</th>
                         <th><User size={18} /> Password</th>
+                        <th style={{width: '60px'}}></th>
                       </tr>
                     </thead>
                     <tbody>
-                      {[1, 2, 3, 4, 5, 6].map((idx) => (
+                      {(clientData.otherCredentials.length === 0 ? [{ portalName: '', userId: '', password: '' }] : clientData.otherCredentials).map((cred, idx) => (
                         <tr key={idx}>
-                          <td><input type="text" placeholder="Portal Name" /></td>
-                          <td><input type="text" placeholder="User id" /></td>
-                          <td><input type="password" placeholder="Password" /></td>
+                          <td>
+                            <input 
+                              type="text" 
+                              placeholder="Portal Name"
+                              value={cred.portalName || ''}
+                              onChange={(e) => {
+                                const newCreds = [...(clientData.otherCredentials.length === 0 ? [{ portalName: '', userId: '', password: '' }] : clientData.otherCredentials)];
+                                newCreds[idx] = { ...newCreds[idx], portalName: e.target.value };
+                                setClientData({...clientData, otherCredentials: newCreds});
+                              }}
+                            />
+                          </td>
+                          <td>
+                            <input 
+                              type="text" 
+                              placeholder="User ID"
+                              value={cred.userId || ''}
+                              onChange={(e) => {
+                                const newCreds = [...(clientData.otherCredentials.length === 0 ? [{ portalName: '', userId: '', password: '' }] : clientData.otherCredentials)];
+                                newCreds[idx] = { ...newCreds[idx], userId: e.target.value };
+                                setClientData({...clientData, otherCredentials: newCreds});
+                              }}
+                            />
+                          </td>
+                          <td>
+                            <input 
+                              type="password" 
+                              placeholder="Password"
+                              value={cred.password || ''}
+                              onChange={(e) => {
+                                const newCreds = [...(clientData.otherCredentials.length === 0 ? [{ portalName: '', userId: '', password: '' }] : clientData.otherCredentials)];
+                                newCreds[idx] = { ...newCreds[idx], password: e.target.value };
+                                setClientData({...clientData, otherCredentials: newCreds});
+                              }}
+                            />
+                          </td>
+                          <td>
+                            {clientData.otherCredentials.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newCreds = clientData.otherCredentials.filter((_, i) => i !== idx);
+                                  setClientData({...clientData, otherCredentials: newCreds});
+                                }}
+                                style={{ background: '#fee2e2', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer' }}
+                              >
+                                <Trash2 size={14} color="#dc2626" />
+                              </button>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newCreds = [...(clientData.otherCredentials.length === 0 ? [] : clientData.otherCredentials), { portalName: '', userId: '', password: '' }];
+                      setClientData({...clientData, otherCredentials: newCreds});
+                    }}
+                    style={{ marginTop: '10px', padding: '8px 16px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
+                  >
+                    <Plus size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                    Add More
+                  </button>
                 </div>
               )}
 
@@ -5226,38 +5271,38 @@ const PracticeManagementApp = () => {
                     <tbody>
                       <tr>
                         <td className="contact-row-label">Name Of Person</td>
-                        <td><input type="text" placeholder="Primary Owner Name" value={clientData.primaryOwner.name} onChange={(e) => setClientData({...clientData, primaryOwner: {...clientData.primaryOwner, name: e.target.value}})} /></td>
-                        <td><input type="text" placeholder="Secondary Owner Name" value={clientData.secondaryOwner.name} onChange={(e) => setClientData({...clientData, secondaryOwner: {...clientData.secondaryOwner, name: e.target.value}})} /></td>
-                        <td><input type="text" placeholder="Accountant Name" value={clientData.accountant.name} onChange={(e) => setClientData({...clientData, accountant: {...clientData.accountant, name: e.target.value}})} /></td>
-                        <td><input type="text" placeholder="Other Contact Person Name" value={clientData.otherContact.name} onChange={(e) => setClientData({...clientData, otherContact: {...clientData.otherContact, name: e.target.value}})} /></td>
+                        <td><input type="text" placeholder="Primary Owner Name" value={(clientData.primaryOwner || {}).name || ''} onChange={(e) => setClientData({...clientData, primaryOwner: {...(clientData.primaryOwner || {}), name: e.target.value}})} /></td>
+                        <td><input type="text" placeholder="Secondary Owner Name" value={(clientData.secondaryOwner || {}).name || ''} onChange={(e) => setClientData({...clientData, secondaryOwner: {...(clientData.secondaryOwner || {}), name: e.target.value}})} /></td>
+                        <td><input type="text" placeholder="Accountant Name" value={(clientData.accountant || {}).name || ''} onChange={(e) => setClientData({...clientData, accountant: {...(clientData.accountant || {}), name: e.target.value}})} /></td>
+                        <td><input type="text" placeholder="Other Contact Person Name" value={(clientData.otherContact || {}).name || ''} onChange={(e) => setClientData({...clientData, otherContact: {...(clientData.otherContact || {}), name: e.target.value}})} /></td>
                       </tr>
                       <tr>
                         <td className="contact-row-label">Contact No.1</td>
-                        <td><input type="text" placeholder="Primary Contact No.1" value={clientData.primaryOwner.contact1} onChange={(e) => setClientData({...clientData, primaryOwner: {...clientData.primaryOwner, contact1: e.target.value}})} /></td>
-                        <td><input type="text" placeholder="Secondary Contact No.1" value={clientData.secondaryOwner.contact1} onChange={(e) => setClientData({...clientData, secondaryOwner: {...clientData.secondaryOwner, contact1: e.target.value}})} /></td>
-                        <td><input type="text" placeholder="Accountant Contact No.1" value={clientData.accountant.contact1} onChange={(e) => setClientData({...clientData, accountant: {...clientData.accountant, contact1: e.target.value}})} /></td>
-                        <td><input type="text" placeholder="Other Contact No.1" value={clientData.otherContact.contact1} onChange={(e) => setClientData({...clientData, otherContact: {...clientData.otherContact, contact1: e.target.value}})} /></td>
+                        <td><input type="text" placeholder="Primary Contact No.1" value={(clientData.primaryOwner || {}).contact1 || ''} onChange={(e) => setClientData({...clientData, primaryOwner: {...(clientData.primaryOwner || {}), contact1: e.target.value}})} /></td>
+                        <td><input type="text" placeholder="Secondary Contact No.1" value={(clientData.secondaryOwner || {}).contact1 || ''} onChange={(e) => setClientData({...clientData, secondaryOwner: {...(clientData.secondaryOwner || {}), contact1: e.target.value}})} /></td>
+                        <td><input type="text" placeholder="Accountant Contact No.1" value={(clientData.accountant || {}).contact1 || ''} onChange={(e) => setClientData({...clientData, accountant: {...(clientData.accountant || {}), contact1: e.target.value}})} /></td>
+                        <td><input type="text" placeholder="Other Contact No.1" value={(clientData.otherContact || {}).contact1 || ''} onChange={(e) => setClientData({...clientData, otherContact: {...(clientData.otherContact || {}), contact1: e.target.value}})} /></td>
                       </tr>
                       <tr>
                         <td className="contact-row-label">Contact No.2</td>
-                        <td><input type="text" placeholder="Primary Contact No.2" value={clientData.primaryOwner.contact2} onChange={(e) => setClientData({...clientData, primaryOwner: {...clientData.primaryOwner, contact2: e.target.value}})} /></td>
-                        <td><input type="text" placeholder="Secondary Contact No.2" value={clientData.secondaryOwner.contact2} onChange={(e) => setClientData({...clientData, secondaryOwner: {...clientData.secondaryOwner, contact2: e.target.value}})} /></td>
-                        <td><input type="text" placeholder="Accountant Contact No.2" value={clientData.accountant.contact2} onChange={(e) => setClientData({...clientData, accountant: {...clientData.accountant, contact2: e.target.value}})} /></td>
-                        <td><input type="text" placeholder="Other Contact No.2" value={clientData.otherContact.contact2} onChange={(e) => setClientData({...clientData, otherContact: {...clientData.otherContact, contact2: e.target.value}})} /></td>
+                        <td><input type="text" placeholder="Primary Contact No.2" value={(clientData.primaryOwner || {}).contact2 || ''} onChange={(e) => setClientData({...clientData, primaryOwner: {...(clientData.primaryOwner || {}), contact2: e.target.value}})} /></td>
+                        <td><input type="text" placeholder="Secondary Contact No.2" value={(clientData.secondaryOwner || {}).contact2 || ''} onChange={(e) => setClientData({...clientData, secondaryOwner: {...(clientData.secondaryOwner || {}), contact2: e.target.value}})} /></td>
+                        <td><input type="text" placeholder="Accountant Contact No.2" value={(clientData.accountant || {}).contact2 || ''} onChange={(e) => setClientData({...clientData, accountant: {...(clientData.accountant || {}), contact2: e.target.value}})} /></td>
+                        <td><input type="text" placeholder="Other Contact No.2" value={(clientData.otherContact || {}).contact2 || ''} onChange={(e) => setClientData({...clientData, otherContact: {...(clientData.otherContact || {}), contact2: e.target.value}})} /></td>
                       </tr>
                       <tr>
                         <td className="contact-row-label">Email ID 1</td>
-                        <td><input type="email" placeholder="Primary Email 2" value={clientData.primaryOwner.email1} onChange={(e) => setClientData({...clientData, primaryOwner: {...clientData.primaryOwner, email1: e.target.value}})} /></td>
-                        <td><input type="email" placeholder="Secondary Email 1" value={clientData.secondaryOwner.email1} onChange={(e) => setClientData({...clientData, secondaryOwner: {...clientData.secondaryOwner, email1: e.target.value}})} /></td>
-                        <td><input type="email" placeholder="Accountant Email 1" value={clientData.accountant.email1} onChange={(e) => setClientData({...clientData, accountant: {...clientData.accountant, email1: e.target.value}})} /></td>
-                        <td><input type="email" placeholder="Other Email 1" value={clientData.otherContact.email1} onChange={(e) => setClientData({...clientData, otherContact: {...clientData.otherContact, email1: e.target.value}})} /></td>
+                        <td><input type="email" placeholder="Primary Email 1" value={(clientData.primaryOwner || {}).email1 || ''} onChange={(e) => setClientData({...clientData, primaryOwner: {...(clientData.primaryOwner || {}), email1: e.target.value}})} /></td>
+                        <td><input type="email" placeholder="Secondary Email 1" value={(clientData.secondaryOwner || {}).email1 || ''} onChange={(e) => setClientData({...clientData, secondaryOwner: {...(clientData.secondaryOwner || {}), email1: e.target.value}})} /></td>
+                        <td><input type="email" placeholder="Accountant Email 1" value={(clientData.accountant || {}).email1 || ''} onChange={(e) => setClientData({...clientData, accountant: {...(clientData.accountant || {}), email1: e.target.value}})} /></td>
+                        <td><input type="email" placeholder="Other Email 1" value={(clientData.otherContact || {}).email1 || ''} onChange={(e) => setClientData({...clientData, otherContact: {...(clientData.otherContact || {}), email1: e.target.value}})} /></td>
                       </tr>
                       <tr>
                         <td className="contact-row-label">Email ID 2</td>
-                        <td><input type="email" placeholder="Primary Email 2" value={clientData.primaryOwner.email2} onChange={(e) => setClientData({...clientData, primaryOwner: {...clientData.primaryOwner, email2: e.target.value}})} /></td>
-                        <td><input type="email" placeholder="Secondary Email 2" value={clientData.secondaryOwner.email2} onChange={(e) => setClientData({...clientData, secondaryOwner: {...clientData.secondaryOwner, email2: e.target.value}})} /></td>
-                        <td><input type="email" placeholder="Accountant Email 2" value={clientData.accountant.email2} onChange={(e) => setClientData({...clientData, accountant: {...clientData.accountant, email2: e.target.value}})} /></td>
-                        <td><input type="email" placeholder="Other Email 2" value={clientData.otherContact.email2} onChange={(e) => setClientData({...clientData, otherContact: {...clientData.otherContact, email2: e.target.value}})} /></td>
+                        <td><input type="email" placeholder="Primary Email 2" value={(clientData.primaryOwner || {}).email2 || ''} onChange={(e) => setClientData({...clientData, primaryOwner: {...(clientData.primaryOwner || {}), email2: e.target.value}})} /></td>
+                        <td><input type="email" placeholder="Secondary Email 2" value={(clientData.secondaryOwner || {}).email2 || ''} onChange={(e) => setClientData({...clientData, secondaryOwner: {...(clientData.secondaryOwner || {}), email2: e.target.value}})} /></td>
+                        <td><input type="email" placeholder="Accountant Email 2" value={(clientData.accountant || {}).email2 || ''} onChange={(e) => setClientData({...clientData, accountant: {...(clientData.accountant || {}), email2: e.target.value}})} /></td>
+                        <td><input type="email" placeholder="Other Email 2" value={(clientData.otherContact || {}).email2 || ''} onChange={(e) => setClientData({...clientData, otherContact: {...(clientData.otherContact || {}), email2: e.target.value}})} /></td>
                       </tr>
                     </tbody>
                   </table>
@@ -5408,7 +5453,21 @@ const PracticeManagementApp = () => {
                     </tbody>
                   </table>
 
-                  <button type="button" className="btn-add-more-kyc">
+                  <button 
+                    type="button" 
+                    className="btn-add-more-kyc"
+                    onClick={() => {
+                      const newDoc = {
+                        id: clientData.kycDocuments.length + 1,
+                        name: 'Custom Document',
+                        file: null,
+                        remark: ''
+                      };
+                      setClientData({...clientData, kycDocuments: [...clientData.kycDocuments, newDoc]});
+                    }}
+                    style={{ marginTop: '10px', padding: '8px 16px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
+                  >
+                    <Plus size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
                     Add More
                   </button>
                 </div>
