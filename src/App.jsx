@@ -2629,6 +2629,32 @@ const PracticeManagementApp = () => {
               </div>
             </div>
 
+            {/* Package Summary Cards */}
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px'}}>
+              <div 
+                onClick={() => setCurrentView('packages')}
+                style={{background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', borderRadius: '12px', padding: '16px', cursor: 'pointer', border: '1px solid #fcd34d'}}>
+                <div style={{fontSize: '24px', fontWeight: '700', color: '#92400e'}}>{(() => {
+                  const pkgs = data.packages || [];
+                  const sixtyDays = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
+                  return pkgs.filter(p => {
+                    const ed = new Date(p.endDate);
+                    return ed <= sixtyDays && ed >= today;
+                  }).length;
+                })()}</div>
+                <div style={{fontSize: '12px', fontWeight: '600', color: '#b45309'}}>📦 Due for Renewal (60 days)</div>
+              </div>
+              <div 
+                onClick={() => setCurrentView('packages')}
+                style={{background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)', borderRadius: '12px', padding: '16px', cursor: 'pointer', border: '1px solid #fca5a5'}}>
+                <div style={{fontSize: '24px', fontWeight: '700', color: '#991b1b'}}>{(() => {
+                  const pkgs = data.packages || [];
+                  return pkgs.filter(p => new Date(p.endDate) < today).length;
+                })()}</div>
+                <div style={{fontSize: '12px', fontWeight: '600', color: '#dc2626'}}>⚠️ Expired Packages</div>
+              </div>
+            </div>
+
             {/* Due for Renewal Packages */}
             <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', transition: 'all 0.3s ease'}}
               onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(245, 158, 11, 0.1)'; }}
@@ -2887,6 +2913,34 @@ const PracticeManagementApp = () => {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+
+            {/* Package Summary Cards */}
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px'}}>
+              <div 
+                onClick={() => setCurrentView('packages')}
+                style={{background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', borderRadius: '12px', padding: '16px', cursor: 'pointer', border: '1px solid #fcd34d'}}>
+                <div style={{fontSize: '24px', fontWeight: '700', color: '#92400e'}}>{(() => {
+                  const pkgs = data.packages || [];
+                  const todayNow = new Date();
+                  const sixtyDays = new Date(todayNow.getTime() + (60 * 24 * 60 * 60 * 1000));
+                  return pkgs.filter(p => {
+                    const ed = new Date(p.endDate);
+                    return ed <= sixtyDays && ed >= todayNow;
+                  }).length;
+                })()}</div>
+                <div style={{fontSize: '12px', fontWeight: '600', color: '#b45309'}}>📦 Due for Renewal (60 days)</div>
+              </div>
+              <div 
+                onClick={() => setCurrentView('packages')}
+                style={{background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)', borderRadius: '12px', padding: '16px', cursor: 'pointer', border: '1px solid #fca5a5'}}>
+                <div style={{fontSize: '24px', fontWeight: '700', color: '#991b1b'}}>{(() => {
+                  const pkgs = data.packages || [];
+                  const todayNow = new Date();
+                  return pkgs.filter(p => new Date(p.endDate) < todayNow).length;
+                })()}</div>
+                <div style={{fontSize: '12px', fontWeight: '600', color: '#dc2626'}}>⚠️ Expired Packages</div>
               </div>
             </div>
 
@@ -5202,14 +5256,14 @@ const PracticeManagementApp = () => {
                 {editingClient ? 'Edit Client' : 'Create a New Client'}
                 <span style={{
                   marginLeft: '12px',
-                  fontSize: '12px',
-                  padding: '4px 8px',
-                  background: editingClient ? '#fef3c7' : '#dcfce7',
-                  color: editingClient ? '#92400e' : '#166534',
+                  fontSize: '11px',
+                  padding: '4px 10px',
+                  background: editingClient ? 'rgba(254, 243, 199, 0.9)' : 'rgba(255, 255, 255, 0.25)',
+                  color: editingClient ? '#92400e' : '#fff',
                   borderRadius: '4px',
-                  fontWeight: 'normal'
+                  fontWeight: '600'
                 }}>
-                  {editingClient ? `EDIT MODE (ID: ${editingClient.id})` : 'NEW MODE'}
+                  {editingClient ? `EDIT MODE` : 'NEW'}
                 </span>
               </h2>
               <p>{editingClient ? 'Update client information' : 'Add complete client information to your system'}</p>
@@ -16501,8 +16555,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     <div>
                       {/* Organization Wise */}
                       <div style={{background: '#fff', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: '20px', border: '1px solid #e5e7eb'}}>
-                        <div style={{padding: '10px 16px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
-                          <h3 style={{margin: 0, fontSize: '13px', fontWeight: '600', color: '#fff'}}>Organization Wise Billing & Collection</h3>
+                        <div style={{padding: '12px 16px', borderBottom: '1px solid #e5e7eb'}}>
+                          <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#1e293b'}}>Organization Wise Billing & Collection</h3>
                         </div>
                         <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                           <thead>
@@ -16557,8 +16611,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       
                       {/* Child Task Wise Breakdown */}
                       <div style={{background: '#fff', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb'}}>
-                        <div style={{padding: '10px 16px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
-                          <h3 style={{margin: 0, fontSize: '13px', fontWeight: '600', color: '#fff'}}>Task Type Wise Billing & Collection</h3>
+                        <div style={{padding: '12px 16px', borderBottom: '1px solid #e5e7eb'}}>
+                          <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#1e293b'}}>Task Type Wise Billing & Collection</h3>
                         </div>
                         <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                           <thead>
@@ -25244,6 +25298,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       const endDate = new Date(p.endDate);
       return endDate <= sixtyDaysFromNow && endDate >= today;
     });
+    const expiredPackages = packages.filter(p => new Date(p.endDate) < today);
     const billedPackages = packages.filter(p => p.billed);
     const unbilledPackages = packages.filter(p => !p.billed);
     
@@ -25254,6 +25309,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       if (packageFilter === 'dueRenewal') {
         const endDate = new Date(p.endDate);
         if (endDate > sixtyDaysFromNow || endDate < today) return false;
+      }
+      if (packageFilter === 'expired') {
+        if (new Date(p.endDate) >= today) return false;
       }
       if (searchTerm) {
         const search = searchTerm.toLowerCase();
@@ -25456,7 +25514,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         </div>
         
         {/* Statistics Cards */}
-        <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px'}}>
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '24px'}}>
           <div 
             onClick={() => setPackageFilter('all')}
             style={{
@@ -25508,17 +25566,33 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           <div 
             onClick={() => setPackageFilter('unbilled')}
             style={{
-              background: packageFilter === 'unbilled' ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
-              color: packageFilter === 'unbilled' ? '#fff' : '#991b1b',
+              background: packageFilter === 'unbilled' ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+              color: packageFilter === 'unbilled' ? '#fff' : '#92400e',
               padding: '16px 20px',
               borderRadius: '12px',
               cursor: 'pointer',
-              boxShadow: packageFilter === 'unbilled' ? '0 4px 12px rgba(239,68,68,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
+              boxShadow: packageFilter === 'unbilled' ? '0 4px 12px rgba(245,158,11,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
               transition: 'all 0.2s'
             }}
           >
             <div style={{fontSize: '28px', fontWeight: '700'}}>{unbilledPackages.length}</div>
             <div style={{fontSize: '12px', fontWeight: '600'}}>Unbilled</div>
+          </div>
+          
+          <div 
+            onClick={() => setPackageFilter('expired')}
+            style={{
+              background: packageFilter === 'expired' ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+              color: packageFilter === 'expired' ? '#fff' : '#991b1b',
+              padding: '16px 20px',
+              borderRadius: '12px',
+              cursor: 'pointer',
+              boxShadow: packageFilter === 'expired' ? '0 4px 12px rgba(239,68,68,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
+              transition: 'all 0.2s'
+            }}
+          >
+            <div style={{fontSize: '28px', fontWeight: '700'}}>{expiredPackages.length}</div>
+            <div style={{fontSize: '12px', fontWeight: '600'}}>Expired</div>
           </div>
         </div>
         
@@ -30576,9 +30650,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         }
 
         .client-form-header {
-          background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-          padding: 28px 32px;
-          border-bottom: 1px solid #e2e8f0;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          padding: 24px 32px;
+          border-bottom: none;
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -30591,26 +30665,26 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         }
 
         .header-icon {
-          color: #10b981;
+          color: #fff;
         }
 
         .client-form-header h2 {
-          font-size: 24px;
+          font-size: 22px;
           font-weight: 600;
-          color: #1a1a1a;
+          color: #fff;
           margin: 0 0 4px 0;
         }
 
         .client-form-header p {
-          font-size: 14px;
-          color: #64748b;
+          font-size: 13px;
+          color: rgba(255, 255, 255, 0.85);
           margin: 0;
         }
 
         .btn-close-professional {
-          background: white;
-          border: 1px solid #e2e8f0;
-          color: #64748b;
+          background: rgba(255, 255, 255, 0.2);
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          color: #fff;
           cursor: pointer;
           padding: 8px;
           border-radius: 8px;
@@ -30621,25 +30695,25 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         }
 
         .btn-close-professional:hover {
-          background: #fee2e2;
-          border-color: #fecaca;
-          color: #ef4444;
+          background: rgba(255, 255, 255, 0.3);
+          border-color: rgba(255, 255, 255, 0.5);
+          color: #fff;
         }
 
         .professional-tabs {
-          background: white;
+          background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
           padding: 0 32px;
           display: flex;
-          gap: 0;
-          border-bottom: 2px solid #e2e8f0;
+          gap: 4px;
+          border-bottom: 2px solid #10b981;
           overflow-x: auto;
         }
 
         .professional-tab {
           flex: 1;
           min-width: 160px;
-          padding: 16px 20px;
-          background: none;
+          padding: 14px 20px;
+          background: transparent;
           border: none;
           border-bottom: 3px solid transparent;
           cursor: pointer;
@@ -30647,29 +30721,32 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           display: flex;
           align-items: center;
           gap: 10px;
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 500;
-          color: #64748b;
+          color: #166534;
           white-space: nowrap;
+          border-radius: 8px 8px 0 0;
         }
 
         .professional-tab:hover {
-          background: #f8fafc;
-          color: #1a1a1a;
+          background: rgba(16, 185, 129, 0.15);
+          color: #065f46;
         }
 
         .professional-tab.active {
-          color: #10b981;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: #fff;
           border-bottom-color: #10b981;
           font-weight: 600;
+          box-shadow: 0 -2px 8px rgba(16, 185, 129, 0.3);
         }
 
         .tab-number {
           width: 24px;
           height: 24px;
           border-radius: 50%;
-          background: #f1f5f9;
-          color: #64748b;
+          background: rgba(16, 185, 129, 0.2);
+          color: #166534;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -30679,7 +30756,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         }
 
         .professional-tab.active .tab-number {
-          background: #10b981;
+          background: rgba(255, 255, 255, 0.3);
           color: white;
         }
 
@@ -30688,22 +30765,23 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         }
 
         .professional-form-body {
-          padding: 32px;
+          padding: 24px 32px;
           max-height: 600px;
           overflow-y: auto;
+          background: #f8fafc;
         }
 
         .info-banner {
-          background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-          border-left: 4px solid #3b82f6;
+          background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+          border-left: 4px solid #10b981;
           padding: 14px 18px;
           border-radius: 8px;
-          margin-bottom: 28px;
+          margin-bottom: 24px;
           display: flex;
           align-items: center;
           gap: 12px;
           font-size: 13px;
-          color: #1e40af;
+          color: #065f46;
         }
 
         .info-banner strong {
@@ -30726,7 +30804,12 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         }
 
         .form-section-pro {
-          margin-bottom: 32px;
+          margin-bottom: 28px;
+          background: #fff;
+          border-radius: 10px;
+          padding: 20px;
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
         }
 
         .form-section-pro:last-child {
@@ -30734,23 +30817,22 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         }
 
         .section-title-pro {
-          font-size: 16px;
+          font-size: 15px;
           font-weight: 600;
-          color: #1a1a1a;
-          margin: 0 0 20px 0;
-          padding-bottom: 10px;
-          border-bottom: 2px solid #f1f5f9;
+          color: #065f46;
+          margin: 0 0 18px 0;
+          padding: 10px 14px;
+          background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+          border-radius: 8px;
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
+          border-left: 4px solid #10b981;
         }
 
         .section-title-pro::before {
           content: '';
-          width: 4px;
-          height: 20px;
-          background: #10b981;
-          border-radius: 2px;
+          display: none;
         }
 
         .form-grid-pro {
