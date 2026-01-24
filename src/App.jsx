@@ -1439,14 +1439,18 @@ const PracticeManagementApp = () => {
                     // Check if user has access to this parent task category
                     const parentId = `task_${parent.toLowerCase().replace(/\s+/g, '_')}`;
                     return hasAccess(parentId);
-                  }).map(parent => {
-                    // Count all tasks for this parent category visible to current user
-                    const parentTaskCount = data.tasks.filter(t => 
+                  })
+                  // Sort by task count (highest first)
+                  .map(parent => ({
+                    parent,
+                    count: data.tasks.filter(t => 
                       t.parentTask === parent && 
                       !t.deleted &&
                       canUserViewTask(t)
-                    ).length;
-                    
+                    ).length
+                  }))
+                  .sort((a, b) => b.count - a.count)
+                  .map(({ parent, count: parentTaskCount }) => {
                     return (
                     <div
                       key={parent}
@@ -1602,14 +1606,19 @@ const PracticeManagementApp = () => {
                     // Check if user has access to this child task
                     const childId = `task_${sidebarSelectedParent.toLowerCase().replace(/\s+/g, '_')}_${child.toLowerCase().replace(/\s+/g, '_')}`;
                     return hasAccess(childId);
-                  }).map(child => {
-                    // Count only tasks visible to current user
-                    const taskCount = data.tasks.filter(t => 
+                  })
+                  // Sort by task count (highest first)
+                  .map(child => ({
+                    child,
+                    count: data.tasks.filter(t => 
                       t.parentTask === sidebarSelectedParent && 
                       t.childTask === child && 
                       !t.deleted &&
                       canUserViewTask(t)
-                    ).length;
+                    ).length
+                  }))
+                  .sort((a, b) => b.count - a.count)
+                  .map(({ child, count: taskCount }) => {
                     const isActive = selectedParentTask === sidebarSelectedParent && selectedChildTask === child;
                     return (
                       <div
@@ -2132,6 +2141,156 @@ const PracticeManagementApp = () => {
       </div>
     );
     
+    // Animated Pie Chart component
+    const AnimatedPieChart = ({ data, size = 200 }) => {
+      const [hoveredIndex, setHoveredIndex] = React.useState(null);
+      const [animationKey, setAnimationKey] = React.useState(0);
+      
+      const total = data.reduce((sum, d) => sum + d.value, 0);
+      if (total === 0) return <div style={{width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8'}}>No data</div>;
+      
+      const radius = size / 2 - 10;
+      const centerX = size / 2;
+      const centerY = size / 2;
+      
+      let currentAngle = -90; // Start from top
+      
+      const slices = data.map((item, idx) => {
+        const angle = (item.value / total) * 360;
+        const startAngle = currentAngle;
+        const endAngle = currentAngle + angle;
+        currentAngle = endAngle;
+        
+        const startRad = startAngle * Math.PI / 180;
+        const endRad = endAngle * Math.PI / 180;
+        
+        const x1 = centerX + radius * Math.cos(startRad);
+        const y1 = centerY + radius * Math.sin(startRad);
+        const x2 = centerX + radius * Math.cos(endRad);
+        const y2 = centerY + radius * Math.sin(endRad);
+        
+        const largeArc = angle > 180 ? 1 : 0;
+        
+        const pathD = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+        
+        // Calculate label position
+        const midAngle = (startAngle + endAngle) / 2;
+        const midRad = midAngle * Math.PI / 180;
+        const labelRadius = radius * 0.65;
+        const labelX = centerX + labelRadius * Math.cos(midRad);
+        const labelY = centerY + labelRadius * Math.sin(midRad);
+        
+        return { ...item, pathD, labelX, labelY, percentage: ((item.value / total) * 100).toFixed(0), idx };
+      });
+      
+      return (
+        <div style={{display: 'flex', alignItems: 'center', gap: '20px'}}>
+          <div style={{position: 'relative'}}>
+            <svg 
+              width={size} 
+              height={size} 
+              style={{cursor: 'pointer', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))'}}
+              key={animationKey}
+            >
+              <style>{`
+                @keyframes pieSliceGrow {
+                  from { transform: scale(0); opacity: 0; }
+                  to { transform: scale(1); opacity: 1; }
+                }
+                .pie-slice {
+                  transform-origin: ${centerX}px ${centerY}px;
+                  animation: pieSliceGrow 0.6s ease-out forwards;
+                  transition: transform 0.2s ease, filter 0.2s ease;
+                }
+                .pie-slice:hover {
+                  transform: scale(1.05);
+                  filter: brightness(1.1);
+                }
+              `}</style>
+              {slices.map((slice, idx) => (
+                <g key={idx}>
+                  <path
+                    d={slice.pathD}
+                    fill={slice.color}
+                    className="pie-slice"
+                    style={{
+                      animationDelay: `${idx * 0.1}s`,
+                      transform: hoveredIndex === idx ? 'scale(1.05)' : 'scale(1)',
+                      filter: hoveredIndex === idx ? 'brightness(1.1) drop-shadow(0 4px 8px rgba(0,0,0,0.2))' : 'none'
+                    }}
+                    onMouseEnter={() => setHoveredIndex(idx)}
+                    onMouseLeave={() => setHoveredIndex(null)}
+                  />
+                  {slice.value > 0 && slice.percentage >= 5 && (
+                    <text
+                      x={slice.labelX}
+                      y={slice.labelY}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fill="#fff"
+                      fontSize="11"
+                      fontWeight="600"
+                      style={{pointerEvents: 'none', textShadow: '0 1px 2px rgba(0,0,0,0.3)'}}
+                    >
+                      {slice.value}
+                    </text>
+                  )}
+                </g>
+              ))}
+            </svg>
+            <button
+              onClick={() => setAnimationKey(k => k + 1)}
+              style={{
+                position: 'absolute',
+                bottom: '-5px',
+                right: '-5px',
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                background: '#fff',
+                border: '2px solid #e2e8f0',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                transition: 'transform 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'rotate(180deg)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'rotate(0deg)'}
+              title="Refresh animation"
+            >
+              <RefreshCw size={14} style={{color: '#64748b'}} />
+            </button>
+          </div>
+          {/* Legend */}
+          <div style={{display: 'flex', flexDirection: 'column', gap: '6px', flex: 1}}>
+            {slices.filter(s => s.value > 0).map((slice, idx) => (
+              <div 
+                key={idx} 
+                style={{
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px', 
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  background: hoveredIndex === slice.idx ? '#f1f5f9' : 'transparent',
+                  transition: 'background 0.2s ease',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={() => setHoveredIndex(slice.idx)}
+                onMouseLeave={() => setHoveredIndex(null)}
+              >
+                <div style={{width: '12px', height: '12px', borderRadius: '3px', background: slice.color, flexShrink: 0}} />
+                <span style={{fontSize: '11px', color: '#64748b', flex: 1}}>{slice.name}</span>
+                <span style={{fontSize: '11px', fontWeight: '600', color: '#1e293b'}}>{slice.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    };
+    
     // Donut chart component
     const SimpleDonutChart = ({ data, size = 120 }) => {
       const total = data.reduce((sum, d) => sum + d.value, 0);
@@ -2216,19 +2375,23 @@ const PracticeManagementApp = () => {
 
           {/* KPI Cards Row 1 - Tasks */}
           <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '20px'}}>
-            <div style={{background: 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #bfdbfe'}}>
+            <div className="dashboard-card" style={{background: 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #bfdbfe', transition: 'all 0.3s ease', cursor: 'pointer'}} 
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(59, 130, 246, 0.25)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                 <div>
                   <div style={{fontSize: '13px', color: '#3b82f6', fontWeight: '600', marginBottom: '4px'}}>Total Tasks</div>
                   <div style={{fontSize: '28px', fontWeight: '700', color: '#1e40af'}}>{kpis.totalTasks}</div>
                 </div>
-                <div style={{width: '40px', height: '40px', background: '#3b82f6', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                <div style={{width: '40px', height: '40px', background: '#3b82f6', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform 0.3s ease'}} className="card-icon">
                   <FileText size={20} style={{color: '#fff'}} />
                 </div>
               </div>
               <div style={{fontSize: '11px', color: '#64748b', marginTop: '8px'}}>{kpis.openTasks} open • {kpis.inProgressTasks} in progress</div>
             </div>
-            <div style={{background: 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #bbf7d0'}}>
+            <div className="dashboard-card" style={{background: 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #bbf7d0', transition: 'all 0.3s ease', cursor: 'pointer'}}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(16, 185, 129, 0.25)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                 <div>
                   <div style={{fontSize: '13px', color: '#16a34a', fontWeight: '600', marginBottom: '4px'}}>Completed</div>
@@ -2240,7 +2403,9 @@ const PracticeManagementApp = () => {
               </div>
               <div style={{fontSize: '11px', color: '#64748b', marginTop: '8px'}}>{kpis.completedThisMonth} this month</div>
             </div>
-            <div style={{background: 'linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #fecaca'}}>
+            <div className="dashboard-card" style={{background: 'linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #fecaca', transition: 'all 0.3s ease', cursor: 'pointer'}}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(239, 68, 68, 0.25)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                 <div>
                   <div style={{fontSize: '13px', color: '#dc2626', fontWeight: '600', marginBottom: '4px'}}>Overdue</div>
@@ -2252,7 +2417,9 @@ const PracticeManagementApp = () => {
               </div>
               <div style={{fontSize: '11px', color: '#64748b', marginTop: '8px'}}>{kpis.highPriorityPending} high priority</div>
             </div>
-            <div style={{background: 'linear-gradient(135deg, #f3e8ff 0%, #faf5ff 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #e9d5ff'}}>
+            <div className="dashboard-card" style={{background: 'linear-gradient(135deg, #f3e8ff 0%, #faf5ff 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #e9d5ff', transition: 'all 0.3s ease', cursor: 'pointer'}}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(139, 92, 246, 0.25)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                 <div>
                   <div style={{fontSize: '13px', color: '#9333ea', fontWeight: '600', marginBottom: '4px'}}>Active Clients</div>
@@ -2264,7 +2431,9 @@ const PracticeManagementApp = () => {
               </div>
               <div style={{fontSize: '11px', color: '#64748b', marginTop: '8px'}}>{data.clients.filter(c => c.disabled).length} disabled</div>
             </div>
-            <div style={{background: 'linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #fde68a'}}>
+            <div className="dashboard-card" style={{background: 'linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #fde68a', transition: 'all 0.3s ease', cursor: 'pointer'}}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(245, 158, 11, 0.25)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                 <div>
                   <div style={{fontSize: '13px', color: '#d97706', fontWeight: '600', marginBottom: '4px'}}>Active Staff</div>
@@ -2280,7 +2449,9 @@ const PracticeManagementApp = () => {
 
           {/* KPI Cards Row 2 - Billing */}
           <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px'}}>
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)'}}>
+            <div className="dashboard-card" style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', transition: 'all 0.3s ease', cursor: 'pointer'}}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(59, 130, 246, 0.15)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'; }}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                 <div>
                   <div style={{fontSize: '11px', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px'}}>Total Billed</div>
@@ -2292,7 +2463,9 @@ const PracticeManagementApp = () => {
               </div>
               <div style={{fontSize: '11px', color: '#10b981', marginTop: '8px'}}>₹{billingKpis.thisMonthBilling.toLocaleString('en-IN')} this month</div>
             </div>
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)'}}>
+            <div className="dashboard-card" style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', transition: 'all 0.3s ease', cursor: 'pointer'}}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(16, 185, 129, 0.15)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'; }}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                 <div>
                   <div style={{fontSize: '11px', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px'}}>Total Collected</div>
@@ -2304,7 +2477,9 @@ const PracticeManagementApp = () => {
               </div>
               <div style={{fontSize: '11px', color: '#10b981', marginTop: '8px'}}>₹{billingKpis.thisMonthCollection.toLocaleString('en-IN')} this month</div>
             </div>
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)'}}>
+            <div className="dashboard-card" style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', transition: 'all 0.3s ease', cursor: 'pointer'}}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(239, 68, 68, 0.15)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'; }}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                 <div>
                   <div style={{fontSize: '11px', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px'}}>Outstanding</div>
@@ -2316,7 +2491,9 @@ const PracticeManagementApp = () => {
               </div>
               <div style={{fontSize: '11px', color: '#64748b', marginTop: '8px'}}>{billingKpis.pendingInvoices} pending invoices</div>
             </div>
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)'}}>
+            <div className="dashboard-card" style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', transition: 'all 0.3s ease', cursor: 'pointer'}}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(139, 92, 246, 0.15)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'; }}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                 <div>
                   <div style={{fontSize: '11px', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px'}}>Collection Rate</div>
@@ -2333,7 +2510,9 @@ const PracticeManagementApp = () => {
           {/* Charts Row */}
           <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '24px'}}>
             {/* Task Status Chart */}
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
+            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', transition: 'all 0.3s ease'}}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.08)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
               <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#1e293b'}}>Task Status Distribution</h3>
               <div style={{display: 'flex', alignItems: 'center', gap: '20px'}}>
                 <SimpleDonutChart data={taskStatusData} size={100} />
@@ -2351,17 +2530,21 @@ const PracticeManagementApp = () => {
               </div>
             </div>
 
-            {/* Task Categories Chart */}
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
+            {/* Task Categories Chart - Pie Chart */}
+            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', transition: 'all 0.3s ease'}}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.08)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
               <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#1e293b'}}>Tasks by Category</h3>
-              <SimpleBarChart 
-                data={taskCategoryData.map((d, i) => ({...d, color: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'][i % 6]}))} 
-                maxValue={Math.max(...taskCategoryData.map(d => d.value), 1)} 
+              <AnimatedPieChart 
+                data={taskCategoryData.filter(d => d.value > 0).map((d, i) => ({...d, color: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'][i % 8]}))} 
+                size={180}
               />
             </div>
 
             {/* Staff Workload */}
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
+            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', transition: 'all 0.3s ease'}}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.08)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
               <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#1e293b'}}>Staff Workload (Pending)</h3>
               <SimpleBarChart 
                 data={teamWorkloadData.slice(0, 6).map(d => ({name: d.name, value: d.pending, color: d.overdue > 0 ? '#ef4444' : '#3b82f6'}))} 
@@ -2373,7 +2556,9 @@ const PracticeManagementApp = () => {
           {/* Tables Row */}
           <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px'}}>
             {/* Recent Tasks */}
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
+            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', transition: 'all 0.3s ease'}}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.08)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
               <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#1e293b'}}>Recent Tasks</h3>
               <div style={{overflowX: 'auto'}}>
                 <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
@@ -2409,7 +2594,9 @@ const PracticeManagementApp = () => {
             </div>
 
             {/* Overdue Tasks */}
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
+            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', transition: 'all 0.3s ease'}}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(239, 68, 68, 0.1)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
               <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#ef4444'}}>⚠️ Overdue Tasks ({overdueTasks.length})</h3>
               <div style={{overflowX: 'auto', maxHeight: '300px', overflowY: 'auto'}}>
                 {overdueTasks.length === 0 ? (
@@ -2946,7 +3133,11 @@ const PracticeManagementApp = () => {
       // Apply search filters
       if (filters.fileNo && !(task.fileNo || '').includes(filters.fileNo)) return false;
       if (filters.clientName && !task.clientName?.toLowerCase().includes(filters.clientName.toLowerCase())) return false;
-      if (filters.groupName && !(task.groupName || '').toLowerCase().includes(filters.groupName.toLowerCase())) return false;
+      // Filter by Group No. (derived from fileNo - digits before decimal)
+      if (filters.groupName) {
+        const taskGroupNo = task.fileNo ? task.fileNo.split('.')[0] : '';
+        if (!taskGroupNo.includes(filters.groupName)) return false;
+      }
       if (filters.taskFinancialYear && task.financialYear !== filters.taskFinancialYear) return false;
       if (filters.taskPeriod && !(task.period || '').toLowerCase().includes(filters.taskPeriod.toLowerCase())) return false;
       if (filters.assignedUser && task.assignedTo !== filters.assignedUser) return false;
@@ -2954,9 +3145,10 @@ const PracticeManagementApp = () => {
       // Search term
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
+        const taskGroupNo = task.fileNo ? task.fileNo.split('.')[0] : '';
         return (task.clientName || '').toLowerCase().includes(searchLower) ||
                (task.fileNo || '').includes(searchLower) ||
-               (task.groupName || '').toLowerCase().includes(searchLower);
+               taskGroupNo.includes(searchLower);
       }
       
       return true;
@@ -3683,9 +3875,9 @@ const PracticeManagementApp = () => {
                                 <div style={{fontWeight: '500', fontSize: '13px'}}>{client.name}</div>
                                 {client.fileNo && <div style={{color: '#64748b', fontSize: '11px'}}>Code: {client.fileNo}</div>}
                               </div>
-                              {client.groupName && client.groupName !== client.name && (
+                              {client.fileNo && (
                                 <span style={{color: '#64748b', fontSize: '11px', background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px'}}>
-                                  {client.groupName}
+                                  Group {client.fileNo.split('.')[0]}
                                 </span>
                               )}
                             </label>
@@ -4063,10 +4255,10 @@ const PracticeManagementApp = () => {
                 </div>
                 
                 <div>
-                  <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '3px'}}>Group Name</label>
+                  <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '3px'}}>Group No.</label>
                   <input
                     type="text"
-                    placeholder="Enter Group Name"
+                    placeholder="Enter Group No."
                     value={filters.groupName}
                     onChange={(e) => setFilters({...filters, groupName: e.target.value})}
                     style={{width: '100%', padding: '7px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
@@ -4407,6 +4599,28 @@ const PracticeManagementApp = () => {
     const [formStep, setFormStep] = useState('basic');
     
     // Helper function to get the last client code for a group
+    // Helper function to get all existing group numbers
+    const getExistingGroups = () => {
+      const groups = new Set();
+      data.clients.forEach(c => {
+        if (c.fileNo) {
+          const parts = c.fileNo.split('.');
+          if (parts.length === 2 && parts[0]) {
+            groups.add(parseInt(parts[0]));
+          }
+        }
+      });
+      return Array.from(groups).filter(g => !isNaN(g)).sort((a, b) => a - b);
+    };
+    
+    // Helper function to get next new group number
+    const getNextNewGroup = () => {
+      const groups = getExistingGroups();
+      if (groups.length === 0) return 1;
+      return Math.max(...groups) + 1;
+    };
+    
+    // Helper function to get the last client code number in a group
     const getLastClientCode = (groupCode) => {
       const groupClients = data.clients.filter(c => c.fileNo && c.fileNo.startsWith(groupCode + '.'));
       if (groupClients.length === 0) return null;
@@ -4419,7 +4633,7 @@ const PracticeManagementApp = () => {
       return codes.length > 0 ? Math.max(...codes) : 0;
     };
     
-    // Helper function to get next suggested client code
+    // Helper function to get next client code for a group
     const getNextClientCode = (groupCode) => {
       const lastCode = getLastClientCode(groupCode);
       if (lastCode === null) return `${groupCode}.01`;
@@ -4427,13 +4641,18 @@ const PracticeManagementApp = () => {
       return `${groupCode}.${String(nextNum).padStart(2, '0')}`;
     };
     
-    // Validate client code format and uniqueness
+    // Helper function to get client count in a group
+    const getGroupClientCount = (groupCode) => {
+      return data.clients.filter(c => c.fileNo && c.fileNo.startsWith(groupCode + '.')).length;
+    };
+    
+    // Validate client code format and uniqueness (simplified - no manual entry)
     const validateClientCode = (code) => {
       if (!code) return { valid: false, message: 'Client Code is required' };
       
       const parts = code.split('.');
       if (parts.length !== 2) {
-        return { valid: false, message: 'Client Code must be in format: GroupCode.ClientNo (e.g., 1.01)' };
+        return { valid: false, message: 'Invalid Client Code format' };
       }
       
       const [groupCode, clientNo] = parts;
@@ -4442,31 +4661,15 @@ const PracticeManagementApp = () => {
       }
       
       // Check if code already exists (skip check if editing the same client)
-      const exists = data.clients.some(c => c.fileNo === code && (!editingClient || c.id !== editingClient.id));
+      const editingClientId = editingClient?.id;
+      const exists = data.clients.some(c => {
+        if (c.fileNo !== code) return false;
+        if (!editingClientId) return true;
+        return String(c.id) !== String(editingClientId);
+      });
+      
       if (exists) {
-        return { valid: false, message: 'Client Code already exists. Please use a unique code.' };
-      }
-      
-      // Skip sequence validation if editing an existing client with the same code
-      if (editingClient && editingClient.fileNo === code) {
-        return { valid: true, message: '' };
-      }
-      
-      // Check if client no is in sequence (only for new clients or when changing code)
-      const lastCode = getLastClientCode(groupCode);
-      if (lastCode !== null) {
-        const currentNum = parseInt(clientNo);
-        if (isNaN(currentNum)) {
-          return { valid: false, message: 'Client number must be numeric' };
-        }
-        
-        if (currentNum <= lastCode) {
-          const suggested = getNextClientCode(groupCode);
-          return { 
-            valid: false, 
-            message: `Client Code must be ${suggested} or higher (last used: ${groupCode}.${String(lastCode).padStart(2, '0')})`
-          };
-        }
+        return { valid: false, message: 'Client Code already exists.' };
       }
       
       return { valid: true, message: '' };
@@ -4480,7 +4683,9 @@ const PracticeManagementApp = () => {
       email: '',
       phone: '',
       dateOfEnrollment: '',
-      groupName: '',
+      groupNo: '', // Changed from groupName
+      groupMode: 'new', // 'existing' or 'new'
+      selectedGroup: '', // For existing group selection
       sameAsClientName: false,
       address: '',
       gstin: '',
@@ -4557,13 +4762,14 @@ const PracticeManagementApp = () => {
       if (editingClient) {
         console.log('MODE: EDITING - Populating form with client data');
         
-        // Auto-generate group name: Client Name (First Digit of Client Code)
-        let generatedGroupName = editingClient.name || '';
-        if (editingClient.fileNo && editingClient.name) {
+        // Get group number from fileNo
+        let groupNo = '';
+        let selectedGroup = '';
+        if (editingClient.fileNo) {
           const parts = editingClient.fileNo.split('.');
           if (parts.length === 2) {
-            const groupCode = parts[0];
-            generatedGroupName = `${editingClient.name} (${groupCode})`;
+            groupNo = parts[0];
+            selectedGroup = parts[0];
           }
         }
         
@@ -4575,7 +4781,9 @@ const PracticeManagementApp = () => {
           email: editingClient.email || '',
           phone: editingClient.phone || '',
           dateOfEnrollment: editingClient.dateOfEnrollment || '',
-          groupName: editingClient.groupName || generatedGroupName,
+          groupNo: groupNo,
+          groupMode: 'existing', // When editing, always existing group
+          selectedGroup: selectedGroup,
           address: editingClient.address || '',
           gstin: editingClient.gstin || '',
           pancard: editingClient.pan || '',
@@ -4658,9 +4866,9 @@ const PracticeManagementApp = () => {
       
       console.log('Form submitted, Client Data:', clientData);
       
-      // Validate ONLY required fields: File No, Client Name, Group Name
+      // Validate ONLY required fields: File No (auto-generated), Client Name
       if (!clientData.fileNo || clientData.fileNo.trim() === '') {
-        alert('File No is required!');
+        alert('Client Code is required! Please select a group type.');
         return;
       }
       
@@ -4669,10 +4877,8 @@ const PracticeManagementApp = () => {
         return;
       }
       
-      if (!clientData.groupName || clientData.groupName.trim() === '') {
-        alert('Group Name is required!');
-        return;
-      }
+      // Get Group No. from fileNo
+      const groupNo = clientData.fileNo.split('.')[0] || '';
       
       // Map form data to client object structure - save ALL fields
       const newClient = {
@@ -4682,7 +4888,7 @@ const PracticeManagementApp = () => {
         email: clientData.email ? clientData.email.trim() : '',
         phone: clientData.phone ? clientData.phone.trim() : '',
         fileNo: clientData.fileNo ? clientData.fileNo.trim() : '',
-        groupName: clientData.groupName ? clientData.groupName.trim() : '',
+        groupNo: groupNo, // Store Group No. derived from Client Code
         address: clientData.address ? clientData.address.trim() : '',
         gstin: clientData.gstin ? clientData.gstin.trim() : '',
         pan: clientData.pancard ? clientData.pancard.trim() : '',
@@ -4795,114 +5001,121 @@ const PracticeManagementApp = () => {
           {/* Basic Details Step */}
           {formStep === 'basic' && (
             <div className="professional-form-body">
-              {/* Info Banner */}
-              <div className="info-banner">
-                <FileText size={18} />
-                <span>
-                  Last 5 Client Codes Created: 
-                  <strong style={{marginLeft: '8px'}}>
-                    {(() => {
-                      const sortedClients = [...data.clients]
-                        .sort((a, b) => new Date(b.dateOfEnrollment || 0) - new Date(a.dateOfEnrollment || 0))
-                        .slice(0, 5);
-                      
-                      if (sortedClients.length === 0) {
-                        return 'No clients yet';
-                      }
-                      
-                      return sortedClients.map(c => c.fileNo).join(', ');
-                    })()}
-                  </strong>
-                </span>
-              </div>
-
-              <div className="mandatory-fields-note">
-                <span className="required-star">*</span> Required fields: <strong>Client Code, Client Name</strong>
-              </div>
-
               {/* Section 1: Client Identification */}
               <div className="form-section-pro">
                 <h3 className="section-title-pro">Client Identification</h3>
                 <div className="form-grid-pro">
+                  
+                  {/* Group Selection - Only show for new clients */}
+                  {!editingClient && (
+                    <div className="form-field-pro span-4" style={{marginBottom: '8px'}}>
+                      <label style={{marginBottom: '6px', display: 'block'}}>
+                        Group Type <span className="required-star">*</span>
+                      </label>
+                      <div style={{display: 'flex', gap: '16px', marginBottom: '8px'}}>
+                        <label style={{display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', padding: '8px 14px', border: `2px solid ${clientData.groupMode === 'existing' ? '#10b981' : '#e2e8f0'}`, borderRadius: '6px', background: clientData.groupMode === 'existing' ? '#dcfce7' : '#fff', fontSize: '13px'}}>
+                          <input
+                            type="radio"
+                            name="groupMode"
+                            value="existing"
+                            checked={clientData.groupMode === 'existing'}
+                            onChange={() => {
+                              const existingGroups = getExistingGroups();
+                              const selectedGroup = existingGroups.length > 0 ? String(existingGroups[0]) : '';
+                              const newFileNo = selectedGroup ? getNextClientCode(selectedGroup) : '';
+                              setClientData({
+                                ...clientData, 
+                                groupMode: 'existing', 
+                                selectedGroup: selectedGroup,
+                                fileNo: newFileNo,
+                                groupNo: selectedGroup
+                              });
+                            }}
+                            style={{accentColor: '#10b981'}}
+                          />
+                          <span style={{fontWeight: '500'}}>Existing Group</span>
+                        </label>
+                        <label style={{display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', padding: '8px 14px', border: `2px solid ${clientData.groupMode === 'new' ? '#10b981' : '#e2e8f0'}`, borderRadius: '6px', background: clientData.groupMode === 'new' ? '#dcfce7' : '#fff', fontSize: '13px'}}>
+                          <input
+                            type="radio"
+                            name="groupMode"
+                            value="new"
+                            checked={clientData.groupMode === 'new'}
+                            onChange={() => {
+                              const nextGroup = getNextNewGroup();
+                              const newFileNo = `${nextGroup}.01`;
+                              setClientData({
+                                ...clientData, 
+                                groupMode: 'new', 
+                                selectedGroup: '',
+                                fileNo: newFileNo,
+                                groupNo: String(nextGroup)
+                              });
+                            }}
+                            style={{accentColor: '#10b981'}}
+                          />
+                          <span style={{fontWeight: '500'}}>New Group</span>
+                        </label>
+                        
+                        {/* Inline Group Selection for existing */}
+                        {clientData.groupMode === 'existing' && (
+                          <select
+                            value={clientData.selectedGroup}
+                            onChange={(e) => {
+                              const selectedGroup = e.target.value;
+                              const newFileNo = selectedGroup ? getNextClientCode(selectedGroup) : '';
+                              setClientData({
+                                ...clientData,
+                                selectedGroup: selectedGroup,
+                                fileNo: newFileNo,
+                                groupNo: selectedGroup
+                              });
+                            }}
+                            style={{flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px'}}
+                          >
+                            <option value="">Select group...</option>
+                            {getExistingGroups().map(group => (
+                              <option key={group} value={group}>
+                                Group {group} ({getGroupClientCount(group)} clients)
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        
+                        {/* New Group Info inline */}
+                        {clientData.groupMode === 'new' && (
+                          <span style={{padding: '8px 14px', background: '#f0fdf4', borderRadius: '6px', border: '1px solid #bbf7d0', fontSize: '12px', color: '#166534'}}>
+                            <strong>New Group No.: {getNextNewGroup()}</strong>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Client Code Display (Read-only) */}
                   <div className="form-field-pro span-1">
                     <label>
                       Client Code <span className="required-star">*</span>
-                      <span 
-                        className="info-icon"
-                        title={(() => {
-                          const code = clientData.fileNo;
-                          if (!code) return 'Format: GroupCode.ClientNo (e.g., 1.01, 2.15)';
-                          const parts = code.split('.');
-                          if (parts.length === 2) {
-                            const groupCode = parts[0];
-                            const lastCode = getLastClientCode(groupCode);
-                            if (lastCode) {
-                              return `Last Client Code in Group ${groupCode}: ${groupCode}.${String(lastCode).padStart(2, '0')}`;
-                            }
-                            return `First client in Group ${groupCode}`;
-                          }
-                          return 'Format: GroupCode.ClientNo (e.g., 1.01)';
-                        })()}
-                        style={{
-                          marginLeft: '6px',
-                          cursor: 'help',
-                          color: '#10b981',
-                          fontWeight: 'bold',
-                          fontSize: '14px'
-                        }}
-                      >
-                        ⓘ
-                      </span>
+                      <span style={{fontSize: '10px', color: '#64748b', marginLeft: '6px'}}>(Auto-generated)</span>
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g., 1.01, 2.15"
                       value={clientData.fileNo}
-                      onChange={(e) => {
-                        const newCode = e.target.value;
-                        let newGroupName = clientData.groupName;
-                        
-                        // Auto-regenerate group name when code changes
-                        if (clientData.clientName && newCode) {
-                          const parts = newCode.split('.');
-                          if (parts.length === 2) {
-                            const groupCode = parts[0];
-                            newGroupName = `${clientData.clientName} (${groupCode})`;
-                          }
-                        }
-                        
-                        setClientData({...clientData, fileNo: newCode, groupName: newGroupName});
-                      }}
-                      onBlur={() => {
-                        const validation = validateClientCode(clientData.fileNo);
-                        if (!validation.valid && clientData.fileNo) {
-                          alert('⚠️ ' + validation.message);
-                        }
-                      }}
+                      readOnly={!editingClient}
+                      disabled={!editingClient}
                       style={{
-                        borderColor: (() => {
-                          if (!clientData.fileNo) return '';
-                          const validation = validateClientCode(clientData.fileNo);
-                          return validation.valid ? '#10b981' : '#ef4444';
-                        })()
+                        background: editingClient ? '#fff' : '#f8fafc',
+                        borderColor: clientData.fileNo ? '#10b981' : '#e2e8f0',
+                        fontWeight: '600',
+                        fontSize: '16px',
+                        color: '#1e293b'
                       }}
                     />
-                    {clientData.fileNo && (() => {
-                      const validation = validateClientCode(clientData.fileNo);
-                      if (!validation.valid) {
-                        return (
-                          <small style={{color: '#ef4444', fontSize: '11px', marginTop: '4px'}}>
-                            {validation.message}
-                          </small>
-                        );
-                      } else {
-                        return (
-                          <small style={{color: '#10b981', fontSize: '11px', marginTop: '4px'}}>
-                            ✓ Valid Client Code
-                          </small>
-                        );
-                      }
-                    })()}
+                    {clientData.fileNo && (
+                      <small style={{color: '#10b981', fontSize: '11px', marginTop: '4px'}}>
+                        ✓ Group No. {clientData.fileNo.split('.')[0]}
+                      </small>
+                    )}
                   </div>
 
                   <div className="form-field-pro span-2">
@@ -4912,25 +5125,9 @@ const PracticeManagementApp = () => {
                       placeholder="Enter client full name"
                       value={clientData.clientName}
                       onChange={(e) => {
-                        const newName = e.target.value;
-                        const code = clientData.fileNo;
-                        let newGroupName = '';
-                        
-                        // Auto-generate group name: Client Name (First Digit of Client Code)
-                        if (code && newName) {
-                          const parts = code.split('.');
-                          if (parts.length === 2) {
-                            const groupCode = parts[0];
-                            newGroupName = `${newName} (${groupCode})`;
-                          }
-                        } else if (newName) {
-                          newGroupName = newName;
-                        }
-                        
                         setClientData(prev => ({
                           ...prev, 
-                          clientName: newName,
-                          groupName: newGroupName
+                          clientName: e.target.value
                         }));
                       }}
                     />
@@ -4944,34 +5141,15 @@ const PracticeManagementApp = () => {
                       onChange={(e) => setClientData({...clientData, dateOfEnrollment: e.target.value})}
                     />
                   </div>
-
-                  <div className="form-field-pro span-2">
-                    <label>
-                      Group Name <span className="required-star">*</span>
-                      <small style={{color: '#64748b', fontWeight: 'normal', marginLeft: '8px'}}>
-                        (Auto-generated: Client Name (Group Code))
-                      </small>
-                    </label>
-                    <input
-                      type="text"
-                      value={clientData.groupName}
-                      readOnly
-                      style={{
-                        background: '#f8fafc',
-                        cursor: 'not-allowed'
-                      }}
-                      placeholder="Auto-generated from Client Name & Code"
-                    />
-                  </div>
                 </div>
               </div>
 
-              {/* Section 2: Contact & Location */}
+              {/* Section 2: Contact, Tax & Classification - Combined */}
               <div className="form-section-pro">
-                <h3 className="section-title-pro">Contact & Location Details</h3>
+                <h3 className="section-title-pro">Contact & Tax Details</h3>
                 <div className="form-grid-pro">
                   <div className="form-field-pro span-1">
-                    <label>Email Address</label>
+                    <label>Email</label>
                     <input
                       type="email"
                       placeholder="client@example.com"
@@ -4981,12 +5159,42 @@ const PracticeManagementApp = () => {
                   </div>
 
                   <div className="form-field-pro span-1">
-                    <label>Phone Number</label>
+                    <label>Phone</label>
                     <input
                       type="tel"
                       placeholder="+91 98765 43210"
                       value={clientData.phone}
                       onChange={(e) => setClientData({...clientData, phone: e.target.value})}
+                    />
+                  </div>
+
+                  <div className="form-field-pro span-1">
+                    <label>GSTIN</label>
+                    <input
+                      type="text"
+                      placeholder="GST Number"
+                      value={clientData.gstin}
+                      onChange={(e) => setClientData({...clientData, gstin: e.target.value})}
+                    />
+                  </div>
+
+                  <div className="form-field-pro span-1">
+                    <label>PAN</label>
+                    <input
+                      type="text"
+                      placeholder="PAN Number"
+                      value={clientData.pancard}
+                      onChange={(e) => setClientData({...clientData, pancard: e.target.value})}
+                    />
+                  </div>
+
+                  <div className="form-field-pro span-1">
+                    <label>Aadhaar</label>
+                    <input
+                      type="text"
+                      placeholder="Aadhaar Number"
+                      value={clientData.aadhaar}
+                      onChange={(e) => setClientData({...clientData, aadhaar: e.target.value})}
                     />
                   </div>
 
@@ -5005,23 +5213,13 @@ const PracticeManagementApp = () => {
                     </select>
                   </div>
 
-                  <div className="form-field-pro span-3">
-                    <label>Address</label>
-                    <textarea
-                      rows="2"
-                      placeholder="Enter complete address"
-                      value={clientData.address}
-                      onChange={(e) => setClientData({...clientData, address: e.target.value})}
-                    />
-                  </div>
-
                   <div className="form-field-pro span-1">
-                    <label>Country <span className="optional-tag">(Leave blank for India)</span></label>
+                    <label>Country</label>
                     <select
                       value={clientData.country}
                       onChange={(e) => setClientData({...clientData, country: e.target.value})}
                     >
-                      <option value="">India (Default)</option>
+                      <option value="">India</option>
                       <option value="USA">USA</option>
                       <option value="UK">UK</option>
                       <option value="Canada">Canada</option>
@@ -5029,59 +5227,6 @@ const PracticeManagementApp = () => {
                     </select>
                   </div>
 
-                  <div className="form-field-pro span-1">
-                    <label className="inline-checkbox checkbox-only">
-                      <input
-                        type="checkbox"
-                        checked={clientData.isOutOfIndia}
-                        onChange={(e) => setClientData({...clientData, isOutOfIndia: e.target.checked})}
-                      />
-                      <span>Out of India Client</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 3: Tax & Compliance */}
-              <div className="form-section-pro">
-                <h3 className="section-title-pro">Tax & Compliance Information</h3>
-                <div className="form-grid-pro">
-                  <div className="form-field-pro span-1">
-                    <label>GSTIN</label>
-                    <input
-                      type="text"
-                      placeholder="GST Identification Number"
-                      value={clientData.gstin}
-                      onChange={(e) => setClientData({...clientData, gstin: e.target.value})}
-                    />
-                  </div>
-
-                  <div className="form-field-pro span-1">
-                    <label>PAN Card No.</label>
-                    <input
-                      type="text"
-                      placeholder="PAN Number"
-                      value={clientData.pancard}
-                      onChange={(e) => setClientData({...clientData, pancard: e.target.value})}
-                    />
-                  </div>
-
-                  <div className="form-field-pro span-1">
-                    <label>Aadhaar No.</label>
-                    <input
-                      type="text"
-                      placeholder="Aadhaar Number"
-                      value={clientData.aadhaar}
-                      onChange={(e) => setClientData({...clientData, aadhaar: e.target.value})}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 4: Client Classification & Assignment */}
-              <div className="form-section-pro">
-                <h3 className="section-title-pro">Client Classification & Assignment</h3>
-                <div className="form-grid-pro">
                   <div className="form-field-pro span-1">
                     <label>Type of Client</label>
                     <select
@@ -5092,10 +5237,20 @@ const PracticeManagementApp = () => {
                       <option value="Individual">Individual</option>
                       <option value="Company">Company</option>
                       <option value="Partnership">Partnership Firm</option>
-                      <option value="LLP">Limited Liability Partnership</option>
+                      <option value="LLP">LLP</option>
                       <option value="Trust">Trust</option>
                       <option value="HUF">HUF</option>
                     </select>
+                  </div>
+
+                  <div className="form-field-pro span-2">
+                    <label>Address</label>
+                    <input
+                      type="text"
+                      placeholder="Enter complete address"
+                      value={clientData.address}
+                      onChange={(e) => setClientData({...clientData, address: e.target.value})}
+                    />
                   </div>
 
                   <div className="form-field-pro span-1">
@@ -5107,7 +5262,6 @@ const PracticeManagementApp = () => {
                       <option value="">Select User</option>
                       {data.staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                     </select>
-                    <span className="field-hint">Tasks will be auto-assigned to this user</span>
                   </div>
 
                   <div className="form-field-pro span-1">
@@ -5123,18 +5277,17 @@ const PracticeManagementApp = () => {
                 </div>
               </div>
 
-              {/* Additional Notes */}
-              <div className="form-section-pro">
-                <button type="button" className="btn-add-section" onClick={() => setClientData({...clientData, showNotes: !clientData.showNotes})}>
-                  <Plus size={18} />
-                  Add Client Notes
+              {/* Additional Notes - Collapsible */}
+              <div className="form-section-pro" style={{padding: '12px 16px'}}>
+                <button type="button" className="btn-add-section" onClick={() => setClientData({...clientData, showNotes: !clientData.showNotes})} style={{padding: '8px 16px', fontSize: '12px'}}>
+                  <Plus size={16} />
+                  {clientData.showNotes ? 'Hide Notes' : 'Add Client Notes'}
                 </button>
                 {clientData.showNotes && (
-                  <div className="form-field-pro span-3" style={{marginTop: '16px'}}>
-                    <label>Client Notes</label>
+                  <div className="form-field-pro span-4" style={{marginTop: '12px'}}>
                     <textarea
-                      rows="3"
-                      placeholder="Add any additional notes or remarks about the client..."
+                      rows="2"
+                      placeholder="Add any additional notes..."
                       value={clientData.clientNotes}
                       onChange={(e) => setClientData({...clientData, clientNotes: e.target.value})}
                     />
@@ -5540,6 +5693,11 @@ const PracticeManagementApp = () => {
                                 onChange={(e) => {
                                   const file = e.target.files[0];
                                   if (file) {
+                                    // Check file size (max 5MB for Firebase)
+                                    if (file.size > 5 * 1024 * 1024) {
+                                      alert('File size must be less than 5MB');
+                                      return;
+                                    }
                                     // Convert to base64 for storage
                                     const reader = new FileReader();
                                     reader.onload = (event) => {
@@ -5555,10 +5713,18 @@ const PracticeManagementApp = () => {
                                   }
                                 }}
                               />
-                              {(doc.fileName || doc.file?.name) && (
-                                <span style={{fontSize: '11px', color: '#10b981', fontWeight: '500'}}>
-                                  ✓ {doc.file?.name || doc.fileName}
-                                </span>
+                              {doc.fileName && (
+                                <div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
+                                  {doc.fileData ? (
+                                    <span style={{fontSize: '11px', color: '#10b981', fontWeight: '500'}}>
+                                      ✓ {doc.fileName}
+                                    </span>
+                                  ) : (
+                                    <span style={{fontSize: '11px', color: '#f59e0b', fontWeight: '500'}}>
+                                      ⚠ {doc.fileName} (re-upload needed)
+                                    </span>
+                                  )}
+                                </div>
                               )}
                             </div>
                           </td>
@@ -5576,42 +5742,79 @@ const PracticeManagementApp = () => {
                           </td>
                           <td>
                             <div style={{display: 'flex', gap: '6px', flexWrap: 'wrap'}}>
-                              {/* Download Button */}
-                              {(doc.fileData || doc.fileName) && (
+                              {/* View Button - for images and PDFs */}
+                              {doc.fileData && (doc.fileType?.startsWith('image/') || doc.fileType === 'application/pdf') && (
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    if (doc.fileData) {
-                                      const link = document.createElement('a');
-                                      link.href = doc.fileData;
-                                      link.download = doc.fileName || `${doc.name}.pdf`;
-                                      document.body.appendChild(link);
-                                      link.click();
-                                      document.body.removeChild(link);
+                                    const newWindow = window.open();
+                                    if (doc.fileType?.startsWith('image/')) {
+                                      newWindow.document.write(`<html><head><title>${doc.fileName}</title></head><body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#1f2937;"><img src="${doc.fileData}" style="max-width:100%;max-height:100vh;" /></body></html>`);
                                     } else {
-                                      alert('File data not available for download');
+                                      newWindow.document.write(`<html><head><title>${doc.fileName}</title></head><body style="margin:0;"><iframe src="${doc.fileData}" style="width:100%;height:100vh;border:none;"></iframe></body></html>`);
                                     }
+                                  }}
+                                  style={{padding: '4px 8px', background: '#8b5cf6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px'}}
+                                >
+                                  <Eye size={12} /> View
+                                </button>
+                              )}
+                              {/* Download Button */}
+                              {doc.fileData && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const link = document.createElement('a');
+                                    link.href = doc.fileData;
+                                    link.download = doc.fileName || `${doc.name}.pdf`;
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
                                   }}
                                   style={{padding: '4px 8px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px'}}
                                 >
                                   <Download size={12} /> Download
                                 </button>
                               )}
-                              {/* Delete Button */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (window.confirm(`Delete ${doc.name}?`)) {
-                                    const newDocs = clientData.kycDocuments.filter((_, i) => i !== idx);
-                                    // Re-number the documents
-                                    const renumbered = newDocs.map((d, i) => ({...d, id: i + 1}));
-                                    setClientData({...clientData, kycDocuments: renumbered});
-                                  }
-                                }}
-                                style={{padding: '4px 8px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px'}}
-                              >
-                                <Trash2 size={12} /> Delete
-                              </button>
+                              {/* Clear File Button - only clears the file, keeps document row */}
+                              {(doc.fileData || doc.fileName) && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (window.confirm(`Remove file from ${doc.name}?`)) {
+                                      const newDocs = [...clientData.kycDocuments];
+                                      newDocs[idx] = {
+                                        ...newDocs[idx],
+                                        file: null,
+                                        fileName: '',
+                                        fileData: '',
+                                        fileType: '',
+                                        fileSize: 0
+                                      };
+                                      setClientData({...clientData, kycDocuments: newDocs});
+                                    }
+                                  }}
+                                  style={{padding: '4px 8px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px'}}
+                                >
+                                  <X size={12} /> Clear
+                                </button>
+                              )}
+                              {/* Delete Row Button - only for custom documents */}
+                              {doc.name === 'Custom Document' && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (window.confirm(`Delete this document row?`)) {
+                                      const newDocs = clientData.kycDocuments.filter((_, i) => i !== idx);
+                                      const renumbered = newDocs.map((d, i) => ({...d, id: i + 1}));
+                                      setClientData({...clientData, kycDocuments: renumbered});
+                                    }
+                                  }}
+                                  style={{padding: '4px 8px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px'}}
+                                >
+                                  <Trash2 size={12} /> Delete
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -5865,6 +6068,56 @@ const PracticeManagementApp = () => {
         return;
       }
       
+      // Validate each selected client - cannot disable if they have outstanding balance or open tasks
+      const clientsToCheck = data.clients.filter(c => selectedClients.includes(c.id));
+      const blockedClients = [];
+      
+      clientsToCheck.forEach(client => {
+        const issues = [];
+        
+        // Check for outstanding balance
+        const clientInvoices = (data.invoices || []).filter(inv => 
+          inv.clientId === client.id || inv.clientName === client.name
+        );
+        const totalBilled = clientInvoices.reduce((sum, inv) => sum + (parseFloat(inv.totalAmount) || 0), 0);
+        const totalPaid = clientInvoices.reduce((sum, inv) => sum + (parseFloat(inv.amountPaid) || 0), 0);
+        const outstanding = totalBilled - totalPaid;
+        
+        if (outstanding > 0) {
+          issues.push(`Outstanding Balance: ₹${outstanding.toLocaleString('en-IN')}`);
+        }
+        
+        // Check for open tasks (not completed)
+        const clientOpenTasks = data.tasks.filter(t => 
+          !t.deleted && 
+          (t.clientId === client.id || t.client === client.name || t.clientName === client.name) &&
+          t.status !== 'Completed' && 
+          !t.completedCheck
+        );
+        
+        if (clientOpenTasks.length > 0) {
+          issues.push(`Open Tasks: ${clientOpenTasks.length}`);
+        }
+        
+        if (issues.length > 0) {
+          blockedClients.push({
+            name: client.name,
+            fileNo: client.fileNo,
+            issues: issues
+          });
+        }
+      });
+      
+      // If any clients are blocked, show error and don't proceed
+      if (blockedClients.length > 0) {
+        const errorMessage = blockedClients.map(c => 
+          `• ${c.name} (${c.fileNo}): ${c.issues.join(', ')}`
+        ).join('\n');
+        
+        alert(`❌ Cannot disable the following client(s):\n\n${errorMessage}\n\nPlease clear outstanding balance and complete/delete open tasks first.`);
+        return;
+      }
+      
       const clientNames = data.clients
         .filter(c => selectedClients.includes(c.id))
         .map(c => c.name)
@@ -5939,7 +6192,7 @@ const PracticeManagementApp = () => {
             return client.name?.toLowerCase().includes(searchLower);
           case 'Client Code':
             return client.fileNo?.toLowerCase().includes(searchLower);
-          case 'Group Name':
+          case 'Group No.':
             return client.groupName?.toLowerCase().includes(searchLower);
           case 'PAN Card No':
             return client.pan?.toLowerCase().includes(searchLower);
@@ -6015,7 +6268,7 @@ const PracticeManagementApp = () => {
                 >
                   <option>Client Name</option>
                   <option>Client Code</option>
-                  <option>Group Name</option>
+                  <option>Group No.</option>
                   <option>PAN Card No</option>
                   <option>Email</option>
                 </select>
@@ -6030,21 +6283,6 @@ const PracticeManagementApp = () => {
               </div>
               <div className="client-stats">
                 Total Enable Clients Found : {filteredEnabledClients.length} and Total Disable Clients : {filteredDisabledClients.length}
-              </div>
-              <div className="last-files">
-                Last 5 Client Codes Created: {
-                  (() => {
-                    const sortedClients = [...data.clients]
-                      .sort((a, b) => new Date(b.dateOfEnrollment || 0) - new Date(a.dateOfEnrollment || 0))
-                      .slice(0, 5);
-                    
-                    if (sortedClients.length === 0) {
-                      return 'No clients yet';
-                    }
-                    
-                    return sortedClients.map(c => c.fileNo).join(', ');
-                  })()
-                }
               </div>
             </div>
 
@@ -6100,7 +6338,7 @@ const PracticeManagementApp = () => {
                         <th>Sr. No.</th>
                         <th>Client Code</th>
                         <th>Client Name</th>
-                        <th>Group Name</th>
+                        <th>Group No.</th>
                         <th>Contact No.</th>
                         <th>Address</th>
                         <th>Email Id</th>
@@ -6148,14 +6386,14 @@ const PracticeManagementApp = () => {
                           <td>{index + 1}</td>
                           <td>{client.fileNo || ''}</td>
                           <td>{client.name || ''}</td>
-                          <td>{client.groupName || ''}</td>
+                          <td>{client.fileNo ? client.fileNo.split('.')[0] : ''}</td>
                           <td>{client.phone || ''}</td>
                           <td>{client.address || ''}</td>
                           <td>{client.email || ''}</td>
                           <td>{client.pan || ''}</td>
                           <td>{client.gstin || ''}</td>
-                          <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>{client.gstnPassword ? '••••••••' : '-'}</td>
-                          <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>{client.incomeTaxPassword ? '••••••••' : '-'}</td>
+                          <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>{client.gstnPassword || '-'}</td>
+                          <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>{client.incomeTaxPassword || '-'}</td>
                           <td>{client.state || ''}</td>
                           <td>{client.aadhaar || ''}</td>
                         </tr>
@@ -6177,7 +6415,7 @@ const PracticeManagementApp = () => {
                         <th>Sr. No.</th>
                         <th>Client Code</th>
                         <th>Client Name</th>
-                        <th>Group Name</th>
+                        <th>Group No.</th>
                         <th>Contact No.</th>
                         <th>Email Id</th>
                         <th>Actions</th>
@@ -6196,7 +6434,7 @@ const PracticeManagementApp = () => {
                             <td>{index + 1}</td>
                             <td>{client.fileNo || ''}</td>
                             <td>{client.name || ''}</td>
-                            <td>{client.groupName || ''}</td>
+                            <td>{client.fileNo ? client.fileNo.split('.')[0] : ''}</td>
                             <td>{client.phone || ''}</td>
                             <td>{client.email || ''}</td>
                             <td>
@@ -6336,7 +6574,7 @@ const PracticeManagementApp = () => {
                     {viewingClient.name}
                   </h2>
                   <p style={{margin: '4px 0 0', fontSize: '13px', opacity: 0.9}}>
-                    Client Code: {viewingClient.fileNo || 'N/A'} • Group: {viewingClient.groupName || 'N/A'}
+                    Client Code: {viewingClient.fileNo || 'N/A'} • Group No.: {viewingClient.fileNo ? viewingClient.fileNo.split('.')[0] : 'N/A'}
                   </p>
                 </div>
                 <div style={{display: 'flex', gap: '10px'}}>
@@ -6387,7 +6625,7 @@ const PracticeManagementApp = () => {
                     { id: 'credentials', label: 'User IDs & Passwords', show: viewingClient.gstnUserId || viewingClient.tracesUserId || viewingClient.eWayBillUserId || viewingClient.incomeTaxUserId },
                     { id: 'contacts', label: 'Contacts', show: viewingClient.primaryOwner?.name || viewingClient.secondaryOwner?.name || viewingClient.accountant?.name },
                     { id: 'fees', label: 'Agreed Fees', show: viewingClient.agreedFees?.some(f => f.parentTask || f.fee) },
-                    { id: 'kyc', label: 'KYC Documents', show: viewingClient.kycDocuments?.some(d => d.hasFile || d.fileName) },
+                    { id: 'kyc', label: 'KYC Documents' },
                     { id: 'tasks', label: 'Tasks' }
                   ].filter(tab => tab.show !== false).map(tab => (
                     <button
@@ -6430,8 +6668,8 @@ const PracticeManagementApp = () => {
                             <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b'}}>{viewingClient.fileNo || '-'}</div>
                           </div>
                           <div style={{background: '#f8fafc', padding: '14px', borderRadius: '8px'}}>
-                            <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>Group Name</div>
-                            <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b'}}>{viewingClient.groupName || '-'}</div>
+                            <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase'}}>Group No.</div>
+                            <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b'}}>{viewingClient.fileNo ? viewingClient.fileNo.split('.')[0] : '-'}</div>
                           </div>
                         </div>
                       </div>
@@ -6528,35 +6766,35 @@ const PracticeManagementApp = () => {
                             <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
                               <td style={{ padding: '12px', fontWeight: '500' }}>GSTN</td>
                               <td style={{ padding: '12px', fontFamily: 'monospace' }}>{viewingClient.gstnUserId}</td>
-                              <td style={{ padding: '12px', fontFamily: 'monospace' }}>{viewingClient.gstnPassword || '••••••••'}</td>
+                              <td style={{ padding: '12px', fontFamily: 'monospace' }}>{viewingClient.gstnPassword || '-'}</td>
                             </tr>
                           )}
                           {viewingClient.tracesUserId && (
                             <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
                               <td style={{ padding: '12px', fontWeight: '500' }}>Traces</td>
                               <td style={{ padding: '12px', fontFamily: 'monospace' }}>{viewingClient.tracesUserId}</td>
-                              <td style={{ padding: '12px', fontFamily: 'monospace' }}>{viewingClient.tracesPassword || '••••••••'}</td>
+                              <td style={{ padding: '12px', fontFamily: 'monospace' }}>{viewingClient.tracesPassword || '-'}</td>
                             </tr>
                           )}
                           {viewingClient.eWayBillUserId && (
                             <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
                               <td style={{ padding: '12px', fontWeight: '500' }}>E-Way Bill</td>
                               <td style={{ padding: '12px', fontFamily: 'monospace' }}>{viewingClient.eWayBillUserId}</td>
-                              <td style={{ padding: '12px', fontFamily: 'monospace' }}>{viewingClient.eWayBillPassword || '••••••••'}</td>
+                              <td style={{ padding: '12px', fontFamily: 'monospace' }}>{viewingClient.eWayBillPassword || '-'}</td>
                             </tr>
                           )}
                           {viewingClient.incomeTaxUserId && (
                             <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
                               <td style={{ padding: '12px', fontWeight: '500' }}>Income Tax</td>
                               <td style={{ padding: '12px', fontFamily: 'monospace' }}>{viewingClient.incomeTaxUserId}</td>
-                              <td style={{ padding: '12px', fontFamily: 'monospace' }}>{viewingClient.incomeTaxPassword || '••••••••'}</td>
+                              <td style={{ padding: '12px', fontFamily: 'monospace' }}>{viewingClient.incomeTaxPassword || '-'}</td>
                             </tr>
                           )}
                           {(viewingClient.otherCredentials || []).filter(c => c.portalName).map((cred, idx) => (
                             <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
                               <td style={{ padding: '12px', fontWeight: '500' }}>{cred.portalName}</td>
                               <td style={{ padding: '12px', fontFamily: 'monospace' }}>{cred.userId}</td>
-                              <td style={{ padding: '12px', fontFamily: 'monospace' }}>{cred.password || '••••••••'}</td>
+                              <td style={{ padding: '12px', fontFamily: 'monospace' }}>{cred.password || '-'}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -6658,18 +6896,18 @@ const PracticeManagementApp = () => {
                             <th style={{ padding: '12px', textAlign: 'left', fontSize: '11px', fontWeight: '600', color: '#fff', textTransform: 'uppercase' }}>Document Type</th>
                             <th style={{ padding: '12px', textAlign: 'left', fontSize: '11px', fontWeight: '600', color: '#fff', textTransform: 'uppercase' }}>File Name</th>
                             <th style={{ padding: '12px', textAlign: 'left', fontSize: '11px', fontWeight: '600', color: '#fff', textTransform: 'uppercase' }}>Remark</th>
-                            <th style={{ padding: '12px', textAlign: 'center', fontSize: '11px', fontWeight: '600', color: '#fff', textTransform: 'uppercase', width: '120px' }}>Action</th>
+                            <th style={{ padding: '12px', textAlign: 'center', fontSize: '11px', fontWeight: '600', color: '#fff', textTransform: 'uppercase', width: '150px' }}>Action</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {(viewingClient.kycDocuments || []).filter(d => d.hasFile || d.fileName).map((doc, idx) => (
+                          {(viewingClient.kycDocuments || []).map((doc, idx) => (
                             <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? '#fff' : '#f8fafc' }}>
                               <td style={{ padding: '12px', textAlign: 'center', fontWeight: '500' }}>{doc.id || idx + 1}</td>
                               <td style={{ padding: '12px', fontWeight: '500' }}>{doc.name}</td>
                               <td style={{ padding: '12px', color: '#64748b' }}>
                                 <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
-                                  <FileText size={14} style={{color: '#8b5cf6'}} />
-                                  {doc.fileName || 'No file'}
+                                  <FileText size={14} style={{color: doc.fileName ? '#8b5cf6' : '#d1d5db'}} />
+                                  {doc.fileName || <span style={{color: '#9ca3af', fontStyle: 'italic'}}>No file uploaded</span>}
                                 </div>
                               </td>
                               <td style={{ padding: '12px', color: '#64748b', fontSize: '13px' }}>{doc.remark || '-'}</td>
@@ -6707,16 +6945,18 @@ const PracticeManagementApp = () => {
                                       <Download size={12} /> Download
                                     </button>
                                   </div>
+                                ) : doc.fileName ? (
+                                  <span style={{color: '#f59e0b', fontSize: '11px', fontWeight: '500'}}>⚠ Re-upload needed</span>
                                 ) : (
-                                  <span style={{color: '#9ca3af', fontSize: '12px'}}>File data unavailable</span>
+                                  <span style={{color: '#9ca3af', fontSize: '12px'}}>-</span>
                                 )}
                               </td>
                             </tr>
                           ))}
-                          {(!viewingClient.kycDocuments || viewingClient.kycDocuments.filter(d => d.hasFile || d.fileName).length === 0) && (
+                          {(!viewingClient.kycDocuments || viewingClient.kycDocuments.length === 0) && (
                             <tr>
                               <td colSpan={5} style={{padding: '24px', textAlign: 'center', color: '#9ca3af'}}>
-                                No KYC documents uploaded
+                                No KYC documents configured
                               </td>
                             </tr>
                           )}
@@ -9929,7 +10169,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               <div style={{width: '36px', height: '36px', borderRadius: '50%', background: '#8b5cf6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: '600'}}>{client.name.charAt(0)}</div>
                               <div>
                                 <div style={{fontSize: '12px', fontWeight: '500'}}>{client.name}</div>
-                                <div style={{fontSize: '10px', color: '#64748b'}}>{client.fileNo || 'No Code'} • {client.groupName || 'No Group'}</div>
+                                <div style={{fontSize: '10px', color: '#64748b'}}>{client.fileNo || 'No Code'} • Group {client.fileNo ? client.fileNo.split('.')[0] : 'N/A'}</div>
                               </div>
                             </div>
                           ))}
@@ -11040,7 +11280,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             <button onClick={() => setReportFilters({...reportFilters, client: '', parentTask: '', status: '', financialYear: ''})} style={{padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px'}}>← Back to Dashboard</button>
                             <div>
                               <h3 style={{margin: 0, fontSize: '18px', fontWeight: '600'}}>{client.name}</h3>
-                              <div style={{fontSize: '12px', color: '#64748b'}}>{client.fileNo || 'No Code'} • {client.groupName || 'No Group'}</div>
+                              <div style={{fontSize: '12px', color: '#64748b'}}>{client.fileNo || 'No Code'} • Group {client.fileNo ? client.fileNo.split('.')[0] : 'N/A'}</div>
                             </div>
                           </div>
                           <button onClick={() => {
@@ -11939,8 +12179,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         <span className="value-new">{taskFormData.clientName}</span>
                       </div>
                       <div className="detail-row-new">
-                        <span className="label-new">Group Name</span>
-                        <span className="value-new">{taskFormData.groupName}</span>
+                        <span className="label-new">Group No.</span>
+                        <span className="value-new">{taskFormData.fileNo ? taskFormData.fileNo.split('.')[0] : '-'}</span>
                       </div>
                     </div>
                   </div>
@@ -12317,8 +12557,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         return;
       }
       if (!taskFormData.groupName) {
-        console.log('Validation failed: Group Name missing');
-        alert('Group Name is required!');
+        console.log('Validation failed: Group No. missing');
+        alert('Group No. is required!');
         return;
       }
       if (!taskFormData.parentTask || !taskFormData.childTask) {
@@ -13258,9 +13498,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   />
                 </div>
 
-                {/* Group Name (Auto-filled, read-only) */}
+                {/* Group No. (Auto-filled, read-only) */}
                 <div className="form-field-task">
-                  <label>Group Name <span className="required-star">*</span></label>
+                  <label>Group No. <span className="required-star">*</span></label>
                   <input
                     type="text"
                     value={taskFormData.groupName}
@@ -13710,7 +13950,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
 
           <div className="form-field-task">
             <label>
-              Group Name 
+              Group No. 
               <small style={{color: '#64748b', fontWeight: 'normal', marginLeft: '8px'}}>
                 (Auto: Client Name (Group Code))
               </small>
@@ -14566,7 +14806,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       const style = document.createElement('style');
       style.id = 'print-styles';
       style.innerHTML = `
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         @page { 
           size: A4 portrait; 
           margin: 10mm;
@@ -14580,7 +14820,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             top: 0; 
             width: 100%;
             max-width: 210mm;
-            font-family: 'Product Sans', 'Poppins', 'Google Sans', 'Segoe UI', system-ui, sans-serif !important;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
@@ -15385,7 +15625,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       const style = document.createElement('style');
       style.id = 'print-styles-billing';
       style.innerHTML = `
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         @page { 
           size: A4 portrait; 
           margin: 10mm;
@@ -15399,7 +15639,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             top: 0; 
             width: 100%;
             max-width: 210mm;
-            font-family: 'Product Sans', 'Poppins', 'Google Sans', 'Segoe UI', system-ui, sans-serif !important;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
@@ -16822,9 +17062,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           
                           {/* Row 1: Client Filters */}
                           <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '16px'}}>
-                            {/* Group Name with Autocomplete */}
+                            {/* Group No. with Autocomplete */}
                             <div style={{position: 'relative'}}>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: '#374151'}}>Group Name</label>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: '#374151'}}>Group No.</label>
                               <input
                                 type="text"
                                 value={billingSearchFilters.groupName}
@@ -17136,7 +17376,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                     <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0', whiteSpace: 'nowrap'}}>Select</th>
                                     <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0', whiteSpace: 'nowrap'}}>Task Type</th>
                                     <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0', whiteSpace: 'nowrap'}}>Client Name & File No.</th>
-                                    <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0', whiteSpace: 'nowrap'}}>Group Name</th>
+                                    <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0', whiteSpace: 'nowrap'}}>Group No.</th>
                                     <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0', whiteSpace: 'nowrap'}}>Checkgroup Name</th>
                                     <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0', whiteSpace: 'nowrap'}}>Fin Year & Period</th>
                                     <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0', whiteSpace: 'nowrap'}}>State/Country</th>
@@ -17457,9 +17697,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             )}
                           </div>
                           
-                          {/* Group Name */}
+                          {/* Group No. */}
                           <div>
-                            <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: '#64748b'}}>Group Name</label>
+                            <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: '#64748b'}}>Group No.</label>
                             <select
                               value={multipleTaskFilters.groupName}
                               onChange={(e) => setMultipleTaskFilters({...multipleTaskFilters, groupName: e.target.value})}
@@ -18288,12 +18528,12 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               </select>
                             </div>
                             <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Group Name</label>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Group No.</label>
                               <input
                                 type="text"
                                 value={bulkTaskFilters.groupName}
                                 onChange={(e) => setBulkTaskFilters({...bulkTaskFilters, groupName: e.target.value})}
-                                placeholder="Enter Group Name"
+                                placeholder="Enter Group No."
                                 style={{width: '100%', padding: '10px', border: '1px solid #6ee7b7', borderRadius: '6px', fontSize: '13px'}}
                               />
                             </div>
@@ -18978,7 +19218,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           };
                           
                           return (
-                            <div style={{background: '#fff', fontFamily: "'Product Sans', 'Poppins', 'Google Sans', 'Segoe UI', system-ui, sans-serif", border: `2px solid ${primaryColor}`, maxWidth: '210mm'}}>
+                            <div style={{background: '#fff', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif", border: `2px solid ${primaryColor}`, maxWidth: '210mm'}}>
                               
                               {/* ===== HEADER - Compact Dark Bar ===== */}
                               <div style={{background: headerGradient, padding: '20px 25px', color: '#fff'}}>
@@ -20180,7 +20420,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <h3 style={{margin: '0 0 20px 0', fontSize: '16px', fontWeight: '600', color: '#1e293b'}}>Step 1: Select Clients</h3>
                   <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '16px', alignItems: 'end'}}>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: '#64748b'}}>Group Name</label>
+                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: '#64748b'}}>Group No.</label>
                       <select
                         value={receiptFilters.groupName}
                         onChange={(e) => { setReceiptFilters({...receiptFilters, groupName: e.target.value}); setSelectedClientsForReceipt([]); }}
@@ -20595,7 +20835,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 <div style={{background: '#fff', borderRadius: '12px', padding: '20px', marginBottom: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
                   <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px'}}>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: '#64748b'}}>Group Name</label>
+                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: '#64748b'}}>Group No.</label>
                       <select value={receiptFilters.groupName} onChange={(e) => setReceiptFilters({...receiptFilters, groupName: e.target.value})} style={{width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px'}}>
                         <option value="">All Groups</option>
                         {[...new Set((data.receipts || []).map(r => r.groupName).filter(Boolean))].map(g => <option key={g} value={g}>{g}</option>)}
@@ -20784,7 +21024,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       />
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: '#374151'}}>Group Name</label>
+                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: '#374151'}}>Group No.</label>
                       <input
                         type="text"
                         value={debtorFilters.groupName}
@@ -20834,7 +21074,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
                           <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client Name</th>
                           <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client Code</th>
-                          <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Group Name</th>
+                          <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Group No.</th>
                           <th style={{padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Invoices</th>
                           <th style={{padding: '14px 16px', textAlign: 'right', fontWeight: '600', color: '#fff'}}>Total Billed</th>
                           <th style={{padding: '14px 16px', textAlign: 'right', fontWeight: '600', color: '#fff'}}>Received</th>
@@ -21396,7 +21636,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     };
                     
                     return (
-                      <div style={{fontFamily: "'Product Sans', 'Poppins', 'Google Sans', 'Segoe UI', system-ui, sans-serif", border: `2px solid ${primaryColor}`, maxWidth: '210mm'}}>
+                      <div style={{fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif", border: `2px solid ${primaryColor}`, maxWidth: '210mm'}}>
                         
                         {/* ===== HEADER ===== */}
                         <div style={{background: headerGradient, padding: '20px 25px', color: '#fff'}}>
@@ -22564,7 +22804,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     </div>
 
                     <div style={{display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#f8fafc', borderRadius: '8px'}}>
-                      <span style={{fontSize: '13px', flex: 1}}>Display File No. & Group Name in Invoice, Service Estimate, Debit and Credit Note?</span>
+                      <span style={{fontSize: '13px', flex: 1}}>Display File No. & Group No. in Invoice, Service Estimate, Debit and Credit Note?</span>
                       <label style={{display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer'}}>
                         <input
                           type="radio"
@@ -22615,7 +22855,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
 
       if (templateType === 'clients') {
         filename = 'Client_Import_Template.csv';
-        csvContent = 'Name,Email,Phone,File No,Group Name,Address,GSTIN,PAN,Aadhaar,State\n';
+        csvContent = 'Name,Email,Phone,File No,Group No.,Address,GSTIN,PAN,Aadhaar,State\n';
         csvContent += 'John Doe,john@example.com,9876543210,1.01,Group A,123 Main Street Delhi,22AAAAA0000A1Z5,ABCDE1234F,123456789012,Delhi\n';
         csvContent += 'Jane Smith,jane@example.com,9876543211,1.02,Group B,456 Park Avenue Mumbai,27BBBBB0000B1Z5,XYZPQ5678R,987654321098,Maharashtra\n';
       }
@@ -22652,7 +22892,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               <p>Download CSV template for importing multiple clients at once</p>
               <div className="template-details">
                 <div className="template-detail-item">
-                  <strong>Columns:</strong> Name, Email, Phone, File No, Group Name, Address, GSTIN, PAN, Aadhaar, State
+                  <strong>Columns:</strong> Name, Email, Phone, File No, Group No., Address, GSTIN, PAN, Aadhaar, State
                 </div>
                 <div className="template-detail-item">
                   <strong>Format:</strong> CSV (Comma-separated values)
@@ -25805,7 +26045,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 <th style={{padding: '10px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>S.No</th>
                                 <th style={{padding: '10px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>File No.</th>
                                 <th style={{padding: '10px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Client Name</th>
-                                <th style={{padding: '10px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Group Name</th>
+                                <th style={{padding: '10px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Group No.</th>
                                 <th style={{padding: '10px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Primary Assigned User</th>
                               </tr>
                             </thead>
@@ -26149,7 +26389,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                       </th>
                                       <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>File No.</th>
                                       <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Client Name</th>
-                                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Group Name</th>
+                                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Group No.</th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -26917,16 +27157,17 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       )}
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         
         * {
           margin: 0;
           padding: 0;
           box-sizing: border-box;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
         }
 
         body {
-          font-family: 'Product Sans', 'Poppins', 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           background: #f8fafc;
           color: #1a1a1a;
         }
@@ -26937,7 +27178,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           overflow: hidden;
           gap: 0;
           background: #f8fafc;
-          font-family: 'Product Sans', 'Poppins', 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
         /* Sidebar Styles - Light Theme */
@@ -29469,15 +29710,15 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
 
         .form-grid-pro {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 20px;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 12px 16px;
           align-items: start;
         }
 
         .form-field-pro {
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 4px;
         }
 
         .form-field-pro.span-1 {
@@ -29491,9 +29732,13 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         .form-field-pro.span-3 {
           grid-column: span 3;
         }
+        
+        .form-field-pro.span-4 {
+          grid-column: span 4;
+        }
 
         .form-field-pro label {
-          font-size: 13px;
+          font-size: 12px;
           font-weight: 600;
           color: #334155;
           display: flex;
