@@ -4522,12 +4522,12 @@ const PracticeManagementApp = () => {
       
       // KYC Documents
       kycDocuments: [
-        { id: 1, name: 'PAN', file: null, fileName: '', remark: '' },
-        { id: 2, name: 'AADHAAR', file: null, fileName: '', remark: '' },
-        { id: 3, name: 'GST Certificate', file: null, fileName: '', remark: '' },
-        { id: 4, name: 'Incorporation Certificate', file: null, fileName: '', remark: '' },
-        { id: 5, name: 'TAN', file: null, fileName: '', remark: '' },
-        { id: 6, name: 'MOA & AOA', file: null, fileName: '', remark: '' },
+        { id: 1, name: 'PAN', file: null, fileName: '', fileData: '', fileType: '', remark: '' },
+        { id: 2, name: 'AADHAAR', file: null, fileName: '', fileData: '', fileType: '', remark: '' },
+        { id: 3, name: 'GST Certificate', file: null, fileName: '', fileData: '', fileType: '', remark: '' },
+        { id: 4, name: 'Incorporation Certificate', file: null, fileName: '', fileData: '', fileType: '', remark: '' },
+        { id: 5, name: 'TAN', file: null, fileName: '', fileData: '', fileType: '', remark: '' },
+        { id: 6, name: 'MOA & AOA', file: null, fileName: '', fileData: '', fileType: '', remark: '' },
       ]
     });
     
@@ -4607,20 +4607,23 @@ const PracticeManagementApp = () => {
           agreedFees: (editingClient.agreedFees && editingClient.agreedFees.length > 0) 
             ? editingClient.agreedFees 
             : [{ parentTask: '', childTask: '', fee: '', frequency: '' }],
-          // KYC Documents - preserve fileName from saved data
+          // KYC Documents - preserve fileData for download functionality
           kycDocuments: (editingClient.kycDocuments && editingClient.kycDocuments.length > 0)
             ? editingClient.kycDocuments.map(doc => ({
                 ...doc,
-                file: null, // File objects can't be persisted, but fileName is preserved
-                fileName: doc.fileName || ''
+                file: null, // File objects can't be persisted
+                fileName: doc.fileName || '',
+                fileData: doc.fileData || '', // Preserve base64 data
+                fileType: doc.fileType || '',
+                remark: doc.remark || ''
               }))
             : [
-                { id: 1, name: 'PAN', file: null, fileName: '', remark: '' },
-                { id: 2, name: 'AADHAAR', file: null, fileName: '', remark: '' },
-                { id: 3, name: 'GST Certificate', file: null, fileName: '', remark: '' },
-                { id: 4, name: 'Incorporation Certificate', file: null, fileName: '', remark: '' },
-                { id: 5, name: 'TAN', file: null, fileName: '', remark: '' },
-                { id: 6, name: 'MOA & AOA', file: null, fileName: '', remark: '' },
+                { id: 1, name: 'PAN', file: null, fileName: '', fileData: '', remark: '' },
+                { id: 2, name: 'AADHAAR', file: null, fileName: '', fileData: '', remark: '' },
+                { id: 3, name: 'GST Certificate', file: null, fileName: '', fileData: '', remark: '' },
+                { id: 4, name: 'Incorporation Certificate', file: null, fileName: '', fileData: '', remark: '' },
+                { id: 5, name: 'TAN', file: null, fileName: '', fileData: '', remark: '' },
+                { id: 6, name: 'MOA & AOA', file: null, fileName: '', fileData: '', remark: '' },
               ]
         });
       } else {
@@ -4709,13 +4712,16 @@ const PracticeManagementApp = () => {
         otherContact: clientData.otherContact || { name: '', contact1: '', contact2: '', email1: '', email2: '' },
         // Agreed Fees (filter out empty entries)
         agreedFees: (clientData.agreedFees || []).filter(f => f.parentTask || f.fee),
-        // KYC Documents - save file name and remark (file objects handled separately if needed)
+        // KYC Documents - save file data for download functionality
         kycDocuments: (clientData.kycDocuments || []).map(doc => ({
           id: doc.id,
           name: doc.name,
           remark: doc.remark || '',
           fileName: doc.file?.name || doc.fileName || '',
-          hasFile: !!(doc.file || doc.fileName)
+          fileData: doc.fileData || '', // base64 data for download
+          fileType: doc.fileType || '',
+          fileSize: doc.fileSize || 0,
+          hasFile: !!(doc.fileData || doc.fileName)
         })),
         // Meta
         disabled: editingClient ? editingClient.disabled : false,
@@ -5514,10 +5520,11 @@ const PracticeManagementApp = () => {
                   <table className="kyc-table">
                     <thead>
                       <tr>
-                        <th><FileText size={18} /> Sr. No.</th>
-                        <th><FileText size={18} /> Document</th>
-                        <th><Upload size={18} /> Attachment</th>
-                        <th><Edit size={18} /> Remark</th>
+                        <th style={{width: '60px'}}><FileText size={16} /> Sr.</th>
+                        <th style={{width: '180px'}}><FileText size={16} /> Document</th>
+                        <th><Upload size={16} /> Attachment</th>
+                        <th style={{width: '200px'}}><Edit size={16} /> Remark</th>
+                        <th style={{width: '120px'}}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -5531,10 +5538,21 @@ const PracticeManagementApp = () => {
                                 type="file"
                                 accept=".doc,.docx,.txt,.pdf,.xls,.xlsx,.csv,.png,.jpg,.jpeg"
                                 onChange={(e) => {
-                                  const newDocs = [...clientData.kycDocuments];
-                                  newDocs[idx].file = e.target.files[0];
-                                  newDocs[idx].fileName = e.target.files[0]?.name || '';
-                                  setClientData({...clientData, kycDocuments: newDocs});
+                                  const file = e.target.files[0];
+                                  if (file) {
+                                    // Convert to base64 for storage
+                                    const reader = new FileReader();
+                                    reader.onload = (event) => {
+                                      const newDocs = [...clientData.kycDocuments];
+                                      newDocs[idx].file = file;
+                                      newDocs[idx].fileName = file.name;
+                                      newDocs[idx].fileData = event.target.result; // base64 data
+                                      newDocs[idx].fileType = file.type;
+                                      newDocs[idx].fileSize = file.size;
+                                      setClientData({...clientData, kycDocuments: newDocs});
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }
                                 }}
                               />
                               {(doc.fileName || doc.file?.name) && (
@@ -5548,13 +5566,53 @@ const PracticeManagementApp = () => {
                             <input 
                               type="text"
                               placeholder={`Enter ${doc.name} Remark`}
-                              value={doc.remark}
+                              value={doc.remark || ''}
                               onChange={(e) => {
                                 const newDocs = [...clientData.kycDocuments];
                                 newDocs[idx].remark = e.target.value;
                                 setClientData({...clientData, kycDocuments: newDocs});
                               }}
                             />
+                          </td>
+                          <td>
+                            <div style={{display: 'flex', gap: '6px', flexWrap: 'wrap'}}>
+                              {/* Download Button */}
+                              {(doc.fileData || doc.fileName) && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (doc.fileData) {
+                                      const link = document.createElement('a');
+                                      link.href = doc.fileData;
+                                      link.download = doc.fileName || `${doc.name}.pdf`;
+                                      document.body.appendChild(link);
+                                      link.click();
+                                      document.body.removeChild(link);
+                                    } else {
+                                      alert('File data not available for download');
+                                    }
+                                  }}
+                                  style={{padding: '4px 8px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px'}}
+                                >
+                                  <Download size={12} /> Download
+                                </button>
+                              )}
+                              {/* Delete Button */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (window.confirm(`Delete ${doc.name}?`)) {
+                                    const newDocs = clientData.kycDocuments.filter((_, i) => i !== idx);
+                                    // Re-number the documents
+                                    const renumbered = newDocs.map((d, i) => ({...d, id: i + 1}));
+                                    setClientData({...clientData, kycDocuments: renumbered});
+                                  }
+                                }}
+                                style={{padding: '4px 8px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px'}}
+                              >
+                                <Trash2 size={12} /> Delete
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -5570,6 +5628,7 @@ const PracticeManagementApp = () => {
                         name: 'Custom Document',
                         file: null,
                         fileName: '',
+                        fileData: '',
                         remark: ''
                       };
                       setClientData({...clientData, kycDocuments: [...clientData.kycDocuments, newDoc]});
@@ -6328,6 +6387,7 @@ const PracticeManagementApp = () => {
                     { id: 'credentials', label: 'User IDs & Passwords', show: viewingClient.gstnUserId || viewingClient.tracesUserId || viewingClient.eWayBillUserId || viewingClient.incomeTaxUserId },
                     { id: 'contacts', label: 'Contacts', show: viewingClient.primaryOwner?.name || viewingClient.secondaryOwner?.name || viewingClient.accountant?.name },
                     { id: 'fees', label: 'Agreed Fees', show: viewingClient.agreedFees?.some(f => f.parentTask || f.fee) },
+                    { id: 'kyc', label: 'KYC Documents', show: viewingClient.kycDocuments?.some(d => d.hasFile || d.fileName) },
                     { id: 'tasks', label: 'Tasks' }
                   ].filter(tab => tab.show !== false).map(tab => (
                     <button
@@ -6579,6 +6639,87 @@ const PracticeManagementApp = () => {
                               </td>
                             </tr>
                           ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* KYC Documents Tab */}
+                  {clientViewTab === 'kyc' && (
+                    <div>
+                      <h3 style={{fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <span style={{width: '4px', height: '18px', background: '#8b5cf6', borderRadius: '2px'}}></span>
+                        KYC Documents
+                      </h3>
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ background: 'linear-gradient(180deg, #8b5cf6 0%, #7c3aed 100%)' }}>
+                            <th style={{ padding: '12px', textAlign: 'center', fontSize: '11px', fontWeight: '600', color: '#fff', textTransform: 'uppercase', width: '60px' }}>Sr.</th>
+                            <th style={{ padding: '12px', textAlign: 'left', fontSize: '11px', fontWeight: '600', color: '#fff', textTransform: 'uppercase' }}>Document Type</th>
+                            <th style={{ padding: '12px', textAlign: 'left', fontSize: '11px', fontWeight: '600', color: '#fff', textTransform: 'uppercase' }}>File Name</th>
+                            <th style={{ padding: '12px', textAlign: 'left', fontSize: '11px', fontWeight: '600', color: '#fff', textTransform: 'uppercase' }}>Remark</th>
+                            <th style={{ padding: '12px', textAlign: 'center', fontSize: '11px', fontWeight: '600', color: '#fff', textTransform: 'uppercase', width: '120px' }}>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(viewingClient.kycDocuments || []).filter(d => d.hasFile || d.fileName).map((doc, idx) => (
+                            <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? '#fff' : '#f8fafc' }}>
+                              <td style={{ padding: '12px', textAlign: 'center', fontWeight: '500' }}>{doc.id || idx + 1}</td>
+                              <td style={{ padding: '12px', fontWeight: '500' }}>{doc.name}</td>
+                              <td style={{ padding: '12px', color: '#64748b' }}>
+                                <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
+                                  <FileText size={14} style={{color: '#8b5cf6'}} />
+                                  {doc.fileName || 'No file'}
+                                </div>
+                              </td>
+                              <td style={{ padding: '12px', color: '#64748b', fontSize: '13px' }}>{doc.remark || '-'}</td>
+                              <td style={{ padding: '12px', textAlign: 'center' }}>
+                                {doc.fileData ? (
+                                  <div style={{display: 'flex', gap: '6px', justifyContent: 'center'}}>
+                                    {/* View Button - for images and PDFs */}
+                                    {(doc.fileType?.startsWith('image/') || doc.fileType === 'application/pdf') && (
+                                      <button
+                                        onClick={() => {
+                                          const newWindow = window.open();
+                                          if (doc.fileType?.startsWith('image/')) {
+                                            newWindow.document.write(`<html><head><title>${doc.fileName}</title></head><body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#1f2937;"><img src="${doc.fileData}" style="max-width:100%;max-height:100vh;" /></body></html>`);
+                                          } else {
+                                            newWindow.document.write(`<html><head><title>${doc.fileName}</title></head><body style="margin:0;"><iframe src="${doc.fileData}" style="width:100%;height:100vh;border:none;"></iframe></body></html>`);
+                                          }
+                                        }}
+                                        style={{padding: '4px 8px', background: '#8b5cf6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px'}}
+                                      >
+                                        <Eye size={12} /> View
+                                      </button>
+                                    )}
+                                    {/* Download Button */}
+                                    <button
+                                      onClick={() => {
+                                        const link = document.createElement('a');
+                                        link.href = doc.fileData;
+                                        link.download = doc.fileName || `${doc.name}.pdf`;
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+                                      }}
+                                      style={{padding: '4px 8px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px'}}
+                                    >
+                                      <Download size={12} /> Download
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span style={{color: '#9ca3af', fontSize: '12px'}}>File data unavailable</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                          {(!viewingClient.kycDocuments || viewingClient.kycDocuments.filter(d => d.hasFile || d.fileName).length === 0) && (
+                            <tr>
+                              <td colSpan={5} style={{padding: '24px', textAlign: 'center', color: '#9ca3af'}}>
+                                No KYC documents uploaded
+                              </td>
+                            </tr>
+                          )}
                         </tbody>
                       </table>
                     </div>
@@ -14425,7 +14566,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       const style = document.createElement('style');
       style.id = 'print-styles';
       style.innerHTML = `
-        @import url('https://fonts.googleapis.com/css2?family=Product+Sans:wght@400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
         @page { 
           size: A4 portrait; 
           margin: 10mm;
@@ -14439,7 +14580,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             top: 0; 
             width: 100%;
             max-width: 210mm;
-            font-family: 'Product Sans', 'Google Sans', 'Segoe UI', system-ui, sans-serif !important;
+            font-family: 'Product Sans', 'Poppins', 'Google Sans', 'Segoe UI', system-ui, sans-serif !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
@@ -15244,7 +15385,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       const style = document.createElement('style');
       style.id = 'print-styles-billing';
       style.innerHTML = `
-        @import url('https://fonts.googleapis.com/css2?family=Product+Sans:wght@400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
         @page { 
           size: A4 portrait; 
           margin: 10mm;
@@ -15258,7 +15399,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             top: 0; 
             width: 100%;
             max-width: 210mm;
-            font-family: 'Product Sans', 'Google Sans', 'Segoe UI', system-ui, sans-serif !important;
+            font-family: 'Product Sans', 'Poppins', 'Google Sans', 'Segoe UI', system-ui, sans-serif !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
@@ -18837,7 +18978,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           };
                           
                           return (
-                            <div style={{background: '#fff', fontFamily: "'Product Sans', 'Google Sans', 'Segoe UI', system-ui, sans-serif", border: `2px solid ${primaryColor}`, maxWidth: '210mm'}}>
+                            <div style={{background: '#fff', fontFamily: "'Product Sans', 'Poppins', 'Google Sans', 'Segoe UI', system-ui, sans-serif", border: `2px solid ${primaryColor}`, maxWidth: '210mm'}}>
                               
                               {/* ===== HEADER - Compact Dark Bar ===== */}
                               <div style={{background: headerGradient, padding: '20px 25px', color: '#fff'}}>
@@ -21255,7 +21396,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     };
                     
                     return (
-                      <div style={{fontFamily: "'Product Sans', 'Google Sans', 'Segoe UI', system-ui, sans-serif", border: `2px solid ${primaryColor}`, maxWidth: '210mm'}}>
+                      <div style={{fontFamily: "'Product Sans', 'Poppins', 'Google Sans', 'Segoe UI', system-ui, sans-serif", border: `2px solid ${primaryColor}`, maxWidth: '210mm'}}>
                         
                         {/* ===== HEADER ===== */}
                         <div style={{background: headerGradient, padding: '20px 25px', color: '#fff'}}>
@@ -26776,6 +26917,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       )}
 
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        
         * {
           margin: 0;
           padding: 0;
@@ -26783,7 +26926,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         }
 
         body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          font-family: 'Product Sans', 'Poppins', 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           background: #f8fafc;
           color: #1a1a1a;
         }
@@ -26794,6 +26937,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           overflow: hidden;
           gap: 0;
           background: #f8fafc;
+          font-family: 'Product Sans', 'Poppins', 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
         /* Sidebar Styles - Light Theme */
