@@ -18611,60 +18611,56 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             {unbilledTasksTab === 'unbilled' && (
               <div style={{background: '#fff', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', border: '1px solid #e2e8f0'}}>
                 {/* Filters - Professional Bar */}
-                <div style={{padding: '20px 24px', background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', borderBottom: '2px solid #e2e8f0', borderRadius: '12px 12px 0 0'}}>
-                  <div style={{display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'flex-end'}}>
+                <div style={{padding: '16px 20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', borderRadius: '12px 12px 0 0'}}>
+                  <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end'}}>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Client Name</label>
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#64748b', textTransform: 'uppercase'}}>Client Name</label>
                       <input 
                         type="text" 
                         value={unbilledFilters.clientName} 
                         onChange={(e) => setUnbilledFilters(p => ({...p, clientName: e.target.value}))}
                         placeholder="Search client..."
-                        style={{padding: '10px 14px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', width: '160px', transition: 'border-color 0.2s', outline: 'none'}} 
-                        onFocus={(e) => e.target.style.borderColor = '#10b981'}
-                        onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
+                        style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', width: '140px', outline: 'none'}} 
                       />
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Client Code</label>
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#64748b', textTransform: 'uppercase'}}>Client Code</label>
                       <input 
                         type="text" 
                         value={unbilledFilters.clientCode} 
                         onChange={(e) => setUnbilledFilters(p => ({...p, clientCode: e.target.value}))}
                         placeholder="Code..."
-                        style={{padding: '10px 14px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', width: '120px', outline: 'none'}} 
-                        onFocus={(e) => e.target.style.borderColor = '#10b981'}
-                        onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
+                        style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', width: '100px', outline: 'none'}} 
                       />
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Parent Task</label>
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#64748b', textTransform: 'uppercase'}}>Parent Task</label>
                       <select 
                         value={unbilledFilters.parentTask} 
                         onChange={(e) => setUnbilledFilters(p => ({...p, parentTask: e.target.value, childTask: ''}))}
-                        style={{padding: '10px 14px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', minWidth: '140px', background: '#fff', cursor: 'pointer'}}
+                        style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', minWidth: '120px', background: '#fff', cursor: 'pointer'}}
                       >
                         <option value="">All</option>
                         {Object.keys(PARENT_CHILD_TASKS).map(p => <option key={p} value={p}>{p}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Child Task</label>
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#64748b', textTransform: 'uppercase'}}>Child Task</label>
                       <select 
                         value={unbilledFilters.childTask} 
                         onChange={(e) => setUnbilledFilters(p => ({...p, childTask: e.target.value}))}
-                        style={{padding: '10px 14px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', minWidth: '140px', background: '#fff', cursor: 'pointer'}}
+                        style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', minWidth: '120px', background: '#fff', cursor: 'pointer'}}
                       >
                         <option value="">All</option>
                         {(PARENT_CHILD_TASKS[unbilledFilters.parentTask] || []).map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Financial Year</label>
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#64748b', textTransform: 'uppercase'}}>Financial Year</label>
                       <select 
                         value={unbilledFilters.financialYear} 
                         onChange={(e) => setUnbilledFilters(p => ({...p, financialYear: e.target.value}))}
-                        style={{padding: '10px 14px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', background: '#fff', cursor: 'pointer'}}
+                        style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', background: '#fff', cursor: 'pointer'}}
                       >
                         <option value="">All</option>
                         <option value="FY 2023-24">FY 2023-24</option>
@@ -18673,11 +18669,11 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       </select>
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Period</label>
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#64748b', textTransform: 'uppercase'}}>Period</label>
                       <select 
                         value={unbilledFilters.period} 
                         onChange={(e) => setUnbilledFilters(p => ({...p, period: e.target.value}))}
-                        style={{padding: '10px 14px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', background: '#fff', cursor: 'pointer'}}
+                        style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', background: '#fff', cursor: 'pointer'}}
                       >
                         <option value="">All</option>
                         <option value="Monthly">Monthly</option>
@@ -18686,11 +18682,11 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       </select>
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Status</label>
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#64748b', textTransform: 'uppercase'}}>Status</label>
                       <select 
                         value={unbilledFilters.status} 
                         onChange={(e) => setUnbilledFilters(p => ({...p, status: e.target.value}))}
-                        style={{padding: '10px 14px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', background: '#fff', cursor: 'pointer'}}
+                        style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', background: '#fff', cursor: 'pointer'}}
                       >
                         <option value="">All</option>
                         <option value="Completed">Completed</option>
@@ -18700,22 +18696,20 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     </div>
                     <button 
                       onClick={() => setUnbilledFilters({clientName: '', clientCode: '', parentTask: '', childTask: '', financialYear: '', period: '', status: ''})}
-                      style={{padding: '10px 20px', background: '#fff', border: '2px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#64748b', transition: 'all 0.2s'}}
-                      onMouseEnter={(e) => { e.target.style.background = '#f1f5f9'; e.target.style.borderColor = '#cbd5e1'; }}
-                      onMouseLeave={(e) => { e.target.style.background = '#fff'; e.target.style.borderColor = '#e2e8f0'; }}
+                      style={{padding: '8px 16px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', color: '#64748b'}}
                     >
-                      Clear Filters
+                      Clear
                     </button>
                   </div>
                 </div>
 
                 {/* Action Bar - Selected Tasks */}
                 {unbilledSelectedIds.length > 0 && (
-                  <div style={{padding: '16px 24px', background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', borderBottom: '2px solid #6ee7b7', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-                    <span style={{fontSize: '15px', fontWeight: '700', color: '#065f46'}}>
+                  <div style={{padding: '12px 20px', background: '#ecfdf5', borderBottom: '1px solid #6ee7b7', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                    <span style={{fontSize: '13px', fontWeight: '600', color: '#065f46'}}>
                       ✓ {unbilledSelectedIds.length} task(s) selected
                     </span>
-                    <div style={{display: 'flex', gap: '12px'}}>
+                    <div style={{display: 'flex', gap: '10px'}}>
                       <button
                         onClick={() => {
                           const count = unbilledSelectedIds.length;
@@ -18728,9 +18722,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           setUnbilledSelectedIds([]);
                           alert(`${count} task(s) marked as FREE successfully!`);
                         }}
-                        style={{padding: '10px 24px', background: '#8b5cf6', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', boxShadow: '0 2px 8px rgba(139,92,246,0.3)'}}
+                        style={{padding: '8px 16px', background: '#8b5cf6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600'}}
                       >
-                        <Check size={16} style={{marginRight: '8px', verticalAlign: 'middle'}} />
+                        <Check size={14} style={{marginRight: '6px', verticalAlign: 'middle'}} />
                         Mark as Free
                       </button>
                       <button
@@ -18747,9 +18741,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           setUnbilledTaskDetails(details);
                           setShowUnbilledInvoiceModal(true);
                         }}
-                        style={{padding: '10px 24px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', boxShadow: '0 2px 8px rgba(16,185,129,0.3)'}}
+                        style={{padding: '8px 16px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600'}}
                       >
-                        <FileText size={16} style={{marginRight: '8px', verticalAlign: 'middle'}} />
+                        <FileText size={14} style={{marginRight: '6px', verticalAlign: 'middle'}} />
                         Generate Invoice
                       </button>
                     </div>
@@ -18758,13 +18752,13 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
 
                 {/* Professional Excel-Style Tasks Table */}
                 <div style={{overflowX: 'auto'}}>
-                  <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '14px', minWidth: '1200px'}}>
+                  <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '1200px'}}>
                     <thead>
-                      <tr style={{background: 'linear-gradient(180deg, #1e293b 0%, #334155 100%)'}}>
-                        <th style={{padding: '16px 12px', width: '50px', borderRight: '1px solid #475569', position: 'sticky', top: 0}}>
+                      <tr style={{background: 'linear-gradient(180deg, #10b981 0%, #059669 100%)'}}>
+                        <th style={{padding: '14px 10px', width: '50px', borderRight: '1px solid #34d399', position: 'sticky', top: 0}}>
                           <input 
                             type="checkbox"
-                            style={{width: '18px', height: '18px', cursor: 'pointer', accentColor: '#10b981'}}
+                            style={{width: '16px', height: '16px', cursor: 'pointer', accentColor: '#fff'}}
                             onChange={(e) => {
                               const unbilledTasks = (data.tasks || []).filter(t => !t.billed && !t.markedFree);
                               let filtered = unbilledTasks;
@@ -18801,16 +18795,16 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             })()}
                           />
                         </th>
-                        <th style={{padding: '16px 12px', textAlign: 'center', fontWeight: '700', color: '#fff', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #475569', width: '60px'}}>S.No</th>
-                        <th style={{padding: '16px 12px', textAlign: 'left', fontWeight: '700', color: '#fff', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #475569', minWidth: '100px'}}>Code</th>
-                        <th style={{padding: '16px 12px', textAlign: 'left', fontWeight: '700', color: '#fff', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #475569', minWidth: '180px'}}>Client Name</th>
-                        <th style={{padding: '16px 12px', textAlign: 'left', fontWeight: '700', color: '#fff', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #475569', minWidth: '130px'}}>Parent Task</th>
-                        <th style={{padding: '16px 12px', textAlign: 'left', fontWeight: '700', color: '#fff', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #475569', minWidth: '140px'}}>Child Task</th>
-                        <th style={{padding: '16px 12px', textAlign: 'center', fontWeight: '700', color: '#fff', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #475569', minWidth: '100px'}}>Fin. Year</th>
-                        <th style={{padding: '16px 12px', textAlign: 'center', fontWeight: '700', color: '#fff', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #475569', minWidth: '100px'}}>Period</th>
-                        <th style={{padding: '16px 12px', textAlign: 'center', fontWeight: '700', color: '#fff', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #475569', minWidth: '100px'}}>Status</th>
-                        <th style={{padding: '16px 12px', textAlign: 'right', fontWeight: '700', color: '#fff', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #475569', minWidth: '120px'}}>Agreed Fees</th>
-                        <th style={{padding: '16px 12px', textAlign: 'center', fontWeight: '700', color: '#fff', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', minWidth: '100px'}}>Action</th>
+                        <th style={{padding: '14px 10px', textAlign: 'center', fontWeight: '700', color: '#fff', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399', width: '50px'}}>S.No</th>
+                        <th style={{padding: '14px 10px', textAlign: 'left', fontWeight: '700', color: '#fff', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399', minWidth: '80px'}}>Code</th>
+                        <th style={{padding: '14px 10px', textAlign: 'left', fontWeight: '700', color: '#fff', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399', minWidth: '160px'}}>Client Name</th>
+                        <th style={{padding: '14px 10px', textAlign: 'left', fontWeight: '700', color: '#fff', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399', minWidth: '110px'}}>Parent Task</th>
+                        <th style={{padding: '14px 10px', textAlign: 'left', fontWeight: '700', color: '#fff', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399', minWidth: '120px'}}>Child Task</th>
+                        <th style={{padding: '14px 10px', textAlign: 'center', fontWeight: '700', color: '#fff', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399', minWidth: '90px'}}>Fin. Year</th>
+                        <th style={{padding: '14px 10px', textAlign: 'center', fontWeight: '700', color: '#fff', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399', minWidth: '80px'}}>Period</th>
+                        <th style={{padding: '14px 10px', textAlign: 'center', fontWeight: '700', color: '#fff', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399', minWidth: '90px'}}>Status</th>
+                        <th style={{padding: '14px 10px', textAlign: 'right', fontWeight: '700', color: '#fff', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399', minWidth: '100px'}}>Agreed Fees</th>
+                        <th style={{padding: '14px 10px', textAlign: 'center', fontWeight: '700', color: '#fff', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', minWidth: '80px'}}>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -18831,7 +18825,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         }
                         
                         if (filtered.length === 0) {
-                          return <tr><td colSpan={11} style={{padding: '60px 40px', textAlign: 'center', color: '#94a3b8', fontSize: '16px', background: '#f8fafc'}}>
+                          return <tr><td colSpan={11} style={{padding: '50px 40px', textAlign: 'center', color: '#94a3b8', fontSize: '14px', background: '#f8fafc'}}>
                             <div style={{marginBottom: '8px'}}>📋</div>
                             No unbilled tasks found
                           </td></tr>;
@@ -18849,13 +18843,13 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               background: isSelected ? '#dcfce7' : isEven ? '#ffffff' : '#f8fafc',
                               transition: 'background 0.15s ease'
                             }}
-                            onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = '#f1f5f9'; }}
+                            onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = '#f0fdf4'; }}
                             onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = isEven ? '#ffffff' : '#f8fafc'; }}
                           >
-                            <td style={{padding: '14px 12px', borderRight: '1px solid #e2e8f0', textAlign: 'center'}}>
+                            <td style={{padding: '12px 10px', borderRight: '1px solid #e2e8f0', textAlign: 'center'}}>
                               <input 
                                 type="checkbox"
-                                style={{width: '18px', height: '18px', cursor: 'pointer', accentColor: '#10b981'}}
+                                style={{width: '16px', height: '16px', cursor: 'pointer', accentColor: '#10b981'}}
                                 checked={isSelected}
                                 onChange={(e) => {
                                   setUnbilledSelectedIds(prev => 
@@ -18864,57 +18858,51 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 }}
                               />
                             </td>
-                            <td style={{padding: '14px 12px', textAlign: 'center', fontWeight: '600', color: '#64748b', borderRight: '1px solid #e2e8f0', fontSize: '14px'}}>{idx + 1}</td>
-                            <td style={{padding: '14px 12px', fontWeight: '600', color: '#4f46e5', borderRight: '1px solid #e2e8f0', fontSize: '14px', fontFamily: 'monospace'}}>{task.fileNo || '-'}</td>
-                            <td style={{padding: '14px 12px', fontWeight: '500', color: '#1e293b', borderRight: '1px solid #e2e8f0', fontSize: '14px'}}>{task.clientName}</td>
-                            <td style={{padding: '14px 12px', borderRight: '1px solid #e2e8f0'}}>
+                            <td style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#64748b', borderRight: '1px solid #e2e8f0', fontSize: '12px'}}>{idx + 1}</td>
+                            <td style={{padding: '12px 10px', fontWeight: '600', color: '#4f46e5', borderRight: '1px solid #e2e8f0', fontSize: '12px', fontFamily: 'monospace'}}>{task.fileNo || '-'}</td>
+                            <td style={{padding: '12px 10px', fontWeight: '500', color: '#1e293b', borderRight: '1px solid #e2e8f0', fontSize: '12px'}}>{task.clientName}</td>
+                            <td style={{padding: '12px 10px', borderRight: '1px solid #e2e8f0'}}>
                               <span style={{
-                                padding: '6px 12px',
-                                borderRadius: '6px',
-                                fontSize: '13px',
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                fontSize: '11px',
                                 fontWeight: '600',
-                                background: '#ede9fe',
-                                color: '#7c3aed',
+                                background: '#dcfce7',
+                                color: '#166534',
                                 display: 'inline-block'
                               }}>
                                 {task.parentTask}
                               </span>
                             </td>
-                            <td style={{padding: '14px 12px', color: '#475569', borderRight: '1px solid #e2e8f0', fontSize: '14px', fontWeight: '500'}}>{task.childTask}</td>
-                            <td style={{padding: '14px 12px', textAlign: 'center', color: '#475569', borderRight: '1px solid #e2e8f0', fontSize: '14px', fontWeight: '500'}}>{task.financialYear}</td>
-                            <td style={{padding: '14px 12px', textAlign: 'center', color: '#475569', borderRight: '1px solid #e2e8f0', fontSize: '14px', fontWeight: '500'}}>{task.period}</td>
-                            <td style={{padding: '14px 12px', textAlign: 'center', borderRight: '1px solid #e2e8f0'}}>
+                            <td style={{padding: '12px 10px', color: '#475569', borderRight: '1px solid #e2e8f0', fontSize: '12px', fontWeight: '500'}}>{task.childTask}</td>
+                            <td style={{padding: '12px 10px', textAlign: 'center', color: '#475569', borderRight: '1px solid #e2e8f0', fontSize: '12px', fontWeight: '500'}}>{task.financialYear}</td>
+                            <td style={{padding: '12px 10px', textAlign: 'center', color: '#475569', borderRight: '1px solid #e2e8f0', fontSize: '12px', fontWeight: '500'}}>{task.period}</td>
+                            <td style={{padding: '12px 10px', textAlign: 'center', borderRight: '1px solid #e2e8f0'}}>
                               <span style={{
-                                padding: '6px 14px', 
-                                borderRadius: '20px', 
-                                fontSize: '12px', 
-                                fontWeight: '700',
-                                letterSpacing: '0.3px',
+                                padding: '4px 10px', 
+                                borderRadius: '12px', 
+                                fontSize: '11px', 
+                                fontWeight: '600',
                                 background: taskStatus === 'Completed' ? '#dcfce7' : taskStatus === 'In Progress' ? '#fef3c7' : '#dbeafe',
-                                color: taskStatus === 'Completed' ? '#166534' : taskStatus === 'In Progress' ? '#92400e' : '#1e40af',
-                                border: taskStatus === 'Completed' ? '1px solid #86efac' : taskStatus === 'In Progress' ? '1px solid #fcd34d' : '1px solid #93c5fd'
+                                color: taskStatus === 'Completed' ? '#166534' : taskStatus === 'In Progress' ? '#92400e' : '#1e40af'
                               }}>
                                 {taskStatus}
                               </span>
                             </td>
-                            <td style={{padding: '14px 12px', textAlign: 'right', fontWeight: '700', fontSize: '15px', color: '#0f172a', borderRight: '1px solid #e2e8f0', fontFamily: 'system-ui'}}>₹{(parseFloat(task.agreedFees) || 0).toLocaleString('en-IN')}</td>
-                            <td style={{padding: '14px 12px', textAlign: 'center'}}>
+                            <td style={{padding: '12px 10px', textAlign: 'right', fontWeight: '600', fontSize: '12px', color: '#0f172a', borderRight: '1px solid #e2e8f0'}}>₹{(parseFloat(task.agreedFees) || 0).toLocaleString('en-IN')}</td>
+                            <td style={{padding: '12px 10px', textAlign: 'center'}}>
                               <button
                                 onClick={() => setViewingUnbilledTask(task)}
                                 style={{
-                                  padding: '8px 16px', 
-                                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', 
+                                  padding: '6px 12px', 
+                                  background: '#10b981', 
                                   color: '#fff', 
                                   border: 'none', 
-                                  borderRadius: '6px', 
+                                  borderRadius: '4px', 
                                   cursor: 'pointer', 
-                                  fontSize: '13px', 
-                                  fontWeight: '600',
-                                  boxShadow: '0 2px 4px rgba(37,99,235,0.2)',
-                                  transition: 'all 0.2s'
+                                  fontSize: '11px', 
+                                  fontWeight: '600'
                                 }}
-                                onMouseEnter={(e) => { e.target.style.transform = 'translateY(-1px)'; e.target.style.boxShadow = '0 4px 8px rgba(37,99,235,0.3)'; }}
-                                onMouseLeave={(e) => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 2px 4px rgba(37,99,235,0.2)'; }}
                                 title="View Task Details"
                               >
                                 View
@@ -18929,15 +18917,15 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 
                 {/* Table Footer with Count */}
                 <div style={{
-                  padding: '16px 24px', 
-                  background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', 
-                  borderTop: '2px solid #e2e8f0',
+                  padding: '12px 20px', 
+                  background: '#f8fafc', 
+                  borderTop: '1px solid #e2e8f0',
                   borderRadius: '0 0 12px 12px',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center'
                 }}>
-                  <span style={{fontSize: '14px', color: '#64748b', fontWeight: '500'}}>
+                  <span style={{fontSize: '12px', color: '#64748b', fontWeight: '500'}}>
                     Showing {(() => {
                       const unbilledTasks = (data.tasks || []).filter(t => !t.billed && !t.markedFree);
                       let filtered = unbilledTasks;
@@ -18950,7 +18938,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       return filtered.length;
                     })()} of {(data.tasks || []).filter(t => !t.billed && !t.markedFree).length} unbilled tasks
                   </span>
-                  <span style={{fontSize: '14px', color: '#10b981', fontWeight: '600'}}>
+                  <span style={{fontSize: '12px', color: '#10b981', fontWeight: '600'}}>
                     Total Fees: ₹{(() => {
                       const unbilledTasks = (data.tasks || []).filter(t => !t.billed && !t.markedFree);
                       let filtered = unbilledTasks;
@@ -23001,7 +22989,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             ? { ...dsc, ...dscFormData, updatedAt: now }
             : dsc
         );
-        updateData({ dscRegister: updatedDsc });
+        setData(prev => ({ ...prev, dscRegister: updatedDsc }));
       } else {
         // Add new
         const newDsc = {
@@ -23011,7 +22999,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           updatedAt: now,
           createdBy: currentUser?.name || 'Unknown'
         };
-        updateData({ dscRegister: [...dscRecords, newDsc] });
+        setData(prev => ({ ...prev, dscRegister: [...(prev.dscRegister || []), newDsc] }));
       }
       
       setShowDscForm(false);
@@ -23043,7 +23031,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const handleDeleteDsc = (dscId) => {
       if (window.confirm('Are you sure you want to delete this DSC record?')) {
         const updatedDsc = dscRecords.filter(dsc => dsc.id !== dscId);
-        updateData({ dscRegister: updatedDsc });
+        setData(prev => ({ ...prev, dscRegister: updatedDsc }));
       }
     };
     
@@ -23233,10 +23221,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         {/* DSC Table */}
         <div style={{ background: '#fff', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
           {filteredDscRecords.length === 0 ? (
-            <div style={{ padding: '60px 24px', textAlign: 'center' }}>
-              <Key size={48} color="#e2e8f0" style={{ marginBottom: '16px' }} />
-              <h3 style={{ color: '#64748b', marginBottom: '8px' }}>No DSC Records Found</h3>
-              <p style={{ color: '#94a3b8', fontSize: '14px' }}>
+            <div style={{ padding: '50px 24px', textAlign: 'center' }}>
+              <Key size={40} color="#e2e8f0" style={{ marginBottom: '12px' }} />
+              <h3 style={{ color: '#64748b', marginBottom: '8px', fontSize: '14px' }}>No DSC Records Found</h3>
+              <p style={{ color: '#94a3b8', fontSize: '12px' }}>
                 {dscSearch || dscStatusFilter !== 'all' || dscExpiryFilter !== 'all' 
                   ? 'Try adjusting your search or filters'
                   : 'Click "Add DSC" to register a new Digital Signature Certificate'}
@@ -23244,18 +23232,18 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1200px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1100px', fontSize: '12px' }}>
                 <thead>
-                  <tr style={{ background: '#f8fafc' }}>
-                    <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>Client / Holder</th>
-                    <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>PAN</th>
-                    <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>Type</th>
-                    <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>Token Serial</th>
-                    <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>Issuing Authority</th>
-                    <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>Expiry</th>
-                    <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>Password</th>
-                    <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>Status</th>
-                    <th style={{ padding: '14px 16px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>Actions</th>
+                  <tr style={{ background: 'linear-gradient(180deg, #10b981 0%, #059669 100%)' }}>
+                    <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>Client / Holder</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>PAN</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>Type</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>Token Serial</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>Issuing Authority</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>Expiry</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>Password</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>Status</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'center', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -23263,93 +23251,94 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     <tr 
                       key={dsc.id} 
                       style={{ 
-                        background: index % 2 === 0 ? '#fff' : '#fafafa',
-                        transition: 'background 0.15s'
+                        background: index % 2 === 0 ? '#fff' : '#f8fafc',
+                        transition: 'background 0.15s',
+                        borderBottom: '1px solid #e2e8f0'
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = index % 2 === 0 ? '#fff' : '#fafafa'}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#f0fdf4'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = index % 2 === 0 ? '#fff' : '#f8fafc'}
                     >
-                      <td style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9' }}>
-                        <div style={{ fontWeight: '600', color: '#0f172a', marginBottom: '2px' }}>{dsc.clientName}</div>
-                        <div style={{ fontSize: '12px', color: '#64748b' }}>{dsc.holderName}</div>
+                      <td style={{ padding: '12px 14px', borderRight: '1px solid #e2e8f0' }}>
+                        <div style={{ fontWeight: '600', color: '#0f172a', marginBottom: '2px', fontSize: '12px' }}>{dsc.clientName}</div>
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>{dsc.holderName}</div>
                       </td>
-                      <td style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9', fontFamily: 'monospace', fontSize: '13px' }}>{dsc.pan || '-'}</td>
-                      <td style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '12px 14px', borderRight: '1px solid #e2e8f0', fontFamily: 'monospace', fontSize: '12px' }}>{dsc.pan || '-'}</td>
+                      <td style={{ padding: '12px 14px', borderRight: '1px solid #e2e8f0' }}>
                         <span style={{
-                          padding: '4px 10px',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          fontWeight: '500',
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          fontWeight: '600',
                           background: dsc.dscType === 'Both' ? '#ede9fe' : dsc.dscType === 'Encryption' ? '#fef3c7' : '#dcfce7',
                           color: dsc.dscType === 'Both' ? '#7c3aed' : dsc.dscType === 'Encryption' ? '#d97706' : '#16a34a'
                         }}>
                           {dsc.dscType}
                         </span>
                       </td>
-                      <td style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9', fontFamily: 'monospace', fontSize: '13px' }}>{dsc.tokenSerialNo || '-'}</td>
-                      <td style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9', fontSize: '13px' }}>{dsc.issuingAuthority || '-'}</td>
-                      <td style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9' }}>
-                        <div style={{ marginBottom: '4px', fontSize: '13px' }}>{dsc.expiryDate ? new Date(dsc.expiryDate).toLocaleDateString('en-IN') : '-'}</div>
+                      <td style={{ padding: '12px 14px', borderRight: '1px solid #e2e8f0', fontFamily: 'monospace', fontSize: '12px' }}>{dsc.tokenSerialNo || '-'}</td>
+                      <td style={{ padding: '12px 14px', borderRight: '1px solid #e2e8f0', fontSize: '12px' }}>{dsc.issuingAuthority || '-'}</td>
+                      <td style={{ padding: '12px 14px', borderRight: '1px solid #e2e8f0' }}>
+                        <div style={{ marginBottom: '3px', fontSize: '12px' }}>{dsc.expiryDate ? new Date(dsc.expiryDate).toLocaleDateString('en-IN') : '-'}</div>
                         <span style={{
-                          padding: '3px 8px',
+                          padding: '2px 6px',
                           borderRadius: '4px',
-                          fontSize: '11px',
+                          fontSize: '10px',
                           fontWeight: '600',
                           ...getExpiryBadgeStyle(dsc.expiryDate)
                         }}>
                           {getExpiryText(dsc.expiryDate)}
                         </span>
                       </td>
-                      <td style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontFamily: 'monospace', fontSize: '13px' }}>
+                      <td style={{ padding: '12px 14px', borderRight: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>
                             {showPassword[dsc.id] ? (dsc.password || '-') : '••••••••'}
                           </span>
                           {dsc.password && (
                             <button
                               onClick={() => togglePasswordVisibility(dsc.id)}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}
                               title={showPassword[dsc.id] ? 'Hide password' : 'Show password'}
                             >
-                              <Eye size={14} color="#64748b" />
+                              <Eye size={12} color="#64748b" />
                             </button>
                           )}
                         </div>
                       </td>
-                      <td style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '12px 14px', borderRight: '1px solid #e2e8f0' }}>
                         <span style={{
-                          padding: '4px 10px',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          fontWeight: '500',
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          fontWeight: '600',
                           background: dsc.status === 'Active' ? '#dcfce7' : dsc.status === 'Expired' ? '#fee2e2' : dsc.status === 'Renewed' ? '#dbeafe' : '#f1f5f9',
                           color: dsc.status === 'Active' ? '#16a34a' : dsc.status === 'Expired' ? '#dc2626' : dsc.status === 'Renewed' ? '#2563eb' : '#64748b'
                         }}>
                           {dsc.status}
                         </span>
                       </td>
-                      <td style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9' }}>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                      <td style={{ padding: '12px 14px' }}>
+                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                           <button
                             onClick={() => setViewingDsc(dsc)}
-                            style={{ padding: '6px', background: '#eff6ff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                            style={{ padding: '5px', background: '#eff6ff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                             title="View Details"
                           >
-                            <Eye size={16} color="#3b82f6" />
+                            <Eye size={14} color="#3b82f6" />
                           </button>
                           <button
                             onClick={() => handleEditDsc(dsc)}
-                            style={{ padding: '6px', background: '#fef3c7', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                            style={{ padding: '5px', background: '#fef3c7', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                             title="Edit"
                           >
-                            <Edit size={16} color="#d97706" />
+                            <Edit size={14} color="#d97706" />
                           </button>
                           <button
                             onClick={() => handleDeleteDsc(dsc.id)}
-                            style={{ padding: '6px', background: '#fee2e2', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                            style={{ padding: '5px', background: '#fee2e2', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                             title="Delete"
                           >
-                            <Trash2 size={16} color="#dc2626" />
+                            <Trash2 size={14} color="#dc2626" />
                           </button>
                         </div>
                       </td>
