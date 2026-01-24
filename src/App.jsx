@@ -12456,142 +12456,100 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
 
           {/* BULK UPLOAD MODE */}
           {activeMode === 'bulk' && (
-            <div style={{ padding: '24px' }}>
-              {/* Instructions */}
+            <div style={{ padding: '20px 24px', maxHeight: '70vh', overflowY: 'auto' }}>
+              {/* Instructions - Compact */}
               <div style={{ 
                 background: '#f0f9ff', 
                 border: '1px solid #bae6fd', 
                 borderRadius: '8px', 
-                padding: '16px',
-                marginBottom: '20px'
+                padding: '12px 16px',
+                marginBottom: '16px'
               }}>
-                <h4 style={{ margin: '0 0 8px 0', color: '#0369a1', fontSize: '14px' }}>
-                  📋 CSV Format Instructions
-                </h4>
-                <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#475569' }}>
-                  Required columns: <code style={{ background: '#e0f2fe', padding: '2px 6px', borderRadius: '4px' }}>
-                    clientName, parentTask, childTask, financialYear, period, taskLeader, taskManager, primaryAssignedUser
-                  </code>
-                </p>
-                <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#475569' }}>
-                  Optional columns: <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
-                    fileNo, groupName, subPeriod, startDate, expectedCompletionDate, description
-                  </code>
-                </p>
-                <div style={{ 
-                  background: '#fef3c7', 
-                  border: '1px solid #fcd34d', 
-                  borderRadius: '6px', 
-                  padding: '10px', 
-                  marginBottom: '12px',
-                  fontSize: '12px',
-                  color: '#92400e'
-                }}>
-                  <strong>⚠️ Strict Validation:</strong> All values must match existing system data. 
-                  Invalid clients, staff, task categories, or periods will be <strong>rejected</strong>.
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+                  <div style={{ flex: 1, minWidth: '300px' }}>
+                    <h4 style={{ margin: '0 0 6px 0', color: '#0369a1', fontSize: '13px' }}>
+                      📋 Required Columns
+                    </h4>
+                    <code style={{ background: '#e0f2fe', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', display: 'inline-block' }}>
+                      clientName, parentTask, childTask, financialYear, period, taskLeader, taskManager, primaryAssignedUser
+                    </code>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={downloadSampleTaskCSV}
+                    style={{
+                      padding: '8px 14px',
+                      background: '#059669',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    <Download size={14} /> Download Sample
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={downloadSampleTaskCSV}
-                  style={{
-                    padding: '8px 16px',
-                    background: '#059669',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '13px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <Download size={16} /> Download Sample CSV (50 Tasks)
-                </button>
               </div>
 
-              {/* File Upload */}
-              {bulkPreview.length === 0 && (
-                <div style={{
-                  border: '2px dashed #cbd5e1',
-                  borderRadius: '12px',
-                  padding: '40px',
-                  textAlign: 'center',
-                  background: '#f8fafc'
-                }}>
-                  <Upload size={40} style={{ color: '#94a3b8', marginBottom: '12px' }} />
-                  <p style={{ margin: '0 0 16px 0', color: '#64748b' }}>
-                    Select your CSV file to upload
-                  </p>
+              {/* File Upload Area - Always visible */}
+              <div style={{
+                border: bulkPreview.length > 0 ? '2px solid #10b981' : '2px dashed #cbd5e1',
+                borderRadius: '8px',
+                padding: '16px 20px',
+                background: bulkPreview.length > 0 ? '#f0fdf4' : '#f8fafc',
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                flexWrap: 'wrap'
+              }}>
+                <Upload size={24} style={{ color: bulkPreview.length > 0 ? '#10b981' : '#94a3b8' }} />
+                <div style={{ flex: 1 }}>
                   <input
                     type="file"
                     accept=".csv,.txt"
                     onChange={handleTaskFileUpload}
                     style={{
-                      padding: '12px',
-                      border: '2px solid #3b82f6',
-                      borderRadius: '8px',
+                      padding: '8px',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '6px',
                       cursor: 'pointer',
-                      fontSize: '14px',
+                      fontSize: '13px',
                       width: '100%',
-                      maxWidth: '300px'
+                      maxWidth: '280px'
                     }}
                   />
-                  
-                  {/* Valid Options Reference */}
-                  <div style={{ 
-                    marginTop: '24px', 
-                    textAlign: 'left', 
-                    background: '#f8fafc', 
-                    padding: '16px', 
-                    borderRadius: '8px',
-                    border: '1px solid #e2e8f0',
-                    maxHeight: '200px',
-                    overflowY: 'auto'
-                  }}>
-                    <h5 style={{ margin: '0 0 12px 0', color: '#1e293b', fontSize: '13px' }}>📋 Valid Options Reference:</h5>
-                    <div style={{ fontSize: '11px', color: '#64748b' }}>
-                      <p style={{ margin: '0 0 8px 0' }}>
-                        <strong>Parent Tasks:</strong> {Object.keys(PARENT_CHILD_TASKS).join(', ')}
-                      </p>
-                      <p style={{ margin: '0 0 8px 0' }}>
-                        <strong>Financial Years:</strong> {FINANCIAL_YEARS.join(', ')}
-                      </p>
-                      <p style={{ margin: '0 0 8px 0' }}>
-                        <strong>Periods:</strong> Monthly, Quarterly, Half-Yearly, Annually
-                      </p>
-                      <p style={{ margin: '0 0 8px 0' }}>
-                        <strong>Task Leaders:</strong> {data.staff.filter(s => s.role === 'Superadmin' && s.status === 'Active').map(s => s.name).join(', ') || 'No Superadmins found'}
-                      </p>
-                      <p style={{ margin: '0 0 8px 0' }}>
-                        <strong>Task Managers:</strong> {data.staff.filter(s => (s.role === 'Reporting Manager' || s.role === 'Superadmin') && s.status === 'Active').map(s => s.name).join(', ') || 'No Managers found'}
-                      </p>
-                      <p style={{ margin: '0' }}>
-                        <strong>Total Clients:</strong> {data.clients.length} registered | <strong>Total Staff:</strong> {data.staff.filter(s => s.status === 'Active').length} active
-                      </p>
-                    </div>
-                  </div>
                 </div>
-              )}
+                {bulkPreview.length > 0 && (
+                  <span style={{ color: '#10b981', fontWeight: '600', fontSize: '13px' }}>
+                    ✓ {bulkPreview.length} tasks ready to import
+                  </span>
+                )}
+              </div>
 
               {/* Error */}
               {bulkError && (
                 <div style={{
-                  padding: '16px',
+                  padding: '12px',
                   background: '#fef2f2',
                   border: '1px solid #fecaca',
                   borderRadius: '8px',
                   color: '#dc2626',
-                  marginTop: '16px',
-                  maxHeight: '200px',
+                  marginBottom: '12px',
+                  maxHeight: '150px',
                   overflowY: 'auto'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                    <AlertCircle size={20} style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                    <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
                     <pre style={{ 
                       margin: 0, 
                       fontFamily: 'inherit', 
-                      fontSize: '13px', 
+                      fontSize: '12px', 
                       whiteSpace: 'pre-wrap',
                       wordBreak: 'break-word'
                     }}>{bulkError}</pre>
@@ -12599,106 +12557,120 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 </div>
               )}
 
-              {/* Warning */}
+              {/* Warning/Success */}
               {bulkWarning && (
                 <div style={{
-                  padding: '16px',
+                  padding: '12px',
                   background: bulkWarning.includes('✅') ? '#f0fdf4' : '#fffbeb',
                   border: `1px solid ${bulkWarning.includes('✅') ? '#86efac' : '#fcd34d'}`,
                   borderRadius: '8px',
                   color: bulkWarning.includes('✅') ? '#166534' : '#92400e',
-                  marginTop: '16px',
-                  maxHeight: '200px',
+                  marginBottom: '12px',
+                  maxHeight: '120px',
                   overflowY: 'auto'
                 }}>
                   <pre style={{ 
                     margin: 0, 
                     fontFamily: 'inherit', 
-                    fontSize: '13px', 
+                    fontSize: '12px', 
                     whiteSpace: 'pre-wrap',
                     wordBreak: 'break-word'
                   }}>{bulkWarning}</pre>
                 </div>
               )}
 
-              {/* Preview */}
+              {/* Preview Table & Import Button */}
               {bulkPreview.length > 0 && (
-                <div style={{ marginTop: '20px' }}>
-                  <h4 style={{ margin: '0 0 12px 0', color: '#1e293b' }}>
-                    Preview ({bulkPreview.length} tasks)
-                  </h4>
-                  <div style={{ maxHeight: '350px', overflow: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                      <thead style={{ background: '#f1f5f9', position: 'sticky', top: 0 }}>
+                <div>
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    marginBottom: '10px',
+                    padding: '10px 12px',
+                    background: '#f0fdf4',
+                    borderRadius: '8px',
+                    border: '1px solid #86efac'
+                  }}>
+                    <h4 style={{ margin: 0, color: '#166534', fontSize: '14px' }}>
+                      📋 Preview: {bulkPreview.length} tasks ready
+                    </h4>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button
+                        type="button"
+                        onClick={() => { setBulkPreview([]); setBulkError(''); setBulkWarning(''); }}
+                        style={{
+                          padding: '8px 16px',
+                          background: '#f1f5f9',
+                          color: '#475569',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          fontWeight: '500'
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        disabled={bulkSaving}
+                        onClick={() => {
+                          console.log('=== IMPORT & SAVE BUTTON CLICKED ===');
+                          confirmBulkImport();
+                        }}
+                        style={{
+                          padding: '8px 20px',
+                          background: bulkSaving ? '#9ca3af' : '#10b981',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: bulkSaving ? 'wait' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontWeight: 600,
+                          fontSize: '13px'
+                        }}
+                      >
+                        {bulkSaving ? (
+                          <>⏳ Saving...</>
+                        ) : (
+                          <><CheckCircle size={16} /> Import & Save {bulkPreview.length} Tasks</>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div style={{ maxHeight: '250px', overflow: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                      <thead style={{ background: 'linear-gradient(180deg, #10b981 0%, #059669 100%)', position: 'sticky', top: 0 }}>
                         <tr>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>#</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Client</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Parent Task</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Child Task</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>FY</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Period</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Manager</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Assigned To</th>
+                          <th style={{ padding: '8px 6px', textAlign: 'left', color: '#fff', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>#</th>
+                          <th style={{ padding: '8px 6px', textAlign: 'left', color: '#fff', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>Client</th>
+                          <th style={{ padding: '8px 6px', textAlign: 'left', color: '#fff', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>Parent</th>
+                          <th style={{ padding: '8px 6px', textAlign: 'left', color: '#fff', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>Child</th>
+                          <th style={{ padding: '8px 6px', textAlign: 'left', color: '#fff', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>FY</th>
+                          <th style={{ padding: '8px 6px', textAlign: 'left', color: '#fff', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>Period</th>
+                          <th style={{ padding: '8px 6px', textAlign: 'left', color: '#fff', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>Manager</th>
+                          <th style={{ padding: '8px 6px', textAlign: 'left', color: '#fff', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>Assigned</th>
                         </tr>
                       </thead>
                       <tbody>
                         {bulkPreview.map((task, idx) => (
-                          <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                            <td style={{ padding: '8px' }}>{idx + 1}</td>
-                            <td style={{ padding: '8px' }}>{task.clientName}</td>
-                            <td style={{ padding: '8px' }}><span style={{ background: '#dbeafe', padding: '2px 6px', borderRadius: '4px', fontSize: '11px' }}>{task.parentTask}</span></td>
-                            <td style={{ padding: '8px' }}>{task.childTask}</td>
-                            <td style={{ padding: '8px' }}>{task.financialYear}</td>
-                            <td style={{ padding: '8px' }}>{task.period}</td>
-                            <td style={{ padding: '8px', color: '#059669', fontWeight: 500 }}>{task.taskManager}</td>
-                            <td style={{ padding: '8px', color: '#7c3aed', fontWeight: 500 }}>{task.primaryAssignedUser}</td>
+                          <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#f8fafc' }}>
+                            <td style={{ padding: '6px' }}>{idx + 1}</td>
+                            <td style={{ padding: '6px', fontWeight: '500' }}>{task.clientName}</td>
+                            <td style={{ padding: '6px' }}><span style={{ background: '#dcfce7', padding: '2px 6px', borderRadius: '4px', fontSize: '10px' }}>{task.parentTask}</span></td>
+                            <td style={{ padding: '6px' }}>{task.childTask}</td>
+                            <td style={{ padding: '6px' }}>{task.financialYear}</td>
+                            <td style={{ padding: '6px' }}>{task.period}</td>
+                            <td style={{ padding: '6px', color: '#059669', fontWeight: 500 }}>{task.taskManager}</td>
+                            <td style={{ padding: '6px', color: '#7c3aed', fontWeight: 500 }}>{task.primaryAssignedUser}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-                  </div>
-                  
-                  <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-                    <button
-                      type="button"
-                      onClick={() => { setBulkPreview([]); setBulkError(''); setBulkWarning(''); }}
-                      style={{
-                        padding: '10px 20px',
-                        background: '#f1f5f9',
-                        color: '#475569',
-                        border: 'none',
-                        borderRadius: '8px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      disabled={bulkSaving}
-                      onClick={() => {
-                        console.log('=== IMPORT & SAVE BUTTON CLICKED ===');
-                        confirmBulkImport();
-                      }}
-                      style={{
-                        padding: '10px 24px',
-                        background: bulkSaving ? '#9ca3af' : '#10b981',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        cursor: bulkSaving ? 'wait' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        fontWeight: 600
-                      }}
-                    >
-                      {bulkSaving ? (
-                        <>⏳ Saving to Database...</>
-                      ) : (
-                        <><CheckCircle size={18} /> Import & Save {bulkPreview.length} Tasks</>
-                      )}
-                    </button>
                   </div>
                 </div>
               )}
