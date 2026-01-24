@@ -666,7 +666,8 @@ const PracticeManagementApp = () => {
       console.log('Data prepared. Counts:', {
         tasks: cleanData.tasks.length,
         clients: cleanData.clients.length,
-        staff: cleanData.staff.length
+        staff: cleanData.staff.length,
+        organizations: cleanData.organizations.length
       });
       
       // Step 4: Save to Firebase
@@ -15293,12 +15294,17 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     };
 
     const saveOrganization = () => {
+      console.log('=== saveOrganization called ===');
+      console.log('orgForm:', orgForm);
+      console.log('editingOrg:', editingOrg);
+      
       if (!orgForm.name) {
         alert('Organization name is required');
         return;
       }
 
       const orgId = editingOrg ? editingOrg.id : generateId();
+      console.log('Generated orgId:', orgId);
       
       const orgData = {
         ...orgForm,
@@ -15309,6 +15315,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         createdAt: editingOrg ? editingOrg.createdAt : new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
+      
+      console.log('orgData to save:', orgData);
       
       // Store images in localStorage (Firebase can't handle large base64 images)
       try {
@@ -15324,16 +15332,28 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       }
 
       if (editingOrg) {
-        setData(prev => ({
-          ...prev,
-          organizations: prev.organizations.map(o => o.id === editingOrg.id ? orgData : o)
-        }));
+        console.log('Updating existing organization');
+        setData(prev => {
+          console.log('Previous organizations:', prev.organizations);
+          const updated = {
+            ...prev,
+            organizations: prev.organizations.map(o => o.id === editingOrg.id ? orgData : o)
+          };
+          console.log('Updated organizations:', updated.organizations);
+          return updated;
+        });
         alert('Organization updated successfully!');
       } else {
-        setData(prev => ({
-          ...prev,
-          organizations: [...(prev.organizations || []), orgData]
-        }));
+        console.log('Creating new organization');
+        setData(prev => {
+          console.log('Previous organizations:', prev.organizations);
+          const updated = {
+            ...prev,
+            organizations: [...(prev.organizations || []), orgData]
+          };
+          console.log('Updated organizations:', updated.organizations);
+          return updated;
+        });
         alert('Organization created successfully!');
       }
 
@@ -20987,7 +21007,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   gap: '12px',
                   marginBottom: '20px',
                   padding: '16px 20px',
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  background: (viewingInvoice.invoiceFormat === 'billOfSupplyBlue' ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)'),
                   borderRadius: '12px'
                 }}>
                   <button
@@ -21098,7 +21118,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 {/* Professional Invoice Design */}
                 <div id="invoice-print-content" style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.1)'}}>
                   {/* Invoice Header */}
-                  <div style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', padding: '30px', color: '#fff'}}>
+                  <div style={{background: (viewingInvoice.invoiceFormat === 'billOfSupplyBlue' ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)'), padding: '30px', color: '#fff'}}>
                     <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                       <div style={{display: 'flex', alignItems: 'center', gap: '20px'}}>
                         {viewingInvoice.orgLogo ? (
@@ -21114,7 +21134,11 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         </div>
                       </div>
                       <div style={{textAlign: 'right'}}>
-                        <div style={{fontSize: '36px', fontWeight: '800', letterSpacing: '2px'}}>TAX INVOICE</div>
+                        <div style={{fontSize: '36px', fontWeight: '800', letterSpacing: '2px'}}>
+                          {viewingInvoice.invoiceFormat === 'proformaInvoice' ? 'PROFORMA INVOICE' : 
+                           (viewingInvoice.invoiceFormat === 'billOfSupply' || viewingInvoice.invoiceFormat === 'billOfSupplyBlue') ? 'BILL OF SUPPLY' : 
+                           'TAX INVOICE'}
+                        </div>
                         <div style={{marginTop: '12px', fontSize: '13px', opacity: 0.8}}>
                           <div>GSTIN: {viewingInvoice.orgGstin || 'N/A'}</div>
                           <div>PAN: {viewingInvoice.orgPan || 'N/A'}</div>
@@ -21159,7 +21183,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <div style={{padding: '0'}}>
                     <table style={{width: '100%', borderCollapse: 'collapse'}}>
                       <thead>
-                        <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                        <tr style={{background: (viewingInvoice.invoiceFormat === 'billOfSupplyBlue' ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)')}}>
                           <th style={{padding: '14px 20px', textAlign: 'center', color: '#fff', fontWeight: '600', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', width: '50px'}}>S.No</th>
                           <th style={{padding: '14px 20px', textAlign: 'left', color: '#fff', fontWeight: '600', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Description of Services</th>
                           <th style={{padding: '14px 20px', textAlign: 'center', color: '#fff', fontWeight: '600', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', width: '100px'}}>SAC</th>
@@ -21249,7 +21273,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           <span style={{fontWeight: '500', color: '#f59e0b'}}>Not Applicable</span>
                         </div>
                       )}
-                      <div style={{display: 'flex', justifyContent: 'space-between', padding: '12px 0', marginTop: '8px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', margin: '8px -20px -16px', padding: '16px 20px', borderRadius: '0 0 0 0'}}>
+                      <div style={{display: 'flex', justifyContent: 'space-between', padding: '12px 0', marginTop: '8px', background: (viewingInvoice.invoiceFormat === 'billOfSupplyBlue' ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)'), margin: '8px -20px -16px', padding: '16px 20px', borderRadius: '0 0 0 0'}}>
                         <span style={{color: '#fff', fontWeight: '700', fontSize: '16px'}}>TOTAL</span>
                         <span style={{color: '#fff', fontWeight: '700', fontSize: '18px'}}>₹{viewingInvoice.totalAmount?.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
                       </div>
@@ -21257,9 +21281,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   </div>
                   
                   {/* Bank Details & Signature */}
-                  <div style={{display: 'flex', borderTop: '2px solid #10b981'}}>
+                  <div style={{display: 'flex', borderTop: `2px solid ${viewingInvoice.invoiceFormat === 'billOfSupplyBlue' ? '#3b82f6' : '#10b981'}`}}>
                     <div style={{flex: 1, padding: '24px 30px', borderRight: '1px solid #e2e8f0'}}>
-                      <div style={{fontSize: '12px', color: '#10b981', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px'}}>Bank Details</div>
+                      <div style={{fontSize: '12px', color: (viewingInvoice.invoiceFormat === 'billOfSupplyBlue' ? '#3b82f6' : '#10b981'), fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px'}}>Bank Details</div>
                       <table style={{fontSize: '13px'}}>
                         <tbody>
                           <tr><td style={{padding: '4px 16px 4px 0', color: '#64748b'}}>Bank Name</td><td style={{fontWeight: '500'}}>{viewingInvoice.orgBankName || 'N/A'}</td></tr>
@@ -21276,7 +21300,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       ) : (
                         <div style={{height: '60px', marginBottom: '12px'}}></div>
                       )}
-                      <div style={{borderTop: '2px solid #10b981', paddingTop: '8px', fontWeight: '600', fontSize: '13px'}}>
+                      <div style={{borderTop: `2px solid ${viewingInvoice.invoiceFormat === 'billOfSupplyBlue' ? '#3b82f6' : '#10b981'}`, paddingTop: '8px', fontWeight: '600', fontSize: '13px'}}>
                         {viewingInvoice.orgSignatory || 'Authorized Signatory'}
                       </div>
                     </div>
@@ -22279,19 +22303,6 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           onChange={() => setOrgForm({...orgForm, displayFileNoInInvoice: false})}
                         /> No
                       </label>
-                    </div>
-
-                    <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-                      <span style={{fontSize: '13px'}}>Select Default Bill Format:</span>
-                      <select
-                        value={orgForm.defaultBillFormat}
-                        onChange={(e) => setOrgForm({...orgForm, defaultBillFormat: e.target.value})}
-                        style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'}}
-                      >
-                        <option value="Format A">Format A (Recommended)</option>
-                        <option value="Format B">Format B</option>
-                        <option value="Format C">Format C</option>
-                      </select>
                     </div>
                   </div>
                 </div>
