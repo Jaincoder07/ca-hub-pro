@@ -3603,7 +3603,7 @@ const PracticeManagementApp = () => {
     })();
 
     return (
-      <div className="task-detail-view">
+      <div className="task-detail-view" style={{padding: '24px 40px', background: '#f8fafc', minHeight: '100%'}}>
         {/* Recurring Tasks Modal */}
         {showRecurringModal && (
           <div style={{
@@ -4676,7 +4676,7 @@ const PracticeManagementApp = () => {
                             if (window.confirm('Delete this task?')) {
                               setData(prev => ({
                                 ...prev,
-                                tasks: prev.tasks.filter(t => t.id !== task.id)
+                                tasks: prev.tasks.map(t => t.id === task.id ? { ...t, deleted: true, deletedAt: new Date().toISOString(), deletedBy: currentUser?.name || 'Unknown' } : t)
                               }));
                             }
                           }}
@@ -5242,8 +5242,8 @@ const PracticeManagementApp = () => {
                     </div>
                   )}
 
-                  {/* Row 1: Group No., Client Code, Client Name (wide), Type of Client, Date of Enrollment */}
-                  <div style={{display: 'grid', gridTemplateColumns: '65px 80px 1fr 120px 130px', gap: '12px', alignItems: 'end'}}>
+                  {/* Row 1: Group No., Client Code, Client Name (WIDE), Type of Client, Date of Enrollment */}
+                  <div style={{display: 'grid', gridTemplateColumns: '60px 70px 1fr 110px 120px', gap: '10px', alignItems: 'end'}}>
                     {/* Group No. */}
                     <div>
                       <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Group No.</label>
@@ -5253,11 +5253,11 @@ const PracticeManagementApp = () => {
                         readOnly
                         style={{
                           width: '100%',
-                          padding: '10px 8px',
+                          padding: '10px 6px',
                           border: '1px solid #e2e8f0',
                           borderRadius: '6px',
                           background: '#f8fafc',
-                          fontSize: '14px',
+                          fontSize: '13px',
                           fontWeight: '600',
                           color: '#1e293b',
                           textAlign: 'center'
@@ -5268,7 +5268,7 @@ const PracticeManagementApp = () => {
                     {/* Client Code */}
                     <div>
                       <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>
-                        Client Code <span style={{color: '#ef4444'}}>*</span>
+                        Code <span style={{color: '#ef4444'}}>*</span>
                       </label>
                       <input
                         type="text"
@@ -5277,19 +5277,19 @@ const PracticeManagementApp = () => {
                         disabled={!editingClient}
                         style={{
                           width: '100%',
-                          padding: '10px 8px',
+                          padding: '10px 6px',
                           background: editingClient ? '#fff' : '#f0fdf4',
                           border: clientData.fileNo ? '1px solid #10b981' : '1px solid #e2e8f0',
                           borderRadius: '6px',
                           fontWeight: '600',
-                          fontSize: '14px',
+                          fontSize: '13px',
                           color: '#166534',
                           textAlign: 'center'
                         }}
                       />
                     </div>
 
-                    {/* Client Name - Wide */}
+                    {/* Client Name - WIDE */}
                     <div>
                       <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>
                         Client Name <span style={{color: '#ef4444'}}>*</span>
@@ -5309,23 +5309,24 @@ const PracticeManagementApp = () => {
                           padding: '10px 12px',
                           border: '1px solid #e2e8f0',
                           borderRadius: '6px',
-                          fontSize: '13px'
+                          fontSize: '13px',
+                          minWidth: '200px'
                         }}
                       />
                     </div>
 
                     {/* Type of Client */}
                     <div>
-                      <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Type of Client</label>
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Type</label>
                       <select
                         value={clientData.typeOfClient}
                         onChange={(e) => setClientData({...clientData, typeOfClient: e.target.value})}
                         style={{
                           width: '100%',
-                          padding: '10px 8px',
+                          padding: '10px 6px',
                           border: '1px solid #e2e8f0',
                           borderRadius: '6px',
-                          fontSize: '13px',
+                          fontSize: '12px',
                           background: '#fff'
                         }}
                       >
@@ -5341,17 +5342,17 @@ const PracticeManagementApp = () => {
 
                     {/* Date of Enrollment */}
                     <div>
-                      <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Date of Enrollment</label>
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Date of Enroll</label>
                       <input
                         type="date"
                         value={clientData.dateOfEnrollment}
                         onChange={(e) => setClientData({...clientData, dateOfEnrollment: e.target.value})}
                         style={{
                           width: '100%',
-                          padding: '10px 8px',
+                          padding: '10px 6px',
                           border: '1px solid #e2e8f0',
                           borderRadius: '6px',
-                          fontSize: '13px'
+                          fontSize: '12px'
                         }}
                       />
                     </div>
@@ -5408,8 +5409,26 @@ const PracticeManagementApp = () => {
                     />
                   </div>
 
-                  {/* Row 2: Empty, Aadhaar, State, Empty */}
-                  <div></div>
+                  {/* Row 2: Address (2 cols), Aadhaar, State */}
+                  <div style={{gridColumn: 'span 2', gridRow: 'span 2'}}>
+                    <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Address</label>
+                    <textarea
+                      rows="4"
+                      placeholder="Enter complete address"
+                      value={clientData.address}
+                      onChange={(e) => setClientData({...clientData, address: e.target.value})}
+                      style={{
+                        width: '100%',
+                        height: 'calc(100% - 20px)',
+                        padding: '10px 12px',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        resize: 'none',
+                        lineHeight: '1.4'
+                      }}
+                    />
+                  </div>
 
                   <div>
                     <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Aadhaar</label>
@@ -5430,48 +5449,55 @@ const PracticeManagementApp = () => {
                       style={{width: '100%', padding: '10px 8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', background: '#fff'}}
                     >
                       <option value="">Select State</option>
-                      <option value="Uttarakhand">Uttarakhand</option>
-                      <option value="Delhi">Delhi</option>
-                      <option value="Uttar Pradesh">Uttar Pradesh</option>
-                      <option value="Maharashtra">Maharashtra</option>
+                      <option value="Andhra Pradesh">Andhra Pradesh</option>
+                      <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+                      <option value="Assam">Assam</option>
+                      <option value="Bihar">Bihar</option>
+                      <option value="Chhattisgarh">Chhattisgarh</option>
+                      <option value="Goa">Goa</option>
+                      <option value="Gujarat">Gujarat</option>
+                      <option value="Haryana">Haryana</option>
+                      <option value="Himachal Pradesh">Himachal Pradesh</option>
+                      <option value="Jharkhand">Jharkhand</option>
                       <option value="Karnataka">Karnataka</option>
+                      <option value="Kerala">Kerala</option>
+                      <option value="Madhya Pradesh">Madhya Pradesh</option>
+                      <option value="Maharashtra">Maharashtra</option>
+                      <option value="Manipur">Manipur</option>
+                      <option value="Meghalaya">Meghalaya</option>
+                      <option value="Mizoram">Mizoram</option>
+                      <option value="Nagaland">Nagaland</option>
+                      <option value="Odisha">Odisha</option>
+                      <option value="Punjab">Punjab</option>
+                      <option value="Rajasthan">Rajasthan</option>
+                      <option value="Sikkim">Sikkim</option>
+                      <option value="Tamil Nadu">Tamil Nadu</option>
+                      <option value="Telangana">Telangana</option>
+                      <option value="Tripura">Tripura</option>
+                      <option value="Uttar Pradesh">Uttar Pradesh</option>
+                      <option value="Uttarakhand">Uttarakhand</option>
+                      <option value="West Bengal">West Bengal</option>
+                      <option value="Andaman and Nicobar Islands">Andaman and Nicobar Islands</option>
+                      <option value="Chandigarh">Chandigarh</option>
+                      <option value="Dadra and Nagar Haveli and Daman and Diu">Dadra and Nagar Haveli and Daman and Diu</option>
+                      <option value="Delhi">Delhi</option>
+                      <option value="Jammu and Kashmir">Jammu and Kashmir</option>
+                      <option value="Ladakh">Ladakh</option>
+                      <option value="Lakshadweep">Lakshadweep</option>
+                      <option value="Puducherry">Puducherry</option>
                     </select>
                   </div>
 
-                  <div></div>
-
-                  {/* Row 3: Address (2 cols), Country, Reporting Manager */}
-                  <div style={{gridColumn: 'span 2'}}>
-                    <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Address</label>
-                    <textarea
-                      rows="2"
-                      placeholder="Enter complete address"
-                      value={clientData.address}
-                      onChange={(e) => setClientData({...clientData, address: e.target.value})}
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '6px',
-                        fontSize: '13px',
-                        resize: 'none',
-                        lineHeight: '1.4'
-                      }}
-                    />
-                  </div>
-
+                  {/* Row 3: Country, Reporting Manager */}
                   <div>
                     <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Country</label>
                     <select
-                      value={clientData.country}
-                      onChange={(e) => setClientData({...clientData, country: e.target.value})}
+                      value={clientData.country || 'India'}
+                      onChange={(e) => setClientData({...clientData, country: e.target.value, isOutOfIndia: e.target.value === 'Out of India'})}
                       style={{width: '100%', padding: '10px 8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', background: '#fff'}}
                     >
-                      <option value="">India</option>
-                      <option value="USA">USA</option>
-                      <option value="UK">UK</option>
-                      <option value="Canada">Canada</option>
-                      <option value="Australia">Australia</option>
+                      <option value="India">India</option>
+                      <option value="Out of India">Out of India</option>
                     </select>
                   </div>
 
