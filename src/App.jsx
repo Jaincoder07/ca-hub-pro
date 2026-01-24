@@ -12089,8 +12089,29 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           const colIdx = {};
           headers.forEach((h, i) => colIdx[h] = i);
           
+          // ========== VALIDATION REFERENCE DATA ==========
+          // Get all valid options from system
+          const validClients = data.clients.map(c => c.name?.toLowerCase()).filter(Boolean);
+          const validClientCodes = data.clients.map(c => c.fileNo?.toLowerCase()).filter(Boolean);
+          const validStaff = data.staff.filter(s => s.status === 'Active').map(s => s.name?.toLowerCase()).filter(Boolean);
+          const validSuperadmins = data.staff.filter(s => s.role === 'Superadmin' && s.status === 'Active').map(s => s.name?.toLowerCase());
+          const validManagers = data.staff.filter(s => (s.role === 'Reporting Manager' || s.role === 'Superadmin') && s.status === 'Active').map(s => s.name?.toLowerCase());
+          const validParentTasks = Object.keys(PARENT_CHILD_TASKS).map(p => p.toLowerCase());
+          const validFinancialYears = FINANCIAL_YEARS.map(fy => fy.toLowerCase());
+          const validPeriods = ['monthly', 'quarterly', 'half-yearly', 'annually', 'annual'];
+          
+          // Sub-period validation map
+          const validSubPeriods = {
+            'monthly': ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december', 'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'],
+            'quarterly': ['q1', 'q2', 'q3', 'q4', 'quarter 1', 'quarter 2', 'quarter 3', 'quarter 4', 'apr-jun', 'jul-sep', 'oct-dec', 'jan-mar'],
+            'half-yearly': ['h1', 'h2', 'half 1', 'half 2', 'apr-sep', 'oct-mar'],
+            'annually': [],
+            'annual': []
+          };
+          
           const tasks = [];
-          const warnings = [];
+          const errors = []; // Blocking errors - row will be skipped
+          const warnings = []; // Non-blocking warnings - row will still be imported
           
           for (let i = 1; i < lines.length; i++) {
             const line = lines[i].trim();
@@ -12122,82 +12143,183 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               return '';
             };
             
+            const rowNum = i + 1;
+            const rowErrors = [];
+            const rowWarnings = [];
+            
+            // Extract values
             const clientName = getValue('clientname');
+            const clientCode = getValue('fileno') || getValue('clientcode') || getValue('code');
             const parentTask = getValue('parenttask');
             const childTask = getValue('childtask');
             const taskLeader = getValue('taskleader');
             const taskManager = getValue('taskmanager');
             const primaryUser = getValue('primaryassign') || getValue('primaryassigneduser') || getValue('primaryuser') || getValue('assigneduser');
+            const financialYear = getValue('financialyear') || getValue('fy');
+            const period = getValue('period');
+            const subPeriod = getValue('subperiod');
             
-            // Validate required fields
-            if (!clientName || !parentTask || !childTask) {
-              warnings.push(`Row ${i + 1}: Missing client/parent/child task`);
-              continue;
+            // ========== VALIDATION CHECKS ==========
+            
+            // 1. Required fields check
+            if (!clientName) rowErrors.push('Client Name is required');
+            if (!parentTask) rowErrors.push('Parent Task is required');
+            if (!childTask) rowErrors.push('Child Task is required');
+            
+            // 2. Client validation - must exist in system
+            if (clientName && !validClients.includes(clientName.toLowerCase())) {
+              rowErrors.push(`Client "${clientName}" not found in system`);
             }
             
-            // Validate task leader is Superadmin
-            const leaderStaff = data.staff.find(s => s.name.toLowerCase() === taskLeader.toLowerCase() && s.role === 'Superadmin');
-            if (!leaderStaff && taskLeader) {
-              warnings.push(`Row ${i + 1}: Task Leader "${taskLeader}" is not a Superadmin`);
-            }
-            
-            // Validate task manager is Reporting Manager
-            const managerStaff = data.staff.find(s => s.name.toLowerCase() === taskManager.toLowerCase() && s.role === 'Reporting Manager');
-            if (!managerStaff && taskManager) {
-              warnings.push(`Row ${i + 1}: Task Manager "${taskManager}" is not a Reporting Manager`);
-            }
-            
-            // Validate primary user is under the manager
-            const userStaff = data.staff.find(s => s.name.toLowerCase() === primaryUser.toLowerCase());
-            if (userStaff && managerStaff && userStaff.reportingManager !== managerStaff.name) {
-              warnings.push(`Row ${i + 1}: "${primaryUser}" is not under manager "${taskManager}"`);
-            }
-            
-            // Look up client code from clients database if not provided in CSV
-            let clientCode = getValue('fileno') || getValue('clientcode') || getValue('code');
-            if (!clientCode) {
-              const matchingClient = data.clients.find(c => 
-                c.name?.toLowerCase() === clientName.toLowerCase()
-              );
-              if (matchingClient && matchingClient.fileNo) {
-                clientCode = matchingClient.fileNo;
+            // 3. Client Code validation (if provided)
+            if (clientCode && !validClientCodes.includes(clientCode.toLowerCase())) {
+              // Try to find client by name and check if code matches
+              const matchingClient = data.clients.find(c => c.name?.toLowerCase() === clientName.toLowerCase());
+              if (matchingClient && matchingClient.fileNo && matchingClient.fileNo.toLowerCase() !== clientCode.toLowerCase()) {
+                rowWarnings.push(`Client code "${clientCode}" doesn't match. Expected: "${matchingClient.fileNo}"`);
               }
             }
             
+            // 4. Parent Task validation - must be a valid category
+            if (parentTask && !validParentTasks.includes(parentTask.toLowerCase())) {
+              rowErrors.push(`Parent Task "${parentTask}" is not a valid task category. Valid options: ${Object.keys(PARENT_CHILD_TASKS).join(', ')}`);
+            }
+            
+            // 5. Child Task validation - must be under the selected parent
+            if (parentTask && childTask) {
+              const parentKey = Object.keys(PARENT_CHILD_TASKS).find(p => p.toLowerCase() === parentTask.toLowerCase());
+              if (parentKey) {
+                const validChildren = PARENT_CHILD_TASKS[parentKey].map(c => c.toLowerCase());
+                if (!validChildren.includes(childTask.toLowerCase())) {
+                  rowErrors.push(`Child Task "${childTask}" is not valid under "${parentTask}". Valid options: ${PARENT_CHILD_TASKS[parentKey].join(', ')}`);
+                }
+              }
+            }
+            
+            // 6. Task Leader validation - must be Superadmin
+            if (taskLeader) {
+              if (!validStaff.includes(taskLeader.toLowerCase())) {
+                rowErrors.push(`Task Leader "${taskLeader}" not found in staff`);
+              } else if (!validSuperadmins.includes(taskLeader.toLowerCase())) {
+                rowErrors.push(`Task Leader "${taskLeader}" is not a Superadmin`);
+              }
+            }
+            
+            // 7. Task Manager validation - must be Reporting Manager or Superadmin
+            if (taskManager) {
+              if (!validStaff.includes(taskManager.toLowerCase())) {
+                rowErrors.push(`Task Manager "${taskManager}" not found in staff`);
+              } else if (!validManagers.includes(taskManager.toLowerCase())) {
+                rowErrors.push(`Task Manager "${taskManager}" is not a Reporting Manager or Superadmin`);
+              }
+            }
+            
+            // 8. Primary Assigned User validation - must exist in staff
+            if (primaryUser) {
+              if (!validStaff.includes(primaryUser.toLowerCase())) {
+                rowErrors.push(`Assigned User "${primaryUser}" not found in staff`);
+              } else {
+                // Check if user is under the specified manager
+                const userStaff = data.staff.find(s => s.name?.toLowerCase() === primaryUser.toLowerCase());
+                const managerStaff = data.staff.find(s => s.name?.toLowerCase() === taskManager.toLowerCase());
+                if (userStaff && managerStaff && userStaff.reportingManager && 
+                    userStaff.reportingManager.toLowerCase() !== taskManager.toLowerCase() &&
+                    managerStaff.role !== 'Superadmin') {
+                  rowWarnings.push(`"${primaryUser}" reports to "${userStaff.reportingManager}", not "${taskManager}"`);
+                }
+              }
+            }
+            
+            // 9. Financial Year validation
+            if (financialYear && !validFinancialYears.includes(financialYear.toLowerCase())) {
+              rowErrors.push(`Financial Year "${financialYear}" is not valid. Valid options: ${FINANCIAL_YEARS.join(', ')}`);
+            }
+            
+            // 10. Period validation
+            if (period && !validPeriods.includes(period.toLowerCase())) {
+              rowErrors.push(`Period "${period}" is not valid. Valid options: Monthly, Quarterly, Half-Yearly, Annually`);
+            }
+            
+            // 11. Sub-period validation based on period
+            if (subPeriod && period) {
+              const periodKey = period.toLowerCase();
+              const validSubs = validSubPeriods[periodKey] || [];
+              if (validSubs.length > 0 && !validSubs.includes(subPeriod.toLowerCase())) {
+                rowErrors.push(`Sub-period "${subPeriod}" is not valid for ${period}. Examples: ${validSubs.slice(0, 5).join(', ')}`);
+              }
+            }
+            
+            // ========== COLLECT ERRORS/WARNINGS ==========
+            if (rowErrors.length > 0) {
+              errors.push({ row: rowNum, errors: rowErrors });
+              continue; // Skip this row - it has validation errors
+            }
+            
+            if (rowWarnings.length > 0) {
+              warnings.push({ row: rowNum, warnings: rowWarnings });
+            }
+            
+            // ========== BUILD VALID TASK DATA ==========
+            // Get proper cased values from system
+            const matchingClient = data.clients.find(c => c.name?.toLowerCase() === clientName.toLowerCase());
+            const leaderStaff = data.staff.find(s => s.name?.toLowerCase() === taskLeader.toLowerCase());
+            const managerStaff = data.staff.find(s => s.name?.toLowerCase() === taskManager.toLowerCase());
+            const userStaff = data.staff.find(s => s.name?.toLowerCase() === primaryUser.toLowerCase());
+            const parentKey = Object.keys(PARENT_CHILD_TASKS).find(p => p.toLowerCase() === parentTask.toLowerCase());
+            const childKey = parentKey ? PARENT_CHILD_TASKS[parentKey].find(c => c.toLowerCase() === childTask.toLowerCase()) : childTask;
+            const fyKey = FINANCIAL_YEARS.find(fy => fy.toLowerCase() === financialYear.toLowerCase());
+            
             const taskData = {
-              clientName: clientName || '',
-              fileNo: clientCode || '',
-              groupName: getValue('groupname') || clientName || '',
-              parentTask: parentTask || '',
-              childTask: childTask || '',
-              financialYear: getValue('financialyear') || getValue('fy') || '',
-              period: getValue('period') || '',
-              subPeriod: getValue('subperiod') || '',
-              taskLeader: leaderStaff?.name || taskLeader || '',
-              taskManager: managerStaff?.name || taskManager || '',
-              primaryAssignedUser: userStaff?.name || primaryUser || '',
+              clientName: matchingClient?.name || clientName,
+              clientId: matchingClient?.id || '',
+              fileNo: matchingClient?.fileNo || clientCode || '',
+              groupName: getValue('groupname') || matchingClient?.groupName || clientName,
+              parentTask: parentKey || parentTask,
+              childTask: childKey || childTask,
+              financialYear: fyKey || financialYear,
+              period: period.charAt(0).toUpperCase() + period.slice(1).toLowerCase(),
+              subPeriod: subPeriod || '',
+              taskLeader: leaderStaff?.name || taskLeader,
+              taskManager: managerStaff?.name || taskManager,
+              primaryAssignedUser: userStaff?.name || primaryUser,
               startDate: getValue('startdate') || '',
               expectedCompletionDate: getValue('expecteddateofcompletion') || getValue('expectedcompletiondate') || getValue('expecteddat') || getValue('duedate') || getValue('completiondate') || '',
-              description: getValue('taskdescription') || getValue('description') || ''
+              description: getValue('taskdescription') || getValue('description') || '',
+              _rowNum: rowNum // Track original row for reference
             };
-            
-            // Debug log for first row
-            if (i === 1) {
-              console.log('First row parsed values:', taskData);
-              console.log('All column indices:', colIdx);
-            }
             
             tasks.push(taskData);
           }
           
+          // ========== SET RESULTS ==========
+          if (errors.length > 0) {
+            const errorSummary = errors.slice(0, 10).map(e => 
+              `Row ${e.row}: ${e.errors.join('; ')}`
+            ).join('\n');
+            const moreText = errors.length > 10 ? `\n...and ${errors.length - 10} more errors` : '';
+            setBulkError(`❌ ${errors.length} row(s) have validation errors and will be SKIPPED:\n\n${errorSummary}${moreText}`);
+          }
+          
+          if (warnings.length > 0) {
+            const warnSummary = warnings.slice(0, 5).map(w => 
+              `Row ${w.row}: ${w.warnings.join('; ')}`
+            ).join('\n');
+            const moreText = warnings.length > 5 ? `\n...and ${warnings.length - 5} more warnings` : '';
+            setBulkWarning(`⚠️ ${warnings.length} row(s) have warnings (will still be imported):\n\n${warnSummary}${moreText}`);
+          }
+          
           if (tasks.length === 0) {
-            setBulkError('No valid tasks found in CSV');
+            setBulkError(prev => prev + '\n\n🚫 No valid tasks to import! Please fix the errors above and try again.');
             return;
           }
           
           setBulkPreview(tasks);
-          if (warnings.length > 0) {
-            setBulkWarning(`${warnings.length} warning(s): ${warnings.slice(0, 3).join('; ')}${warnings.length > 3 ? '...' : ''}`);
+          
+          // Success message
+          if (errors.length === 0 && warnings.length === 0) {
+            setBulkWarning(`✅ All ${tasks.length} rows validated successfully!`);
+          } else if (tasks.length > 0) {
+            setBulkWarning(prev => prev + `\n\n✅ ${tasks.length} valid task(s) ready to import.`);
           }
           
         } catch (err) {
@@ -12351,11 +12473,23 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     clientName, parentTask, childTask, financialYear, period, taskLeader, taskManager, primaryAssignedUser
                   </code>
                 </p>
-                <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: '#475569' }}>
+                <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#475569' }}>
                   Optional columns: <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>
-                    fileNo, groupName, startDate, expectedCompletionDate, description
+                    fileNo, groupName, subPeriod, startDate, expectedCompletionDate, description
                   </code>
                 </p>
+                <div style={{ 
+                  background: '#fef3c7', 
+                  border: '1px solid #fcd34d', 
+                  borderRadius: '6px', 
+                  padding: '10px', 
+                  marginBottom: '12px',
+                  fontSize: '12px',
+                  color: '#92400e'
+                }}>
+                  <strong>⚠️ Strict Validation:</strong> All values must match existing system data. 
+                  Invalid clients, staff, task categories, or periods will be <strong>rejected</strong>.
+                </div>
                 <button
                   type="button"
                   onClick={downloadSampleTaskCSV}
@@ -12392,127 +12526,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <input
                     type="file"
                     accept=".csv,.txt"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) {
-                        setBulkError('No file selected');
-                        return;
-                      }
-                      
-                      console.log('File selected:', file.name);
-                      setBulkError('');
-                      setBulkWarning('');
-                      setBulkPreview([]);
-                      
-                      const reader = new FileReader();
-                      reader.onload = (event) => {
-                        try {
-                          const text = event.target.result;
-                          console.log('File content length:', text.length);
-                          const lines = text.split('\n').filter(line => line.trim());
-                          console.log('Lines found:', lines.length);
-                          
-                          if (lines.length < 2) {
-                            setBulkError('CSV file is empty or has no data rows');
-                            return;
-                          }
-                          
-                          const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-                          console.log('CSV Headers:', headers);
-                          
-                          // Required columns
-                          const requiredCols = ['clientname', 'parenttask', 'childtask', 'financialyear', 'period', 'taskleader', 'taskmanager', 'primaryassigneduser'];
-                          const missingCols = requiredCols.filter(col => !headers.includes(col));
-                          
-                          if (missingCols.length > 0) {
-                            setBulkError(`Missing required columns: ${missingCols.join(', ')}`);
-                            return;
-                          }
-                          
-                          // Get column indices
-                          const colIdx = {};
-                          headers.forEach((h, i) => colIdx[h] = i);
-                          
-                          const tasks = [];
-                          const warnings = [];
-                          
-                          for (let i = 1; i < lines.length; i++) {
-                            const line = lines[i].trim();
-                            if (!line) continue;
-                            
-                            // Handle quoted values
-                            const values = [];
-                            let current = '';
-                            let inQuotes = false;
-                            for (let c of line) {
-                              if (c === '"') {
-                                inQuotes = !inQuotes;
-                              } else if (c === ',' && !inQuotes) {
-                                values.push(current.trim());
-                                current = '';
-                              } else {
-                                current += c;
-                              }
-                            }
-                            values.push(current.trim());
-                            
-                            const getValue = (col) => values[colIdx[col]] || '';
-                            
-                            const clientName = getValue('clientname');
-                            const parentTask = getValue('parenttask');
-                            const childTask = getValue('childtask');
-                            const taskLeader = getValue('taskleader');
-                            const taskManager = getValue('taskmanager');
-                            const primaryUser = getValue('primaryassigneduser');
-                            
-                            // Validate required fields
-                            if (!clientName || !parentTask || !childTask) {
-                              warnings.push(`Row ${i + 1}: Missing client/parent/child task`);
-                              continue;
-                            }
-                            
-                            tasks.push({
-                              clientName,
-                              fileNo: getValue('fileno'),
-                              groupName: getValue('groupname') || clientName,
-                              parentTask,
-                              childTask,
-                              financialYear: getValue('financialyear'),
-                              period: getValue('period'),
-                              taskLeader: taskLeader,
-                              taskManager: taskManager,
-                              primaryAssignedUser: primaryUser,
-                              startDate: getValue('startdate'),
-                              expectedCompletionDate: getValue('expectedcompletiondate'),
-                              description: getValue('description')
-                            });
-                          }
-                          
-                          console.log('Tasks parsed:', tasks.length);
-                          
-                          if (tasks.length === 0) {
-                            setBulkError('No valid tasks found in CSV');
-                            return;
-                          }
-                          
-                          setBulkPreview(tasks);
-                          if (warnings.length > 0) {
-                            setBulkWarning(`${warnings.length} warning(s): ${warnings.slice(0, 3).join('; ')}${warnings.length > 3 ? '...' : ''}`);
-                          }
-                          
-                        } catch (err) {
-                          console.error('CSV Parse Error:', err);
-                          setBulkError('Error parsing CSV file: ' + err.message);
-                        }
-                      };
-                      reader.onerror = () => {
-                        setBulkError('Error reading file');
-                      };
-                      reader.readAsText(file);
-                      
-                      // Reset input so same file can be selected again
-                      e.target.value = '';
-                    }}
+                    onChange={handleTaskFileUpload}
                     style={{
                       padding: '12px',
                       border: '2px solid #3b82f6',
@@ -12523,38 +12537,87 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       maxWidth: '300px'
                     }}
                   />
+                  
+                  {/* Valid Options Reference */}
+                  <div style={{ 
+                    marginTop: '24px', 
+                    textAlign: 'left', 
+                    background: '#f8fafc', 
+                    padding: '16px', 
+                    borderRadius: '8px',
+                    border: '1px solid #e2e8f0',
+                    maxHeight: '200px',
+                    overflowY: 'auto'
+                  }}>
+                    <h5 style={{ margin: '0 0 12px 0', color: '#1e293b', fontSize: '13px' }}>📋 Valid Options Reference:</h5>
+                    <div style={{ fontSize: '11px', color: '#64748b' }}>
+                      <p style={{ margin: '0 0 8px 0' }}>
+                        <strong>Parent Tasks:</strong> {Object.keys(PARENT_CHILD_TASKS).join(', ')}
+                      </p>
+                      <p style={{ margin: '0 0 8px 0' }}>
+                        <strong>Financial Years:</strong> {FINANCIAL_YEARS.join(', ')}
+                      </p>
+                      <p style={{ margin: '0 0 8px 0' }}>
+                        <strong>Periods:</strong> Monthly, Quarterly, Half-Yearly, Annually
+                      </p>
+                      <p style={{ margin: '0 0 8px 0' }}>
+                        <strong>Task Leaders:</strong> {data.staff.filter(s => s.role === 'Superadmin' && s.status === 'Active').map(s => s.name).join(', ') || 'No Superadmins found'}
+                      </p>
+                      <p style={{ margin: '0 0 8px 0' }}>
+                        <strong>Task Managers:</strong> {data.staff.filter(s => (s.role === 'Reporting Manager' || s.role === 'Superadmin') && s.status === 'Active').map(s => s.name).join(', ') || 'No Managers found'}
+                      </p>
+                      <p style={{ margin: '0' }}>
+                        <strong>Total Clients:</strong> {data.clients.length} registered | <strong>Total Staff:</strong> {data.staff.filter(s => s.status === 'Active').length} active
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
 
               {/* Error */}
               {bulkError && (
                 <div style={{
-                  padding: '12px 16px',
+                  padding: '16px',
                   background: '#fef2f2',
                   border: '1px solid #fecaca',
                   borderRadius: '8px',
                   color: '#dc2626',
                   marginTop: '16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
+                  maxHeight: '200px',
+                  overflowY: 'auto'
                 }}>
-                  <AlertCircle size={18} /> {bulkError}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                    <AlertCircle size={20} style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <pre style={{ 
+                      margin: 0, 
+                      fontFamily: 'inherit', 
+                      fontSize: '13px', 
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word'
+                    }}>{bulkError}</pre>
+                  </div>
                 </div>
               )}
 
               {/* Warning */}
               {bulkWarning && (
                 <div style={{
-                  padding: '12px 16px',
-                  background: '#fffbeb',
-                  border: '1px solid #fcd34d',
+                  padding: '16px',
+                  background: bulkWarning.includes('✅') ? '#f0fdf4' : '#fffbeb',
+                  border: `1px solid ${bulkWarning.includes('✅') ? '#86efac' : '#fcd34d'}`,
                   borderRadius: '8px',
-                  color: '#92400e',
+                  color: bulkWarning.includes('✅') ? '#166534' : '#92400e',
                   marginTop: '16px',
-                  fontSize: '13px'
+                  maxHeight: '200px',
+                  overflowY: 'auto'
                 }}>
-                  ⚠️ {bulkWarning}
+                  <pre style={{ 
+                    margin: 0, 
+                    fontFamily: 'inherit', 
+                    fontSize: '13px', 
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word'
+                  }}>{bulkWarning}</pre>
                 </div>
               )}
 
@@ -18520,10 +18583,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   borderRadius: '8px',
                   cursor: 'pointer',
                   fontWeight: '600',
-                  fontSize: '13px'
+                  fontSize: '14px'
                 }}
               >
-                <Clock size={16} style={{marginRight: '8px', verticalAlign: 'middle'}} />
+                <Clock size={18} style={{marginRight: '8px', verticalAlign: 'middle'}} />
                 Unbilled Tasks
               </button>
               <button
@@ -18536,68 +18599,72 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   borderRadius: '8px',
                   cursor: 'pointer',
                   fontWeight: '600',
-                  fontSize: '13px'
+                  fontSize: '14px'
                 }}
               >
-                <Check size={16} style={{marginRight: '8px', verticalAlign: 'middle'}} />
+                <Check size={18} style={{marginRight: '8px', verticalAlign: 'middle'}} />
                 Free Tasks
               </button>
             </div>
 
             {/* Unbilled Tasks List */}
             {unbilledTasksTab === 'unbilled' && (
-              <div style={{background: '#fff', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
-                {/* Filters */}
-                <div style={{padding: '16px 20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', borderRadius: '12px 12px 0 0'}}>
-                  <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end'}}>
+              <div style={{background: '#fff', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', border: '1px solid #e2e8f0'}}>
+                {/* Filters - Professional Bar */}
+                <div style={{padding: '20px 24px', background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', borderBottom: '2px solid #e2e8f0', borderRadius: '12px 12px 0 0'}}>
+                  <div style={{display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'flex-end'}}>
                     <div>
-                      <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#64748b'}}>Client Name</label>
+                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Client Name</label>
                       <input 
                         type="text" 
                         value={unbilledFilters.clientName} 
                         onChange={(e) => setUnbilledFilters(p => ({...p, clientName: e.target.value}))}
                         placeholder="Search client..."
-                        style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', width: '140px'}} 
+                        style={{padding: '10px 14px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', width: '160px', transition: 'border-color 0.2s', outline: 'none'}} 
+                        onFocus={(e) => e.target.style.borderColor = '#10b981'}
+                        onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
                       />
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#64748b'}}>Client Code</label>
+                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Client Code</label>
                       <input 
                         type="text" 
                         value={unbilledFilters.clientCode} 
                         onChange={(e) => setUnbilledFilters(p => ({...p, clientCode: e.target.value}))}
                         placeholder="Code..."
-                        style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', width: '100px'}} 
+                        style={{padding: '10px 14px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', width: '120px', outline: 'none'}} 
+                        onFocus={(e) => e.target.style.borderColor = '#10b981'}
+                        onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
                       />
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#64748b'}}>Parent Task</label>
+                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Parent Task</label>
                       <select 
                         value={unbilledFilters.parentTask} 
                         onChange={(e) => setUnbilledFilters(p => ({...p, parentTask: e.target.value, childTask: ''}))}
-                        style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', minWidth: '120px'}}
+                        style={{padding: '10px 14px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', minWidth: '140px', background: '#fff', cursor: 'pointer'}}
                       >
                         <option value="">All</option>
                         {Object.keys(PARENT_CHILD_TASKS).map(p => <option key={p} value={p}>{p}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#64748b'}}>Child Task</label>
+                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Child Task</label>
                       <select 
                         value={unbilledFilters.childTask} 
                         onChange={(e) => setUnbilledFilters(p => ({...p, childTask: e.target.value}))}
-                        style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', minWidth: '120px'}}
+                        style={{padding: '10px 14px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', minWidth: '140px', background: '#fff', cursor: 'pointer'}}
                       >
                         <option value="">All</option>
                         {(PARENT_CHILD_TASKS[unbilledFilters.parentTask] || []).map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#64748b'}}>Financial Year</label>
+                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Financial Year</label>
                       <select 
                         value={unbilledFilters.financialYear} 
                         onChange={(e) => setUnbilledFilters(p => ({...p, financialYear: e.target.value}))}
-                        style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
+                        style={{padding: '10px 14px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', background: '#fff', cursor: 'pointer'}}
                       >
                         <option value="">All</option>
                         <option value="FY 2023-24">FY 2023-24</option>
@@ -18606,11 +18673,11 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       </select>
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#64748b'}}>Period</label>
+                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Period</label>
                       <select 
                         value={unbilledFilters.period} 
                         onChange={(e) => setUnbilledFilters(p => ({...p, period: e.target.value}))}
-                        style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
+                        style={{padding: '10px 14px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', background: '#fff', cursor: 'pointer'}}
                       >
                         <option value="">All</option>
                         <option value="Monthly">Monthly</option>
@@ -18619,11 +18686,11 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       </select>
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#64748b'}}>Status</label>
+                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Status</label>
                       <select 
                         value={unbilledFilters.status} 
                         onChange={(e) => setUnbilledFilters(p => ({...p, status: e.target.value}))}
-                        style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
+                        style={{padding: '10px 14px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', background: '#fff', cursor: 'pointer'}}
                       >
                         <option value="">All</option>
                         <option value="Completed">Completed</option>
@@ -18633,18 +18700,20 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     </div>
                     <button 
                       onClick={() => setUnbilledFilters({clientName: '', clientCode: '', parentTask: '', childTask: '', financialYear: '', period: '', status: ''})}
-                      style={{padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px'}}
+                      style={{padding: '10px 20px', background: '#fff', border: '2px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#64748b', transition: 'all 0.2s'}}
+                      onMouseEnter={(e) => { e.target.style.background = '#f1f5f9'; e.target.style.borderColor = '#cbd5e1'; }}
+                      onMouseLeave={(e) => { e.target.style.background = '#fff'; e.target.style.borderColor = '#e2e8f0'; }}
                     >
-                      Clear
+                      Clear Filters
                     </button>
                   </div>
                 </div>
 
-                {/* Action Bar */}
+                {/* Action Bar - Selected Tasks */}
                 {unbilledSelectedIds.length > 0 && (
-                  <div style={{padding: '12px 20px', background: '#ecfdf5', borderBottom: '1px solid #6ee7b7', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-                    <span style={{fontSize: '13px', fontWeight: '600', color: '#065f46'}}>
-                      {unbilledSelectedIds.length} task(s) selected
+                  <div style={{padding: '16px 24px', background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', borderBottom: '2px solid #6ee7b7', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                    <span style={{fontSize: '15px', fontWeight: '700', color: '#065f46'}}>
+                      ✓ {unbilledSelectedIds.length} task(s) selected
                     </span>
                     <div style={{display: 'flex', gap: '12px'}}>
                       <button
@@ -18659,9 +18728,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           setUnbilledSelectedIds([]);
                           alert(`${count} task(s) marked as FREE successfully!`);
                         }}
-                        style={{padding: '8px 20px', background: '#8b5cf6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600'}}
+                        style={{padding: '10px 24px', background: '#8b5cf6', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', boxShadow: '0 2px 8px rgba(139,92,246,0.3)'}}
                       >
-                        <Check size={14} style={{marginRight: '6px', verticalAlign: 'middle'}} />
+                        <Check size={16} style={{marginRight: '8px', verticalAlign: 'middle'}} />
                         Mark as Free
                       </button>
                       <button
@@ -18678,23 +18747,24 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           setUnbilledTaskDetails(details);
                           setShowUnbilledInvoiceModal(true);
                         }}
-                        style={{padding: '8px 20px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600'}}
+                        style={{padding: '10px 24px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', boxShadow: '0 2px 8px rgba(16,185,129,0.3)'}}
                       >
-                        <FileText size={14} style={{marginRight: '6px', verticalAlign: 'middle'}} />
+                        <FileText size={16} style={{marginRight: '8px', verticalAlign: 'middle'}} />
                         Generate Invoice
                       </button>
                     </div>
                   </div>
                 )}
 
-                {/* Tasks Table */}
+                {/* Professional Excel-Style Tasks Table */}
                 <div style={{overflowX: 'auto'}}>
-                  <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+                  <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '14px', minWidth: '1200px'}}>
                     <thead>
-                      <tr style={{background: '#f8fafc'}}>
-                        <th style={{padding: '12px', width: '40px', borderBottom: '2px solid #e2e8f0'}}>
+                      <tr style={{background: 'linear-gradient(180deg, #1e293b 0%, #334155 100%)'}}>
+                        <th style={{padding: '16px 12px', width: '50px', borderRight: '1px solid #475569', position: 'sticky', top: 0}}>
                           <input 
                             type="checkbox"
+                            style={{width: '18px', height: '18px', cursor: 'pointer', accentColor: '#10b981'}}
                             onChange={(e) => {
                               const unbilledTasks = (data.tasks || []).filter(t => !t.billed && !t.markedFree);
                               let filtered = unbilledTasks;
@@ -18731,16 +18801,16 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             })()}
                           />
                         </th>
-                        <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>S.No</th>
-                        <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Client Code</th>
-                        <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Client Name</th>
-                        <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Parent Task</th>
-                        <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Child Task</th>
-                        <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Fin. Year</th>
-                        <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Period</th>
-                        <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Status</th>
-                        <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Agreed Fees</th>
-                        <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Action</th>
+                        <th style={{padding: '16px 12px', textAlign: 'center', fontWeight: '700', color: '#fff', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #475569', width: '60px'}}>S.No</th>
+                        <th style={{padding: '16px 12px', textAlign: 'left', fontWeight: '700', color: '#fff', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #475569', minWidth: '100px'}}>Code</th>
+                        <th style={{padding: '16px 12px', textAlign: 'left', fontWeight: '700', color: '#fff', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #475569', minWidth: '180px'}}>Client Name</th>
+                        <th style={{padding: '16px 12px', textAlign: 'left', fontWeight: '700', color: '#fff', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #475569', minWidth: '130px'}}>Parent Task</th>
+                        <th style={{padding: '16px 12px', textAlign: 'left', fontWeight: '700', color: '#fff', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #475569', minWidth: '140px'}}>Child Task</th>
+                        <th style={{padding: '16px 12px', textAlign: 'center', fontWeight: '700', color: '#fff', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #475569', minWidth: '100px'}}>Fin. Year</th>
+                        <th style={{padding: '16px 12px', textAlign: 'center', fontWeight: '700', color: '#fff', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #475569', minWidth: '100px'}}>Period</th>
+                        <th style={{padding: '16px 12px', textAlign: 'center', fontWeight: '700', color: '#fff', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #475569', minWidth: '100px'}}>Status</th>
+                        <th style={{padding: '16px 12px', textAlign: 'right', fontWeight: '700', color: '#fff', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #475569', minWidth: '120px'}}>Agreed Fees</th>
+                        <th style={{padding: '16px 12px', textAlign: 'center', fontWeight: '700', color: '#fff', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', minWidth: '100px'}}>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -18761,17 +18831,32 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         }
                         
                         if (filtered.length === 0) {
-                          return <tr><td colSpan={11} style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>No unbilled tasks found</td></tr>;
+                          return <tr><td colSpan={11} style={{padding: '60px 40px', textAlign: 'center', color: '#94a3b8', fontSize: '16px', background: '#f8fafc'}}>
+                            <div style={{marginBottom: '8px'}}>📋</div>
+                            No unbilled tasks found
+                          </td></tr>;
                         }
                         
                         return filtered.map((task, idx) => {
                           const taskStatus = task.status === 'Completed' || task.completedCheck ? 'Completed' : task.status === 'In Progress' ? 'In Progress' : 'Open';
+                          const isSelected = unbilledSelectedIds.includes(task.id);
+                          const isEven = idx % 2 === 0;
                           return (
-                          <tr key={task.id} style={{borderBottom: '1px solid #f1f5f9', background: unbilledSelectedIds.includes(task.id) ? '#f0fdf4' : 'transparent'}}>
-                            <td style={{padding: '12px'}}>
+                          <tr 
+                            key={task.id} 
+                            style={{
+                              borderBottom: '1px solid #e2e8f0', 
+                              background: isSelected ? '#dcfce7' : isEven ? '#ffffff' : '#f8fafc',
+                              transition: 'background 0.15s ease'
+                            }}
+                            onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = '#f1f5f9'; }}
+                            onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = isEven ? '#ffffff' : '#f8fafc'; }}
+                          >
+                            <td style={{padding: '14px 12px', borderRight: '1px solid #e2e8f0', textAlign: 'center'}}>
                               <input 
                                 type="checkbox"
-                                checked={unbilledSelectedIds.includes(task.id)}
+                                style={{width: '18px', height: '18px', cursor: 'pointer', accentColor: '#10b981'}}
+                                checked={isSelected}
                                 onChange={(e) => {
                                   setUnbilledSelectedIds(prev => 
                                     e.target.checked ? [...prev, task.id] : prev.filter(id => id !== task.id)
@@ -18779,30 +18864,57 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 }}
                               />
                             </td>
-                            <td style={{padding: '12px'}}>{idx + 1}</td>
-                            <td style={{padding: '12px', fontWeight: '500', color: '#6366f1'}}>{task.fileNo || '-'}</td>
-                            <td style={{padding: '12px'}}>{task.clientName}</td>
-                            <td style={{padding: '12px', fontSize: '11px', color: '#8b5cf6'}}>{task.parentTask}</td>
-                            <td style={{padding: '12px', fontSize: '11px'}}>{task.childTask}</td>
-                            <td style={{padding: '12px', fontSize: '11px'}}>{task.financialYear}</td>
-                            <td style={{padding: '12px', fontSize: '11px'}}>{task.period}</td>
-                            <td style={{padding: '12px', textAlign: 'center'}}>
+                            <td style={{padding: '14px 12px', textAlign: 'center', fontWeight: '600', color: '#64748b', borderRight: '1px solid #e2e8f0', fontSize: '14px'}}>{idx + 1}</td>
+                            <td style={{padding: '14px 12px', fontWeight: '600', color: '#4f46e5', borderRight: '1px solid #e2e8f0', fontSize: '14px', fontFamily: 'monospace'}}>{task.fileNo || '-'}</td>
+                            <td style={{padding: '14px 12px', fontWeight: '500', color: '#1e293b', borderRight: '1px solid #e2e8f0', fontSize: '14px'}}>{task.clientName}</td>
+                            <td style={{padding: '14px 12px', borderRight: '1px solid #e2e8f0'}}>
                               <span style={{
-                                padding: '3px 8px', 
-                                borderRadius: '10px', 
-                                fontSize: '10px', 
+                                padding: '6px 12px',
+                                borderRadius: '6px',
+                                fontSize: '13px',
                                 fontWeight: '600',
-                                background: taskStatus === 'Completed' ? '#d1fae5' : taskStatus === 'In Progress' ? '#fef3c7' : '#e0e7ff',
-                                color: taskStatus === 'Completed' ? '#065f46' : taskStatus === 'In Progress' ? '#92400e' : '#3730a3'
+                                background: '#ede9fe',
+                                color: '#7c3aed',
+                                display: 'inline-block'
+                              }}>
+                                {task.parentTask}
+                              </span>
+                            </td>
+                            <td style={{padding: '14px 12px', color: '#475569', borderRight: '1px solid #e2e8f0', fontSize: '14px', fontWeight: '500'}}>{task.childTask}</td>
+                            <td style={{padding: '14px 12px', textAlign: 'center', color: '#475569', borderRight: '1px solid #e2e8f0', fontSize: '14px', fontWeight: '500'}}>{task.financialYear}</td>
+                            <td style={{padding: '14px 12px', textAlign: 'center', color: '#475569', borderRight: '1px solid #e2e8f0', fontSize: '14px', fontWeight: '500'}}>{task.period}</td>
+                            <td style={{padding: '14px 12px', textAlign: 'center', borderRight: '1px solid #e2e8f0'}}>
+                              <span style={{
+                                padding: '6px 14px', 
+                                borderRadius: '20px', 
+                                fontSize: '12px', 
+                                fontWeight: '700',
+                                letterSpacing: '0.3px',
+                                background: taskStatus === 'Completed' ? '#dcfce7' : taskStatus === 'In Progress' ? '#fef3c7' : '#dbeafe',
+                                color: taskStatus === 'Completed' ? '#166534' : taskStatus === 'In Progress' ? '#92400e' : '#1e40af',
+                                border: taskStatus === 'Completed' ? '1px solid #86efac' : taskStatus === 'In Progress' ? '1px solid #fcd34d' : '1px solid #93c5fd'
                               }}>
                                 {taskStatus}
                               </span>
                             </td>
-                            <td style={{padding: '12px', textAlign: 'right', fontWeight: '500'}}>₹{(parseFloat(task.agreedFees) || 0).toLocaleString('en-IN')}</td>
-                            <td style={{padding: '12px', textAlign: 'center'}}>
+                            <td style={{padding: '14px 12px', textAlign: 'right', fontWeight: '700', fontSize: '15px', color: '#0f172a', borderRight: '1px solid #e2e8f0', fontFamily: 'system-ui'}}>₹{(parseFloat(task.agreedFees) || 0).toLocaleString('en-IN')}</td>
+                            <td style={{padding: '14px 12px', textAlign: 'center'}}>
                               <button
                                 onClick={() => setViewingUnbilledTask(task)}
-                                style={{padding: '4px 10px', background: '#eff6ff', color: '#2563eb', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: '500'}}
+                                style={{
+                                  padding: '8px 16px', 
+                                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', 
+                                  color: '#fff', 
+                                  border: 'none', 
+                                  borderRadius: '6px', 
+                                  cursor: 'pointer', 
+                                  fontSize: '13px', 
+                                  fontWeight: '600',
+                                  boxShadow: '0 2px 4px rgba(37,99,235,0.2)',
+                                  transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={(e) => { e.target.style.transform = 'translateY(-1px)'; e.target.style.boxShadow = '0 4px 8px rgba(37,99,235,0.3)'; }}
+                                onMouseLeave={(e) => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 2px 4px rgba(37,99,235,0.2)'; }}
                                 title="View Task Details"
                               >
                                 View
@@ -18813,6 +18925,44 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       })()}
                     </tbody>
                   </table>
+                </div>
+                
+                {/* Table Footer with Count */}
+                <div style={{
+                  padding: '16px 24px', 
+                  background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', 
+                  borderTop: '2px solid #e2e8f0',
+                  borderRadius: '0 0 12px 12px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span style={{fontSize: '14px', color: '#64748b', fontWeight: '500'}}>
+                    Showing {(() => {
+                      const unbilledTasks = (data.tasks || []).filter(t => !t.billed && !t.markedFree);
+                      let filtered = unbilledTasks;
+                      if (unbilledFilters.clientName) filtered = filtered.filter(t => (t.clientName || '').toLowerCase().includes(unbilledFilters.clientName.toLowerCase()));
+                      if (unbilledFilters.clientCode) filtered = filtered.filter(t => (t.fileNo || '').toLowerCase().includes(unbilledFilters.clientCode.toLowerCase()));
+                      if (unbilledFilters.parentTask) filtered = filtered.filter(t => t.parentTask === unbilledFilters.parentTask);
+                      if (unbilledFilters.childTask) filtered = filtered.filter(t => t.childTask === unbilledFilters.childTask);
+                      if (unbilledFilters.financialYear) filtered = filtered.filter(t => t.financialYear === unbilledFilters.financialYear);
+                      if (unbilledFilters.period) filtered = filtered.filter(t => t.period === unbilledFilters.period);
+                      return filtered.length;
+                    })()} of {(data.tasks || []).filter(t => !t.billed && !t.markedFree).length} unbilled tasks
+                  </span>
+                  <span style={{fontSize: '14px', color: '#10b981', fontWeight: '600'}}>
+                    Total Fees: ₹{(() => {
+                      const unbilledTasks = (data.tasks || []).filter(t => !t.billed && !t.markedFree);
+                      let filtered = unbilledTasks;
+                      if (unbilledFilters.clientName) filtered = filtered.filter(t => (t.clientName || '').toLowerCase().includes(unbilledFilters.clientName.toLowerCase()));
+                      if (unbilledFilters.clientCode) filtered = filtered.filter(t => (t.fileNo || '').toLowerCase().includes(unbilledFilters.clientCode.toLowerCase()));
+                      if (unbilledFilters.parentTask) filtered = filtered.filter(t => t.parentTask === unbilledFilters.parentTask);
+                      if (unbilledFilters.childTask) filtered = filtered.filter(t => t.childTask === unbilledFilters.childTask);
+                      if (unbilledFilters.financialYear) filtered = filtered.filter(t => t.financialYear === unbilledFilters.financialYear);
+                      if (unbilledFilters.period) filtered = filtered.filter(t => t.period === unbilledFilters.period);
+                      return filtered.reduce((sum, t) => sum + (parseFloat(t.agreedFees) || 0), 0).toLocaleString('en-IN');
+                    })()}
+                  </span>
                 </div>
               </div>
             )}
