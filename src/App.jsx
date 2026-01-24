@@ -4597,7 +4597,11 @@ const PracticeManagementApp = () => {
                   // Check if task has invoice/receipt
                   const hasInvoice = (data.invoices || []).some(inv => inv.taskId === task.id || (inv.tasks || []).includes(task.id));
                   const hasReceipt = (data.receipts || []).some(r => r.taskId === task.id);
-                  const cannotDelete = hasInvoice || hasReceipt;
+                  // Only "In Progress" tasks can be deleted, and only if no invoice/receipt
+                  const isCompleted = task.status === 'Completed' || task.completedCheck;
+                  const isOpen = task.status !== 'Completed' && task.status !== 'In Progress';
+                  const cannotDelete = hasInvoice || hasReceipt || isCompleted || isOpen;
+                  const deleteBlockReason = hasInvoice || hasReceipt ? 'Invoice/Receipt exists' : isCompleted ? 'Completed tasks cannot be deleted' : isOpen ? 'Open tasks cannot be deleted' : '';
                   
                   return (
                   <tr key={task.id} style={{ opacity: task.deleted ? 0.5 : 1, background: isSelected ? '#dcfce7' : (idx % 2 === 0 ? '#fff' : '#f8fafc') }}>
@@ -4663,7 +4667,7 @@ const PracticeManagementApp = () => {
                       {!task.deleted ? (
                         hasActionPermission('canDeleteTask') && (
                           cannotDelete ? (
-                            <span title="Cannot delete - Invoice/Receipt exists" style={{color: '#9ca3af', cursor: 'not-allowed'}}>
+                            <span title={`Cannot delete - ${deleteBlockReason}`} style={{color: '#9ca3af', cursor: 'not-allowed'}}>
                               <Trash2 size={14} />
                             </span>
                           ) : (
@@ -5243,17 +5247,17 @@ const PracticeManagementApp = () => {
                   )}
 
                   {/* Row 1: Group No., Client Code, Client Name (WIDE), Type of Client, Date of Enrollment */}
-                  <div style={{display: 'grid', gridTemplateColumns: '60px 70px 1fr 110px 120px', gap: '10px', alignItems: 'end'}}>
+                  <div style={{display: 'grid', gridTemplateColumns: '55px 65px 1fr 100px 110px', gap: '8px', alignItems: 'end'}}>
                     {/* Group No. */}
                     <div>
-                      <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Group No.</label>
+                      <label style={{display: 'block', fontSize: '10px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Grp No.</label>
                       <input
                         type="text"
                         value={clientData.fileNo ? clientData.fileNo.split('.')[0] : (clientData.groupMode === 'new' ? getNextNewGroup() : clientData.selectedGroup || '')}
                         readOnly
                         style={{
                           width: '100%',
-                          padding: '10px 6px',
+                          padding: '10px 4px',
                           border: '1px solid #e2e8f0',
                           borderRadius: '6px',
                           background: '#f8fafc',
@@ -5267,7 +5271,7 @@ const PracticeManagementApp = () => {
 
                     {/* Client Code */}
                     <div>
-                      <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>
+                      <label style={{display: 'block', fontSize: '10px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>
                         Code <span style={{color: '#ef4444'}}>*</span>
                       </label>
                       <input
@@ -5277,7 +5281,7 @@ const PracticeManagementApp = () => {
                         disabled={!editingClient}
                         style={{
                           width: '100%',
-                          padding: '10px 6px',
+                          padding: '10px 4px',
                           background: editingClient ? '#fff' : '#f0fdf4',
                           border: clientData.fileNo ? '1px solid #10b981' : '1px solid #e2e8f0',
                           borderRadius: '6px',
@@ -5309,31 +5313,30 @@ const PracticeManagementApp = () => {
                           padding: '10px 12px',
                           border: '1px solid #e2e8f0',
                           borderRadius: '6px',
-                          fontSize: '13px',
-                          minWidth: '200px'
+                          fontSize: '14px'
                         }}
                       />
                     </div>
 
                     {/* Type of Client */}
                     <div>
-                      <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Type</label>
+                      <label style={{display: 'block', fontSize: '10px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Type</label>
                       <select
                         value={clientData.typeOfClient}
                         onChange={(e) => setClientData({...clientData, typeOfClient: e.target.value})}
                         style={{
                           width: '100%',
-                          padding: '10px 6px',
+                          padding: '10px 4px',
                           border: '1px solid #e2e8f0',
                           borderRadius: '6px',
-                          fontSize: '12px',
+                          fontSize: '11px',
                           background: '#fff'
                         }}
                       >
-                        <option value="">Select Type</option>
+                        <option value="">Select</option>
                         <option value="Individual">Individual</option>
                         <option value="Company">Company</option>
-                        <option value="Partnership">Partnership Firm</option>
+                        <option value="Partnership">Partnership</option>
                         <option value="LLP">LLP</option>
                         <option value="Trust">Trust</option>
                         <option value="HUF">HUF</option>
@@ -5342,17 +5345,17 @@ const PracticeManagementApp = () => {
 
                     {/* Date of Enrollment */}
                     <div>
-                      <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Date of Enroll</label>
+                      <label style={{display: 'block', fontSize: '10px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Enrollment</label>
                       <input
                         type="date"
                         value={clientData.dateOfEnrollment}
                         onChange={(e) => setClientData({...clientData, dateOfEnrollment: e.target.value})}
                         style={{
                           width: '100%',
-                          padding: '10px 6px',
+                          padding: '10px 4px',
                           border: '1px solid #e2e8f0',
                           borderRadius: '6px',
-                          fontSize: '12px'
+                          fontSize: '11px'
                         }}
                       />
                     </div>
@@ -16414,54 +16417,54 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   {dashboardTab === 'summary' && (
                     <div>
                       {/* Organization Wise */}
-                      <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: '24px'}}>
-                        <div style={{padding: '16px 20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0'}}>
-                          <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600', color: '#1e293b'}}>Organization Wise Billing & Collection</h3>
+                      <div style={{background: '#fff', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: '20px', border: '1px solid #e5e7eb'}}>
+                        <div style={{padding: '10px 16px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                          <h3 style={{margin: 0, fontSize: '13px', fontWeight: '600', color: '#fff'}}>Organization Wise Billing & Collection</h3>
                         </div>
-                        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
+                        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                           <thead>
-                            <tr style={{background: '#f8fafc'}}>
-                              <th style={{padding: '14px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Organization</th>
-                              <th style={{padding: '14px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Total Billing</th>
-                              <th style={{padding: '14px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Total Collection</th>
-                              <th style={{padding: '14px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Outstanding</th>
+                            <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                              <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Organization</th>
+                              <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Total Billing</th>
+                              <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Total Collection</th>
+                              <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Outstanding</th>
                             </tr>
                           </thead>
                           <tbody>
                             {orgBreakdown.length === 0 ? (
                               <tr>
-                                <td colSpan={4} style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>
+                                <td colSpan={4} style={{padding: '30px', textAlign: 'center', color: '#64748b', border: '1px solid #e5e7eb'}}>
                                   No billing data available for {dashboardFY}
                                 </td>
                               </tr>
                             ) : (
                               <>
-                                {orgBreakdown.map(org => (
-                                  <tr key={org.id} style={{borderBottom: '1px solid #f1f5f9'}}>
-                                    <td style={{padding: '14px'}}>
-                                      <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                                {orgBreakdown.map((org, idx) => (
+                                  <tr key={org.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                                    <td style={{padding: '8px 12px', border: '1px solid #e5e7eb'}}>
+                                      <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
                                         {org.logo ? (
-                                          <img src={org.logo} alt="" style={{width: '36px', height: '36px', objectFit: 'contain', borderRadius: '6px', border: '1px solid #e2e8f0'}} />
+                                          <img src={org.logo} alt="" style={{width: '28px', height: '28px', objectFit: 'contain', borderRadius: '4px', border: '1px solid #e2e8f0'}} />
                                         ) : (
-                                          <div style={{width: '36px', height: '36px', background: '#f1f5f9', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                                            <Building size={18} color="#64748b" />
+                                          <div style={{width: '28px', height: '28px', background: '#f1f5f9', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                                            <Building size={14} color="#64748b" />
                                           </div>
                                         )}
-                                        <span style={{fontWeight: '500'}}>{org.name}</span>
+                                        <span style={{fontWeight: '500', fontSize: '12px'}}>{org.name}</span>
                                       </div>
                                     </td>
-                                    <td style={{padding: '14px', textAlign: 'right', fontWeight: '600', color: '#059669'}}>₹ {org.billing.toLocaleString('en-IN')}</td>
-                                    <td style={{padding: '14px', textAlign: 'right', fontWeight: '600', color: '#2563eb'}}>₹ {org.collection.toLocaleString('en-IN')}</td>
-                                    <td style={{padding: '14px', textAlign: 'right', fontWeight: '600', color: org.billing - org.collection > 0 ? '#dc2626' : '#059669'}}>
+                                    <td style={{padding: '8px 12px', textAlign: 'right', fontWeight: '600', color: '#059669', border: '1px solid #e5e7eb'}}>₹ {org.billing.toLocaleString('en-IN')}</td>
+                                    <td style={{padding: '8px 12px', textAlign: 'right', fontWeight: '600', color: '#2563eb', border: '1px solid #e5e7eb'}}>₹ {org.collection.toLocaleString('en-IN')}</td>
+                                    <td style={{padding: '8px 12px', textAlign: 'right', fontWeight: '600', color: org.billing - org.collection > 0 ? '#dc2626' : '#059669', border: '1px solid #e5e7eb'}}>
                                       ₹ {(org.billing - org.collection).toLocaleString('en-IN')}
                                     </td>
                                   </tr>
                                 ))}
-                                <tr style={{background: '#f8fafc', fontWeight: '700'}}>
-                                  <td style={{padding: '14px'}}>Total</td>
-                                  <td style={{padding: '14px', textAlign: 'right', color: '#059669'}}>₹ {orgBreakdown.reduce((s, o) => s + o.billing, 0).toLocaleString('en-IN')}</td>
-                                  <td style={{padding: '14px', textAlign: 'right', color: '#2563eb'}}>₹ {orgBreakdown.reduce((s, o) => s + o.collection, 0).toLocaleString('en-IN')}</td>
-                                  <td style={{padding: '14px', textAlign: 'right', color: '#dc2626'}}>₹ {orgBreakdown.reduce((s, o) => s + (o.billing - o.collection), 0).toLocaleString('en-IN')}</td>
+                                <tr style={{background: '#dcfce7', fontWeight: '700'}}>
+                                  <td style={{padding: '8px 12px', border: '1px solid #e5e7eb', fontWeight: '700'}}>Total</td>
+                                  <td style={{padding: '8px 12px', textAlign: 'right', color: '#059669', border: '1px solid #e5e7eb'}}>₹ {orgBreakdown.reduce((s, o) => s + o.billing, 0).toLocaleString('en-IN')}</td>
+                                  <td style={{padding: '8px 12px', textAlign: 'right', color: '#2563eb', border: '1px solid #e5e7eb'}}>₹ {orgBreakdown.reduce((s, o) => s + o.collection, 0).toLocaleString('en-IN')}</td>
+                                  <td style={{padding: '8px 12px', textAlign: 'right', color: '#dc2626', border: '1px solid #e5e7eb'}}>₹ {orgBreakdown.reduce((s, o) => s + (o.billing - o.collection), 0).toLocaleString('en-IN')}</td>
                                 </tr>
                               </>
                             )}
@@ -16470,19 +16473,19 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       </div>
                       
                       {/* Child Task Wise Breakdown */}
-                      <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
-                        <div style={{padding: '16px 20px', background: '#f0fdf4', borderBottom: '1px solid #6ee7b7'}}>
-                          <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600', color: '#065f46'}}>Task Type Wise Billing & Collection</h3>
+                      <div style={{background: '#fff', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb'}}>
+                        <div style={{padding: '10px 16px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                          <h3 style={{margin: 0, fontSize: '13px', fontWeight: '600', color: '#fff'}}>Task Type Wise Billing & Collection</h3>
                         </div>
-                        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
+                        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                           <thead>
-                            <tr style={{background: '#f8fafc'}}>
-                              <th style={{padding: '14px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Parent Task</th>
-                              <th style={{padding: '14px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Child Task</th>
-                              <th style={{padding: '14px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Invoices</th>
-                              <th style={{padding: '14px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Total Billing</th>
-                              <th style={{padding: '14px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Total Collection</th>
-                              <th style={{padding: '14px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Outstanding</th>
+                            <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                              <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Parent Task</th>
+                              <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Child Task</th>
+                              <th style={{padding: '10px 12px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Invoices</th>
+                              <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Total Billing</th>
+                              <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Total Collection</th>
+                              <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Outstanding</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -16554,7 +16557,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               if (taskList.length === 0) {
                                 return (
                                   <tr>
-                                    <td colSpan={6} style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>
+                                    <td colSpan={6} style={{padding: '30px', textAlign: 'center', color: '#64748b', border: '1px solid #e5e7eb'}}>
                                       No task-wise data available for {dashboardFY}
                                     </td>
                                   </tr>
@@ -16564,27 +16567,27 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               return (
                                 <>
                                   {taskList.map((task, idx) => (
-                                    <tr key={idx} style={{borderBottom: '1px solid #f1f5f9'}}>
-                                      <td style={{padding: '14px', fontWeight: '500', color: '#6366f1'}}>{task.parentTask}</td>
-                                      <td style={{padding: '14px'}}>{task.childTask}</td>
-                                      <td style={{padding: '14px', textAlign: 'center'}}>
-                                        <span style={{background: '#e0e7ff', color: '#4338ca', padding: '2px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '600'}}>
+                                    <tr key={idx} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                                      <td style={{padding: '8px 12px', fontWeight: '500', color: '#6366f1', border: '1px solid #e5e7eb'}}>{task.parentTask}</td>
+                                      <td style={{padding: '8px 12px', border: '1px solid #e5e7eb'}}>{task.childTask}</td>
+                                      <td style={{padding: '8px 12px', textAlign: 'center', border: '1px solid #e5e7eb'}}>
+                                        <span style={{background: '#e0e7ff', color: '#4338ca', padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: '600'}}>
                                           {task.invoiceCount}
                                         </span>
                                       </td>
-                                      <td style={{padding: '14px', textAlign: 'right', fontWeight: '600', color: '#059669'}}>₹ {task.billing.toLocaleString('en-IN')}</td>
-                                      <td style={{padding: '14px', textAlign: 'right', fontWeight: '600', color: '#2563eb'}}>₹ {task.collection.toLocaleString('en-IN')}</td>
-                                      <td style={{padding: '14px', textAlign: 'right', fontWeight: '600', color: task.billing - task.collection > 0 ? '#dc2626' : '#059669'}}>
+                                      <td style={{padding: '8px 12px', textAlign: 'right', fontWeight: '600', color: '#059669', border: '1px solid #e5e7eb'}}>₹ {task.billing.toLocaleString('en-IN')}</td>
+                                      <td style={{padding: '8px 12px', textAlign: 'right', fontWeight: '600', color: '#2563eb', border: '1px solid #e5e7eb'}}>₹ {task.collection.toLocaleString('en-IN')}</td>
+                                      <td style={{padding: '8px 12px', textAlign: 'right', fontWeight: '600', color: task.billing - task.collection > 0 ? '#dc2626' : '#059669', border: '1px solid #e5e7eb'}}>
                                         ₹ {(task.billing - task.collection).toLocaleString('en-IN')}
                                       </td>
                                     </tr>
                                   ))}
-                                  <tr style={{background: '#f8fafc', fontWeight: '700'}}>
-                                    <td colSpan={2} style={{padding: '14px'}}>Total</td>
-                                    <td style={{padding: '14px', textAlign: 'center'}}>{taskList.reduce((s, t) => s + t.invoiceCount, 0)}</td>
-                                    <td style={{padding: '14px', textAlign: 'right', color: '#059669'}}>₹ {taskList.reduce((s, t) => s + t.billing, 0).toLocaleString('en-IN')}</td>
-                                    <td style={{padding: '14px', textAlign: 'right', color: '#2563eb'}}>₹ {taskList.reduce((s, t) => s + t.collection, 0).toLocaleString('en-IN')}</td>
-                                    <td style={{padding: '14px', textAlign: 'right', color: '#dc2626'}}>₹ {taskList.reduce((s, t) => s + (t.billing - t.collection), 0).toLocaleString('en-IN')}</td>
+                                  <tr style={{background: '#dcfce7', fontWeight: '700'}}>
+                                    <td colSpan={2} style={{padding: '8px 12px', border: '1px solid #e5e7eb', fontWeight: '700'}}>Total</td>
+                                    <td style={{padding: '8px 12px', textAlign: 'center', border: '1px solid #e5e7eb'}}>{taskList.reduce((s, t) => s + t.invoiceCount, 0)}</td>
+                                    <td style={{padding: '8px 12px', textAlign: 'right', color: '#059669', border: '1px solid #e5e7eb'}}>₹ {taskList.reduce((s, t) => s + t.billing, 0).toLocaleString('en-IN')}</td>
+                                    <td style={{padding: '8px 12px', textAlign: 'right', color: '#2563eb', border: '1px solid #e5e7eb'}}>₹ {taskList.reduce((s, t) => s + t.collection, 0).toLocaleString('en-IN')}</td>
+                                    <td style={{padding: '8px 12px', textAlign: 'right', color: '#dc2626', border: '1px solid #e5e7eb'}}>₹ {taskList.reduce((s, t) => s + (t.billing - t.collection), 0).toLocaleString('en-IN')}</td>
                                   </tr>
                                 </>
                               );
@@ -16649,21 +16652,21 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       
                       {/* Bills Table */}
                       <div style={{overflowX: 'auto'}}>
-                        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+                        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
                           <thead>
-                            <tr style={{background: '#f8fafc'}}>
-                              <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>S.No</th>
-                              <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Invoice No</th>
-                              <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Date</th>
-                              <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Client Code</th>
-                              <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Client Name</th>
-                              <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Task</th>
-                              <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Organization</th>
-                              <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Amount</th>
-                              <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>GST</th>
-                              <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Total</th>
-                              <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Status</th>
-                              <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Action</th>
+                            <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>S.No</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Invoice No</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Date</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client Code</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client Name</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Task</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Organization</th>
+                              <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Amount</th>
+                              <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>GST</th>
+                              <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Total</th>
+                              <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Status</th>
+                              <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Action</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -16720,7 +16723,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               if (billRegisterFilters.childTask) filtered = filtered.filter(inv => (inv.childTask || '').toLowerCase().includes(billRegisterFilters.childTask.toLowerCase()));
                               
                               if (filtered.length === 0) {
-                                return <tr><td colSpan={12} style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>No invoices found</td></tr>;
+                                return <tr><td colSpan={12} style={{padding: '30px', textAlign: 'center', color: '#64748b', border: '1px solid #e5e7eb'}}>No invoices found</td></tr>;
                               }
                               
                               const totalAmount = filtered.reduce((s, i) => s + (i.netAmount || i.amount || 0), 0);
@@ -16738,46 +16741,46 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                     const isPaid = paidAmt >= (inv.totalAmount || 0);
                                     const isPartial = paidAmt > 0 && paidAmt < (inv.totalAmount || 0);
                                     return (
-                                      <tr key={inv.id} style={{borderBottom: '1px solid #f1f5f9'}}>
-                                        <td style={{padding: '12px'}}>{idx + 1}</td>
-                                        <td style={{padding: '12px', fontWeight: '500', color: '#10b981'}}>{inv.invoiceNo}</td>
-                                        <td style={{padding: '12px'}}>{new Date(inv.invoiceDate).toLocaleDateString('en-IN')}</td>
-                                        <td style={{padding: '12px', fontSize: '11px', color: '#6366f1', fontWeight: '500'}}>{inv.clientCode || '-'}</td>
-                                        <td style={{padding: '12px'}}>{inv.clientName}</td>
-                                        <td style={{padding: '12px', fontSize: '11px'}}>{inv.parentTask !== 'Other' ? `${inv.parentTask} - ` : ''}{inv.childTask}</td>
-                                        <td style={{padding: '12px', fontSize: '11px', color: '#64748b'}}>{inv.orgName}</td>
-                                        <td style={{padding: '12px', textAlign: 'right'}}>₹{(inv.netAmount || inv.amount || 0).toLocaleString('en-IN')}</td>
-                                        <td style={{padding: '12px', textAlign: 'right'}}>₹{(() => {
+                                      <tr key={inv.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                                        <td style={{padding: '6px 10px', border: '1px solid #e5e7eb'}}>{idx + 1}</td>
+                                        <td style={{padding: '6px 10px', fontWeight: '500', color: '#10b981', border: '1px solid #e5e7eb'}}>{inv.invoiceNo}</td>
+                                        <td style={{padding: '6px 10px', border: '1px solid #e5e7eb'}}>{new Date(inv.invoiceDate).toLocaleDateString('en-IN')}</td>
+                                        <td style={{padding: '6px 10px', fontSize: '10px', color: '#6366f1', fontWeight: '500', border: '1px solid #e5e7eb'}}>{inv.clientCode || '-'}</td>
+                                        <td style={{padding: '6px 10px', border: '1px solid #e5e7eb'}}>{inv.clientName}</td>
+                                        <td style={{padding: '6px 10px', fontSize: '10px', border: '1px solid #e5e7eb'}}>{inv.parentTask !== 'Other' ? `${inv.parentTask} - ` : ''}{inv.childTask}</td>
+                                        <td style={{padding: '6px 10px', fontSize: '10px', color: '#64748b', border: '1px solid #e5e7eb'}}>{inv.orgName}</td>
+                                        <td style={{padding: '6px 10px', textAlign: 'right', border: '1px solid #e5e7eb'}}>₹{(inv.netAmount || inv.amount || 0).toLocaleString('en-IN')}</td>
+                                        <td style={{padding: '6px 10px', textAlign: 'right', border: '1px solid #e5e7eb'}}>₹{(() => {
                                           const gstTotal = (inv.cgst || 0) + (inv.sgst || 0) + (inv.igst || 0);
                                           return gstTotal > 0 ? gstTotal : (inv.taxAmount || 0);
                                         })().toLocaleString('en-IN')}</td>
-                                        <td style={{padding: '12px', textAlign: 'right', fontWeight: '600'}}>₹{(inv.totalAmount || 0).toLocaleString('en-IN')}</td>
-                                        <td style={{padding: '12px', textAlign: 'center'}}>
-                                          <span style={{padding: '4px 10px', borderRadius: '12px', fontSize: '10px', fontWeight: '600',
+                                        <td style={{padding: '6px 10px', textAlign: 'right', fontWeight: '600', border: '1px solid #e5e7eb'}}>₹{(inv.totalAmount || 0).toLocaleString('en-IN')}</td>
+                                        <td style={{padding: '6px 10px', textAlign: 'center', border: '1px solid #e5e7eb'}}>
+                                          <span style={{padding: '2px 8px', borderRadius: '10px', fontSize: '9px', fontWeight: '600',
                                             background: isPaid ? '#d1fae5' : isPartial ? '#fef3c7' : '#fee2e2',
                                             color: isPaid ? '#065f46' : isPartial ? '#92400e' : '#991b1b'
                                           }}>
                                             {isPaid ? 'Paid' : isPartial ? 'Partial' : 'Pending'}
                                           </span>
                                         </td>
-                                        <td style={{padding: '12px', textAlign: 'center'}}>
-                                          <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
+                                        <td style={{padding: '6px 10px', textAlign: 'center', border: '1px solid #e5e7eb'}}>
+                                          <div style={{display: 'flex', gap: '3px', justifyContent: 'center'}}>
                                             <button 
                                               onClick={() => setViewingDashboardInvoice(inv)}
-                                              style={{padding: '4px 8px', background: '#eff6ff', color: '#2563eb', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: '500'}}
+                                              style={{padding: '3px 6px', background: '#eff6ff', color: '#2563eb', border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '9px', fontWeight: '500'}}
                                               title="View"
                                             >
-                                              <Eye size={12} />
+                                              <Eye size={10} />
                                             </button>
                                             <button 
                                               onClick={() => {
                                                 setEditingInvoiceData(inv);
                                                 setShowEditInvoiceModal(true);
                                               }}
-                                              style={{padding: '4px 8px', background: '#fef3c7', color: '#d97706', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: '500'}}
+                                              style={{padding: '3px 6px', background: '#fef3c7', color: '#d97706', border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '9px', fontWeight: '500'}}
                                               title="Edit"
                                             >
-                                              <Edit size={12} />
+                                              <Edit size={10} />
                                             </button>
                                             <button 
                                               onClick={() => {
@@ -16789,22 +16792,22 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                                   }));
                                                 }
                                               }}
-                                              style={{padding: '4px 8px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: '500'}}
+                                              style={{padding: '3px 6px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '9px', fontWeight: '500'}}
                                               title="Delete"
                                             >
-                                              <Trash2 size={12} />
+                                              <Trash2 size={10} />
                                             </button>
                                           </div>
                                         </td>
                                       </tr>
                                     );
                                   })}
-                                  <tr style={{background: '#f8fafc', fontWeight: '700'}}>
-                                    <td colSpan={7} style={{padding: '12px'}}>Total ({filtered.length} invoices)</td>
-                                    <td style={{padding: '12px', textAlign: 'right'}}>₹{totalAmount.toLocaleString('en-IN')}</td>
-                                    <td style={{padding: '12px', textAlign: 'right'}}>₹{totalGST.toLocaleString('en-IN')}</td>
-                                    <td style={{padding: '12px', textAlign: 'right'}}>₹{totalTotal.toLocaleString('en-IN')}</td>
-                                    <td colSpan={2}></td>
+                                  <tr style={{background: '#dcfce7', fontWeight: '700'}}>
+                                    <td colSpan={7} style={{padding: '8px 10px', border: '1px solid #e5e7eb'}}>Total ({filtered.length} invoices)</td>
+                                    <td style={{padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb'}}>₹{totalAmount.toLocaleString('en-IN')}</td>
+                                    <td style={{padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb'}}>₹{totalGST.toLocaleString('en-IN')}</td>
+                                    <td style={{padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb'}}>₹{totalTotal.toLocaleString('en-IN')}</td>
+                                    <td colSpan={2} style={{border: '1px solid #e5e7eb'}}></td>
                                   </tr>
                                 </>
                               );
@@ -16869,21 +16872,21 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       
                       {/* Receipts Table */}
                       <div style={{overflowX: 'auto'}}>
-                        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+                        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
                           <thead>
-                            <tr style={{background: '#f8fafc'}}>
-                              <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>S.No</th>
-                              <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Receipt No</th>
-                              <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Date</th>
-                              <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Client Code</th>
-                              <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Client Name</th>
-                              <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Invoice No</th>
-                              <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Organization</th>
-                              <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Amount</th>
-                              <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>TDS</th>
-                              <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Discount</th>
-                              <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Total</th>
-                              <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Action</th>
+                            <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>S.No</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Receipt No</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Date</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client Code</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client Name</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Invoice No</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Organization</th>
+                              <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Amount</th>
+                              <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>TDS</th>
+                              <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Discount</th>
+                              <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Total</th>
+                              <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Action</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -16952,7 +16955,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               if (receiptRegisterFilters.childTask) filtered = filtered.filter(r => (r.childTask || '').toLowerCase().includes(receiptRegisterFilters.childTask.toLowerCase()));
                               
                               if (filtered.length === 0) {
-                                return <tr><td colSpan={12} style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>No receipts found</td></tr>;
+                                return <tr><td colSpan={12} style={{padding: '30px', textAlign: 'center', color: '#64748b', border: '1px solid #e5e7eb'}}>No receipts found</td></tr>;
                               }
                               
                               const totalAmount = filtered.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
@@ -16964,36 +16967,36 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 <>
                                   {filtered.sort((a,b) => new Date(b.receiptDate || b.createdAt) - new Date(a.receiptDate || a.createdAt)).map((r, idx) => {
                                     return (
-                                      <tr key={r.id} style={{borderBottom: '1px solid #f1f5f9'}}>
-                                        <td style={{padding: '12px'}}>{idx + 1}</td>
-                                        <td style={{padding: '12px', fontWeight: '500', color: '#3b82f6'}}>{r.receiptNo}</td>
-                                        <td style={{padding: '12px'}}>{new Date(r.receiptDate || r.createdAt).toLocaleDateString('en-IN')}</td>
-                                        <td style={{padding: '12px', fontSize: '11px', color: '#6366f1', fontWeight: '500'}}>{r.clientCode || '-'}</td>
-                                        <td style={{padding: '12px'}}>{r.clientName}</td>
-                                        <td style={{padding: '12px', fontSize: '11px', color: '#10b981'}}>{r.invoiceNo || '-'}</td>
-                                        <td style={{padding: '12px', fontSize: '11px', color: '#64748b'}}>{r.orgName || '-'}</td>
-                                        <td style={{padding: '12px', textAlign: 'right'}}>₹{(parseFloat(r.amount) || 0).toLocaleString('en-IN')}</td>
-                                        <td style={{padding: '12px', textAlign: 'right'}}>₹{(parseFloat(r.tds) || 0).toLocaleString('en-IN')}</td>
-                                        <td style={{padding: '12px', textAlign: 'right'}}>₹{(parseFloat(r.discount) || 0).toLocaleString('en-IN')}</td>
-                                        <td style={{padding: '12px', textAlign: 'right', fontWeight: '600'}}>₹{((parseFloat(r.amount) || 0) + (parseFloat(r.tds) || 0) + (parseFloat(r.discount) || 0)).toLocaleString('en-IN')}</td>
-                                        <td style={{padding: '12px', textAlign: 'center'}}>
-                                          <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
+                                      <tr key={r.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                                        <td style={{padding: '6px 10px', border: '1px solid #e5e7eb'}}>{idx + 1}</td>
+                                        <td style={{padding: '6px 10px', fontWeight: '500', color: '#3b82f6', border: '1px solid #e5e7eb'}}>{r.receiptNo}</td>
+                                        <td style={{padding: '6px 10px', border: '1px solid #e5e7eb'}}>{new Date(r.receiptDate || r.createdAt).toLocaleDateString('en-IN')}</td>
+                                        <td style={{padding: '6px 10px', fontSize: '10px', color: '#6366f1', fontWeight: '500', border: '1px solid #e5e7eb'}}>{r.clientCode || '-'}</td>
+                                        <td style={{padding: '6px 10px', border: '1px solid #e5e7eb'}}>{r.clientName}</td>
+                                        <td style={{padding: '6px 10px', fontSize: '10px', color: '#10b981', border: '1px solid #e5e7eb'}}>{r.invoiceNo || '-'}</td>
+                                        <td style={{padding: '6px 10px', fontSize: '10px', color: '#64748b', border: '1px solid #e5e7eb'}}>{r.orgName || '-'}</td>
+                                        <td style={{padding: '6px 10px', textAlign: 'right', border: '1px solid #e5e7eb'}}>₹{(parseFloat(r.amount) || 0).toLocaleString('en-IN')}</td>
+                                        <td style={{padding: '6px 10px', textAlign: 'right', border: '1px solid #e5e7eb'}}>₹{(parseFloat(r.tds) || 0).toLocaleString('en-IN')}</td>
+                                        <td style={{padding: '6px 10px', textAlign: 'right', border: '1px solid #e5e7eb'}}>₹{(parseFloat(r.discount) || 0).toLocaleString('en-IN')}</td>
+                                        <td style={{padding: '6px 10px', textAlign: 'right', fontWeight: '600', border: '1px solid #e5e7eb'}}>₹{((parseFloat(r.amount) || 0) + (parseFloat(r.tds) || 0) + (parseFloat(r.discount) || 0)).toLocaleString('en-IN')}</td>
+                                        <td style={{padding: '6px 10px', textAlign: 'center', border: '1px solid #e5e7eb'}}>
+                                          <div style={{display: 'flex', gap: '3px', justifyContent: 'center'}}>
                                             <button 
                                               onClick={() => setViewingDashboardReceipt(r)}
-                                              style={{padding: '4px 8px', background: '#eff6ff', color: '#2563eb', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: '500'}}
+                                              style={{padding: '3px 6px', background: '#eff6ff', color: '#2563eb', border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '9px', fontWeight: '500'}}
                                               title="View"
                                             >
-                                              <Eye size={12} />
+                                              <Eye size={10} />
                                             </button>
                                             <button 
                                               onClick={() => {
                                                 setEditingReceipt({...r});
                                                 setShowEditReceiptModal(true);
                                               }}
-                                              style={{padding: '4px 8px', background: '#fef3c7', color: '#d97706', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: '500'}}
+                                              style={{padding: '3px 6px', background: '#fef3c7', color: '#d97706', border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '9px', fontWeight: '500'}}
                                               title="Edit"
                                             >
-                                              <Edit size={12} />
+                                              <Edit size={10} />
                                             </button>
                                             <button 
                                               onClick={() => {
@@ -17004,23 +17007,23 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                                   }));
                                                 }
                                               }}
-                                              style={{padding: '4px 8px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: '500'}}
+                                              style={{padding: '3px 6px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '9px', fontWeight: '500'}}
                                               title="Delete"
                                             >
-                                              <Trash2 size={12} />
+                                              <Trash2 size={10} />
                                             </button>
                                           </div>
                                         </td>
                                       </tr>
                                     );
                                   })}
-                                  <tr style={{background: '#f8fafc', fontWeight: '700'}}>
-                                    <td colSpan={7} style={{padding: '12px'}}>Total ({filtered.length} receipts)</td>
-                                    <td style={{padding: '12px', textAlign: 'right'}}>₹{totalAmount.toLocaleString('en-IN')}</td>
-                                    <td style={{padding: '12px', textAlign: 'right'}}>₹{totalTDS.toLocaleString('en-IN')}</td>
-                                    <td style={{padding: '12px', textAlign: 'right'}}>₹{totalDisc.toLocaleString('en-IN')}</td>
-                                    <td style={{padding: '12px', textAlign: 'right'}}>₹{totalTotal.toLocaleString('en-IN')}</td>
-                                    <td></td>
+                                  <tr style={{background: '#dcfce7', fontWeight: '700'}}>
+                                    <td colSpan={7} style={{padding: '8px 10px', border: '1px solid #e5e7eb'}}>Total ({filtered.length} receipts)</td>
+                                    <td style={{padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb'}}>₹{totalAmount.toLocaleString('en-IN')}</td>
+                                    <td style={{padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb'}}>₹{totalTDS.toLocaleString('en-IN')}</td>
+                                    <td style={{padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb'}}>₹{totalDisc.toLocaleString('en-IN')}</td>
+                                    <td style={{padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb'}}>₹{totalTotal.toLocaleString('en-IN')}</td>
+                                    <td style={{border: '1px solid #e5e7eb'}}></td>
                                   </tr>
                                 </>
                               );
