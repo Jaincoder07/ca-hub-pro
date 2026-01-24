@@ -1,12 +1,69 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Clock, FileText, DollarSign, Bell, Settings, Home, Briefcase, TrendingUp, Plus, Search, Filter, ChevronDown, ChevronRight, ChevronLeft, Mail, MessageSquare, Download, Upload, CheckCircle, AlertCircle, XCircle, Menu, X, MoreVertical, Edit, Trash2, Eye, User, LogOut, BarChart3, PieChart, Activity, Check, Building, Percent, Key, Shield } from 'lucide-react';
+import { Calendar, Users, Clock, FileText, DollarSign, Bell, Settings, Home, Briefcase, TrendingUp, Plus, Search, Filter, ChevronDown, ChevronRight, ChevronLeft, Mail, MessageSquare, Download, Upload, CheckCircle, AlertCircle, XCircle, Menu, X, MoreVertical, Edit, Trash2, Eye, User, LogOut, BarChart3, PieChart, Activity, Check, Building, Percent, Key, Shield, RefreshCw } from 'lucide-react';
+
+// Firebase imports
+import { initializeApp } from "firebase/app";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, onSnapshot } from "firebase/firestore";
+
+// Firebase Configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyCv1f44t61b8r11PUC3E0UtwxzwtlVOIOQ",
+  authDomain: "ca-hub-pro.firebaseapp.com",
+  projectId: "ca-hub-pro",
+  storageBucket: "ca-hub-pro.firebasestorage.app",
+  messagingSenderId: "72722363355",
+  appId: "1:72722363355:web:f4f284624eb96ab59dadfe"
+};
+
+// Initialize Firebase
+const firebaseApp = initializeApp(firebaseConfig);
+const auth = getAuth(firebaseApp);
+const db = getFirestore(firebaseApp);
 
 // Utility function for generating IDs
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
-// LocalStorage keys
-const STORAGE_KEY = 'ca-hub-pro-data';
-const AUTH_KEY = 'ca-hub-pro-auth';
+// Helper function to remove/convert undefined values (Firebase doesn't accept undefined)
+// This recursively processes all nested objects and arrays
+const removeUndefined = (obj) => {
+  if (obj === undefined) return null;
+  if (obj === null) return null;
+  if (typeof obj !== 'object') return obj;
+  
+  if (Array.isArray(obj)) {
+    return obj.map(item => removeUndefined(item));
+  }
+  
+  const newObj = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const value = obj[key];
+      if (value === undefined) {
+        newObj[key] = null; // Convert undefined to null
+      } else {
+        newObj[key] = removeUndefined(value);
+      }
+    }
+  }
+  return newObj;
+};
+
+// BULLETPROOF: Clean data for Firebase using JSON stringify/parse
+// This is GUARANTEED to remove all undefined values
+const cleanForFirebase = (data) => {
+  // JSON.stringify automatically excludes undefined values
+  // We use a replacer to convert undefined to null explicitly
+  const jsonString = JSON.stringify(data, (key, value) => {
+    if (value === undefined) {
+      return null;
+    }
+    return value;
+  });
+  
+  // Parse it back to object - now guaranteed to have no undefined
+  return JSON.parse(jsonString);
+};
 
 // Parent and Child Task Data
 // Default Parent-Child Tasks Configuration (can be modified via Configuration)
@@ -60,15 +117,16 @@ const initialData = {
   recurringBatches: [], // {id, name, parentTask, childTask, clients: [], autoCreate: true/false, isActive: true}
   checklists: [], // {id, name, parentTask, childTask, items: [{id, text, required}], isActive: true}
   pendingApprovals: [], // {id, type, requestedBy, requestedByRole, approverId, approverRole, status, data, createdAt, updatedAt, comments, actionedBy}
-  dscRegister: [] // {id, clientId, holderName, holderPan, provider, dscClass, dscType, tokenSerial, issueDate, expiryDate, password, location, status, remarks}
+  dscRegister: [] // {id, clientId, clientName, holderName, pan, dscType, tokenSerialNo, issuingAuthority, issueDate, expiryDate, password, physicalLocation, status, remarks, createdAt, updatedAt}
 };
 
 const PracticeManagementApp = () => {
-  // Loading states
-  const [appLoading, setAppLoading] = useState(true);
+  // Firebase loading states
+  const [firebaseLoading, setFirebaseLoading] = useState(true);
+  const [firebaseUser, setFirebaseUser] = useState(null);
   const [dataLoaded, setDataLoaded] = useState(false);
   
-  // Data state - loaded from localStorage
+  // Data state - starts empty, loaded from Firebase
   const [data, setData] = useState({
     tasks: [],
     clients: [],
@@ -145,29 +203,6 @@ const PracticeManagementApp = () => {
   const [selectedApproval, setSelectedApproval] = useState(null);
   const [showApprovalEditModal, setShowApprovalEditModal] = useState(false);
   const [approvalEditData, setApprovalEditData] = useState(null);
-  
-  // DSC Register State
-  const [showDSCModal, setShowDSCModal] = useState(false);
-  const [selectedDSC, setSelectedDSC] = useState(null);
-  const [dscSearchTerm, setDscSearchTerm] = useState('');
-  const [dscFilterStatus, setDscFilterStatus] = useState('all');
-  const [dscFormData, setDscFormData] = useState({
-    clientId: '',
-    holderName: '',
-    holderPan: '',
-    provider: '',
-    dscClass: 'Class 3',
-    dscType: 'Signing',
-    tokenSerial: '',
-    issueDate: '',
-    expiryDate: '',
-    password: '',
-    location: '',
-    status: 'Active',
-    mobileNumber: '',
-    email: '',
-    remarks: ''
-  });
   
   // Computed PARENT_CHILD_TASKS - uses stored config or defaults
   const PARENT_CHILD_TASKS = data.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS;
@@ -409,99 +444,218 @@ const PracticeManagementApp = () => {
     }
   };
   
-  // Load data from localStorage on mount
+  // Firebase Auth State Listener
   useEffect(() => {
-    const loadData = () => {
-      try {
-        // Check for saved auth
-        const savedAuth = localStorage.getItem(AUTH_KEY);
-        const savedData = localStorage.getItem(STORAGE_KEY);
-        
-        if (savedAuth) {
-          const authUser = JSON.parse(savedAuth);
-          setCurrentUser(authUser);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('Auth state changed:', user?.email);
+      setFirebaseUser(user);
+      
+      if (user) {
+        // User is logged in, load data from Firebase
+        try {
+          const docRef = doc(db, 'appData', 'mainData');
+          const docSnap = await getDoc(docRef);
           
-          if (savedData) {
-            const parsedData = JSON.parse(savedData);
+          if (docSnap.exists()) {
+            const firebaseData = docSnap.data();
+            console.log('Loaded data from Firebase:', Object.keys(firebaseData));
+            
+            // Properly merge ALL data fields with defaults
             setData(prev => ({
-              tasks: parsedData.tasks || [],
-              clients: parsedData.clients || [],
-              staff: parsedData.staff || initialData.staff,
-              timesheets: parsedData.timesheets || [],
-              invoices: parsedData.invoices || [],
-              receipts: parsedData.receipts || [],
-              organizations: parsedData.organizations || [],
-              recurringSchedules: parsedData.recurringSchedules || [],
-              leaves: parsedData.leaves || [],
-              documents: parsedData.documents || [],
-              userPermissions: parsedData.userPermissions || {},
-              parentChildTasks: parsedData.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
-              recurringBatches: parsedData.recurringBatches || [],
-              checklists: parsedData.checklists || [],
-              pendingApprovals: parsedData.pendingApprovals || [],
-              dscRegister: parsedData.dscRegister || []
+              tasks: firebaseData.tasks || prev.tasks || [],
+              clients: firebaseData.clients || prev.clients || [],
+              staff: firebaseData.staff || prev.staff || [],
+              timesheets: firebaseData.timesheets || prev.timesheets || [],
+              invoices: firebaseData.invoices || prev.invoices || [],
+              receipts: firebaseData.receipts || prev.receipts || [],
+              organizations: firebaseData.organizations || prev.organizations || [],
+              recurringSchedules: firebaseData.recurringSchedules || prev.recurringSchedules || [],
+              leaves: firebaseData.leaves || prev.leaves || [],
+              documents: firebaseData.documents || prev.documents || [],
+              userPermissions: firebaseData.userPermissions || prev.userPermissions || {},
+              parentChildTasks: firebaseData.parentChildTasks || prev.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
+              recurringBatches: firebaseData.recurringBatches || prev.recurringBatches || [],
+              checklists: firebaseData.checklists || prev.checklists || [],
+              pendingApprovals: firebaseData.pendingApprovals || prev.pendingApprovals || []
             }));
+            
+            // Find current user in staff
+            const staffData = firebaseData.staff || [];
+            const found = staffData.find(s => s.email?.toLowerCase() === user.email?.toLowerCase());
+            if (found) {
+              setCurrentUser({
+                name: found.name,
+                role: found.role,
+                email: found.email,
+                isSuperAdmin: found.isSuperAdmin || found.role === 'Superadmin',
+                id: found.id
+              });
+            } else {
+              // User exists in Firebase Auth but not in staff, add them as Superadmin
+              const newStaffMember = {
+                id: 'firebase-' + user.uid,
+                name: user.email.split('@')[0],
+                email: user.email,
+                phone: '',
+                role: 'Superadmin',
+                dateOfJoin: new Date().toISOString().split('T')[0],
+                status: 'Active',
+                isSuperAdmin: true
+              };
+              setCurrentUser({
+                name: newStaffMember.name,
+                role: 'Superadmin',
+                email: user.email,
+                isSuperAdmin: true,
+                id: newStaffMember.id
+              });
+              // Add new user to staff
+              setData(prev => ({
+                ...prev,
+                staff: [...(prev.staff || []), newStaffMember]
+              }));
+            }
           } else {
+            // No data in Firebase, initialize with default data
+            console.log('No data in Firebase, initializing...');
+            const initialStaff = [{
+              id: 'staff-superadmin-001',
+              name: user.email.split('@')[0],
+              email: user.email,
+              phone: '',
+              role: 'Superadmin',
+              dateOfJoin: new Date().toISOString().split('T')[0],
+              status: 'Active',
+              isSuperAdmin: true
+            }];
+            
+            const initialData = {
+              tasks: [],
+              clients: [],
+              staff: initialStaff,
+              timesheets: [],
+              invoices: [],
+              receipts: [],
+              organizations: [],
+              recurringSchedules: [],
+              leaves: [],
+              documents: [],
+              userPermissions: {},
+              parentChildTasks: DEFAULT_PARENT_CHILD_TASKS,
+              recurringBatches: [],
+              checklists: [],
+              pendingApprovals: []
+            };
+            
             setData(initialData);
+            setCurrentUser({
+              name: initialStaff[0].name,
+              role: 'Superadmin',
+              email: user.email,
+              isSuperAdmin: true,
+              id: initialStaff[0].id
+            });
+            
+            // Save initial data to Firebase
+            await setDoc(doc(db, 'appData', 'mainData'), cleanForFirebase({
+              ...initialData,
+              lastUpdated: new Date().toISOString()
+            }));
           }
+          
           setCurrentView('dashboard');
           setDataLoaded(true);
-        } else {
-          // No saved auth, show login
-          setData(initialData);
+        } catch (error) {
+          console.error('Error loading data from Firebase:', error);
+          setDataLoaded(true);
         }
-      } catch (error) {
-        console.error('Error loading data:', error);
-        setData(initialData);
+      } else {
+        // User is logged out
+        setCurrentUser(null);
+        setCurrentView('login');
+        setDataLoaded(false);
       }
-      setAppLoading(false);
-    };
+      setFirebaseLoading(false);
+    });
     
-    loadData();
+    return () => unsubscribe();
   }, []);
   
-  // Save data to localStorage whenever it changes (debounced)
+  // BULLETPROOF save function - used by all save operations
+  // SIMPLE AND BULLETPROOF Firebase save function
+  const saveAllDataToFirebase = async (dataObj) => {
+    console.log('=== saveAllDataToFirebase V13 SIMPLE ===');
+    
+    try {
+      // Step 1: Handle base64 images in organizations (they're too large for Firebase)
+      const orgs = (dataObj.organizations || []).map(org => {
+        const o = { ...org };
+        if (o.logo && typeof o.logo === 'string' && o.logo.startsWith('data:')) o.logo = '[IMAGE]';
+        if (o.signatureImage && typeof o.signatureImage === 'string' && o.signatureImage.startsWith('data:')) o.signatureImage = '[IMAGE]';
+        if (o.qrCode && typeof o.qrCode === 'string' && o.qrCode.startsWith('data:')) o.qrCode = '[IMAGE]';
+        return o;
+      });
+      
+      // Step 2: Build data object
+      const rawData = {
+        tasks: dataObj.tasks || [],
+        clients: dataObj.clients || [],
+        staff: dataObj.staff || [],
+        timesheets: dataObj.timesheets || [],
+        invoices: dataObj.invoices || [],
+        receipts: dataObj.receipts || [],
+        organizations: orgs,
+        recurringSchedules: dataObj.recurringSchedules || [],
+        leaves: dataObj.leaves || [],
+        documents: dataObj.documents || [],
+        userPermissions: dataObj.userPermissions || {},
+        parentChildTasks: dataObj.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
+        recurringBatches: dataObj.recurringBatches || [],
+        checklists: dataObj.checklists || [],
+        pendingApprovals: dataObj.pendingApprovals || [],
+        lastUpdated: new Date().toISOString()
+      };
+      
+      // Step 3: THE MAGIC - JSON.parse(JSON.stringify()) removes ALL undefined values
+      // This is GUARANTEED to work because undefined is not valid JSON
+      const cleanData = JSON.parse(JSON.stringify(rawData));
+      
+      console.log('Data prepared. Counts:', {
+        tasks: cleanData.tasks.length,
+        clients: cleanData.clients.length,
+        staff: cleanData.staff.length
+      });
+      
+      // Step 4: Save to Firebase
+      await setDoc(doc(db, 'appData', 'mainData'), cleanData);
+      console.log('✅ Firebase save SUCCESS!');
+      
+      return cleanData;
+    } catch (error) {
+      console.error('❌ Firebase save FAILED:', error);
+      throw error;
+    }
+  };
+  
+  // Save data to Firebase whenever it changes (debounced)
   useEffect(() => {
-    if (!dataLoaded) {
+    if (!firebaseUser || !dataLoaded) {
+      console.log('Skip save - firebaseUser:', !!firebaseUser, 'dataLoaded:', dataLoaded);
       return;
     }
     
-    const saveTimeout = setTimeout(() => {
+    const saveTimeout = setTimeout(async () => {
       try {
-        const dataToSave = {
-          tasks: data.tasks || [],
-          clients: data.clients || [],
-          staff: data.staff || [],
-          timesheets: data.timesheets || [],
-          invoices: data.invoices || [],
-          receipts: data.receipts || [],
-          organizations: (data.organizations || []).map(org => ({
-            ...org,
-            logo: org.logo?.startsWith('data:') ? '[IMAGE]' : org.logo,
-            signatureImage: org.signatureImage?.startsWith('data:') ? '[IMAGE]' : org.signatureImage,
-            qrCode: org.qrCode?.startsWith('data:') ? '[IMAGE]' : org.qrCode
-          })),
-          recurringSchedules: data.recurringSchedules || [],
-          leaves: data.leaves || [],
-          documents: data.documents || [],
-          userPermissions: data.userPermissions || {},
-          parentChildTasks: data.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
-          recurringBatches: data.recurringBatches || [],
-          checklists: data.checklists || [],
-          pendingApprovals: data.pendingApprovals || [],
-          dscRegister: data.dscRegister || [],
-          lastUpdated: new Date().toISOString()
-        };
-        
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-        console.log('✅ Data saved to localStorage');
+        console.log('Debounced save starting...');
+        await saveAllDataToFirebase(data);
+        console.log('✅ Data saved to Firebase successfully');
       } catch (error) {
-        console.error('❌ Error saving to localStorage:', error);
+        console.error('❌ Error saving to Firebase:', error);
       }
-    }, 1000);
+    }, 1500); // Debounce saves by 1.5 seconds
     
     return () => clearTimeout(saveTimeout);
-  }, [data, dataLoaded]);
+  }, [data, firebaseUser, dataLoaded]);
   
   // Sync task client codes with client database
   useEffect(() => {
@@ -530,7 +684,7 @@ const PracticeManagementApp = () => {
   // Logout function  
   const handleLogout = async () => {
     try {
-      // Logout handled by handleLogout
+      await signOut(auth);
       setCurrentView('login');
       setCurrentUser(null);
     } catch (error) {
@@ -538,48 +692,61 @@ const PracticeManagementApp = () => {
     }
   };
   
-  // Login View Component  
+  // Login View Component
   const LoginView = () => {
-    const [selectedUser, setSelectedUser] = useState('');
+    const [email, setEmail] = useState('');
     const [pass, setPass] = useState('');
     const [msg, setMsg] = useState('');
+    const [isSignUp, setIsSignUp] = useState(false);
     const [loading, setLoading] = useState(false);
     
-    // Demo users from staff
-    const availableUsers = data.staff.filter(s => s.status === 'Active');
-    
-    const tryLogin = () => {
-      if (!selectedUser) {
-        setMsg('Please select a user');
+    const tryLogin = async () => {
+      if (!email || !pass) {
+        setMsg('Please enter email and password');
         return;
       }
       
       setLoading(true);
       setMsg('');
       
-      const staffMember = data.staff.find(s => s.id === selectedUser);
-      if (staffMember) {
-        // Check password if set
-        if (staffMember.password && pass !== staffMember.password) {
-          setMsg('Incorrect password');
-          setLoading(false);
-          return;
+      try {
+        if (isSignUp) {
+          // Create new account
+          await createUserWithEmailAndPassword(auth, email.trim(), pass.trim());
+          console.log('Account created successfully');
+        } else {
+          // Sign in existing account
+          await signInWithEmailAndPassword(auth, email.trim(), pass.trim());
+          console.log('Login successful');
         }
-        
-        const authUser = {
-          name: staffMember.name,
-          role: staffMember.role,
-          email: staffMember.email,
-          isSuperAdmin: staffMember.isSuperAdmin || staffMember.role === 'Superadmin',
-          id: staffMember.id
-        };
-        
-        localStorage.setItem(AUTH_KEY, JSON.stringify(authUser));
-        setCurrentUser(authUser);
-        setCurrentView('dashboard');
-        setDataLoaded(true);
-      } else {
-        setMsg('User not found');
+        // Auth state listener will handle the rest
+      } catch (error) {
+        console.error('Auth error:', error);
+        switch (error.code) {
+          case 'auth/invalid-email':
+            setMsg('Invalid email address');
+            break;
+          case 'auth/user-disabled':
+            setMsg('This account has been disabled');
+            break;
+          case 'auth/user-not-found':
+            setMsg('No account found with this email. Click "Create Account" to sign up.');
+            break;
+          case 'auth/wrong-password':
+            setMsg('Incorrect password');
+            break;
+          case 'auth/invalid-credential':
+            setMsg('Invalid email or password. Try again or create a new account.');
+            break;
+          case 'auth/email-already-in-use':
+            setMsg('This email is already registered. Try signing in.');
+            break;
+          case 'auth/weak-password':
+            setMsg('Password should be at least 6 characters');
+            break;
+          default:
+            setMsg(error.message);
+        }
       }
       setLoading(false);
     };
@@ -605,42 +772,37 @@ const PracticeManagementApp = () => {
           boxShadow: '0 20px 60px rgba(0,0,0,0.1)'
         }}>
           <div style={{
-            background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+            background: 'linear-gradient(135deg, #10b981, #059669)',
             padding: '28px',
             textAlign: 'center',
-            color: '#059669',
-            borderRadius: '16px 16px 0 0',
-            borderBottom: '1px solid #a7f3d0'
+            color: '#fff',
+            borderRadius: '16px 16px 0 0'
           }}>
             <Briefcase size={36} />
-            <h1 style={{ margin: '10px 0 0', fontSize: '22px', color: '#059669' }}>CA Hub Pro</h1>
-            <p style={{ margin: '5px 0 0', fontSize: '13px', opacity: 0.8 }}>Practice Management</p>
+            <h1 style={{ margin: '10px 0 0', fontSize: '22px' }}>CA Hub Pro <span style={{fontSize: '10px', color: '#94a3b8'}}>v15</span></h1>
+            <p style={{ margin: '5px 0 0', fontSize: '13px', opacity: 0.9 }}>Practice Management</p>
           </div>
           
           <div style={{ padding: '24px' }}>
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>Select User</label>
-              <select
-                value={selectedUser}
-                onChange={e => setSelectedUser(e.target.value)}
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="your@email.com"
                 style={{ width: '100%', padding: '12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
-              >
-                <option value="">-- Select User --</option>
-                {availableUsers.map(user => (
-                  <option key={user.id} value={user.id}>
-                    {user.name} ({user.role})
-                  </option>
-                ))}
-              </select>
+                onKeyPress={e => e.key === 'Enter' && tryLogin()}
+              />
             </div>
             
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>Password (optional)</label>
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>Password</label>
               <input
                 type="password"
                 value={pass}
                 onChange={e => setPass(e.target.value)}
-                placeholder="Enter password if set"
+                placeholder={isSignUp ? "Min 6 characters" : "Enter password"}
                 style={{ width: '100%', padding: '12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
                 onKeyPress={e => e.key === 'Enter' && tryLogin()}
               />
@@ -655,27 +817,44 @@ const PracticeManagementApp = () => {
             <button
               type="button"
               onClick={tryLogin}
-              disabled={loading || !selectedUser}
+              disabled={loading}
               style={{ 
                 width: '100%', 
                 padding: '14px', 
-                background: (loading || !selectedUser) ? '#9ca3af' : '#10b981', 
+                background: loading ? '#9ca3af' : '#10b981', 
                 color: '#fff', 
                 border: 'none', 
                 borderRadius: '8px', 
                 fontSize: '15px', 
                 fontWeight: 600, 
-                cursor: (loading || !selectedUser) ? 'not-allowed' : 'pointer' 
+                cursor: loading ? 'not-allowed' : 'pointer' 
               }}
             >
-              {loading ? 'Please wait...' : 'Sign In'}
+              {loading ? 'Please wait...' : (isSignUp ? 'Create Account' : 'Sign In')}
             </button>
+            
+            <div style={{ marginTop: '16px', textAlign: 'center' }}>
+              <button
+                type="button"
+                onClick={() => { setIsSignUp(!isSignUp); setMsg(''); }}
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  color: '#10b981', 
+                  fontSize: '13px', 
+                  cursor: 'pointer',
+                  textDecoration: 'underline'
+                }}
+              >
+                {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Create one"}
+              </button>
+            </div>
             
             {/* Info Box */}
             <div style={{ marginTop: '16px', padding: '12px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
               <div style={{ fontSize: '11px', color: '#166534' }}>
-                <strong>💾 Local Storage</strong><br/>
-                Data is saved in your browser. Default user: Test1 (Superadmin)
+                <strong>🔥 Firebase Powered</strong><br/>
+                Your data is securely stored in the cloud. Create an account to get started!
               </div>
             </div>
           </div>
@@ -2731,8 +2910,7 @@ const PracticeManagementApp = () => {
 
     // Calculate month-wise and year-wise summary
     const getSummaryData = () => {
-      // Financial Year order: April to March
-      const months = ['April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December', 'January', 'February', 'March'];
+      const months = ['March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December', 'January', 'February'];
       const years = ['FY 2025-26', 'FY 2024-25', 'FY 2023-24', 'Previous years'];
       
       const summary = months.map(month => {
@@ -5294,7 +5472,7 @@ const PracticeManagementApp = () => {
 
       const reader = new FileReader();
       
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           const text = e.target.result;
           const lines = text.split('\n');
@@ -5410,51 +5588,36 @@ const PracticeManagementApp = () => {
             return;
           }
           
-          // Add clients to data
+          // Add clients to data - EXPLICITLY list all fields (no spread operator!)
           const updatedClients = [...data.clients, ...newClients];
-          setData(prev => ({
-            ...prev,
-            clients: updatedClients
-          }));
-          
-          // Immediately save to localStorage and WAIT for completion
-          const saveTolocalStorage = async () => {
-            try {
-              const dataToSave = {
-                tasks: data.tasks || [],
-                clients: updatedClients,
-                staff: data.staff || [],
-                timesheets: data.timesheets || [],
-                invoices: data.invoices || [],
-                receipts: data.receipts || [],
-                organizations: (data.organizations || []).map(org => ({
-                  ...org,
-                  logo: org.logo?.startsWith('data:') ? '[IMAGE]' : org.logo,
-                  signatureImage: org.signatureImage?.startsWith('data:') ? '[IMAGE]' : org.signatureImage,
-                  qrCode: org.qrCode?.startsWith('data:') ? '[IMAGE]' : org.qrCode
-                })),
-                recurringSchedules: data.recurringSchedules || [],
-                leaves: data.leaves || [],
-                documents: data.documents || [],
-                userPermissions: data.userPermissions || {},
-                parentChildTasks: data.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
-                recurringBatches: data.recurringBatches || [],
-                checklists: data.checklists || [],
-                pendingApprovals: data.pendingApprovals || [],
-                dscRegister: data.dscRegister || [],
-                lastUpdated: new Date().toISOString()
-              };
-              
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-              console.log('✅ Bulk clients saved to localStorage immediately!');
-              alert(`✅ Successfully imported ${newClients.length} client(s) and saved to database!`);
-            } catch (error) {
-              console.error('❌ Error saving bulk clients to localStorage:', error);
-              alert(`Imported ${newClients.length} clients but error saving to database: ` + error.message);
-            }
+          const updatedData = {
+            tasks: data.tasks || [],
+            clients: updatedClients,
+            staff: data.staff || [],
+            timesheets: data.timesheets || [],
+            invoices: data.invoices || [],
+            receipts: data.receipts || [],
+            organizations: data.organizations || [],
+            recurringSchedules: data.recurringSchedules || [],
+            leaves: data.leaves || [],
+            documents: data.documents || [],
+            userPermissions: data.userPermissions || {},
+            parentChildTasks: data.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
+            recurringBatches: data.recurringBatches || [],
+            checklists: data.checklists || [],
+            pendingApprovals: data.pendingApprovals || []
           };
+          setData(updatedData);
           
-          saveTolocalStorage();
+          // Immediately save to Firebase using bulletproof function
+          try {
+            await saveAllDataToFirebase(updatedData);
+            console.log('✅ Bulk clients saved to Firebase!');
+            alert(`✅ Successfully imported ${newClients.length} client(s) and saved to database!`);
+          } catch (error) {
+            console.error('❌ Error saving bulk clients:', error);
+            alert(`Imported ${newClients.length} clients but error saving: ` + error.message);
+          }
           
           // Reset file input
           document.getElementById('import-clients-file').value = '';
@@ -5929,15 +6092,14 @@ const PracticeManagementApp = () => {
               {/* Modal Header */}
               <div style={{
                 padding: '20px 24px',
-                background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
-                color: '#059669',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: '#fff',
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'center',
-                borderBottom: '1px solid #a7f3d0'
+                alignItems: 'center'
               }}>
                 <div>
-                  <h2 style={{margin: 0, fontSize: '20px', fontWeight: '600', color: '#059669'}}>
+                  <h2 style={{margin: 0, fontSize: '20px', fontWeight: '600'}}>
                     <User size={24} style={{marginRight: '10px', verticalAlign: 'middle'}} />
                     {viewingClient.name}
                   </h2>
@@ -6296,7 +6458,7 @@ const PracticeManagementApp = () => {
     reader.readAsText(file);
   };
 
-  const confirmUpload = () => {
+  const confirmUpload = async () => {
     // Final duplicate check before saving
     const existingEmails = data.staff.map(s => s.email.toLowerCase());
     const validStaff = uploadPreview.filter(s => !existingEmails.includes(s.email.toLowerCase()));
@@ -6307,53 +6469,39 @@ const PracticeManagementApp = () => {
     }
     
     const updatedStaff = [...data.staff, ...validStaff];
-    setData(prev => ({
-      ...prev,
-      staff: updatedStaff
-    }));
-    
-    // Immediately save to localStorage and WAIT for completion
-    const saveTolocalStorage = async () => {
-      try {
-        const dataToSave = {
-          tasks: data.tasks || [],
-          clients: data.clients || [],
-          staff: updatedStaff,
-          timesheets: data.timesheets || [],
-          invoices: data.invoices || [],
-          receipts: data.receipts || [],
-          organizations: (data.organizations || []).map(org => ({
-            ...org,
-            logo: org.logo?.startsWith('data:') ? '[IMAGE]' : org.logo,
-            signatureImage: org.signatureImage?.startsWith('data:') ? '[IMAGE]' : org.signatureImage,
-            qrCode: org.qrCode?.startsWith('data:') ? '[IMAGE]' : org.qrCode
-          })),
-          recurringSchedules: data.recurringSchedules || [],
-          leaves: data.leaves || [],
-          documents: data.documents || [],
-          userPermissions: data.userPermissions || {},
-          parentChildTasks: data.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
-          recurringBatches: data.recurringBatches || [],
-          checklists: data.checklists || [],
-          pendingApprovals: data.pendingApprovals || [],
-          dscRegister: data.dscRegister || [],
-          lastUpdated: new Date().toISOString()
-        };
-        
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-        console.log('✅ Bulk staff saved to localStorage immediately!');
-        alert(`✅ Successfully imported ${validStaff.length} staff members and saved to database!`);
-        setShowUploadModal(false);
-        setUploadPreview([]);
-      } catch (error) {
-        console.error('❌ Error saving bulk staff to localStorage:', error);
-        alert(`Imported ${validStaff.length} staff but error saving to database: ` + error.message);
-        setShowUploadModal(false);
-        setUploadPreview([]);
-      }
+    // EXPLICITLY list all fields (no spread operator!)
+    const updatedData = {
+      tasks: data.tasks || [],
+      clients: data.clients || [],
+      staff: updatedStaff,
+      timesheets: data.timesheets || [],
+      invoices: data.invoices || [],
+      receipts: data.receipts || [],
+      organizations: data.organizations || [],
+      recurringSchedules: data.recurringSchedules || [],
+      leaves: data.leaves || [],
+      documents: data.documents || [],
+      userPermissions: data.userPermissions || {},
+      parentChildTasks: data.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
+      recurringBatches: data.recurringBatches || [],
+      checklists: data.checklists || [],
+      pendingApprovals: data.pendingApprovals || []
     };
+    setData(updatedData);
     
-    saveTolocalStorage();
+    // Immediately save to Firebase using bulletproof function
+    try {
+      await saveAllDataToFirebase(updatedData);
+      console.log('✅ Bulk staff saved to Firebase!');
+      alert(`✅ Successfully imported ${validStaff.length} staff members and saved to database!`);
+      setShowUploadModal(false);
+      setUploadPreview([]);
+    } catch (error) {
+      console.error('❌ Error saving bulk staff:', error);
+      alert(`Imported ${validStaff.length} staff but error saving: ` + error.message);
+      setShowUploadModal(false);
+      setUploadPreview([]);
+    }
   };
 
   const downloadSampleCSV = () => {
@@ -6847,7 +6995,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000}}>
           <div style={{background: '#fff', borderRadius: '12px', width: '95%', maxWidth: '1000px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column'}}>
             {/* Header */}
-            <div style={{padding: '16px 24px', borderBottom: '1px solid #a7f3d0', background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', color: '#059669', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+            <div style={{padding: '16px 24px', borderBottom: '1px solid #e2e8f0', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
               <div>
                 <h3 style={{margin: 0, fontSize: '18px', fontWeight: '600'}}>
                   Assign Controls to {controllingStaff.name}
@@ -11942,34 +12090,11 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           headers.forEach((h, i) => colIdx[h] = i);
           
           const tasks = [];
-          const errors = [];
-          const skippedRows = [];
-          
-          // Valid options for validation
-          const validFinancialYears = ['FY 2023-24', 'FY 2024-25', 'FY 2025-26', 'FY 2026-27'];
-          const validPeriods = ['Monthly', 'Quarterly', 'Half Yearly', 'Annual', 'Half-Yearly', 'Annually'];
-          const validMonths = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-          const validQuarters = ['Quarter 1', 'Quarter 2', 'Quarter 3', 'Quarter 4', 'Q1', 'Q2', 'Q3', 'Q4'];
-          const validHalfYearly = ['H1', 'H2', 'Half 1', 'Half 2'];
-          
-          // Get active staff list
-          const activeStaff = data.staff.filter(s => s.status === 'Active');
-          const superadmins = activeStaff.filter(s => s.role === 'Superadmin' || s.isSuperAdmin);
-          const reportingManagers = activeStaff.filter(s => s.role === 'Reporting Manager');
-          const allStaffNames = activeStaff.map(s => s.name.toLowerCase());
-          
-          // Get valid parent and child tasks
-          const validParentTasks = Object.keys(PARENT_CHILD_TASKS);
-          
-          // Get active clients
-          const activeClients = data.clients.filter(c => !c.disabled);
+          const warnings = [];
           
           for (let i = 1; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
-            
-            const rowNum = i + 1;
-            const rowErrors = [];
             
             // Handle quoted values
             const values = [];
@@ -11998,209 +12123,82 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             };
             
             const clientName = getValue('clientname');
-            const clientCode = getValue('fileno') || getValue('clientcode') || getValue('code');
             const parentTask = getValue('parenttask');
             const childTask = getValue('childtask');
             const taskLeader = getValue('taskleader');
             const taskManager = getValue('taskmanager');
             const primaryUser = getValue('primaryassign') || getValue('primaryassigneduser') || getValue('primaryuser') || getValue('assigneduser');
-            const financialYear = getValue('financialyear') || getValue('fy');
-            const period = getValue('period');
-            const subPeriod = getValue('subperiod');
             
-            // ========== STRICT VALIDATION ==========
-            
-            // 1. Validate Client (REQUIRED) - must exist by name or code
-            let matchedClient = null;
-            if (clientCode) {
-              matchedClient = activeClients.find(c => c.fileNo?.toLowerCase() === clientCode.toLowerCase());
-              if (!matchedClient) {
-                rowErrors.push(`Client Code "${clientCode}" not found`);
-              }
-            } else if (clientName) {
-              matchedClient = activeClients.find(c => c.name?.toLowerCase() === clientName.toLowerCase());
-              if (!matchedClient) {
-                rowErrors.push(`Client "${clientName}" not found`);
-              }
-            } else {
-              rowErrors.push('Client Name or Code is required');
-            }
-            
-            // 2. Validate Parent Task (REQUIRED) - must exist in task categories
-            if (!parentTask) {
-              rowErrors.push('Parent Task is required');
-            } else {
-              const parentExists = validParentTasks.some(p => p.toLowerCase() === parentTask.toLowerCase());
-              if (!parentExists) {
-                rowErrors.push(`Parent Task "${parentTask}" not found in system. Valid options: ${validParentTasks.join(', ')}`);
-              }
-            }
-            
-            // 3. Validate Child Task (REQUIRED) - must exist under the parent task
-            if (!childTask) {
-              rowErrors.push('Child Task is required');
-            } else if (parentTask) {
-              const parentKey = validParentTasks.find(p => p.toLowerCase() === parentTask.toLowerCase());
-              if (parentKey) {
-                const validChildTasks = PARENT_CHILD_TASKS[parentKey] || [];
-                const childExists = validChildTasks.some(c => c.toLowerCase() === childTask.toLowerCase());
-                if (!childExists) {
-                  rowErrors.push(`Child Task "${childTask}" not found under "${parentTask}". Valid options: ${validChildTasks.join(', ')}`);
-                }
-              }
-            }
-            
-            // 4. Validate Task Leader (REQUIRED) - must be Superadmin
-            let matchedLeader = null;
-            if (!taskLeader) {
-              rowErrors.push('Task Leader is required');
-            } else {
-              matchedLeader = superadmins.find(s => s.name.toLowerCase() === taskLeader.toLowerCase());
-              if (!matchedLeader) {
-                const existsAsStaff = activeStaff.find(s => s.name.toLowerCase() === taskLeader.toLowerCase());
-                if (existsAsStaff) {
-                  rowErrors.push(`"${taskLeader}" exists but is not a Superadmin (Role: ${existsAsStaff.role})`);
-                } else {
-                  rowErrors.push(`Task Leader "${taskLeader}" not found. Valid Superadmins: ${superadmins.map(s => s.name).join(', ') || 'None'}`);
-                }
-              }
-            }
-            
-            // 5. Validate Task Manager (REQUIRED) - must be Reporting Manager
-            let matchedManager = null;
-            if (!taskManager) {
-              rowErrors.push('Task Manager is required');
-            } else {
-              matchedManager = reportingManagers.find(s => s.name.toLowerCase() === taskManager.toLowerCase());
-              if (!matchedManager) {
-                const existsAsStaff = activeStaff.find(s => s.name.toLowerCase() === taskManager.toLowerCase());
-                if (existsAsStaff) {
-                  rowErrors.push(`"${taskManager}" exists but is not a Reporting Manager (Role: ${existsAsStaff.role})`);
-                } else {
-                  rowErrors.push(`Task Manager "${taskManager}" not found. Valid RMs: ${reportingManagers.map(s => s.name).join(', ') || 'None'}`);
-                }
-              }
-            }
-            
-            // 6. Validate Primary Assigned User (REQUIRED) - must be active staff
-            let matchedUser = null;
-            if (!primaryUser) {
-              rowErrors.push('Primary Assigned User is required');
-            } else {
-              matchedUser = activeStaff.find(s => s.name.toLowerCase() === primaryUser.toLowerCase());
-              if (!matchedUser) {
-                rowErrors.push(`Assigned User "${primaryUser}" not found in active staff`);
-              }
-            }
-            
-            // 7. Validate Financial Year (REQUIRED)
-            if (!financialYear) {
-              rowErrors.push('Financial Year is required');
-            } else {
-              const fyExists = validFinancialYears.some(fy => fy.toLowerCase() === financialYear.toLowerCase());
-              if (!fyExists) {
-                rowErrors.push(`Financial Year "${financialYear}" is invalid. Valid options: ${validFinancialYears.join(', ')}`);
-              }
-            }
-            
-            // 8. Validate Period (REQUIRED)
-            let normalizedPeriod = '';
-            if (!period) {
-              rowErrors.push('Period is required');
-            } else {
-              const periodExists = validPeriods.some(p => p.toLowerCase() === period.toLowerCase());
-              if (!periodExists) {
-                rowErrors.push(`Period "${period}" is invalid. Valid options: ${validPeriods.join(', ')}`);
-              } else {
-                // Normalize period
-                normalizedPeriod = validPeriods.find(p => p.toLowerCase() === period.toLowerCase()) || period;
-              }
-            }
-            
-            // 9. Validate Sub-Period based on Period type
-            if (subPeriod && normalizedPeriod) {
-              const periodLower = normalizedPeriod.toLowerCase();
-              if (periodLower === 'monthly') {
-                const monthExists = validMonths.some(m => m.toLowerCase() === subPeriod.toLowerCase());
-                if (!monthExists) {
-                  rowErrors.push(`Sub-Period "${subPeriod}" invalid for Monthly. Valid: ${validMonths.join(', ')}`);
-                }
-              } else if (periodLower === 'quarterly') {
-                const qtrExists = validQuarters.some(q => q.toLowerCase() === subPeriod.toLowerCase());
-                if (!qtrExists) {
-                  rowErrors.push(`Sub-Period "${subPeriod}" invalid for Quarterly. Valid: ${validQuarters.join(', ')}`);
-                }
-              } else if (periodLower.includes('half')) {
-                const halfExists = validHalfYearly.some(h => h.toLowerCase() === subPeriod.toLowerCase());
-                if (!halfExists) {
-                  rowErrors.push(`Sub-Period "${subPeriod}" invalid for Half-Yearly. Valid: ${validHalfYearly.join(', ')}`);
-                }
-              }
-            }
-            
-            // ========== END VALIDATION ==========
-            
-            // If there are errors, skip this row
-            if (rowErrors.length > 0) {
-              skippedRows.push({
-                row: rowNum,
-                clientName: clientName || clientCode || 'Unknown',
-                errors: rowErrors
-              });
+            // Validate required fields
+            if (!clientName || !parentTask || !childTask) {
+              warnings.push(`Row ${i + 1}: Missing client/parent/child task`);
               continue;
             }
             
-            // All validations passed - create task data with matched values
+            // Validate task leader is Superadmin
+            const leaderStaff = data.staff.find(s => s.name.toLowerCase() === taskLeader.toLowerCase() && s.role === 'Superadmin');
+            if (!leaderStaff && taskLeader) {
+              warnings.push(`Row ${i + 1}: Task Leader "${taskLeader}" is not a Superadmin`);
+            }
+            
+            // Validate task manager is Reporting Manager
+            const managerStaff = data.staff.find(s => s.name.toLowerCase() === taskManager.toLowerCase() && s.role === 'Reporting Manager');
+            if (!managerStaff && taskManager) {
+              warnings.push(`Row ${i + 1}: Task Manager "${taskManager}" is not a Reporting Manager`);
+            }
+            
+            // Validate primary user is under the manager
+            const userStaff = data.staff.find(s => s.name.toLowerCase() === primaryUser.toLowerCase());
+            if (userStaff && managerStaff && userStaff.reportingManager !== managerStaff.name) {
+              warnings.push(`Row ${i + 1}: "${primaryUser}" is not under manager "${taskManager}"`);
+            }
+            
+            // Look up client code from clients database if not provided in CSV
+            let clientCode = getValue('fileno') || getValue('clientcode') || getValue('code');
+            if (!clientCode) {
+              const matchingClient = data.clients.find(c => 
+                c.name?.toLowerCase() === clientName.toLowerCase()
+              );
+              if (matchingClient && matchingClient.fileNo) {
+                clientCode = matchingClient.fileNo;
+              }
+            }
+            
             const taskData = {
-              clientId: matchedClient?.id,
-              clientName: matchedClient?.name || clientName,
-              fileNo: matchedClient?.fileNo || clientCode,
-              groupName: getValue('groupname') || matchedClient?.groupName || matchedClient?.name || clientName,
-              parentTask: validParentTasks.find(p => p.toLowerCase() === parentTask.toLowerCase()) || parentTask,
-              childTask: childTask,
-              financialYear: validFinancialYears.find(fy => fy.toLowerCase() === financialYear.toLowerCase()) || financialYear,
-              period: normalizedPeriod || period,
-              subPeriod: subPeriod,
-              taskLeader: matchedLeader?.name,
-              taskManager: matchedManager?.name,
-              primaryAssignedUser: matchedUser?.name,
-              startDate: getValue('startdate'),
-              expectedCompletionDate: getValue('expecteddateofcompletion') || getValue('expectedcompletiondate') || getValue('expecteddat') || getValue('duedate') || getValue('completiondate'),
-              description: getValue('taskdescription') || getValue('description'),
-              isValid: true
+              clientName: clientName || '',
+              fileNo: clientCode || '',
+              groupName: getValue('groupname') || clientName || '',
+              parentTask: parentTask || '',
+              childTask: childTask || '',
+              financialYear: getValue('financialyear') || getValue('fy') || '',
+              period: getValue('period') || '',
+              subPeriod: getValue('subperiod') || '',
+              taskLeader: leaderStaff?.name || taskLeader || '',
+              taskManager: managerStaff?.name || taskManager || '',
+              primaryAssignedUser: userStaff?.name || primaryUser || '',
+              startDate: getValue('startdate') || '',
+              expectedCompletionDate: getValue('expecteddateofcompletion') || getValue('expectedcompletiondate') || getValue('expecteddat') || getValue('duedate') || getValue('completiondate') || '',
+              description: getValue('taskdescription') || getValue('description') || ''
             };
             
             // Debug log for first row
-            if (tasks.length === 0) {
-              console.log('First valid row parsed:', taskData);
+            if (i === 1) {
+              console.log('First row parsed values:', taskData);
               console.log('All column indices:', colIdx);
             }
             
             tasks.push(taskData);
           }
           
-          // Generate error summary
-          if (skippedRows.length > 0) {
-            const errorSummary = skippedRows.map(r => 
-              `Row ${r.row} (${r.clientName}): ${r.errors.join('; ')}`
-            ).join('\n');
-            
-            console.log('Skipped rows with errors:', skippedRows);
-            
-            if (tasks.length === 0) {
-              setBulkError(`All ${skippedRows.length} row(s) have validation errors:\n\n${skippedRows.slice(0, 5).map(r => `Row ${r.row}: ${r.errors[0]}`).join('\n')}${skippedRows.length > 5 ? `\n...and ${skippedRows.length - 5} more` : ''}`);
-              return;
-            } else {
-              setBulkWarning(`${skippedRows.length} row(s) skipped due to validation errors. ${tasks.length} valid task(s) ready to import.\n\nSkipped: ${skippedRows.slice(0, 3).map(r => `Row ${r.row}: ${r.errors[0]}`).join('; ')}${skippedRows.length > 3 ? '...' : ''}`);
-            }
-          }
-          
           if (tasks.length === 0) {
-            setBulkError('No valid tasks found in CSV. Please check that all required fields match existing data in the system.');
+            setBulkError('No valid tasks found in CSV');
             return;
           }
           
           setBulkPreview(tasks);
+          if (warnings.length > 0) {
+            setBulkWarning(`${warnings.length} warning(s): ${warnings.slice(0, 3).join('; ')}${warnings.length > 3 ? '...' : ''}`);
+          }
           
         } catch (err) {
           console.error('CSV Parse Error:', err);
@@ -12211,7 +12209,19 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     };
 
     // Confirm bulk import
-    const confirmBulkImport = () => {
+    const [bulkSaving, setBulkSaving] = useState(false);
+    
+    const confirmBulkImport = async () => {
+      console.log('=== confirmBulkImport CALLED ===');
+      console.log('bulkPreview length:', bulkPreview.length);
+      
+      if (bulkPreview.length === 0) {
+        alert('No tasks to import!');
+        return;
+      }
+      
+      setBulkSaving(true); // Show loading
+      
       const newTasks = bulkPreview.map(t => {
         // Combine period and subPeriod if both exist
         let periodDisplay = t.period || '';
@@ -12219,23 +12229,25 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           periodDisplay = `${t.period} - ${t.subPeriod}`;
         }
         
+        // IMPORTANT: Every field MUST have a value (use empty string for missing values)
+        // Firebase does NOT accept undefined values
         return {
           id: generateId(),
-          fileNo: t.fileNo,
-          clientName: t.clientName,
-          groupName: t.groupName || t.clientName,
-          parentTask: t.parentTask,
-          childTask: t.childTask,
-          financialYear: t.financialYear,
-          period: periodDisplay,
-          subPeriod: t.subPeriod,
-          taskLeader: t.taskLeader,
-          taskManager: t.taskManager,
-          primaryAssignedUser: t.primaryAssignedUser,
-          assignedTo: t.primaryAssignedUser,
-          startDate: t.startDate,
-          expectedCompletionDate: t.expectedCompletionDate,
-          taskDescription: t.description,
+          fileNo: t.fileNo || '',
+          clientName: t.clientName || '',
+          groupName: t.groupName || t.clientName || '',
+          parentTask: t.parentTask || '',
+          childTask: t.childTask || '',
+          financialYear: t.financialYear || '',
+          period: periodDisplay || '',
+          subPeriod: t.subPeriod || '',
+          taskLeader: t.taskLeader || '',
+          taskManager: t.taskManager || '',
+          primaryAssignedUser: t.primaryAssignedUser || '',
+          assignedTo: t.primaryAssignedUser || '',
+          startDate: t.startDate || '',
+          expectedCompletionDate: t.expectedCompletionDate || '',
+          taskDescription: t.description || '',
           comments: '',
           status: 'Pending',
           priority: 'Medium',
@@ -12243,18 +12255,35 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           completedBy: '',
           currentPosition: 'New Task Created',
           pendingIssues: '',
-          checkGroupsName: `${periodDisplay}-${t.childTask}`
+          checkGroupsName: `${periodDisplay || ''}-${t.childTask || ''}`
         };
       });
       
-      // Use bulk save callback - it handles the alert and close
+      console.log('=== BULK IMPORT: Created task objects ===');
+      console.log('Tasks created:', newTasks.length);
+      console.log('First task sample:', JSON.stringify(newTasks[0], null, 2));
+      
+      // Extra safety: clean tasks with JSON to remove any undefined
+      const cleanTasks = JSON.parse(JSON.stringify(newTasks));
+      console.log('Tasks cleaned via JSON, count:', cleanTasks.length);
+      
+      // Use bulk save callback - it handles everything including Firebase save
       if (onBulkSave) {
-        onBulkSave(newTasks);
+        console.log('Calling onBulkSave...');
+        try {
+          await onBulkSave(cleanTasks);  // AWAIT the async function!
+          console.log('onBulkSave completed');
+        } catch (err) {
+          console.error('onBulkSave error:', err);
+          alert('Error during save: ' + err.message);
+        }
       } else {
-        // Fallback if no callback
-        alert(`Successfully imported ${newTasks.length} tasks!`);
+        console.error('onBulkSave callback is undefined!');
+        alert('Error: Save function not available. Please refresh and try again.');
         onClose();
       }
+      
+      setBulkSaving(false); // Hide loading
     };
 
     return (
@@ -12360,12 +12389,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <p style={{ margin: '0 0 16px 0', color: '#64748b' }}>
                     Select your CSV file to upload
                   </p>
-                  
                   <input
                     type="file"
-                    id="bulk-task-file-input"
                     accept=".csv,.txt"
-                    style={{ display: 'none' }}
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (!file) {
@@ -12391,76 +12417,28 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             return;
                           }
                           
-                          const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[^a-z0-9]/g, ''));
+                          const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
                           console.log('CSV Headers:', headers);
                           
-                          // Required columns (flexible matching)
-                          const requiredCols = [
-                            { key: 'clientname', match: h => h.includes('clientname') || h === 'client' },
-                            { key: 'parenttask', match: h => h.includes('parenttask') || h === 'parent' },
-                            { key: 'childtask', match: h => h.includes('childtask') || h === 'child' },
-                            { key: 'financialyear', match: h => h.includes('financialyear') || h === 'fy' || h === 'year' },
-                            { key: 'period', match: h => h === 'period' },
-                            { key: 'taskleader', match: h => h.includes('taskleader') || h === 'leader' },
-                            { key: 'taskmanager', match: h => h.includes('taskmanager') || h === 'manager' },
-                            { key: 'primaryassigneduser', match: h => h.includes('primaryassigned') || h.includes('assigneduser') || h === 'assigned' }
-                          ];
-                          
-                          const missingCols = requiredCols.filter(req => !headers.some(h => req.match(h))).map(r => r.key);
+                          // Required columns
+                          const requiredCols = ['clientname', 'parenttask', 'childtask', 'financialyear', 'period', 'taskleader', 'taskmanager', 'primaryassigneduser'];
+                          const missingCols = requiredCols.filter(col => !headers.includes(col));
                           
                           if (missingCols.length > 0) {
-                            setBulkError(`Missing required columns: ${missingCols.join(', ')}\n\nExpected columns: clientname, parenttask, childtask, financialyear, period, taskleader, taskmanager, primaryassigneduser`);
+                            setBulkError(`Missing required columns: ${missingCols.join(', ')}`);
                             return;
                           }
                           
-                          // Build column index map with flexible matching
+                          // Get column indices
                           const colIdx = {};
-                          headers.forEach((h, i) => {
-                            colIdx[h] = i;
-                            // Also map common variations
-                            if (h.includes('clientname') || h === 'client') colIdx['clientname'] = i;
-                            if (h.includes('parenttask') || h === 'parent') colIdx['parenttask'] = i;
-                            if (h.includes('childtask') || h === 'child') colIdx['childtask'] = i;
-                            if (h.includes('financialyear') || h === 'fy') colIdx['financialyear'] = i;
-                            if (h === 'period') colIdx['period'] = i;
-                            if (h.includes('subperiod')) colIdx['subperiod'] = i;
-                            if (h.includes('taskleader') || h === 'leader') colIdx['taskleader'] = i;
-                            if (h.includes('taskmanager') || h === 'manager') colIdx['taskmanager'] = i;
-                            if (h.includes('primaryassigned') || h.includes('assigneduser')) colIdx['primaryassigneduser'] = i;
-                            if (h.includes('fileno') || h.includes('clientcode')) colIdx['fileno'] = i;
-                            if (h.includes('groupname')) colIdx['groupname'] = i;
-                            if (h.includes('startdate')) colIdx['startdate'] = i;
-                            if (h.includes('expectedcompletion') || h.includes('duedate')) colIdx['expectedcompletiondate'] = i;
-                            if (h.includes('description')) colIdx['description'] = i;
-                          });
+                          headers.forEach((h, i) => colIdx[h] = i);
                           
                           const tasks = [];
-                          const skippedRows = [];
-                          
-                          // Valid options for validation
-                          const validFinancialYears = ['FY 2023-24', 'FY 2024-25', 'FY 2025-26', 'FY 2026-27'];
-                          const validPeriods = ['Monthly', 'Quarterly', 'Half Yearly', 'Annual', 'Half-Yearly', 'Annually'];
-                          const validMonths = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-                          const validQuarters = ['Quarter 1', 'Quarter 2', 'Quarter 3', 'Quarter 4', 'Q1', 'Q2', 'Q3', 'Q4'];
-                          const validHalfYearly = ['H1', 'H2', 'Half 1', 'Half 2'];
-                          
-                          // Get active staff list
-                          const activeStaff = data.staff.filter(s => s.status === 'Active');
-                          const superadmins = activeStaff.filter(s => s.role === 'Superadmin' || s.isSuperAdmin);
-                          const reportingManagers = activeStaff.filter(s => s.role === 'Reporting Manager');
-                          
-                          // Get valid parent and child tasks
-                          const validParentTasks = Object.keys(PARENT_CHILD_TASKS);
-                          
-                          // Get active clients
-                          const activeClients = data.clients.filter(c => !c.disabled);
+                          const warnings = [];
                           
                           for (let i = 1; i < lines.length; i++) {
                             const line = lines[i].trim();
                             if (!line) continue;
-                            
-                            const rowNum = i + 1;
-                            const rowErrors = [];
                             
                             // Handle quoted values
                             const values = [];
@@ -12478,162 +12456,49 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             }
                             values.push(current.trim());
                             
-                            const getValue = (col) => {
-                              const idx = colIdx[col];
-                              return idx !== undefined ? (values[idx] || '') : '';
-                            };
+                            const getValue = (col) => values[colIdx[col]] || '';
                             
                             const clientName = getValue('clientname');
-                            const clientCode = getValue('fileno');
                             const parentTask = getValue('parenttask');
                             const childTask = getValue('childtask');
                             const taskLeader = getValue('taskleader');
                             const taskManager = getValue('taskmanager');
                             const primaryUser = getValue('primaryassigneduser');
-                            const financialYear = getValue('financialyear');
-                            const period = getValue('period');
-                            const subPeriod = getValue('subperiod');
                             
-                            // ========== STRICT VALIDATION ==========
-                            
-                            // 1. Validate Client
-                            let matchedClient = null;
-                            if (clientCode) {
-                              matchedClient = activeClients.find(c => c.fileNo?.toLowerCase() === clientCode.toLowerCase());
-                              if (!matchedClient) rowErrors.push(`Client Code "${clientCode}" not found`);
-                            } else if (clientName) {
-                              matchedClient = activeClients.find(c => c.name?.toLowerCase() === clientName.toLowerCase());
-                              if (!matchedClient) rowErrors.push(`Client "${clientName}" not found`);
-                            } else {
-                              rowErrors.push('Client Name or Code required');
-                            }
-                            
-                            // 2. Validate Parent Task
-                            if (!parentTask) {
-                              rowErrors.push('Parent Task required');
-                            } else {
-                              const parentExists = validParentTasks.some(p => p.toLowerCase() === parentTask.toLowerCase());
-                              if (!parentExists) rowErrors.push(`Parent Task "${parentTask}" invalid`);
-                            }
-                            
-                            // 3. Validate Child Task
-                            if (!childTask) {
-                              rowErrors.push('Child Task required');
-                            } else if (parentTask) {
-                              const parentKey = validParentTasks.find(p => p.toLowerCase() === parentTask.toLowerCase());
-                              if (parentKey) {
-                                const validChildTasks = PARENT_CHILD_TASKS[parentKey] || [];
-                                const childExists = validChildTasks.some(c => c.toLowerCase() === childTask.toLowerCase());
-                                if (!childExists) rowErrors.push(`Child Task "${childTask}" invalid for "${parentTask}"`);
-                              }
-                            }
-                            
-                            // 4. Validate Task Leader (must be Superadmin)
-                            let matchedLeader = null;
-                            if (!taskLeader) {
-                              rowErrors.push('Task Leader required');
-                            } else {
-                              matchedLeader = superadmins.find(s => s.name.toLowerCase() === taskLeader.toLowerCase());
-                              if (!matchedLeader) rowErrors.push(`Task Leader "${taskLeader}" not a Superadmin`);
-                            }
-                            
-                            // 5. Validate Task Manager (must be RM)
-                            let matchedManager = null;
-                            if (!taskManager) {
-                              rowErrors.push('Task Manager required');
-                            } else {
-                              matchedManager = reportingManagers.find(s => s.name.toLowerCase() === taskManager.toLowerCase());
-                              if (!matchedManager) rowErrors.push(`Task Manager "${taskManager}" not an RM`);
-                            }
-                            
-                            // 6. Validate Assigned User
-                            let matchedUser = null;
-                            if (!primaryUser) {
-                              rowErrors.push('Assigned User required');
-                            } else {
-                              matchedUser = activeStaff.find(s => s.name.toLowerCase() === primaryUser.toLowerCase());
-                              if (!matchedUser) rowErrors.push(`User "${primaryUser}" not found`);
-                            }
-                            
-                            // 7. Validate Financial Year
-                            if (!financialYear) {
-                              rowErrors.push('Financial Year required');
-                            } else {
-                              const fyExists = validFinancialYears.some(fy => fy.toLowerCase() === financialYear.toLowerCase());
-                              if (!fyExists) rowErrors.push(`FY "${financialYear}" invalid`);
-                            }
-                            
-                            // 8. Validate Period
-                            let normalizedPeriod = '';
-                            if (!period) {
-                              rowErrors.push('Period required');
-                            } else {
-                              const periodExists = validPeriods.some(p => p.toLowerCase() === period.toLowerCase());
-                              if (!periodExists) {
-                                rowErrors.push(`Period "${period}" invalid`);
-                              } else {
-                                normalizedPeriod = validPeriods.find(p => p.toLowerCase() === period.toLowerCase()) || period;
-                              }
-                            }
-                            
-                            // 9. Validate Sub-Period if provided
-                            if (subPeriod && normalizedPeriod) {
-                              const periodLower = normalizedPeriod.toLowerCase();
-                              if (periodLower === 'monthly') {
-                                if (!validMonths.some(m => m.toLowerCase() === subPeriod.toLowerCase())) {
-                                  rowErrors.push(`Sub-Period "${subPeriod}" invalid for Monthly`);
-                                }
-                              } else if (periodLower === 'quarterly') {
-                                if (!validQuarters.some(q => q.toLowerCase() === subPeriod.toLowerCase())) {
-                                  rowErrors.push(`Sub-Period "${subPeriod}" invalid for Quarterly`);
-                                }
-                              }
-                            }
-                            
-                            // Skip row if errors
-                            if (rowErrors.length > 0) {
-                              skippedRows.push({ row: rowNum, clientName: clientName || clientCode || 'Unknown', errors: rowErrors });
+                            // Validate required fields
+                            if (!clientName || !parentTask || !childTask) {
+                              warnings.push(`Row ${i + 1}: Missing client/parent/child task`);
                               continue;
                             }
                             
                             tasks.push({
-                              clientId: matchedClient?.id,
-                              clientName: matchedClient?.name || clientName,
-                              fileNo: matchedClient?.fileNo || clientCode,
-                              groupName: getValue('groupname') || matchedClient?.groupName || matchedClient?.name || clientName,
-                              parentTask: validParentTasks.find(p => p.toLowerCase() === parentTask.toLowerCase()) || parentTask,
+                              clientName,
+                              fileNo: getValue('fileno'),
+                              groupName: getValue('groupname') || clientName,
+                              parentTask,
                               childTask,
-                              financialYear: validFinancialYears.find(fy => fy.toLowerCase() === financialYear.toLowerCase()) || financialYear,
-                              period: normalizedPeriod || period,
-                              subPeriod,
-                              taskLeader: matchedLeader?.name,
-                              taskManager: matchedManager?.name,
-                              primaryAssignedUser: matchedUser?.name,
+                              financialYear: getValue('financialyear'),
+                              period: getValue('period'),
+                              taskLeader: taskLeader,
+                              taskManager: taskManager,
+                              primaryAssignedUser: primaryUser,
                               startDate: getValue('startdate'),
                               expectedCompletionDate: getValue('expectedcompletiondate'),
-                              description: getValue('description'),
-                              isValid: true
+                              description: getValue('description')
                             });
                           }
                           
-                          console.log('Tasks parsed:', tasks.length, 'Skipped:', skippedRows.length);
-                          
-                          // Handle errors
-                          if (skippedRows.length > 0) {
-                            if (tasks.length === 0) {
-                              setBulkError(`All ${skippedRows.length} row(s) have errors:\n${skippedRows.slice(0, 5).map(r => `Row ${r.row}: ${r.errors[0]}`).join('\n')}`);
-                              return;
-                            } else {
-                              setBulkWarning(`${skippedRows.length} row(s) skipped. ${tasks.length} valid. Errors: ${skippedRows.slice(0, 2).map(r => `Row ${r.row}: ${r.errors[0]}`).join('; ')}`);
-                            }
-                          }
+                          console.log('Tasks parsed:', tasks.length);
                           
                           if (tasks.length === 0) {
-                            setBulkError('No valid tasks found. Ensure all data matches existing system records.');
+                            setBulkError('No valid tasks found in CSV');
                             return;
                           }
                           
                           setBulkPreview(tasks);
+                          if (warnings.length > 0) {
+                            setBulkWarning(`${warnings.length} warning(s): ${warnings.slice(0, 3).join('; ')}${warnings.length > 3 ? '...' : ''}`);
+                          }
                           
                         } catch (err) {
                           console.error('CSV Parse Error:', err);
@@ -12648,50 +12513,16 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       // Reset input so same file can be selected again
                       e.target.value = '';
                     }}
-                  />
-                  
-                  <button
-                    type="button"
-                    onClick={() => document.getElementById('bulk-task-file-input').click()}
                     style={{
-                      padding: '14px 28px',
-                      background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '10px',
+                      padding: '12px',
+                      border: '2px solid #3b82f6',
+                      borderRadius: '8px',
                       cursor: 'pointer',
-                      fontSize: '15px',
-                      fontWeight: '600',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+                      fontSize: '14px',
+                      width: '100%',
+                      maxWidth: '300px'
                     }}
-                  >
-                    <Upload size={18} /> Choose CSV File
-                  </button>
-                  
-                  {/* Validation Rules Info */}
-                  <div style={{ marginTop: '20px', padding: '16px', background: '#eff6ff', borderRadius: '8px', border: '1px solid #bfdbfe', textAlign: 'left' }}>
-                    <div style={{ fontWeight: '600', color: '#1e40af', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Shield size={16} /> Strict Validation Rules
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#1e40af', lineHeight: '1.6' }}>
-                      <strong>All fields must match existing system data:</strong>
-                      <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
-                        <li><strong>Client Name/Code</strong> - Must exist in Clients module</li>
-                        <li><strong>Parent Task</strong> - Must match configured task categories</li>
-                        <li><strong>Child Task</strong> - Must exist under the Parent Task</li>
-                        <li><strong>Task Leader</strong> - Must be an active Superadmin</li>
-                        <li><strong>Task Manager</strong> - Must be an active Reporting Manager</li>
-                        <li><strong>Assigned User</strong> - Must be an active Staff member</li>
-                        <li><strong>Financial Year</strong> - FY 2023-24, FY 2024-25, FY 2025-26, FY 2026-27</li>
-                        <li><strong>Period</strong> - Monthly, Quarterly, Half Yearly, Annual</li>
-                        <li><strong>Sub-Period</strong> - Must match Period type (e.g., January-December for Monthly)</li>
-                      </ul>
-                      <div style={{ marginTop: '8px', color: '#dc2626' }}>⚠️ Rows with invalid data will be rejected and not imported.</div>
-                    </div>
-                  </div>
+                  />
                 </div>
               )}
 
@@ -12704,13 +12535,11 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   borderRadius: '8px',
                   color: '#dc2626',
                   marginTop: '16px',
-                  maxHeight: '150px',
-                  overflow: 'auto'
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                    <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
-                    <div style={{ whiteSpace: 'pre-wrap', fontSize: '13px' }}>{bulkError}</div>
-                  </div>
+                  <AlertCircle size={18} /> {bulkError}
                 </div>
               )}
 
@@ -12723,10 +12552,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   borderRadius: '8px',
                   color: '#92400e',
                   marginTop: '16px',
-                  fontSize: '13px',
-                  maxHeight: '100px',
-                  overflow: 'auto',
-                  whiteSpace: 'pre-wrap'
+                  fontSize: '13px'
                 }}>
                   ⚠️ {bulkWarning}
                 </div>
@@ -12735,41 +12561,34 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               {/* Preview */}
               {bulkPreview.length > 0 && (
                 <div style={{ marginTop: '20px' }}>
-                  <h4 style={{ margin: '0 0 12px 0', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <CheckCircle size={18} color="#10b981" />
-                    Preview ({bulkPreview.length} valid tasks ready to import)
+                  <h4 style={{ margin: '0 0 12px 0', color: '#1e293b' }}>
+                    Preview ({bulkPreview.length} tasks)
                   </h4>
                   <div style={{ maxHeight: '350px', overflow: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                      <thead style={{ background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', position: 'sticky', top: 0 }}>
+                      <thead style={{ background: '#f1f5f9', position: 'sticky', top: 0 }}>
                         <tr>
-                          <th style={{ padding: '10px 8px', textAlign: 'center', borderBottom: '1px solid #a7f3d0', width: '30px' }}>✓</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #a7f3d0' }}>#</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #a7f3d0' }}>Client</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #a7f3d0' }}>Parent Task</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #a7f3d0' }}>Child Task</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #a7f3d0' }}>FY</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #a7f3d0' }}>Period</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #a7f3d0' }}>Leader</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #a7f3d0' }}>Manager</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #a7f3d0' }}>Assigned To</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>#</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Client</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Parent Task</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Child Task</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>FY</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Period</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Manager</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Assigned To</th>
                         </tr>
                       </thead>
                       <tbody>
                         {bulkPreview.map((task, idx) => (
-                          <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#f8fafc' }}>
-                            <td style={{ padding: '8px', textAlign: 'center' }}>
-                              <CheckCircle size={14} color="#10b981" />
-                            </td>
-                            <td style={{ padding: '8px', color: '#64748b' }}>{idx + 1}</td>
-                            <td style={{ padding: '8px', fontWeight: '500' }}>{task.clientName} {task.fileNo && <span style={{ color: '#94a3b8', fontSize: '10px' }}>({task.fileNo})</span>}</td>
+                          <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '8px' }}>{idx + 1}</td>
+                            <td style={{ padding: '8px' }}>{task.clientName}</td>
                             <td style={{ padding: '8px' }}><span style={{ background: '#dbeafe', padding: '2px 6px', borderRadius: '4px', fontSize: '11px' }}>{task.parentTask}</span></td>
                             <td style={{ padding: '8px' }}>{task.childTask}</td>
-                            <td style={{ padding: '8px' }}><span style={{ background: '#fef3c7', padding: '2px 6px', borderRadius: '4px', fontSize: '11px' }}>{task.financialYear}</span></td>
-                            <td style={{ padding: '8px' }}>{task.period}{task.subPeriod ? ` - ${task.subPeriod}` : ''}</td>
-                            <td style={{ padding: '8px', fontSize: '11px' }}>{task.taskLeader}</td>
-                            <td style={{ padding: '8px', fontSize: '11px' }}>{task.taskManager}</td>
-                            <td style={{ padding: '8px', fontSize: '11px' }}>{task.primaryAssignedUser}</td>
+                            <td style={{ padding: '8px' }}>{task.financialYear}</td>
+                            <td style={{ padding: '8px' }}>{task.period}</td>
+                            <td style={{ padding: '8px', color: '#059669', fontWeight: 500 }}>{task.taskManager}</td>
+                            <td style={{ padding: '8px', color: '#7c3aed', fontWeight: 500 }}>{task.primaryAssignedUser}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -12793,21 +12612,29 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     </button>
                     <button
                       type="button"
-                      onClick={confirmBulkImport}
+                      disabled={bulkSaving}
+                      onClick={() => {
+                        console.log('=== IMPORT & SAVE BUTTON CLICKED ===');
+                        confirmBulkImport();
+                      }}
                       style={{
                         padding: '10px 24px',
-                        background: '#10b981',
+                        background: bulkSaving ? '#9ca3af' : '#10b981',
                         color: '#fff',
                         border: 'none',
                         borderRadius: '8px',
-                        cursor: 'pointer',
+                        cursor: bulkSaving ? 'wait' : 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
                         fontWeight: 600
                       }}
                     >
-                      <CheckCircle size={18} /> Import {bulkPreview.length} Tasks
+                      {bulkSaving ? (
+                        <>⏳ Saving to Database...</>
+                      ) : (
+                        <><CheckCircle size={18} /> Import & Save {bulkPreview.length} Tasks</>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -12956,204 +12783,42 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   />
                 </div>
 
-                {/* Task Selection - Side by Side Panel Style */}
-                <div className="form-field-task" style={{ gridColumn: 'span 2', position: 'relative' }}>
-                  <label>Tasks <span className="required-star">*</span></label>
-                  <div 
-                    onClick={() => setTaskFormData(prev => ({ ...prev, showTaskSelector: !prev.showTaskSelector }))}
-                    style={{
-                      padding: '12px 14px',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      background: '#fff',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
+                {/* Parent Task - Simple Dropdown */}
+                <div className="form-field-task">
+                  <label>Parent Task <span className="required-star">*</span></label>
+                  <select
+                    value={taskFormData.parentTask}
+                    onChange={(e) => {
+                      const parent = e.target.value;
+                      setTaskFormData(prev => ({ 
+                        ...prev, 
+                        parentTask: parent,
+                        childTask: '' // Reset child task when parent changes
+                      }));
                     }}
+                    required
                   >
-                    <span style={{ color: taskFormData.parentTask ? '#1e293b' : '#94a3b8', fontWeight: taskFormData.parentTask ? 500 : 400 }}>
-                      {taskFormData.parentTask && taskFormData.childTask 
-                        ? `${taskFormData.parentTask} → ${taskFormData.childTask}`
-                        : 'Click to select task...'}
-                    </span>
-                    <ChevronDown size={18} style={{ color: '#64748b', transform: taskFormData.showTaskSelector ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }} />
-                  </div>
-                  
-                  {taskFormData.showTaskSelector && (
-                    <>
-                      <div 
-                        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998 }}
-                        onClick={() => setTaskFormData(prev => ({ ...prev, showTaskSelector: false }))}
-                      />
-                      <div style={{
-                        position: 'absolute',
-                        top: '100%',
-                        left: 0,
-                        right: 0,
-                        background: '#fff',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '12px',
-                        boxShadow: '0 8px 30px rgba(0,0,0,0.18)',
-                        zIndex: 999,
-                        maxHeight: '450px',
-                        overflow: 'hidden',
-                        display: 'flex',
-                        marginTop: '4px'
-                      }}>
-                        {/* Parent Tasks - Left Side */}
-                        <div style={{
-                          width: '45%',
-                          borderRight: '1px solid #e2e8f0',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          maxHeight: '450px'
-                        }}>
-                          {/* Search Box */}
-                          <div style={{ padding: '12px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-                            <div style={{ position: 'relative' }}>
-                              <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                              <input
-                                type="text"
-                                placeholder="Search here.."
-                                value={taskSearchTerm}
-                                onChange={(e) => setTaskSearchTerm(e.target.value)}
-                                style={{
-                                  width: '100%',
-                                  padding: '10px 12px 10px 34px',
-                                  border: '1px solid #e2e8f0',
-                                  borderRadius: '8px',
-                                  fontSize: '13px',
-                                  background: '#fff'
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                              />
-                            </div>
-                          </div>
-                          {/* Task Categories List */}
-                          <div style={{ overflowY: 'auto', flex: 1 }}>
-                            {filteredParentTasks.map((parent, idx) => (
-                              <div
-                                key={parent}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setTaskFormData(prev => ({ 
-                                    ...prev, 
-                                    parentTask: parent,
-                                    childTask: ''
-                                  }));
-                                }}
-                                style={{
-                                  padding: '14px 16px',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  alignItems: 'center',
-                                  background: taskFormData.parentTask === parent ? '#dcfce7' : '#fff',
-                                  color: taskFormData.parentTask === parent ? '#166534' : '#1e293b',
-                                  borderBottom: '1px solid #f1f5f9',
-                                  fontWeight: 500,
-                                  fontSize: '14px',
-                                  textTransform: 'uppercase',
-                                  letterSpacing: '0.3px',
-                                  transition: 'all 0.15s ease'
-                                }}
-                                onMouseEnter={(e) => {
-                                  if (taskFormData.parentTask !== parent) {
-                                    e.currentTarget.style.background = '#f1f5f9';
-                                  }
-                                }}
-                                onMouseLeave={(e) => {
-                                  if (taskFormData.parentTask !== parent) {
-                                    e.currentTarget.style.background = '#fff';
-                                  }
-                                }}
-                              >
-                                {parent}
-                                <ChevronRight size={18} style={{ opacity: 0.7 }} />
-                              </div>
-                            ))}
-                            {filteredParentTasks.length === 0 && (
-                              <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
-                                No tasks found
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        
-                        {/* Child Tasks - Right Side */}
-                        <div style={{
-                          width: '55%',
-                          maxHeight: '450px',
-                          overflowY: 'auto',
-                          background: '#f8fafc'
-                        }}>
-                          {taskFormData.parentTask ? (
-                            <>
-                              <div style={{ 
-                                padding: '14px 16px', 
-                                borderBottom: '1px solid #e2e8f0',
-                                fontWeight: 600,
-                                color: '#1e3a5f',
-                                background: '#fff',
-                                textTransform: 'uppercase',
-                                fontSize: '13px',
-                                letterSpacing: '0.5px'
-                              }}>
-                                {taskFormData.parentTask} - Sub Tasks
-                              </div>
-                              {PARENT_CHILD_TASKS[taskFormData.parentTask]?.map(child => (
-                                <div
-                                  key={child}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setTaskFormData(prev => ({ 
-                                      ...prev, 
-                                      childTask: child,
-                                      showTaskSelector: false
-                                    }));
-                                    setTaskSearchTerm('');
-                                  }}
-                                  style={{
-                                    padding: '13px 16px',
-                                    cursor: 'pointer',
-                                    background: taskFormData.childTask === child ? '#dbeafe' : '#fff',
-                                    color: taskFormData.childTask === child ? '#1d4ed8' : '#374151',
-                                    borderBottom: '1px solid #f1f5f9',
-                                    fontSize: '14px',
-                                    fontWeight: taskFormData.childTask === child ? 600 : 400,
-                                    transition: 'all 0.15s ease'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    if (taskFormData.childTask !== child) {
-                                      e.currentTarget.style.background = '#f0f9ff';
-                                    }
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    if (taskFormData.childTask !== child) {
-                                      e.currentTarget.style.background = '#fff';
-                                    }
-                                  }}
-                                >
-                                  {child}
-                                </div>
-                              ))}
-                            </>
-                          ) : (
-                            <div style={{ 
-                              padding: '60px 20px', 
-                              textAlign: 'center', 
-                              color: '#94a3b8',
-                              fontSize: '14px'
-                            }}>
-                              <ChevronLeft size={24} style={{ marginBottom: '8px', opacity: 0.5 }} />
-                              <div>Select a task category from the left</div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </>
-                  )}
+                    <option value="">Select Parent Task</option>
+                    {Object.keys(PARENT_CHILD_TASKS).map(parent => (
+                      <option key={parent} value={parent}>{parent}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Child Task - Simple Dropdown */}
+                <div className="form-field-task">
+                  <label>Child Task <span className="required-star">*</span></label>
+                  <select
+                    value={taskFormData.childTask}
+                    onChange={(e) => setTaskFormData(prev => ({ ...prev, childTask: e.target.value }))}
+                    required
+                    disabled={!taskFormData.parentTask}
+                  >
+                    <option value="">Select Child Task</option>
+                    {taskFormData.parentTask && PARENT_CHILD_TASKS[taskFormData.parentTask]?.map(child => (
+                      <option key={child} value={child}>{child}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Financial Year */}
@@ -14887,11 +14552,23 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           return t;
         });
         
-        // Update state
+        // Update state - EXPLICITLY list all fields (no spread operator!)
         setData({
-          ...data,
+          tasks: updatedTasks,
+          clients: data.clients || [],
+          staff: data.staff || [],
+          timesheets: data.timesheets || [],
           invoices: updatedInvoices,
-          tasks: updatedTasks
+          receipts: data.receipts || [],
+          organizations: data.organizations || [],
+          recurringSchedules: data.recurringSchedules || [],
+          leaves: data.leaves || [],
+          documents: data.documents || [],
+          userPermissions: data.userPermissions || {},
+          parentChildTasks: data.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
+          recurringBatches: data.recurringBatches || [],
+          checklists: data.checklists || [],
+          pendingApprovals: data.pendingApprovals || []
         });
         
         // Navigate back
@@ -18635,7 +18312,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       <div id="invoice-print-area" style={{padding: '24px'}}>
                         <div style={{background: '#fff', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.08)'}}>
                           {/* Invoice Header */}
-                          <div style={{background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', padding: '30px', color: '#059669', borderBottom: '1px solid #a7f3d0'}}>
+                          <div style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', padding: '30px', color: '#fff'}}>
                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                               <div style={{display: 'flex', alignItems: 'center', gap: '20px'}}>
                                 {generatedInvoice.orgLogo ? (
@@ -18696,7 +18373,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           <div style={{padding: '0'}}>
                             <table style={{width: '100%', borderCollapse: 'collapse'}}>
                               <thead>
-                                <tr style={{background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)', borderBottom: '2px solid #86efac'}}>
+                                <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
                                   <th style={{padding: '14px 20px', textAlign: 'center', color: '#fff', fontWeight: '600', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', width: '50px'}}>S.No</th>
                                   <th style={{padding: '14px 20px', textAlign: 'left', color: '#fff', fontWeight: '600', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Description of Services</th>
                                   <th style={{padding: '14px 20px', textAlign: 'center', color: '#fff', fontWeight: '600', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', width: '100px'}}>SAC</th>
@@ -19921,7 +19598,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       
                       return (
                         <div key={clientName} style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', marginBottom: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
-                          <div style={{padding: '16px 24px', background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', color: '#059669', borderBottom: '1px solid #a7f3d0'}}>
+                          <div style={{padding: '16px 24px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff'}}>
                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                               <div>
                                 <h4 style={{margin: 0, fontSize: '16px', fontWeight: '600'}}>{clientName}</h4>
@@ -20188,7 +19865,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
                   <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
                     <thead>
-                      <tr style={{background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)', borderBottom: '2px solid #86efac'}}>
+                      <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
                         <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Receipt No</th>
                         <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Date</th>
                         <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
@@ -20301,25 +19978,25 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               <>
                 {/* Summary Cards */}
                 <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '20px'}}>
-                  <div style={{background: 'linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)', padding: '20px', borderRadius: '16px', border: '1px solid #c084fc'}}>
-                    <div style={{fontSize: '12px', color: '#7c3aed', fontWeight: '600', marginBottom: '4px'}}>Total Debtors</div>
-                    <div style={{fontSize: '32px', fontWeight: '700', color: '#6d28d9'}}>{getAllDebtors().length}</div>
+                  <div style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding: '20px', borderRadius: '12px', color: '#fff'}}>
+                    <div style={{fontSize: '12px', opacity: 0.9, marginBottom: '4px'}}>Total Debtors</div>
+                    <div style={{fontSize: '32px', fontWeight: '700'}}>{getAllDebtors().length}</div>
                   </div>
-                  <div style={{background: 'linear-gradient(135deg, #fef2f2 0%, #fecaca 100%)', padding: '20px', borderRadius: '16px', border: '1px solid #f87171'}}>
-                    <div style={{fontSize: '12px', color: '#dc2626', fontWeight: '600', marginBottom: '4px'}}>Total Outstanding</div>
-                    <div style={{fontSize: '32px', fontWeight: '700', color: '#b91c1c'}}>
+                  <div style={{background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', padding: '20px', borderRadius: '12px', color: '#fff'}}>
+                    <div style={{fontSize: '12px', opacity: 0.9, marginBottom: '4px'}}>Total Outstanding</div>
+                    <div style={{fontSize: '32px', fontWeight: '700'}}>
                       ₹{getAllDebtors().reduce((sum, d) => sum + Math.max(0, d.balance), 0).toLocaleString('en-IN')}
                     </div>
                   </div>
-                  <div style={{background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', padding: '20px', borderRadius: '16px', border: '1px solid #93c5fd'}}>
-                    <div style={{fontSize: '12px', color: '#2563eb', fontWeight: '600', marginBottom: '4px'}}>With Pending Balance</div>
-                    <div style={{fontSize: '32px', fontWeight: '700', color: '#1d4ed8'}}>
+                  <div style={{background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', padding: '20px', borderRadius: '12px', color: '#fff'}}>
+                    <div style={{fontSize: '12px', opacity: 0.9, marginBottom: '4px'}}>With Pending Balance</div>
+                    <div style={{fontSize: '32px', fontWeight: '700'}}>
                       {getAllDebtors().filter(d => d.balance > 0).length}
                     </div>
                   </div>
-                  <div style={{background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', padding: '20px', borderRadius: '16px', border: '1px solid #6ee7b7'}}>
-                    <div style={{fontSize: '12px', color: '#059669', fontWeight: '600', marginBottom: '4px'}}>Fully Paid</div>
-                    <div style={{fontSize: '32px', fontWeight: '700', color: '#047857'}}>
+                  <div style={{background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', padding: '20px', borderRadius: '12px', color: '#fff'}}>
+                    <div style={{fontSize: '12px', opacity: 0.9, marginBottom: '4px'}}>Fully Paid</div>
+                    <div style={{fontSize: '32px', fontWeight: '700'}}>
                       {getAllDebtors().filter(d => d.balance <= 0).length}
                     </div>
                   </div>
@@ -20396,7 +20073,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <div style={{overflowX: 'auto'}}>
                     <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
                       <thead>
-                        <tr style={{background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)', borderBottom: '2px solid #86efac'}}>
+                        <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
                           <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client Name</th>
                           <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client Code</th>
                           <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Group Name</th>
@@ -20524,8 +20201,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
 
                 {/* 1. INVOICES TABLE */}
                 <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: '24px'}}>
-                  <div style={{padding: '16px 20px', background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', color: '#92400e', borderBottom: '1px solid #fbbf24'}}>
-                    <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', color: '#92400e'}}>
+                  <div style={{padding: '16px 20px', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: '#fff'}}>
+                    <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}>
                       <FileText size={18} /> Invoices
                     </h3>
                   </div>
@@ -20621,7 +20298,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
 
                 {/* 2. RECEIPTS TABLE */}
                 <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: '24px'}}>
-                  <div style={{padding: '16px 20px', background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', color: '#059669', borderBottom: '1px solid #a7f3d0'}}>
+                  <div style={{padding: '16px 20px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff'}}>
                     <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}>
                       <DollarSign size={18} /> Receipts / Payments
                     </h3>
@@ -20702,8 +20379,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
 
                 {/* 3. OUTSTANDING INVOICES TABLE */}
                 <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
-                  <div style={{padding: '16px 20px', background: 'linear-gradient(135deg, #fef2f2 0%, #fecaca 100%)', color: '#991b1b', borderBottom: '1px solid #f87171'}}>
-                    <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', color: '#991b1b'}}>
+                  <div style={{padding: '16px 20px', background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: '#fff'}}>
+                    <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}>
                       <AlertCircle size={18} /> Outstanding Invoices
                     </h3>
                   </div>
@@ -20808,16 +20485,15 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   gap: '12px',
                   marginBottom: '20px',
                   padding: '16px 20px',
-                  background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
-                  borderRadius: '12px',
-                  border: '1px solid #a7f3d0'
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  borderRadius: '12px'
                 }}>
                   <button
                     onClick={goBackToLedger}
                     style={{
                       padding: '10px 16px',
-                      background: 'rgba(16,185,129,0.1)',
-                      border: '1px solid rgba(16,185,129,0.3)',
+                      background: 'rgba(255,255,255,0.1)',
+                      border: '1px solid rgba(255,255,255,0.2)',
                       borderRadius: '8px',
                       cursor: 'pointer',
                       display: 'flex',
@@ -20825,18 +20501,18 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       gap: '8px',
                       fontSize: '13px',
                       fontWeight: '500',
-                      color: '#059669'
+                      color: '#fff'
                     }}
                   >
                     ← Back to Ledger
                   </button>
-                  <div style={{flex: 1, color: '#059669'}}>
+                  <div style={{flex: 1, color: '#fff'}}>
                     <span style={{fontSize: '14px', opacity: 0.7}}>Invoice</span>
                     <span style={{fontSize: '18px', fontWeight: '700', marginLeft: '8px'}}>{viewingInvoice.invoiceNo}</span>
                   </div>
                   <button
                     onClick={printInvoicePDF}
-                    style={{padding: '10px 20px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'}}
+                    style={{padding: '10px 20px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'}}
                   >
                     🖨️ Print
                   </button>
@@ -20920,7 +20596,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 {/* Professional Invoice Design */}
                 <div id="invoice-print-content" style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.1)'}}>
                   {/* Invoice Header */}
-                  <div style={{background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', padding: '30px', color: '#059669', borderBottom: '1px solid #a7f3d0'}}>
+                  <div style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', padding: '30px', color: '#fff'}}>
                     <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                       <div style={{display: 'flex', alignItems: 'center', gap: '20px'}}>
                         {viewingInvoice.orgLogo ? (
@@ -20981,7 +20657,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <div style={{padding: '0'}}>
                     <table style={{width: '100%', borderCollapse: 'collapse'}}>
                       <thead>
-                        <tr style={{background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)', borderBottom: '2px solid #86efac'}}>
+                        <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
                           <th style={{padding: '14px 20px', textAlign: 'center', color: '#fff', fontWeight: '600', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', width: '50px'}}>S.No</th>
                           <th style={{padding: '14px 20px', textAlign: 'left', color: '#fff', fontWeight: '600', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Description of Services</th>
                           <th style={{padding: '14px 20px', textAlign: 'center', color: '#fff', fontWeight: '600', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', width: '100px'}}>SAC</th>
@@ -21126,16 +20802,15 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 gap: '12px',
                 marginBottom: '20px',
                 padding: '16px 20px',
-                background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
-                borderRadius: '12px',
-                border: '1px solid #a7f3d0'
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                borderRadius: '12px'
               }}>
                 <button
                   onClick={() => { setViewingReceipt(null); }}
                   style={{
                     padding: '10px 16px',
-                    background: 'rgba(16,185,129,0.1)',
-                    border: '1px solid rgba(16,185,129,0.3)',
+                    background: 'rgba(255,255,255,0.1)',
+                    border: '1px solid rgba(255,255,255,0.2)',
                     borderRadius: '8px',
                     cursor: 'pointer',
                     display: 'flex',
@@ -21143,18 +20818,18 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     gap: '8px',
                     fontSize: '13px',
                     fontWeight: '500',
-                    color: '#059669'
+                    color: '#fff'
                   }}
                 >
                   ✕ Close
                 </button>
-                <div style={{flex: 1, color: '#059669'}}>
+                <div style={{flex: 1, color: '#fff'}}>
                   <span style={{fontSize: '14px', opacity: 0.7}}>Receipt</span>
                   <span style={{fontSize: '18px', fontWeight: '700', marginLeft: '8px'}}>{viewingReceipt.receiptNo}</span>
                 </div>
                 <button
                   onClick={() => window.print()}
-                  style={{padding: '10px 20px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'}}
+                  style={{padding: '10px 20px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'}}
                 >
                   🖨️ Print
                 </button>
@@ -21163,7 +20838,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               {/* Receipt Design */}
               <div style={{background: '#fff', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', overflow: 'hidden'}} className="print-receipt">
                 {/* Receipt Header */}
-                <div style={{background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', padding: '30px', color: '#059669', borderBottom: '1px solid #a7f3d0', textAlign: 'center'}}>
+                <div style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', padding: '30px', color: '#fff', textAlign: 'center'}}>
                   <h1 style={{margin: 0, fontSize: '28px', fontWeight: '700', letterSpacing: '1px'}}>RECEIPT</h1>
                   <div style={{fontSize: '14px', opacity: 0.9, marginTop: '8px'}}>Payment Acknowledgement</div>
                 </div>
@@ -23061,421 +22736,490 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     );
   };
 
-  // DSC Register View Component
+
+  // ==================== DSC REGISTER VIEW ====================
   const DSCRegisterView = () => {
-    const dscList = data.dscRegister || [];
+    const [dscSearch, setDscSearch] = useState('');
+    const [dscStatusFilter, setDscStatusFilter] = useState('all');
+    const [dscExpiryFilter, setDscExpiryFilter] = useState('all');
+    const [showDscForm, setShowDscForm] = useState(false);
+    const [editingDsc, setEditingDsc] = useState(null);
+    const [viewingDsc, setViewingDsc] = useState(null);
+    const [showPassword, setShowPassword] = useState({});
     
-    // Calculate days until expiry
-    const getDaysUntilExpiry = (expiryDate) => {
-      if (!expiryDate) return null;
-      const today = new Date();
-      const expiry = new Date(expiryDate);
-      const diffTime = expiry - today;
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return diffDays;
-    };
-    
-    // Get expiry status
-    const getExpiryStatus = (expiryDate) => {
-      const days = getDaysUntilExpiry(expiryDate);
-      if (days === null) return { status: 'unknown', color: '#64748b', bg: '#f1f5f9' };
-      if (days < 0) return { status: 'expired', color: '#dc2626', bg: '#fef2f2' };
-      if (days <= 30) return { status: 'critical', color: '#dc2626', bg: '#fef2f2' };
-      if (days <= 60) return { status: 'warning', color: '#f59e0b', bg: '#fef3c7' };
-      return { status: 'ok', color: '#16a34a', bg: '#dcfce7' };
-    };
-    
-    // Filter DSCs
-    const filteredDSCs = dscList.filter(dsc => {
-      const matchesSearch = 
-        dsc.holderName?.toLowerCase().includes(dscSearchTerm.toLowerCase()) ||
-        dsc.holderPan?.toLowerCase().includes(dscSearchTerm.toLowerCase()) ||
-        dsc.tokenSerial?.toLowerCase().includes(dscSearchTerm.toLowerCase()) ||
-        data.clients.find(c => c.id === dsc.clientId)?.name?.toLowerCase().includes(dscSearchTerm.toLowerCase());
-      
-      if (dscFilterStatus === 'all') return matchesSearch;
-      if (dscFilterStatus === 'active') return matchesSearch && dsc.status === 'Active';
-      if (dscFilterStatus === 'expiring') {
-        const days = getDaysUntilExpiry(dsc.expiryDate);
-        return matchesSearch && days !== null && days > 0 && days <= 60;
-      }
-      if (dscFilterStatus === 'expired') {
-        const days = getDaysUntilExpiry(dsc.expiryDate);
-        return matchesSearch && days !== null && days <= 0;
-      }
-      return matchesSearch;
+    const [dscFormData, setDscFormData] = useState({
+      clientId: '',
+      clientName: '',
+      holderName: '',
+      pan: '',
+      dscType: 'Signing', // Signing, Encryption, Both
+      tokenSerialNo: '',
+      issuingAuthority: '',
+      issueDate: '',
+      expiryDate: '',
+      password: '',
+      physicalLocation: '',
+      status: 'Active', // Active, Expired, Revoked, Renewed
+      remarks: ''
     });
     
-    // Stats
-    const totalDSCs = dscList.length;
-    const activeDSCs = dscList.filter(d => d.status === 'Active').length;
-    const expiringDSCs = dscList.filter(d => {
-      const days = getDaysUntilExpiry(d.expiryDate);
-      return days !== null && days > 0 && days <= 60;
-    }).length;
-    const expiredDSCs = dscList.filter(d => {
-      const days = getDaysUntilExpiry(d.expiryDate);
-      return days !== null && days <= 0;
-    }).length;
+    const issuingAuthorities = ['eMudhra', 'Sify', 'nCode', 'Capricorn', 'CDAC', 'IDRBT', 'SafeScrypt', 'Other'];
+    const dscTypes = ['Signing', 'Encryption', 'Both'];
+    const dscStatuses = ['Active', 'Expired', 'Revoked', 'Renewed'];
     
-    // Open add/edit modal
-    const openDSCModal = (dsc = null) => {
-      if (dsc) {
-        setSelectedDSC(dsc);
-        setDscFormData({
-          clientId: dsc.clientId || '',
-          holderName: dsc.holderName || '',
-          holderPan: dsc.holderPan || '',
-          provider: dsc.provider || '',
-          dscClass: dsc.dscClass || 'Class 3',
-          dscType: dsc.dscType || 'Signing',
-          tokenSerial: dsc.tokenSerial || '',
-          issueDate: dsc.issueDate || '',
-          expiryDate: dsc.expiryDate || '',
-          password: dsc.password || '',
-          location: dsc.location || '',
-          status: dsc.status || 'Active',
-          mobileNumber: dsc.mobileNumber || '',
-          email: dsc.email || '',
-          remarks: dsc.remarks || ''
-        });
-      } else {
-        setSelectedDSC(null);
-        setDscFormData({
-          clientId: '',
-          holderName: '',
-          holderPan: '',
-          provider: '',
-          dscClass: 'Class 3',
-          dscType: 'Signing',
-          tokenSerial: '',
-          issueDate: '',
-          expiryDate: '',
-          password: '',
-          location: '',
-          status: 'Active',
-          mobileNumber: '',
-          email: '',
-          remarks: ''
-        });
-      }
-      setShowDSCModal(true);
+    // Get DSC records from data
+    const dscRecords = data.dscRegister || [];
+    
+    // Calculate expiry status
+    const getExpiryStatus = (expiryDate) => {
+      if (!expiryDate) return 'unknown';
+      const today = new Date();
+      const expiry = new Date(expiryDate);
+      const daysUntilExpiry = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+      
+      if (daysUntilExpiry < 0) return 'expired';
+      if (daysUntilExpiry <= 30) return 'expiring-soon';
+      if (daysUntilExpiry <= 60) return 'expiring-60';
+      return 'valid';
     };
     
-    // Save DSC
-    const saveDSC = () => {
-      if (!dscFormData.clientId) {
-        alert('Please select a client');
-        return;
+    // Filter DSC records
+    const filteredDscRecords = dscRecords.filter(dsc => {
+      // Search filter
+      const searchLower = dscSearch.toLowerCase();
+      const matchesSearch = !dscSearch || 
+        (dsc.clientName || '').toLowerCase().includes(searchLower) ||
+        (dsc.holderName || '').toLowerCase().includes(searchLower) ||
+        (dsc.pan || '').toLowerCase().includes(searchLower) ||
+        (dsc.tokenSerialNo || '').toLowerCase().includes(searchLower);
+      
+      // Status filter
+      const matchesStatus = dscStatusFilter === 'all' || dsc.status === dscStatusFilter;
+      
+      // Expiry filter
+      let matchesExpiry = true;
+      if (dscExpiryFilter !== 'all') {
+        const expiryStatus = getExpiryStatus(dsc.expiryDate);
+        if (dscExpiryFilter === 'expired') matchesExpiry = expiryStatus === 'expired';
+        else if (dscExpiryFilter === 'expiring-soon') matchesExpiry = expiryStatus === 'expiring-soon';
+        else if (dscExpiryFilter === 'expiring-60') matchesExpiry = expiryStatus === 'expiring-60' || expiryStatus === 'expiring-soon';
+        else if (dscExpiryFilter === 'valid') matchesExpiry = expiryStatus === 'valid';
       }
-      if (!dscFormData.holderName) {
-        alert('Please enter DSC holder name');
+      
+      return matchesSearch && matchesStatus && matchesExpiry;
+    });
+    
+    // Summary stats
+    const totalDsc = dscRecords.length;
+    const activeDsc = dscRecords.filter(d => d.status === 'Active').length;
+    const expiredDsc = dscRecords.filter(d => getExpiryStatus(d.expiryDate) === 'expired').length;
+    const expiringSoonDsc = dscRecords.filter(d => getExpiryStatus(d.expiryDate) === 'expiring-soon').length;
+    
+    // Reset form
+    const resetDscForm = () => {
+      setDscFormData({
+        clientId: '',
+        clientName: '',
+        holderName: '',
+        pan: '',
+        dscType: 'Signing',
+        tokenSerialNo: '',
+        issuingAuthority: '',
+        issueDate: '',
+        expiryDate: '',
+        password: '',
+        physicalLocation: '',
+        status: 'Active',
+        remarks: ''
+      });
+      setEditingDsc(null);
+    };
+    
+    // Handle form submit
+    const handleDscSubmit = () => {
+      if (!dscFormData.clientName || !dscFormData.holderName || !dscFormData.expiryDate) {
+        alert('Please fill in required fields: Client Name, Holder Name, and Expiry Date');
         return;
       }
       
-      if (selectedDSC) {
+      const now = new Date().toISOString();
+      
+      if (editingDsc) {
         // Update existing
-        setData(prev => ({
-          ...prev,
-          dscRegister: prev.dscRegister.map(d => 
-            d.id === selectedDSC.id ? { ...d, ...dscFormData, updatedAt: new Date().toISOString() } : d
-          )
-        }));
+        const updatedDsc = dscRecords.map(dsc => 
+          dsc.id === editingDsc.id 
+            ? { ...dsc, ...dscFormData, updatedAt: now }
+            : dsc
+        );
+        updateData({ dscRegister: updatedDsc });
       } else {
         // Add new
-        const newDSC = {
+        const newDsc = {
           id: generateId(),
           ...dscFormData,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          createdAt: now,
+          updatedAt: now,
+          createdBy: currentUser?.name || 'Unknown'
         };
-        setData(prev => ({
-          ...prev,
-          dscRegister: [...(prev.dscRegister || []), newDSC]
-        }));
+        updateData({ dscRegister: [...dscRecords, newDsc] });
       }
       
-      setShowDSCModal(false);
-      setSelectedDSC(null);
+      setShowDscForm(false);
+      resetDscForm();
     };
     
-    // Delete DSC
-    const deleteDSC = (dscId) => {
+    // Handle edit
+    const handleEditDsc = (dsc) => {
+      setDscFormData({
+        clientId: dsc.clientId || '',
+        clientName: dsc.clientName || '',
+        holderName: dsc.holderName || '',
+        pan: dsc.pan || '',
+        dscType: dsc.dscType || 'Signing',
+        tokenSerialNo: dsc.tokenSerialNo || '',
+        issuingAuthority: dsc.issuingAuthority || '',
+        issueDate: dsc.issueDate || '',
+        expiryDate: dsc.expiryDate || '',
+        password: dsc.password || '',
+        physicalLocation: dsc.physicalLocation || '',
+        status: dsc.status || 'Active',
+        remarks: dsc.remarks || ''
+      });
+      setEditingDsc(dsc);
+      setShowDscForm(true);
+    };
+    
+    // Handle delete
+    const handleDeleteDsc = (dscId) => {
       if (window.confirm('Are you sure you want to delete this DSC record?')) {
-        setData(prev => ({
-          ...prev,
-          dscRegister: prev.dscRegister.filter(d => d.id !== dscId)
-        }));
+        const updatedDsc = dscRecords.filter(dsc => dsc.id !== dscId);
+        updateData({ dscRegister: updatedDsc });
       }
     };
     
-    // Get client name by ID
-    const getClientName = (clientId) => {
-      const client = data.clients.find(c => c.id === clientId);
-      return client?.name || 'Unknown Client';
+    // Toggle password visibility
+    const togglePasswordVisibility = (dscId) => {
+      setShowPassword(prev => ({ ...prev, [dscId]: !prev[dscId] }));
     };
     
-    // DSC Providers
-    const DSC_PROVIDERS = ['eMudhra', 'Sify', 'nCode', 'Capricorn', 'CDAC', 'IDRBT', 'TCS', 'Other'];
+    // Get expiry badge style
+    const getExpiryBadgeStyle = (expiryDate) => {
+      const status = getExpiryStatus(expiryDate);
+      switch (status) {
+        case 'expired': return { background: '#fee2e2', color: '#dc2626' };
+        case 'expiring-soon': return { background: '#fef3c7', color: '#d97706' };
+        case 'expiring-60': return { background: '#fef9c3', color: '#ca8a04' };
+        case 'valid': return { background: '#dcfce7', color: '#16a34a' };
+        default: return { background: '#f1f5f9', color: '#64748b' };
+      }
+    };
+    
+    // Get days until expiry text
+    const getExpiryText = (expiryDate) => {
+      if (!expiryDate) return 'No expiry set';
+      const today = new Date();
+      const expiry = new Date(expiryDate);
+      const daysUntilExpiry = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+      
+      if (daysUntilExpiry < 0) return `Expired ${Math.abs(daysUntilExpiry)} days ago`;
+      if (daysUntilExpiry === 0) return 'Expires today';
+      if (daysUntilExpiry === 1) return 'Expires tomorrow';
+      if (daysUntilExpiry <= 30) return `Expires in ${daysUntilExpiry} days`;
+      if (daysUntilExpiry <= 60) return `Expires in ${daysUntilExpiry} days`;
+      return `Valid (${daysUntilExpiry} days)`;
+    };
     
     return (
-      <div>
+      <div style={{ padding: '24px', maxWidth: '1600px', margin: '0 auto' }}>
         {/* Header */}
-        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px'}}>
-          <div>
-            <h1 style={{fontSize: '24px', fontWeight: '700', color: '#1e293b', margin: 0}}>DSC Register</h1>
-            <p style={{fontSize: '14px', color: '#64748b', margin: '4px 0 0'}}>Manage Digital Signature Certificates</p>
+        <div style={{ marginBottom: '24px' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#0f172a', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Key size={28} color="#10b981" />
+            DSC Register
+          </h1>
+          <p style={{ color: '#64748b', fontSize: '14px' }}>Manage Digital Signature Certificates for your clients</p>
+        </div>
+        
+        {/* Summary Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Key size={24} color="#3b82f6" />
+              </div>
+              <div>
+                <div style={{ fontSize: '28px', fontWeight: '700', color: '#0f172a' }}>{totalDsc}</div>
+                <div style={{ fontSize: '13px', color: '#64748b' }}>Total DSCs</div>
+              </div>
+            </div>
           </div>
+          
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CheckCircle size={24} color="#16a34a" />
+              </div>
+              <div>
+                <div style={{ fontSize: '28px', fontWeight: '700', color: '#16a34a' }}>{activeDsc}</div>
+                <div style={{ fontSize: '13px', color: '#64748b' }}>Active DSCs</div>
+              </div>
+            </div>
+          </div>
+          
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <AlertCircle size={24} color="#d97706" />
+              </div>
+              <div>
+                <div style={{ fontSize: '28px', fontWeight: '700', color: '#d97706' }}>{expiringSoonDsc}</div>
+                <div style={{ fontSize: '13px', color: '#64748b' }}>Expiring Soon (30 days)</div>
+              </div>
+            </div>
+          </div>
+          
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <XCircle size={24} color="#dc2626" />
+              </div>
+              <div>
+                <div style={{ fontSize: '28px', fontWeight: '700', color: '#dc2626' }}>{expiredDsc}</div>
+                <div style={{ fontSize: '13px', color: '#64748b' }}>Expired DSCs</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Action Bar */}
+        <div style={{ background: '#fff', borderRadius: '12px', padding: '16px 20px', marginBottom: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', flex: 1 }}>
+            {/* Search */}
+            <div style={{ position: 'relative', minWidth: '250px' }}>
+              <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+              <input
+                type="text"
+                placeholder="Search by client, holder, PAN, token..."
+                value={dscSearch}
+                onChange={(e) => setDscSearch(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px 10px 40px',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  outline: 'none'
+                }}
+              />
+            </div>
+            
+            {/* Status Filter */}
+            <select
+              value={dscStatusFilter}
+              onChange={(e) => setDscStatusFilter(e.target.value)}
+              style={{
+                padding: '10px 12px',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                fontSize: '14px',
+                background: '#fff',
+                cursor: 'pointer',
+                minWidth: '140px'
+              }}
+            >
+              <option value="all">All Status</option>
+              {dscStatuses.map(status => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+            
+            {/* Expiry Filter */}
+            <select
+              value={dscExpiryFilter}
+              onChange={(e) => setDscExpiryFilter(e.target.value)}
+              style={{
+                padding: '10px 12px',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                fontSize: '14px',
+                background: '#fff',
+                cursor: 'pointer',
+                minWidth: '160px'
+              }}
+            >
+              <option value="all">All Expiry</option>
+              <option value="expired">Expired</option>
+              <option value="expiring-soon">Expiring in 30 days</option>
+              <option value="expiring-60">Expiring in 60 days</option>
+              <option value="valid">Valid</option>
+            </select>
+          </div>
+          
+          {/* Add Button */}
           <button
-            onClick={() => openDSCModal()}
+            onClick={() => { resetDscForm(); setShowDscForm(true); }}
             style={{
-              padding: '12px 24px',
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '10px',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+              padding: '10px 20px',
+              background: '#10b981',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'background 0.15s'
             }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#059669'}
+            onMouseLeave={(e) => e.currentTarget.style.background = '#10b981'}
           >
-            <Plus size={18} /> Add DSC
+            <Plus size={18} />
+            Add DSC
           </button>
         </div>
         
-        {/* Stats Cards */}
-        <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px'}}>
-          <div style={{background: 'linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)', padding: '20px', borderRadius: '16px', border: '1px solid #c084fc'}}>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
-              <div>
-                <div style={{fontSize: '12px', color: '#7c3aed', fontWeight: '600', marginBottom: '4px'}}>Total DSCs</div>
-                <div style={{fontSize: '28px', fontWeight: '700', color: '#6d28d9'}}>{totalDSCs}</div>
-              </div>
-              <div style={{width: '40px', height: '40px', background: '#a855f7', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                <Key size={20} color="#fff" />
-              </div>
+        {/* DSC Table */}
+        <div style={{ background: '#fff', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+          {filteredDscRecords.length === 0 ? (
+            <div style={{ padding: '60px 24px', textAlign: 'center' }}>
+              <Key size={48} color="#e2e8f0" style={{ marginBottom: '16px' }} />
+              <h3 style={{ color: '#64748b', marginBottom: '8px' }}>No DSC Records Found</h3>
+              <p style={{ color: '#94a3b8', fontSize: '14px' }}>
+                {dscSearch || dscStatusFilter !== 'all' || dscExpiryFilter !== 'all' 
+                  ? 'Try adjusting your search or filters'
+                  : 'Click "Add DSC" to register a new Digital Signature Certificate'}
+              </p>
             </div>
-          </div>
-          
-          <div style={{background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', padding: '20px', borderRadius: '16px', border: '1px solid #6ee7b7'}}>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
-              <div>
-                <div style={{fontSize: '12px', color: '#059669', fontWeight: '600', marginBottom: '4px'}}>Active</div>
-                <div style={{fontSize: '28px', fontWeight: '700', color: '#047857'}}>{activeDSCs}</div>
-              </div>
-              <div style={{width: '40px', height: '40px', background: '#10b981', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                <CheckCircle size={20} color="#fff" />
-              </div>
-            </div>
-          </div>
-          
-          <div style={{background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', padding: '20px', borderRadius: '16px', border: '1px solid #fbbf24'}}>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
-              <div>
-                <div style={{fontSize: '12px', color: '#b45309', fontWeight: '600', marginBottom: '4px'}}>Expiring Soon</div>
-                <div style={{fontSize: '28px', fontWeight: '700', color: '#92400e'}}>{expiringDSCs}</div>
-                <div style={{fontSize: '10px', color: '#b45309', marginTop: '2px'}}>Within 60 days</div>
-              </div>
-              <div style={{width: '40px', height: '40px', background: '#f59e0b', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                <AlertCircle size={20} color="#fff" />
-              </div>
-            </div>
-          </div>
-          
-          <div style={{background: 'linear-gradient(135deg, #fef2f2 0%, #fecaca 100%)', padding: '20px', borderRadius: '16px', border: '1px solid #f87171'}}>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
-              <div>
-                <div style={{fontSize: '12px', color: '#dc2626', fontWeight: '600', marginBottom: '4px'}}>Expired</div>
-                <div style={{fontSize: '28px', fontWeight: '700', color: '#b91c1c'}}>{expiredDSCs}</div>
-              </div>
-              <div style={{width: '40px', height: '40px', background: '#ef4444', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                <XCircle size={20} color="#fff" />
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Search & Filters */}
-        <div style={{background: '#fff', borderRadius: '12px', padding: '16px', marginBottom: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #e2e8f0'}}>
-          <div style={{display: 'flex', gap: '16px', alignItems: 'center'}}>
-            <div style={{flex: 1, position: 'relative'}}>
-              <Search size={18} style={{position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8'}} />
-              <input
-                type="text"
-                placeholder="Search by client, holder name, PAN, or token serial..."
-                value={dscSearchTerm}
-                onChange={e => setDscSearchTerm(e.target.value)}
-                style={{width: '100%', padding: '10px 12px 10px 40px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
-              />
-            </div>
-            <div style={{display: 'flex', gap: '8px'}}>
-              {[
-                { id: 'all', label: 'All' },
-                { id: 'active', label: 'Active' },
-                { id: 'expiring', label: 'Expiring Soon' },
-                { id: 'expired', label: 'Expired' }
-              ].map(filter => (
-                <button
-                  key={filter.id}
-                  onClick={() => setDscFilterStatus(filter.id)}
-                  style={{
-                    padding: '8px 16px',
-                    background: dscFilterStatus === filter.id ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#f1f5f9',
-                    color: dscFilterStatus === filter.id ? '#fff' : '#64748b',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '13px',
-                    fontWeight: '500',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {filter.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        
-        {/* DSC List */}
-        {filteredDSCs.length === 0 ? (
-          <div style={{background: '#fff', borderRadius: '12px', padding: '60px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #e2e8f0'}}>
-            <Key size={48} style={{color: '#cbd5e1', marginBottom: '16px'}} />
-            <h3 style={{fontSize: '16px', fontWeight: '600', color: '#64748b', margin: '0 0 8px'}}>No DSC Records Found</h3>
-            <p style={{fontSize: '14px', color: '#94a3b8', margin: 0}}>
-              {dscSearchTerm || dscFilterStatus !== 'all' ? 'Try adjusting your search or filters' : 'Click "Add DSC" to create your first record'}
-            </p>
-          </div>
-        ) : (
-          <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '16px'}}>
-            {filteredDSCs.map(dsc => {
-              const expiryInfo = getExpiryStatus(dsc.expiryDate);
-              const daysLeft = getDaysUntilExpiry(dsc.expiryDate);
-              const client = data.clients.find(c => c.id === dsc.clientId);
-              
-              return (
-                <div
-                  key={dsc.id}
-                  style={{
-                    background: '#fff',
-                    borderRadius: '16px',
-                    overflow: 'hidden',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                    border: '1px solid #e2e8f0'
-                  }}
-                >
-                  {/* Card Header */}
-                  <div style={{padding: '16px 20px', background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                    <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-                      <div style={{width: '40px', height: '40px', background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                        <Key size={20} color="#fff" />
-                      </div>
-                      <div>
-                        <div style={{fontSize: '15px', fontWeight: '600', color: '#1e293b'}}>{dsc.holderName}</div>
-                        <div style={{fontSize: '12px', color: '#64748b'}}>{client?.name || 'Unknown Client'}</div>
-                      </div>
-                    </div>
-                    <div style={{display: 'flex', gap: '8px'}}>
-                      <button
-                        onClick={() => openDSCModal(dsc)}
-                        style={{padding: '6px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer'}}
-                      >
-                        <Edit size={16} color="#64748b" />
-                      </button>
-                      <button
-                        onClick={() => deleteDSC(dsc.id)}
-                        style={{padding: '6px', background: '#fef2f2', border: 'none', borderRadius: '6px', cursor: 'pointer'}}
-                      >
-                        <Trash2 size={16} color="#ef4444" />
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {/* Card Body */}
-                  <div style={{padding: '16px 20px'}}>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px'}}>
-                      <div>
-                        <div style={{fontSize: '11px', color: '#94a3b8', marginBottom: '2px'}}>PAN</div>
-                        <div style={{fontSize: '13px', fontWeight: '500', color: '#334155', fontFamily: 'monospace'}}>{dsc.holderPan || '-'}</div>
-                      </div>
-                      <div>
-                        <div style={{fontSize: '11px', color: '#94a3b8', marginBottom: '2px'}}>Token Serial</div>
-                        <div style={{fontSize: '13px', fontWeight: '500', color: '#334155', fontFamily: 'monospace'}}>{dsc.tokenSerial || '-'}</div>
-                      </div>
-                      <div>
-                        <div style={{fontSize: '11px', color: '#94a3b8', marginBottom: '2px'}}>Provider</div>
-                        <div style={{fontSize: '13px', fontWeight: '500', color: '#334155'}}>{dsc.provider || '-'}</div>
-                      </div>
-                      <div>
-                        <div style={{fontSize: '11px', color: '#94a3b8', marginBottom: '2px'}}>Class / Type</div>
-                        <div style={{fontSize: '13px', fontWeight: '500', color: '#334155'}}>{dsc.dscClass} / {dsc.dscType}</div>
-                      </div>
-                      <div>
-                        <div style={{fontSize: '11px', color: '#94a3b8', marginBottom: '2px'}}>Issue Date</div>
-                        <div style={{fontSize: '13px', fontWeight: '500', color: '#334155'}}>{dsc.issueDate || '-'}</div>
-                      </div>
-                      <div>
-                        <div style={{fontSize: '11px', color: '#94a3b8', marginBottom: '2px'}}>Location</div>
-                        <div style={{fontSize: '13px', fontWeight: '500', color: '#334155'}}>{dsc.location || '-'}</div>
-                      </div>
-                    </div>
-                    
-                    {/* Expiry & Status Row */}
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid #f1f5f9'}}>
-                      <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1200px' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc' }}>
+                    <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>Client / Holder</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>PAN</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>Type</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>Token Serial</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>Issuing Authority</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>Expiry</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>Password</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>Status</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredDscRecords.map((dsc, index) => (
+                    <tr 
+                      key={dsc.id} 
+                      style={{ 
+                        background: index % 2 === 0 ? '#fff' : '#fafafa',
+                        transition: 'background 0.15s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = index % 2 === 0 ? '#fff' : '#fafafa'}
+                    >
+                      <td style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9' }}>
+                        <div style={{ fontWeight: '600', color: '#0f172a', marginBottom: '2px' }}>{dsc.clientName}</div>
+                        <div style={{ fontSize: '12px', color: '#64748b' }}>{dsc.holderName}</div>
+                      </td>
+                      <td style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9', fontFamily: 'monospace', fontSize: '13px' }}>{dsc.pan || '-'}</td>
+                      <td style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9' }}>
                         <span style={{
                           padding: '4px 10px',
-                          background: dsc.status === 'Active' ? '#dcfce7' : '#f1f5f9',
-                          color: dsc.status === 'Active' ? '#16a34a' : '#64748b',
-                          borderRadius: '20px',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          background: dsc.dscType === 'Both' ? '#ede9fe' : dsc.dscType === 'Encryption' ? '#fef3c7' : '#dcfce7',
+                          color: dsc.dscType === 'Both' ? '#7c3aed' : dsc.dscType === 'Encryption' ? '#d97706' : '#16a34a'
+                        }}>
+                          {dsc.dscType}
+                        </span>
+                      </td>
+                      <td style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9', fontFamily: 'monospace', fontSize: '13px' }}>{dsc.tokenSerialNo || '-'}</td>
+                      <td style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9', fontSize: '13px' }}>{dsc.issuingAuthority || '-'}</td>
+                      <td style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9' }}>
+                        <div style={{ marginBottom: '4px', fontSize: '13px' }}>{dsc.expiryDate ? new Date(dsc.expiryDate).toLocaleDateString('en-IN') : '-'}</div>
+                        <span style={{
+                          padding: '3px 8px',
+                          borderRadius: '4px',
                           fontSize: '11px',
-                          fontWeight: '600'
-                        }}>{dsc.status}</span>
-                      </div>
-                      <div style={{
-                        padding: '6px 12px',
-                        background: expiryInfo.bg,
-                        color: expiryInfo.color,
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                      }}>
-                        {expiryInfo.status === 'expired' ? (
-                          <>⚠️ Expired</>
-                        ) : expiryInfo.status === 'critical' ? (
-                          <>🔴 {daysLeft} days left</>
-                        ) : expiryInfo.status === 'warning' ? (
-                          <>🟡 {daysLeft} days left</>
-                        ) : daysLeft !== null ? (
-                          <>🟢 {daysLeft} days left</>
-                        ) : (
-                          <>No expiry set</>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                          fontWeight: '600',
+                          ...getExpiryBadgeStyle(dsc.expiryDate)
+                        }}>
+                          {getExpiryText(dsc.expiryDate)}
+                        </span>
+                      </td>
+                      <td style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontFamily: 'monospace', fontSize: '13px' }}>
+                            {showPassword[dsc.id] ? (dsc.password || '-') : '••••••••'}
+                          </span>
+                          {dsc.password && (
+                            <button
+                              onClick={() => togglePasswordVisibility(dsc.id)}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
+                              title={showPassword[dsc.id] ? 'Hide password' : 'Show password'}
+                            >
+                              <Eye size={14} color="#64748b" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9' }}>
+                        <span style={{
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          background: dsc.status === 'Active' ? '#dcfce7' : dsc.status === 'Expired' ? '#fee2e2' : dsc.status === 'Renewed' ? '#dbeafe' : '#f1f5f9',
+                          color: dsc.status === 'Active' ? '#16a34a' : dsc.status === 'Expired' ? '#dc2626' : dsc.status === 'Renewed' ? '#2563eb' : '#64748b'
+                        }}>
+                          {dsc.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9' }}>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                          <button
+                            onClick={() => setViewingDsc(dsc)}
+                            style={{ padding: '6px', background: '#eff6ff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                            title="View Details"
+                          >
+                            <Eye size={16} color="#3b82f6" />
+                          </button>
+                          <button
+                            onClick={() => handleEditDsc(dsc)}
+                            style={{ padding: '6px', background: '#fef3c7', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                            title="Edit"
+                          >
+                            <Edit size={16} color="#d97706" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteDsc(dsc.id)}
+                            style={{ padding: '6px', background: '#fee2e2', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                            title="Delete"
+                          >
+                            <Trash2 size={16} color="#dc2626" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
         
         {/* Add/Edit DSC Modal */}
-        {showDSCModal && (
+        {showDscForm && (
           <div style={{
             position: 'fixed',
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'rgba(15, 23, 42, 0.4)',
-            backdropFilter: 'blur(4px)',
+            background: 'rgba(0,0,0,0.5)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -23484,256 +23228,310 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           }}>
             <div style={{
               background: '#fff',
-              borderRadius: '20px',
+              borderRadius: '16px',
               width: '100%',
               maxWidth: '700px',
               maxHeight: '90vh',
               overflow: 'hidden',
-              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15)'
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
             }}>
               {/* Modal Header */}
               <div style={{
                 padding: '20px 24px',
-                background: 'linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)',
-                borderBottom: '1px solid #c084fc',
+                background: '#10b981',
+                color: '#fff',
                 display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
+                alignItems: 'center',
+                justifyContent: 'space-between'
               }}>
-                <h2 style={{margin: 0, fontSize: '18px', fontWeight: '600', color: '#6d28d9', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <Key size={22} />
-                  {selectedDSC ? 'Edit DSC Record' : 'Add New DSC'}
+                  {editingDsc ? 'Edit DSC Record' : 'Add New DSC'}
                 </h2>
                 <button
-                  onClick={() => setShowDSCModal(false)}
-                  style={{background: 'rgba(109, 40, 217, 0.1)', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer'}}
+                  onClick={() => { setShowDscForm(false); resetDscForm(); }}
+                  style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer', color: '#fff' }}
                 >
-                  <X size={20} color="#6d28d9" />
+                  <X size={20} />
                 </button>
               </div>
               
               {/* Modal Body */}
-              <div style={{padding: '24px', maxHeight: 'calc(90vh - 160px)', overflowY: 'auto'}}>
-                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+              <div style={{ padding: '24px', overflowY: 'auto', maxHeight: 'calc(90vh - 140px)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   {/* Client Selection */}
-                  <div style={{gridColumn: 'span 2'}}>
-                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
-                      Client <span style={{color: '#dc2626'}}>*</span>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#374151' }}>
+                      Client Name <span style={{ color: '#dc2626' }}>*</span>
                     </label>
                     <select
                       value={dscFormData.clientId}
-                      onChange={e => setDscFormData({...dscFormData, clientId: e.target.value})}
-                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
+                      onChange={(e) => {
+                        const selectedClient = data.clients.find(c => c.id === e.target.value);
+                        setDscFormData({
+                          ...dscFormData,
+                          clientId: e.target.value,
+                          clientName: selectedClient ? selectedClient.name : e.target.value
+                        });
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        background: '#fff'
+                      }}
                     >
-                      <option value="">-- Select Client --</option>
-                      {data.clients.filter(c => !c.disabled).map(client => (
-                        <option key={client.id} value={client.id}>{client.name} {client.fileNo ? `(${client.fileNo})` : ''}</option>
+                      <option value="">Select Client or Type Below</option>
+                      {data.clients.map(client => (
+                        <option key={client.id} value={client.id}>{client.name}</option>
                       ))}
                     </select>
+                    <input
+                      type="text"
+                      placeholder="Or type client name manually..."
+                      value={dscFormData.clientName}
+                      onChange={(e) => setDscFormData({ ...dscFormData, clientName: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        marginTop: '8px'
+                      }}
+                    />
                   </div>
                   
-                  {/* DSC Holder Name */}
+                  {/* Holder Name */}
                   <div>
-                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
-                      DSC Holder Name <span style={{color: '#dc2626'}}>*</span>
+                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#374151' }}>
+                      DSC Holder Name <span style={{ color: '#dc2626' }}>*</span>
                     </label>
                     <input
                       type="text"
-                      value={dscFormData.holderName}
-                      onChange={e => setDscFormData({...dscFormData, holderName: e.target.value})}
                       placeholder="Name on DSC"
-                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box'}}
+                      value={dscFormData.holderName}
+                      onChange={(e) => setDscFormData({ ...dscFormData, holderName: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '14px'
+                      }}
                     />
                   </div>
                   
                   {/* PAN */}
                   <div>
-                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
-                      Holder PAN
+                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#374151' }}>
+                      PAN Number
                     </label>
                     <input
                       type="text"
-                      value={dscFormData.holderPan}
-                      onChange={e => setDscFormData({...dscFormData, holderPan: e.target.value.toUpperCase()})}
-                      placeholder="ABCDE1234F"
+                      placeholder="AAAAA0000A"
+                      value={dscFormData.pan}
+                      onChange={(e) => setDscFormData({ ...dscFormData, pan: e.target.value.toUpperCase() })}
                       maxLength={10}
-                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', fontFamily: 'monospace'}}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        textTransform: 'uppercase'
+                      }}
                     />
                   </div>
                   
-                  {/* Provider */}
+                  {/* DSC Type */}
                   <div>
-                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
-                      DSC Provider
+                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#374151' }}>
+                      DSC Type
                     </label>
                     <select
-                      value={dscFormData.provider}
-                      onChange={e => setDscFormData({...dscFormData, provider: e.target.value})}
-                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
+                      value={dscFormData.dscType}
+                      onChange={(e) => setDscFormData({ ...dscFormData, dscType: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        background: '#fff'
+                      }}
                     >
-                      <option value="">-- Select Provider --</option>
-                      {DSC_PROVIDERS.map(p => (
-                        <option key={p} value={p}>{p}</option>
+                      {dscTypes.map(type => (
+                        <option key={type} value={type}>{type}</option>
                       ))}
                     </select>
                   </div>
                   
                   {/* Token Serial */}
                   <div>
-                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
+                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#374151' }}>
                       Token/Dongle Serial No.
                     </label>
                     <input
                       type="text"
-                      value={dscFormData.tokenSerial}
-                      onChange={e => setDscFormData({...dscFormData, tokenSerial: e.target.value})}
-                      placeholder="Enter serial number"
-                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', fontFamily: 'monospace'}}
+                      placeholder="Serial number"
+                      value={dscFormData.tokenSerialNo}
+                      onChange={(e) => setDscFormData({ ...dscFormData, tokenSerialNo: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '14px'
+                      }}
                     />
                   </div>
                   
-                  {/* DSC Class */}
+                  {/* Issuing Authority */}
                   <div>
-                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
-                      DSC Class
+                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#374151' }}>
+                      Issuing Authority
                     </label>
                     <select
-                      value={dscFormData.dscClass}
-                      onChange={e => setDscFormData({...dscFormData, dscClass: e.target.value})}
-                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
+                      value={dscFormData.issuingAuthority}
+                      onChange={(e) => setDscFormData({ ...dscFormData, issuingAuthority: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        background: '#fff'
+                      }}
                     >
-                      <option value="Class 2">Class 2</option>
-                      <option value="Class 3">Class 3</option>
-                    </select>
-                  </div>
-                  
-                  {/* DSC Type */}
-                  <div>
-                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
-                      DSC Type
-                    </label>
-                    <select
-                      value={dscFormData.dscType}
-                      onChange={e => setDscFormData({...dscFormData, dscType: e.target.value})}
-                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
-                    >
-                      <option value="Signing">Signing Only</option>
-                      <option value="Encryption">Encryption Only</option>
-                      <option value="Both">Signing + Encryption</option>
+                      <option value="">Select Authority</option>
+                      {issuingAuthorities.map(auth => (
+                        <option key={auth} value={auth}>{auth}</option>
+                      ))}
                     </select>
                   </div>
                   
                   {/* Issue Date */}
                   <div>
-                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
+                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#374151' }}>
                       Issue Date
                     </label>
                     <input
                       type="date"
                       value={dscFormData.issueDate}
-                      onChange={e => setDscFormData({...dscFormData, issueDate: e.target.value})}
-                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box'}}
+                      onChange={(e) => setDscFormData({ ...dscFormData, issueDate: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '14px'
+                      }}
                     />
                   </div>
                   
                   {/* Expiry Date */}
                   <div>
-                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
-                      Expiry Date
+                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#374151' }}>
+                      Expiry Date <span style={{ color: '#dc2626' }}>*</span>
                     </label>
                     <input
                       type="date"
                       value={dscFormData.expiryDate}
-                      onChange={e => setDscFormData({...dscFormData, expiryDate: e.target.value})}
-                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box'}}
+                      onChange={(e) => setDscFormData({ ...dscFormData, expiryDate: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '14px'
+                      }}
                     />
                   </div>
                   
                   {/* Password */}
                   <div>
-                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
+                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#374151' }}>
                       DSC Password
                     </label>
                     <input
                       type="text"
+                      placeholder="DSC password"
                       value={dscFormData.password}
-                      onChange={e => setDscFormData({...dscFormData, password: e.target.value})}
-                      placeholder="Enter password"
-                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box'}}
+                      onChange={(e) => setDscFormData({ ...dscFormData, password: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '14px'
+                      }}
                     />
                   </div>
                   
                   {/* Physical Location */}
                   <div>
-                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
+                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#374151' }}>
                       Physical Location
                     </label>
                     <input
                       type="text"
-                      value={dscFormData.location}
-                      onChange={e => setDscFormData({...dscFormData, location: e.target.value})}
-                      placeholder="Where is the token kept?"
-                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box'}}
-                    />
-                  </div>
-                  
-                  {/* Mobile Number */}
-                  <div>
-                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
-                      Registered Mobile
-                    </label>
-                    <input
-                      type="text"
-                      value={dscFormData.mobileNumber}
-                      onChange={e => setDscFormData({...dscFormData, mobileNumber: e.target.value})}
-                      placeholder="Mobile linked to DSC"
-                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box'}}
-                    />
-                  </div>
-                  
-                  {/* Email */}
-                  <div>
-                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
-                      Registered Email
-                    </label>
-                    <input
-                      type="email"
-                      value={dscFormData.email}
-                      onChange={e => setDscFormData({...dscFormData, email: e.target.value})}
-                      placeholder="Email linked to DSC"
-                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box'}}
+                      placeholder="Where is the token stored?"
+                      value={dscFormData.physicalLocation}
+                      onChange={(e) => setDscFormData({ ...dscFormData, physicalLocation: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '14px'
+                      }}
                     />
                   </div>
                   
                   {/* Status */}
                   <div>
-                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
+                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#374151' }}>
                       Status
                     </label>
                     <select
                       value={dscFormData.status}
-                      onChange={e => setDscFormData({...dscFormData, status: e.target.value})}
-                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
+                      onChange={(e) => setDscFormData({ ...dscFormData, status: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        background: '#fff'
+                      }}
                     >
-                      <option value="Active">Active</option>
-                      <option value="Expired">Expired</option>
-                      <option value="Revoked">Revoked</option>
-                      <option value="Lost">Lost</option>
-                      <option value="With Client">With Client</option>
+                      {dscStatuses.map(status => (
+                        <option key={status} value={status}>{status}</option>
+                      ))}
                     </select>
                   </div>
                   
                   {/* Remarks */}
-                  <div style={{gridColumn: 'span 2'}}>
-                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
-                      Remarks / Notes
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#374151' }}>
+                      Remarks
                     </label>
                     <textarea
+                      placeholder="Additional notes..."
                       value={dscFormData.remarks}
-                      onChange={e => setDscFormData({...dscFormData, remarks: e.target.value})}
-                      placeholder="Any additional notes..."
+                      onChange={(e) => setDscFormData({ ...dscFormData, remarks: e.target.value })}
                       rows={3}
-                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', resize: 'vertical'}}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        resize: 'vertical'
+                      }}
                     />
                   </div>
                 </div>
@@ -23742,33 +23540,203 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               {/* Modal Footer */}
               <div style={{
                 padding: '16px 24px',
-                borderTop: '1px solid #e2e8f0',
+                borderTop: '1px solid #e5e7eb',
                 display: 'flex',
-                justifyContent: 'flex-end',
                 gap: '12px',
-                background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)'
+                justifyContent: 'flex-end',
+                background: '#f9fafb'
               }}>
                 <button
-                  onClick={() => setShowDSCModal(false)}
-                  style={{padding: '10px 20px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer'}}
+                  onClick={() => { setShowDscForm(false); resetDscForm(); }}
+                  style={{
+                    padding: '10px 20px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    background: '#fff',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer'
+                  }}
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={saveDSC}
+                  onClick={handleDscSubmit}
                   style={{
-                    padding: '10px 24px',
-                    background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
-                    color: '#fff',
+                    padding: '10px 20px',
                     border: 'none',
                     borderRadius: '8px',
+                    background: '#10b981',
+                    color: '#fff',
                     fontSize: '14px',
                     fontWeight: '600',
                     cursor: 'pointer'
                   }}
                 >
-                  {selectedDSC ? 'Update DSC' : 'Add DSC'}
+                  {editingDsc ? 'Update DSC' : 'Add DSC'}
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* View DSC Details Modal */}
+        {viewingDsc && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px'
+          }}>
+            <div style={{
+              background: '#fff',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '600px',
+              maxHeight: '90vh',
+              overflow: 'hidden',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+            }}>
+              {/* Modal Header */}
+              <div style={{
+                padding: '20px 24px',
+                background: '#3b82f6',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Shield size={22} />
+                  DSC Details
+                </h2>
+                <button
+                  onClick={() => setViewingDsc(null)}
+                  style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer', color: '#fff' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              
+              {/* Modal Body */}
+              <div style={{ padding: '24px', overflowY: 'auto', maxHeight: 'calc(90vh - 80px)' }}>
+                <div style={{ display: 'grid', gap: '16px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px' }}>
+                      <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>Client Name</div>
+                      <div style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a' }}>{viewingDsc.clientName}</div>
+                    </div>
+                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px' }}>
+                      <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>DSC Holder</div>
+                      <div style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a' }}>{viewingDsc.holderName}</div>
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px' }}>
+                      <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>PAN Number</div>
+                      <div style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a', fontFamily: 'monospace' }}>{viewingDsc.pan || '-'}</div>
+                    </div>
+                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px' }}>
+                      <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>DSC Type</div>
+                      <div style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a' }}>{viewingDsc.dscType}</div>
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px' }}>
+                      <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>Token Serial No.</div>
+                      <div style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a', fontFamily: 'monospace' }}>{viewingDsc.tokenSerialNo || '-'}</div>
+                    </div>
+                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px' }}>
+                      <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>Issuing Authority</div>
+                      <div style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a' }}>{viewingDsc.issuingAuthority || '-'}</div>
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px' }}>
+                      <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>Issue Date</div>
+                      <div style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a' }}>{viewingDsc.issueDate ? new Date(viewingDsc.issueDate).toLocaleDateString('en-IN') : '-'}</div>
+                    </div>
+                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px' }}>
+                      <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>Expiry Date</div>
+                      <div style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a' }}>{viewingDsc.expiryDate ? new Date(viewingDsc.expiryDate).toLocaleDateString('en-IN') : '-'}</div>
+                      <span style={{
+                        display: 'inline-block',
+                        marginTop: '6px',
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        ...getExpiryBadgeStyle(viewingDsc.expiryDate)
+                      }}>
+                        {getExpiryText(viewingDsc.expiryDate)}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px' }}>
+                      <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>Password</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a', fontFamily: 'monospace' }}>
+                          {showPassword[viewingDsc.id] ? (viewingDsc.password || '-') : '••••••••'}
+                        </span>
+                        {viewingDsc.password && (
+                          <button
+                            onClick={() => togglePasswordVisibility(viewingDsc.id)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
+                          >
+                            <Eye size={16} color="#64748b" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px' }}>
+                      <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>Status</div>
+                      <span style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        background: viewingDsc.status === 'Active' ? '#dcfce7' : viewingDsc.status === 'Expired' ? '#fee2e2' : viewingDsc.status === 'Renewed' ? '#dbeafe' : '#f1f5f9',
+                        color: viewingDsc.status === 'Active' ? '#16a34a' : viewingDsc.status === 'Expired' ? '#dc2626' : viewingDsc.status === 'Renewed' ? '#2563eb' : '#64748b'
+                      }}>
+                        {viewingDsc.status}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>Physical Location</div>
+                    <div style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a' }}>{viewingDsc.physicalLocation || '-'}</div>
+                  </div>
+                  
+                  {viewingDsc.remarks && (
+                    <div style={{ background: '#fef3c7', padding: '16px', borderRadius: '10px' }}>
+                      <div style={{ fontSize: '11px', color: '#92400e', marginBottom: '4px', textTransform: 'uppercase' }}>Remarks</div>
+                      <div style={{ fontSize: '14px', color: '#78350f' }}>{viewingDsc.remarks}</div>
+                    </div>
+                  )}
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '8px', paddingTop: '16px', borderTop: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                      Created: {viewingDsc.createdAt ? new Date(viewingDsc.createdAt).toLocaleString('en-IN') : '-'}
+                      {viewingDsc.createdBy && ` by ${viewingDsc.createdBy}`}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#94a3b8', textAlign: 'right' }}>
+                      Updated: {viewingDsc.updatedAt ? new Date(viewingDsc.updatedAt).toLocaleString('en-IN') : '-'}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -23777,7 +23745,6 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     );
   };
 
-
   // Render current view
   const renderView = () => {
     switch(currentView) {
@@ -23785,19 +23752,19 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       case 'dashboard': return <DashboardView />;
       case 'task-detail': return <TaskDetailView />;
       case 'clients': return <ClientsView />;
-      case 'dscRegister': return <DSCRegisterView />;
       case 'staff': return <StaffView />;
       case 'invoicing': return <InvoicingView />;
       case 'timesheetReports': return <TimesheetReportsView />;
       case 'templates': return <TemplatesView />;
       case 'reports': return <ReportsView />;
       case 'approvals': return <ApprovalsView />;
+      case 'dscRegister': return <DSCRegisterView />;
       default: return <DashboardView />;
     }
   };
 
-  // Show loading screen while localStorage initializes
-  if (appLoading) {
+  // Show loading screen while Firebase initializes
+  if (firebaseLoading) {
     return (
       <div style={{
         position: 'fixed',
@@ -24174,116 +24141,77 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             setShowAddTaskModal(false);
             alert('Task created successfully! You can view it in the task list.');
           }}
-          onBulkSave={(newTasks) => {
-            console.log('=== BULK SAVING TASKS ===');
-            console.log('Tasks to import:', newTasks.length);
+          onBulkSave={async (newTasks) => {
+            console.log('=== BULK SAVE V15 - WITH ALERTS ===');
+            console.log('New tasks count:', newTasks.length);
             
-            // Filter out duplicate tasks
-            const { validTasks, duplicates } = filterDuplicateTasks(newTasks, data.tasks);
+            // Skip duplicate check for now - just save
+            const tasksToAdd = newTasks;
             
-            if (duplicates.length > 0) {
-              const duplicateList = duplicates.slice(0, 5).map(d => 
-                `• ${d.clientName} - ${d.parentTask} → ${d.childTask} (${d.subPeriod || d.period})`
-              ).join('\n');
-              
-              const moreText = duplicates.length > 5 ? `\n...and ${duplicates.length - 5} more` : '';
-              
-              if (validTasks.length === 0) {
-                alert(`⚠️ All ${duplicates.length} tasks are duplicates!\n\n${duplicateList}${moreText}\n\nNo tasks were imported.`);
-                return;
-              }
-              
-              if (!window.confirm(`⚠️ Found ${duplicates.length} duplicate task(s):\n\n${duplicateList}${moreText}\n\nDo you want to import the remaining ${validTasks.length} task(s)?`)) {
-                return;
-              }
-            }
-            
-            if (validTasks.length === 0) {
-              alert('No valid tasks to import.');
+            if (tasksToAdd.length === 0) {
+              alert('No tasks to import.');
               return;
             }
             
-            // Check if approval is needed (Seniors/Articles need RM approval)
-            const userRole = getCurrentUserRole();
-            const approvalNeeded = needsApproval('bulk_task', userRole);
+            // Combine with existing tasks
+            const allTasks = [...(data.tasks || []), ...tasksToAdd];
+            console.log('Total tasks after merge:', allTasks.length);
             
-            if (approvalNeeded) {
-              // Create approval request for bulk tasks
-              const approval = createApprovalRequest(
-                'bulk_task',
-                validTasks,
-                `Bulk Task Import: ${validTasks.length} tasks`
-              );
-              
-              if (approval) {
-                setData(prev => ({
-                  ...prev,
-                  pendingApprovals: [...(prev.pendingApprovals || []), approval]
-                }));
-                setShowAddTaskModal(false);
-                alert(`📝 ${validTasks.length} tasks submitted for approval!\n\nYour Reporting Manager will review and approve these tasks.`);
-                return;
-              }
-            }
-            
-            // Direct save for Superadmin/RM - IMMEDIATE FIREBASE SAVE
-            const updatedTasks = [...data.tasks, ...validTasks];
-            
-            // Update state
-            setData(prev => ({
-              ...prev,
-              tasks: updatedTasks
-            }));
-            
-            // Immediately save to localStorage and WAIT for it to complete
-            const saveTolocalStorage = async () => {
-              try {
-                const dataToSave = {
-                  tasks: updatedTasks,
-                  clients: data.clients || [],
-                  staff: data.staff || [],
-                  timesheets: data.timesheets || [],
-                  invoices: data.invoices || [],
-                  receipts: data.receipts || [],
-                  organizations: (data.organizations || []).map(org => ({
-                    ...org,
-                    logo: org.logo?.startsWith('data:') ? '[IMAGE]' : org.logo,
-                    signatureImage: org.signatureImage?.startsWith('data:') ? '[IMAGE]' : org.signatureImage,
-                    qrCode: org.qrCode?.startsWith('data:') ? '[IMAGE]' : org.qrCode
-                  })),
-                  recurringSchedules: data.recurringSchedules || [],
-                  leaves: data.leaves || [],
-                  documents: data.documents || [],
-                  userPermissions: data.userPermissions || {},
-                  parentChildTasks: data.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
-                  recurringBatches: data.recurringBatches || [],
-                  checklists: data.checklists || [],
-                  pendingApprovals: data.pendingApprovals || [],
-                  dscRegister: data.dscRegister || [],
-                  lastUpdated: new Date().toISOString()
-                };
-                
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-                console.log('✅ Bulk tasks saved to localStorage immediately!');
-                return true;
-              } catch (error) {
-                console.error('❌ Error saving bulk tasks to localStorage:', error);
-                alert('❌ Error saving to database: ' + error.message);
-                return false;
-              }
+            // Build the SIMPLEST possible data object for Firebase
+            const dataForFirebase = {
+              tasks: allTasks,
+              clients: data.clients || [],
+              staff: data.staff || [],
+              timesheets: data.timesheets || [],
+              invoices: data.invoices || [],
+              receipts: data.receipts || [],
+              organizations: (data.organizations || []).map(org => {
+                const o = JSON.parse(JSON.stringify(org || {}));
+                if (o.logo && o.logo.startsWith && o.logo.startsWith('data:')) o.logo = '[IMG]';
+                if (o.signatureImage && o.signatureImage.startsWith && o.signatureImage.startsWith('data:')) o.signatureImage = '[IMG]';
+                if (o.qrCode && o.qrCode.startsWith && o.qrCode.startsWith('data:')) o.qrCode = '[IMG]';
+                return o;
+              }),
+              recurringSchedules: data.recurringSchedules || [],
+              leaves: data.leaves || [],
+              documents: data.documents || [],
+              userPermissions: data.userPermissions || {},
+              parentChildTasks: data.parentChildTasks || {},
+              recurringBatches: data.recurringBatches || [],
+              checklists: data.checklists || [],
+              pendingApprovals: data.pendingApprovals || [],
+              lastUpdated: new Date().toISOString()
             };
             
-            // Wait for save to complete, then show success
-            saveTolocalStorage().then((success) => {
+            // THE KEY: JSON.parse(JSON.stringify()) GUARANTEES no undefined
+            const cleanData = JSON.parse(JSON.stringify(dataForFirebase));
+            
+            console.log('Clean data prepared, tasks count:', cleanData.tasks.length);
+            
+            // DEBUG: Show alert before Firebase save
+            // alert('About to save ' + cleanData.tasks.length + ' tasks to Firebase...');
+            
+            try {
+              // Direct Firebase save
+              console.log('Calling setDoc NOW...');
+              await setDoc(doc(db, 'appData', 'mainData'), cleanData);
+              console.log('✅ Firebase setDoc completed!');
+              
+              // Update local state
+              setData(prev => ({
+                ...prev,
+                tasks: allTasks
+              }));
+              
               setShowAddTaskModal(false);
-              if (success) {
-                if (duplicates.length > 0) {
-                  alert(`✅ Imported ${validTasks.length} task(s) and saved to database!\n⚠️ Skipped ${duplicates.length} duplicate(s).`);
-                } else {
-                  alert(`✅ Successfully imported ${validTasks.length} task(s) and saved to database!`);
-                }
-              }
-            });
+              alert(`✅ Successfully imported and saved ${tasksToAdd.length} task(s) to database!`);
+            } catch (err) {
+              console.error('❌ Firebase save FAILED:', err);
+              console.error('Error name:', err.name);
+              console.error('Error message:', err.message);
+              console.error('Error code:', err.code);
+              alert('❌ Error saving to Firebase: ' + err.message);
+            }
           }}
         />
       )}
