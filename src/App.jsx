@@ -5252,8 +5252,8 @@ const PracticeManagementApp = () => {
                     </div>
                   )}
 
-                  {/* Single Row: Group No., Client Code, Client Name, Date of Enrollment */}
-                  <div style={{display: 'grid', gridTemplateColumns: '80px 100px 1fr 150px', gap: '12px', alignItems: 'end'}}>
+                  {/* Single Row: Group No., Client Code, Client Name, Type of Client, Date of Enrollment */}
+                  <div style={{display: 'grid', gridTemplateColumns: '70px 90px 1fr 140px 140px', gap: '12px', alignItems: 'end'}}>
                     {/* Group No. */}
                     <div>
                       <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Group No.</label>
@@ -5299,7 +5299,7 @@ const PracticeManagementApp = () => {
                       />
                     </div>
 
-                    {/* Client Name */}
+                    {/* Client Name - Expanded */}
                     <div>
                       <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>
                         Client Name <span style={{color: '#ef4444'}}>*</span>
@@ -5322,6 +5322,31 @@ const PracticeManagementApp = () => {
                           fontSize: '13px'
                         }}
                       />
+                    </div>
+
+                    {/* Type of Client */}
+                    <div>
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Type of Client</label>
+                      <select
+                        value={clientData.typeOfClient}
+                        onChange={(e) => setClientData({...clientData, typeOfClient: e.target.value})}
+                        style={{
+                          width: '100%',
+                          padding: '10px 8px',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '6px',
+                          fontSize: '13px',
+                          background: '#fff'
+                        }}
+                      >
+                        <option value="">Select Type</option>
+                        <option value="Individual">Individual</option>
+                        <option value="Company">Company</option>
+                        <option value="Partnership">Partnership Firm</option>
+                        <option value="LLP">LLP</option>
+                        <option value="Trust">Trust</option>
+                        <option value="HUF">HUF</option>
+                      </select>
                     </div>
 
                     {/* Date of Enrollment */}
@@ -5428,32 +5453,6 @@ const PracticeManagementApp = () => {
                   </div>
 
                   <div className="form-field-pro span-1">
-                    <label>Type of Client</label>
-                    <select
-                      value={clientData.typeOfClient}
-                      onChange={(e) => setClientData({...clientData, typeOfClient: e.target.value})}
-                    >
-                      <option value="">Select Type</option>
-                      <option value="Individual">Individual</option>
-                      <option value="Company">Company</option>
-                      <option value="Partnership">Partnership Firm</option>
-                      <option value="LLP">LLP</option>
-                      <option value="Trust">Trust</option>
-                      <option value="HUF">HUF</option>
-                    </select>
-                  </div>
-
-                  <div className="form-field-pro span-2">
-                    <label>Address</label>
-                    <input
-                      type="text"
-                      placeholder="Enter complete address"
-                      value={clientData.address}
-                      onChange={(e) => setClientData({...clientData, address: e.target.value})}
-                    />
-                  </div>
-
-                  <div className="form-field-pro span-1">
                     <label>Fixed Assigned User</label>
                     <select
                       value={clientData.fixAssignedUser}
@@ -5473,6 +5472,26 @@ const PracticeManagementApp = () => {
                       <option value="">Select Incharge</option>
                       {data.staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                     </select>
+                  </div>
+
+                  {/* Address - Full Width with 2 rows */}
+                  <div className="form-field-pro span-4" style={{gridColumn: '1 / -1'}}>
+                    <label>Address</label>
+                    <textarea
+                      rows="2"
+                      placeholder="Enter complete address"
+                      value={clientData.address}
+                      onChange={(e) => setClientData({...clientData, address: e.target.value})}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        resize: 'none',
+                        lineHeight: '1.4'
+                      }}
+                    />
                   </div>
                 </div>
               </div>
