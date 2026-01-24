@@ -3185,7 +3185,8 @@ const PracticeManagementApp = () => {
 
     // Calculate month-wise and year-wise summary
     const getSummaryData = () => {
-      const months = ['March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December', 'January', 'February'];
+      // Indian Financial Year order: April to March
+      const months = ['April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December', 'January', 'February', 'March'];
       const years = ['FY 2025-26', 'FY 2024-25', 'FY 2023-24', 'Previous years'];
       
       const summary = months.map(month => {
@@ -4373,95 +4374,86 @@ const PracticeManagementApp = () => {
             </button>
           </div>
 
-          {/* RIGHT: FY Task Status Report */}
+          {/* RIGHT: FY Task Status Report - No Heading, No Scroller */}
           <div style={{
             background: '#fff',
             borderRadius: '10px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
             border: '1px solid #10b981',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column'
+            overflow: 'hidden'
           }}>
-            <h3 style={{margin: 0, padding: '8px 12px', fontSize: '12px', fontWeight: '600', color: '#fff', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
-              <BarChart3 size={14} style={{marginRight: '6px', verticalAlign: 'middle'}} />
-              FY Task Status
-            </h3>
-            
-            <div style={{overflowX: 'auto', overflowY: 'auto', flex: 1, maxHeight: '220px'}}>
-              <table style={{borderCollapse: 'collapse', fontSize: '10px', width: '100%'}}>
-                <thead style={{position: 'sticky', top: 0}}>
-                  <tr style={{background: '#10b981'}}>
-                    <th style={{padding: '5px 6px', textAlign: 'left', border: '1px solid #059669', fontWeight: '700', fontSize: '9px', color: '#fff'}}>Month</th>
-                    {years.map(fy => (
-                      <th key={fy} colSpan={2} style={{padding: '5px 4px', textAlign: 'center', border: '1px solid #059669', fontWeight: '700', fontSize: '9px', color: '#fff'}}>{fy.replace('FY ', '').replace('Previous years', 'Prev')}</th>
-                    ))}
-                  </tr>
-                  <tr style={{background: '#dcfce7'}}>
-                    <th style={{padding: '4px 6px', border: '1px solid #bbf7d0', fontSize: '8px'}}></th>
+            <table style={{borderCollapse: 'collapse', fontSize: '10px', width: '100%'}}>
+              <thead>
+                <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                  <th style={{padding: '6px 8px', textAlign: 'left', border: '1px solid #059669', fontWeight: '700', fontSize: '10px', color: '#fff'}}>Month</th>
+                  {years.map(fy => (
+                    <th key={fy} colSpan={2} style={{padding: '6px 4px', textAlign: 'center', border: '1px solid #059669', fontWeight: '700', fontSize: '9px', color: '#fff'}}>{fy.replace('FY ', '').replace('Previous years', 'Prev')}</th>
+                  ))}
+                </tr>
+                <tr style={{background: '#dcfce7'}}>
+                  <th style={{padding: '4px 8px', border: '1px solid #bbf7d0', fontSize: '8px'}}></th>
+                  {years.map(fy => (
+                    <React.Fragment key={fy}>
+                      <th style={{padding: '4px 4px', textAlign: 'center', border: '1px solid #bbf7d0', color: '#dc2626', fontWeight: '700', fontSize: '8px'}}>P</th>
+                      <th style={{padding: '4px 4px', textAlign: 'center', border: '1px solid #bbf7d0', color: '#16a34a', fontWeight: '700', fontSize: '8px'}}>D</th>
+                    </React.Fragment>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {summary.map((row, idx) => (
+                  <tr key={row.period} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                    <td style={{padding: '4px 8px', fontWeight: '600', border: '1px solid #e5e7eb', fontSize: '9px', color: '#374151'}}>{row.period.substring(0, 3)}</td>
                     {years.map(fy => (
                       <React.Fragment key={fy}>
-                        <th style={{padding: '4px 4px', textAlign: 'center', border: '1px solid #bbf7d0', color: '#dc2626', fontWeight: '700', fontSize: '8px'}}>P</th>
-                        <th style={{padding: '4px 4px', textAlign: 'center', border: '1px solid #bbf7d0', color: '#16a34a', fontWeight: '700', fontSize: '8px'}}>D</th>
+                        <td 
+                          style={{
+                            padding: '4px 4px', 
+                            textAlign: 'center', 
+                            border: '1px solid #e5e7eb', 
+                            color: row[`${fy}_pending`] > 0 ? '#dc2626' : '#9ca3af', 
+                            fontWeight: row[`${fy}_pending`] > 0 ? '700' : '400',
+                            cursor: row[`${fy}_pending`] > 0 ? 'pointer' : 'default',
+                            background: row[`${fy}_pending`] > 0 ? '#fef2f2' : 'transparent',
+                            fontSize: '10px'
+                          }}
+                          onClick={() => {
+                            if (row[`${fy}_pending`] > 0) {
+                              setFilters({...filters, taskFinancialYear: fy === 'Previous years' ? '' : fy, taskPeriod: row.period});
+                              setActiveStatusFilter('');
+                            }
+                          }}
+                          title={row[`${fy}_pending`] > 0 ? `Click to view ${row[`${fy}_pending`]} pending tasks` : ''}
+                        >
+                          {row[`${fy}_pending`] || 0}
+                        </td>
+                        <td 
+                          style={{
+                            padding: '4px 4px', 
+                            textAlign: 'center', 
+                            border: '1px solid #e5e7eb', 
+                            color: row[`${fy}_completed`] > 0 ? '#16a34a' : '#9ca3af', 
+                            fontWeight: row[`${fy}_completed`] > 0 ? '700' : '400',
+                            cursor: row[`${fy}_completed`] > 0 ? 'pointer' : 'default',
+                            background: row[`${fy}_completed`] > 0 ? '#dcfce7' : 'transparent',
+                            fontSize: '10px'
+                          }}
+                          onClick={() => {
+                            if (row[`${fy}_completed`] > 0) {
+                              setFilters({...filters, taskFinancialYear: fy === 'Previous years' ? '' : fy, taskPeriod: row.period, status: 'Completed'});
+                              setActiveStatusFilter('');
+                            }
+                          }}
+                          title={row[`${fy}_completed`] > 0 ? `Click to view ${row[`${fy}_completed`]} completed tasks` : ''}
+                        >
+                          {row[`${fy}_completed`] || 0}
+                        </td>
                       </React.Fragment>
                     ))}
                   </tr>
-                </thead>
-                <tbody>
-                  {summary.map((row, idx) => (
-                    <tr key={row.period} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
-                      <td style={{padding: '4px 6px', fontWeight: '600', border: '1px solid #e5e7eb', fontSize: '9px', color: '#374151'}}>{row.period.substring(0, 3)}</td>
-                      {years.map(fy => (
-                        <React.Fragment key={fy}>
-                          <td 
-                            style={{
-                              padding: '4px 4px', 
-                              textAlign: 'center', 
-                              border: '1px solid #e5e7eb', 
-                              color: row[`${fy}_pending`] > 0 ? '#dc2626' : '#9ca3af', 
-                              fontWeight: row[`${fy}_pending`] > 0 ? '700' : '400',
-                              cursor: row[`${fy}_pending`] > 0 ? 'pointer' : 'default',
-                              background: row[`${fy}_pending`] > 0 ? '#fef2f2' : 'transparent',
-                              fontSize: '10px'
-                            }}
-                            onClick={() => {
-                              if (row[`${fy}_pending`] > 0) {
-                                setFilters({...filters, taskFinancialYear: fy === 'Previous years' ? '' : fy, taskPeriod: row.period});
-                                setActiveStatusFilter('');
-                              }
-                            }}
-                            title={row[`${fy}_pending`] > 0 ? `Click to view ${row[`${fy}_pending`]} pending tasks` : ''}
-                          >
-                            {row[`${fy}_pending`] || 0}
-                          </td>
-                          <td 
-                            style={{
-                              padding: '4px 4px', 
-                              textAlign: 'center', 
-                              border: '1px solid #e5e7eb', 
-                              color: row[`${fy}_completed`] > 0 ? '#16a34a' : '#9ca3af', 
-                              fontWeight: row[`${fy}_completed`] > 0 ? '700' : '400',
-                              cursor: row[`${fy}_completed`] > 0 ? 'pointer' : 'default',
-                              background: row[`${fy}_completed`] > 0 ? '#dcfce7' : 'transparent',
-                              fontSize: '10px'
-                            }}
-                            onClick={() => {
-                              if (row[`${fy}_completed`] > 0) {
-                                setFilters({...filters, taskFinancialYear: fy === 'Previous years' ? '' : fy, taskPeriod: row.period, status: 'Completed'});
-                                setActiveStatusFilter('');
-                              }
-                            }}
-                            title={row[`${fy}_completed`] > 0 ? `Click to view ${row[`${fy}_completed`]} completed tasks` : ''}
-                          >
-                            {row[`${fy}_completed`] || 0}
-                          </td>
-                        </React.Fragment>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -4843,8 +4835,7 @@ const PracticeManagementApp = () => {
       pancard: '',
       aadhaar: '',
       typeOfClient: '',
-      fixAssignedUser: '',
-      clientIncharge: '',
+      reportingManager: '',
       isOutOfIndia: false,
       state: '',
       country: '',
@@ -4940,8 +4931,7 @@ const PracticeManagementApp = () => {
           pancard: editingClient.pan || '',
           aadhaar: editingClient.aadhaar || '',
           typeOfClient: editingClient.typeOfClient || '',
-          fixAssignedUser: editingClient.fixedAssignedUser || '',
-          clientIncharge: editingClient.clientIncharge || '',
+          reportingManager: editingClient.reportingManager || '',
           isOutOfIndia: editingClient.isOutOfIndia || false,
           state: editingClient.state || '',
           country: editingClient.country || '',
@@ -5055,8 +5045,7 @@ const PracticeManagementApp = () => {
         aadhaar: clientData.aadhaar ? clientData.aadhaar.trim() : '',
         state: clientData.state ? clientData.state.trim() : '',
         typeOfClient: clientData.typeOfClient ? clientData.typeOfClient.trim() : '',
-        fixedAssignedUser: clientData.fixAssignedUser ? clientData.fixAssignedUser.trim() : '',
-        clientIncharge: clientData.clientIncharge ? clientData.clientIncharge.trim() : '',
+        reportingManager: clientData.reportingManager ? clientData.reportingManager.trim() : '',
         dateOfEnrollment: clientData.dateOfEnrollment || '',
         isOutOfIndia: clientData.isOutOfIndia || false,
         country: clientData.country ? clientData.country.trim() : '',
@@ -5252,8 +5241,8 @@ const PracticeManagementApp = () => {
                     </div>
                   )}
 
-                  {/* Single Row: Group No., Client Code, Client Name, Type of Client, Date of Enrollment */}
-                  <div style={{display: 'grid', gridTemplateColumns: '70px 90px 1fr 140px 140px', gap: '12px', alignItems: 'end'}}>
+                  {/* Row 1: Group No., Client Code, Client Name (wide), Type of Client, Date of Enrollment */}
+                  <div style={{display: 'grid', gridTemplateColumns: '70px 90px 1fr 150px 150px', gap: '12px', alignItems: 'end'}}>
                     {/* Group No. */}
                     <div>
                       <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Group No.</label>
@@ -5299,7 +5288,7 @@ const PracticeManagementApp = () => {
                       />
                     </div>
 
-                    {/* Client Name - Expanded */}
+                    {/* Client Name - Wide */}
                     <div>
                       <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>
                         Client Name <span style={{color: '#ef4444'}}>*</span>
@@ -5369,65 +5358,75 @@ const PracticeManagementApp = () => {
                 </div>
               </div>
 
-              {/* Section 2: Contact, Tax & Classification - Combined */}
+              {/* Section 2: Contact & Tax Details */}
               <div className="form-section-pro">
                 <h3 className="section-title-pro">Contact & Tax Details</h3>
-                <div className="form-grid-pro">
-                  <div className="form-field-pro span-1">
-                    <label>Email</label>
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px'}}>
+                  {/* Row 1: Email, Phone, GSTIN, PAN */}
+                  <div>
+                    <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Email</label>
                     <input
                       type="email"
                       placeholder="client@example.com"
                       value={clientData.email}
                       onChange={(e) => setClientData({...clientData, email: e.target.value})}
+                      style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'}}
                     />
                   </div>
 
-                  <div className="form-field-pro span-1">
-                    <label>Phone</label>
+                  <div>
+                    <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Phone</label>
                     <input
                       type="tel"
                       placeholder="+91 98765 43210"
                       value={clientData.phone}
                       onChange={(e) => setClientData({...clientData, phone: e.target.value})}
+                      style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'}}
                     />
                   </div>
 
-                  <div className="form-field-pro span-1">
-                    <label>GSTIN</label>
+                  <div>
+                    <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>GSTIN</label>
                     <input
                       type="text"
                       placeholder="GST Number"
                       value={clientData.gstin}
                       onChange={(e) => setClientData({...clientData, gstin: e.target.value})}
+                      style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'}}
                     />
                   </div>
 
-                  <div className="form-field-pro span-1">
-                    <label>PAN</label>
+                  <div>
+                    <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>PAN</label>
                     <input
                       type="text"
                       placeholder="PAN Number"
                       value={clientData.pancard}
                       onChange={(e) => setClientData({...clientData, pancard: e.target.value})}
+                      style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'}}
                     />
                   </div>
 
-                  <div className="form-field-pro span-1">
-                    <label>Aadhaar</label>
+                  {/* Row 2: Empty, Aadhaar, State, Empty */}
+                  <div></div>
+
+                  <div>
+                    <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Aadhaar</label>
                     <input
                       type="text"
                       placeholder="Aadhaar Number"
                       value={clientData.aadhaar}
                       onChange={(e) => setClientData({...clientData, aadhaar: e.target.value})}
+                      style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'}}
                     />
                   </div>
 
-                  <div className="form-field-pro span-1">
-                    <label>State</label>
+                  <div>
+                    <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>State</label>
                     <select
                       value={clientData.state}
                       onChange={(e) => setClientData({...clientData, state: e.target.value})}
+                      style={{width: '100%', padding: '10px 8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', background: '#fff'}}
                     >
                       <option value="">Select State</option>
                       <option value="Uttarakhand">Uttarakhand</option>
@@ -5438,45 +5437,11 @@ const PracticeManagementApp = () => {
                     </select>
                   </div>
 
-                  <div className="form-field-pro span-1">
-                    <label>Country</label>
-                    <select
-                      value={clientData.country}
-                      onChange={(e) => setClientData({...clientData, country: e.target.value})}
-                    >
-                      <option value="">India</option>
-                      <option value="USA">USA</option>
-                      <option value="UK">UK</option>
-                      <option value="Canada">Canada</option>
-                      <option value="Australia">Australia</option>
-                    </select>
-                  </div>
+                  <div></div>
 
-                  <div className="form-field-pro span-1">
-                    <label>Fixed Assigned User</label>
-                    <select
-                      value={clientData.fixAssignedUser}
-                      onChange={(e) => setClientData({...clientData, fixAssignedUser: e.target.value})}
-                    >
-                      <option value="">Select User</option>
-                      {data.staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                    </select>
-                  </div>
-
-                  <div className="form-field-pro span-1">
-                    <label>Client Incharge</label>
-                    <select
-                      value={clientData.clientIncharge}
-                      onChange={(e) => setClientData({...clientData, clientIncharge: e.target.value})}
-                    >
-                      <option value="">Select Incharge</option>
-                      {data.staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                    </select>
-                  </div>
-
-                  {/* Address - Full Width with 2 rows */}
-                  <div className="form-field-pro span-4" style={{gridColumn: '1 / -1'}}>
-                    <label>Address</label>
+                  {/* Row 3: Address (2 cols), Country, Reporting Manager */}
+                  <div style={{gridColumn: 'span 2'}}>
+                    <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Address</label>
                     <textarea
                       rows="2"
                       placeholder="Enter complete address"
@@ -5492,6 +5457,35 @@ const PracticeManagementApp = () => {
                         lineHeight: '1.4'
                       }}
                     />
+                  </div>
+
+                  <div>
+                    <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Country</label>
+                    <select
+                      value={clientData.country}
+                      onChange={(e) => setClientData({...clientData, country: e.target.value})}
+                      style={{width: '100%', padding: '10px 8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', background: '#fff'}}
+                    >
+                      <option value="">India</option>
+                      <option value="USA">USA</option>
+                      <option value="UK">UK</option>
+                      <option value="Canada">Canada</option>
+                      <option value="Australia">Australia</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Reporting Manager</label>
+                    <select
+                      value={clientData.reportingManager || ''}
+                      onChange={(e) => setClientData({...clientData, reportingManager: e.target.value})}
+                      style={{width: '100%', padding: '10px 8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', background: '#fff'}}
+                    >
+                      <option value="">Select RM</option>
+                      {data.staff.filter(s => s.role === 'Reporting Manager' || s.role === 'Superadmin').map(s => (
+                        <option key={s.id} value={s.name}>{s.name}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </div>
