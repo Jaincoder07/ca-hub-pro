@@ -2629,107 +2629,241 @@ const PracticeManagementApp = () => {
               </div>
             </div>
 
-            {/* Package Summary Cards */}
+            {/* DSC Due for Renewal & Expired Tables */}
             <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px'}}>
-              <div 
-                onClick={() => setCurrentView('packages')}
-                style={{background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', borderRadius: '12px', padding: '16px', cursor: 'pointer', border: '1px solid #fcd34d'}}>
-                <div style={{fontSize: '24px', fontWeight: '700', color: '#92400e'}}>{(() => {
-                  const pkgs = (data.packages || []).filter(p => !p.renewed);
-                  const sixtyDays = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
-                  return pkgs.filter(p => {
-                    const ed = new Date(p.endDate);
-                    return ed <= sixtyDays && ed >= today;
-                  }).length;
-                })()}</div>
-                <div style={{fontSize: '12px', fontWeight: '600', color: '#b45309'}}>📦 Due for Renewal (60 days)</div>
+              {/* DSC Due for Renewal */}
+              <div style={{background: '#fff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0'}}>
+                <h3 style={{margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#d97706', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                  <Key size={16} /> DSC Due for Renewal ({(() => {
+                    const dscRecords = data.dscRegister || [];
+                    return dscRecords.filter(d => {
+                      if (!d.expiryDate) return false;
+                      const expiry = new Date(d.expiryDate);
+                      const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+                      return daysLeft >= 0 && daysLeft <= 60;
+                    }).length;
+                  })()})
+                </h3>
+                <div style={{maxHeight: '200px', overflowY: 'auto'}}>
+                  {(() => {
+                    const dscRecords = data.dscRegister || [];
+                    const dueDsc = dscRecords.filter(d => {
+                      if (!d.expiryDate) return false;
+                      const expiry = new Date(d.expiryDate);
+                      const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+                      return daysLeft >= 0 && daysLeft <= 60;
+                    }).sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+                    
+                    if (dueDsc.length === 0) {
+                      return <div style={{textAlign: 'center', padding: '20px', color: '#10b981', fontSize: '12px'}}>No DSC due for renewal</div>;
+                    }
+                    
+                    return (
+                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                        <thead>
+                          <tr style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'}}>
+                            <th style={{padding: '6px 8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client/Holder</th>
+                            <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Expiry</th>
+                            <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Days</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {dueDsc.slice(0, 5).map((dsc, idx) => {
+                            const expiry = new Date(dsc.expiryDate);
+                            const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+                            return (
+                              <tr key={dsc.id} style={{background: idx % 2 === 0 ? '#fff' : '#fef9e7'}}>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb'}}>
+                                  <div style={{fontWeight: '500', fontSize: '11px'}}>{dsc.clientName}</div>
+                                  <div style={{fontSize: '10px', color: '#64748b'}}>{dsc.holderName}</div>
+                                </td>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontSize: '10px'}}>{expiry.toLocaleDateString('en-IN')}</td>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontWeight: '600', 
+                                  color: daysLeft <= 15 ? '#dc2626' : daysLeft <= 30 ? '#d97706' : '#059669'
+                                }}>{daysLeft}d</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    );
+                  })()}
+                </div>
+                <button onClick={() => setCurrentView('dscRegister')} style={{marginTop: '8px', width: '100%', padding: '8px', background: '#fef3c7', color: '#92400e', border: '1px solid #f59e0b', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}>
+                  View DSC Register →
+                </button>
               </div>
-              <div 
-                onClick={() => setCurrentView('packages')}
-                style={{background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)', borderRadius: '12px', padding: '16px', cursor: 'pointer', border: '1px solid #fca5a5'}}>
-                <div style={{fontSize: '24px', fontWeight: '700', color: '#991b1b'}}>{(() => {
-                  const pkgs = (data.packages || []).filter(p => !p.renewed);
-                  return pkgs.filter(p => new Date(p.endDate) < today).length;
-                })()}</div>
-                <div style={{fontSize: '12px', fontWeight: '600', color: '#dc2626'}}>⚠️ Expired Packages</div>
+              
+              {/* DSC Expired */}
+              <div style={{background: '#fff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0'}}>
+                <h3 style={{margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#dc2626', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                  <Key size={16} /> DSC Expired ({(() => {
+                    const dscRecords = data.dscRegister || [];
+                    return dscRecords.filter(d => {
+                      if (!d.expiryDate) return false;
+                      return new Date(d.expiryDate) < today;
+                    }).length;
+                  })()})
+                </h3>
+                <div style={{maxHeight: '200px', overflowY: 'auto'}}>
+                  {(() => {
+                    const dscRecords = data.dscRegister || [];
+                    const expiredDsc = dscRecords.filter(d => {
+                      if (!d.expiryDate) return false;
+                      return new Date(d.expiryDate) < today;
+                    }).sort((a, b) => new Date(b.expiryDate) - new Date(a.expiryDate));
+                    
+                    if (expiredDsc.length === 0) {
+                      return <div style={{textAlign: 'center', padding: '20px', color: '#10b981', fontSize: '12px'}}>No expired DSC 🎉</div>;
+                    }
+                    
+                    return (
+                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                        <thead>
+                          <tr style={{background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'}}>
+                            <th style={{padding: '6px 8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client/Holder</th>
+                            <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Expired On</th>
+                            <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Days Ago</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {expiredDsc.slice(0, 5).map((dsc, idx) => {
+                            const expiry = new Date(dsc.expiryDate);
+                            const daysAgo = Math.ceil((today - expiry) / (1000 * 60 * 60 * 24));
+                            return (
+                              <tr key={dsc.id} style={{background: idx % 2 === 0 ? '#fff' : '#fef2f2'}}>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb'}}>
+                                  <div style={{fontWeight: '500', fontSize: '11px'}}>{dsc.clientName}</div>
+                                  <div style={{fontSize: '10px', color: '#64748b'}}>{dsc.holderName}</div>
+                                </td>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontSize: '10px'}}>{expiry.toLocaleDateString('en-IN')}</td>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontWeight: '600', color: '#dc2626'}}>{daysAgo}d</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    );
+                  })()}
+                </div>
+                <button onClick={() => setCurrentView('dscRegister')} style={{marginTop: '8px', width: '100%', padding: '8px', background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}>
+                  View DSC Register →
+                </button>
               </div>
             </div>
 
-            {/* Due for Renewal Packages */}
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', transition: 'all 0.3s ease'}}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(245, 158, 11, 0.1)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
-              <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#d97706'}}>📦 Packages Due for Renewal ({(() => {
-                const pkgs = (data.packages || []).filter(p => !p.renewed);
-                const sixtyDays = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
-                return pkgs.filter(p => {
-                  const ed = new Date(p.endDate);
-                  return ed <= sixtyDays && ed >= today;
-                }).length;
-              })()})</h3>
-              <div style={{overflowX: 'auto', maxHeight: '300px', overflowY: 'auto'}}>
-                {(() => {
-                  const pkgs = (data.packages || []).filter(p => !p.renewed);
-                  const sixtyDays = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
-                  const duePkgs = pkgs.filter(p => {
-                    const ed = new Date(p.endDate);
-                    return ed <= sixtyDays && ed >= today;
-                  }).sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
-                  
-                  if (duePkgs.length === 0) {
+            {/* Package Due for Renewal & Expired Tables */}
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px'}}>
+              {/* Package Due for Renewal */}
+              <div style={{background: '#fff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0'}}>
+                <h3 style={{margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#d97706', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                  📦 Packages Due for Renewal ({(() => {
+                    const pkgs = (data.packages || []).filter(p => !p.renewed);
+                    const sixtyDays = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
+                    return pkgs.filter(p => {
+                      const ed = new Date(p.endDate);
+                      return ed <= sixtyDays && ed >= today;
+                    }).length;
+                  })()})
+                </h3>
+                <div style={{maxHeight: '200px', overflowY: 'auto'}}>
+                  {(() => {
+                    const pkgs = (data.packages || []).filter(p => !p.renewed);
+                    const sixtyDays = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
+                    const duePkgs = pkgs.filter(p => {
+                      const ed = new Date(p.endDate);
+                      return ed <= sixtyDays && ed >= today;
+                    }).sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
+                    
+                    if (duePkgs.length === 0) {
+                      return <div style={{textAlign: 'center', padding: '20px', color: '#10b981', fontSize: '12px'}}>No packages due for renewal 🎉</div>;
+                    }
+                    
                     return (
-                      <div style={{textAlign: 'center', padding: '40px', color: '#10b981'}}>
-                        <CheckCircle size={32} style={{marginBottom: '8px'}} />
-                        <div>No packages due for renewal! 🎉</div>
-                      </div>
+                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                        <thead>
+                          <tr style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'}}>
+                            <th style={{padding: '6px 8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
+                            <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>End Date</th>
+                            <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Days</th>
+                            <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#fff'}}>Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {duePkgs.slice(0, 5).map((pkg, idx) => {
+                            const endDate = new Date(pkg.endDate);
+                            const daysLeft = Math.floor((endDate - today) / (1000 * 60 * 60 * 24));
+                            return (
+                              <tr key={pkg.id} style={{background: idx % 2 === 0 ? '#fff' : '#fef9e7'}}>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', fontWeight: '500', fontSize: '11px'}}>{pkg.clientName}</td>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontSize: '10px'}}>{endDate.toLocaleDateString('en-IN')}</td>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontWeight: '600', 
+                                  color: daysLeft <= 15 ? '#dc2626' : daysLeft <= 30 ? '#d97706' : '#059669'
+                                }}>{daysLeft}d</td>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'right', fontWeight: '600', color: '#059669'}}>₹{(pkg.totalAmount || 0).toLocaleString('en-IN')}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     );
-                  }
-                  
-                  return (
-                    <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
-                      <thead>
-                        <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
-                          <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client</th>
-                          <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Code</th>
-                          <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>End Date</th>
-                          <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Days Left</th>
-                          <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {duePkgs.slice(0, 5).map((pkg, idx) => {
-                          const endDate = new Date(pkg.endDate);
-                          const daysLeft = Math.floor((endDate - today) / (1000 * 60 * 60 * 24));
-                          return (
-                            <tr key={pkg.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
-                              <td style={{padding: '6px 10px', border: '1px solid #e5e7eb', fontWeight: '500'}}>{pkg.clientName}</td>
-                              <td style={{padding: '6px 10px', border: '1px solid #e5e7eb', color: '#6366f1', fontSize: '11px'}}>{pkg.clientCode}</td>
-                              <td style={{padding: '6px 10px', border: '1px solid #e5e7eb', textAlign: 'center', fontSize: '11px'}}>{endDate.toLocaleDateString('en-IN')}</td>
-                              <td style={{padding: '6px 10px', border: '1px solid #e5e7eb', textAlign: 'center', fontWeight: '600', 
-                                color: daysLeft <= 15 ? '#dc2626' : daysLeft <= 30 ? '#d97706' : '#059669'
-                              }}>{daysLeft}d</td>
-                              <td style={{padding: '6px 10px', border: '1px solid #e5e7eb', textAlign: 'right', fontWeight: '600', color: '#059669'}}>₹{(pkg.totalAmount || 0).toLocaleString('en-IN')}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  );
-                })()}
-              </div>
-              {(data.packages || []).filter(p => {
-                if (p.renewed) return false;
-                const sixtyDays = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
-                const ed = new Date(p.endDate);
-                return ed <= sixtyDays && ed >= today;
-              }).length > 0 && (
-                <button 
-                  onClick={() => setCurrentView('packages')}
-                  style={{marginTop: '12px', width: '100%', padding: '10px', background: '#f0fdf4', color: '#059669', border: '1px solid #10b981', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500'}}
-                >
+                  })()}
+                </div>
+                <button onClick={() => setCurrentView('packages')} style={{marginTop: '8px', width: '100%', padding: '8px', background: '#fef3c7', color: '#92400e', border: '1px solid #f59e0b', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}>
                   View All Packages →
                 </button>
-              )}
+              </div>
+              
+              {/* Package Expired */}
+              <div style={{background: '#fff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0'}}>
+                <h3 style={{margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#dc2626', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                  ⚠️ Expired Packages ({(() => {
+                    const pkgs = (data.packages || []).filter(p => !p.renewed);
+                    return pkgs.filter(p => new Date(p.endDate) < today).length;
+                  })()})
+                </h3>
+                <div style={{maxHeight: '200px', overflowY: 'auto'}}>
+                  {(() => {
+                    const pkgs = (data.packages || []).filter(p => !p.renewed);
+                    const expiredPkgs = pkgs.filter(p => new Date(p.endDate) < today)
+                      .sort((a, b) => new Date(b.endDate) - new Date(a.endDate));
+                    
+                    if (expiredPkgs.length === 0) {
+                      return <div style={{textAlign: 'center', padding: '20px', color: '#10b981', fontSize: '12px'}}>No expired packages 🎉</div>;
+                    }
+                    
+                    return (
+                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                        <thead>
+                          <tr style={{background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'}}>
+                            <th style={{padding: '6px 8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
+                            <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Expired On</th>
+                            <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Days Ago</th>
+                            <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#fff'}}>Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {expiredPkgs.slice(0, 5).map((pkg, idx) => {
+                            const endDate = new Date(pkg.endDate);
+                            const daysAgo = Math.floor((today - endDate) / (1000 * 60 * 60 * 24));
+                            return (
+                              <tr key={pkg.id} style={{background: idx % 2 === 0 ? '#fff' : '#fef2f2'}}>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', fontWeight: '500', fontSize: '11px'}}>{pkg.clientName}</td>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontSize: '10px'}}>{endDate.toLocaleDateString('en-IN')}</td>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontWeight: '600', color: '#dc2626'}}>{daysAgo}d</td>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'right', fontWeight: '600', color: '#059669'}}>₹{(pkg.totalAmount || 0).toLocaleString('en-IN')}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    );
+                  })()}
+                </div>
+                <button onClick={() => setCurrentView('packages')} style={{marginTop: '8px', width: '100%', padding: '8px', background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}>
+                  View All Packages →
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -2917,110 +3051,249 @@ const PracticeManagementApp = () => {
               </div>
             </div>
 
-            {/* Package Summary Cards */}
+            {/* DSC Due for Renewal & Expired Tables */}
             <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px'}}>
-              <div 
-                onClick={() => setCurrentView('packages')}
-                style={{background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', borderRadius: '12px', padding: '16px', cursor: 'pointer', border: '1px solid #fcd34d'}}>
-                <div style={{fontSize: '24px', fontWeight: '700', color: '#92400e'}}>{(() => {
-                  const pkgs = (data.packages || []).filter(p => !p.renewed);
-                  const todayNow = new Date();
-                  const sixtyDays = new Date(todayNow.getTime() + (60 * 24 * 60 * 60 * 1000));
-                  return pkgs.filter(p => {
-                    const ed = new Date(p.endDate);
-                    return ed <= sixtyDays && ed >= todayNow;
-                  }).length;
-                })()}</div>
-                <div style={{fontSize: '12px', fontWeight: '600', color: '#b45309'}}>📦 Due for Renewal (60 days)</div>
+              {/* DSC Due for Renewal */}
+              <div style={{background: '#fff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0'}}>
+                <h3 style={{margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#d97706', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                  <Key size={16} /> DSC Due for Renewal ({(() => {
+                    const dscRecords = data.dscRegister || [];
+                    const todayNow = new Date();
+                    return dscRecords.filter(d => {
+                      if (!d.expiryDate) return false;
+                      const expiry = new Date(d.expiryDate);
+                      const daysLeft = Math.ceil((expiry - todayNow) / (1000 * 60 * 60 * 24));
+                      return daysLeft >= 0 && daysLeft <= 60;
+                    }).length;
+                  })()})
+                </h3>
+                <div style={{maxHeight: '180px', overflowY: 'auto'}}>
+                  {(() => {
+                    const dscRecords = data.dscRegister || [];
+                    const todayNow = new Date();
+                    const dueDsc = dscRecords.filter(d => {
+                      if (!d.expiryDate) return false;
+                      const expiry = new Date(d.expiryDate);
+                      const daysLeft = Math.ceil((expiry - todayNow) / (1000 * 60 * 60 * 24));
+                      return daysLeft >= 0 && daysLeft <= 60;
+                    }).sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+                    
+                    if (dueDsc.length === 0) {
+                      return <div style={{textAlign: 'center', padding: '20px', color: '#10b981', fontSize: '12px'}}>No DSC due for renewal</div>;
+                    }
+                    
+                    return (
+                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                        <thead>
+                          <tr style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'}}>
+                            <th style={{padding: '6px 8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client/Holder</th>
+                            <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Expiry</th>
+                            <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Days</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {dueDsc.slice(0, 5).map((dsc, idx) => {
+                            const expiry = new Date(dsc.expiryDate);
+                            const daysLeft = Math.ceil((expiry - todayNow) / (1000 * 60 * 60 * 24));
+                            return (
+                              <tr key={dsc.id} style={{background: idx % 2 === 0 ? '#fff' : '#fef9e7'}}>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb'}}>
+                                  <div style={{fontWeight: '500', fontSize: '11px'}}>{dsc.clientName}</div>
+                                  <div style={{fontSize: '10px', color: '#64748b'}}>{dsc.holderName}</div>
+                                </td>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontSize: '10px'}}>{expiry.toLocaleDateString('en-IN')}</td>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontWeight: '600', 
+                                  color: daysLeft <= 15 ? '#dc2626' : daysLeft <= 30 ? '#d97706' : '#059669'
+                                }}>{daysLeft}d</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    );
+                  })()}
+                </div>
+                <button onClick={() => setCurrentView('dscRegister')} style={{marginTop: '8px', width: '100%', padding: '8px', background: '#fef3c7', color: '#92400e', border: '1px solid #f59e0b', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}>
+                  View DSC Register →
+                </button>
               </div>
-              <div 
-                onClick={() => setCurrentView('packages')}
-                style={{background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)', borderRadius: '12px', padding: '16px', cursor: 'pointer', border: '1px solid #fca5a5'}}>
-                <div style={{fontSize: '24px', fontWeight: '700', color: '#991b1b'}}>{(() => {
-                  const pkgs = (data.packages || []).filter(p => !p.renewed);
-                  const todayNow = new Date();
-                  return pkgs.filter(p => new Date(p.endDate) < todayNow).length;
-                })()}</div>
-                <div style={{fontSize: '12px', fontWeight: '600', color: '#dc2626'}}>⚠️ Expired Packages</div>
+              
+              {/* DSC Expired */}
+              <div style={{background: '#fff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0'}}>
+                <h3 style={{margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#dc2626', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                  <Key size={16} /> DSC Expired ({(() => {
+                    const dscRecords = data.dscRegister || [];
+                    const todayNow = new Date();
+                    return dscRecords.filter(d => {
+                      if (!d.expiryDate) return false;
+                      return new Date(d.expiryDate) < todayNow;
+                    }).length;
+                  })()})
+                </h3>
+                <div style={{maxHeight: '180px', overflowY: 'auto'}}>
+                  {(() => {
+                    const dscRecords = data.dscRegister || [];
+                    const todayNow = new Date();
+                    const expiredDsc = dscRecords.filter(d => {
+                      if (!d.expiryDate) return false;
+                      return new Date(d.expiryDate) < todayNow;
+                    }).sort((a, b) => new Date(b.expiryDate) - new Date(a.expiryDate));
+                    
+                    if (expiredDsc.length === 0) {
+                      return <div style={{textAlign: 'center', padding: '20px', color: '#10b981', fontSize: '12px'}}>No expired DSC 🎉</div>;
+                    }
+                    
+                    return (
+                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                        <thead>
+                          <tr style={{background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'}}>
+                            <th style={{padding: '6px 8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client/Holder</th>
+                            <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Expired On</th>
+                            <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Days Ago</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {expiredDsc.slice(0, 5).map((dsc, idx) => {
+                            const expiry = new Date(dsc.expiryDate);
+                            const daysAgo = Math.ceil((todayNow - expiry) / (1000 * 60 * 60 * 24));
+                            return (
+                              <tr key={dsc.id} style={{background: idx % 2 === 0 ? '#fff' : '#fef2f2'}}>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb'}}>
+                                  <div style={{fontWeight: '500', fontSize: '11px'}}>{dsc.clientName}</div>
+                                  <div style={{fontSize: '10px', color: '#64748b'}}>{dsc.holderName}</div>
+                                </td>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontSize: '10px'}}>{expiry.toLocaleDateString('en-IN')}</td>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontWeight: '600', color: '#dc2626'}}>{daysAgo}d</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    );
+                  })()}
+                </div>
+                <button onClick={() => setCurrentView('dscRegister')} style={{marginTop: '8px', width: '100%', padding: '8px', background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}>
+                  View DSC Register →
+                </button>
               </div>
             </div>
 
-            {/* Due for Renewal Packages */}
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
-              <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#d97706'}}>📦 Packages Due for Renewal ({(() => {
-                const packages = (data.packages || []).filter(p => !p.renewed);
-                const today = new Date();
-                const sixtyDaysFromNow = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
-                return packages.filter(p => {
-                  const endDate = new Date(p.endDate);
-                  return endDate <= sixtyDaysFromNow && endDate >= today;
-                }).length;
-              })()})</h3>
-              <div style={{maxHeight: '300px', overflowY: 'auto'}}>
-                {(() => {
-                  const packages = (data.packages || []).filter(p => !p.renewed);
-                  const today = new Date();
-                  const sixtyDaysFromNow = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
-                  const duePackages = packages.filter(p => {
-                    const endDate = new Date(p.endDate);
-                    return endDate <= sixtyDaysFromNow && endDate >= today;
-                  }).sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
-                  
-                  if (duePackages.length === 0) {
+            {/* Package Due for Renewal & Expired Tables */}
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px'}}>
+              {/* Package Due for Renewal */}
+              <div style={{background: '#fff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0'}}>
+                <h3 style={{margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#d97706', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                  📦 Packages Due for Renewal ({(() => {
+                    const pkgs = (data.packages || []).filter(p => !p.renewed);
+                    const todayNow = new Date();
+                    const sixtyDays = new Date(todayNow.getTime() + (60 * 24 * 60 * 60 * 1000));
+                    return pkgs.filter(p => {
+                      const ed = new Date(p.endDate);
+                      return ed <= sixtyDays && ed >= todayNow;
+                    }).length;
+                  })()})
+                </h3>
+                <div style={{maxHeight: '180px', overflowY: 'auto'}}>
+                  {(() => {
+                    const pkgs = (data.packages || []).filter(p => !p.renewed);
+                    const todayNow = new Date();
+                    const sixtyDays = new Date(todayNow.getTime() + (60 * 24 * 60 * 60 * 1000));
+                    const duePkgs = pkgs.filter(p => {
+                      const ed = new Date(p.endDate);
+                      return ed <= sixtyDays && ed >= todayNow;
+                    }).sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
+                    
+                    if (duePkgs.length === 0) {
+                      return <div style={{textAlign: 'center', padding: '20px', color: '#10b981', fontSize: '12px'}}>No packages due for renewal 🎉</div>;
+                    }
+                    
                     return (
-                      <div style={{textAlign: 'center', padding: '40px', color: '#10b981'}}>
-                        <CheckCircle size={32} style={{marginBottom: '8px'}} />
-                        <div>No packages due for renewal! 🎉</div>
-                      </div>
+                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                        <thead>
+                          <tr style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'}}>
+                            <th style={{padding: '6px 8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
+                            <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>End Date</th>
+                            <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Days</th>
+                            <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#fff'}}>Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {duePkgs.slice(0, 5).map((pkg, idx) => {
+                            const endDate = new Date(pkg.endDate);
+                            const daysLeft = Math.floor((endDate - todayNow) / (1000 * 60 * 60 * 24));
+                            return (
+                              <tr key={pkg.id} style={{background: idx % 2 === 0 ? '#fff' : '#fef9e7'}}>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', fontWeight: '500', fontSize: '11px'}}>{pkg.clientName}</td>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontSize: '10px'}}>{endDate.toLocaleDateString('en-IN')}</td>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontWeight: '600', 
+                                  color: daysLeft <= 15 ? '#dc2626' : daysLeft <= 30 ? '#d97706' : '#059669'
+                                }}>{daysLeft}d</td>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'right', fontWeight: '600', color: '#059669'}}>₹{(pkg.totalAmount || 0).toLocaleString('en-IN')}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     );
-                  }
-                  
-                  return (
-                    <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
-                      <thead style={{position: 'sticky', top: 0, background: '#fff'}}>
-                        <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
-                          <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client</th>
-                          <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Code</th>
-                          <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>End Date</th>
-                          <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Days Left</th>
-                          <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {duePackages.slice(0, 10).map((pkg, idx) => {
-                          const endDate = new Date(pkg.endDate);
-                          const daysLeft = Math.floor((endDate - today) / (1000 * 60 * 60 * 24));
-                          return (
-                            <tr key={pkg.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
-                              <td style={{padding: '6px 10px', border: '1px solid #e5e7eb', fontWeight: '500'}}>{pkg.clientName}</td>
-                              <td style={{padding: '6px 10px', border: '1px solid #e5e7eb', color: '#6366f1', fontSize: '11px'}}>{pkg.clientCode}</td>
-                              <td style={{padding: '6px 10px', border: '1px solid #e5e7eb', textAlign: 'center', fontSize: '11px'}}>{endDate.toLocaleDateString('en-IN')}</td>
-                              <td style={{padding: '6px 10px', border: '1px solid #e5e7eb', textAlign: 'center', fontWeight: '600', 
-                                color: daysLeft <= 15 ? '#dc2626' : daysLeft <= 30 ? '#d97706' : '#059669'
-                              }}>{daysLeft}d</td>
-                              <td style={{padding: '6px 10px', border: '1px solid #e5e7eb', textAlign: 'right', fontWeight: '600', color: '#059669'}}>₹{(pkg.totalAmount || 0).toLocaleString('en-IN')}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  );
-                })()}
-              </div>
-              {(data.packages || []).filter(p => {
-                if (p.renewed) return false;
-                const today = new Date();
-                const sixtyDaysFromNow = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
-                const endDate = new Date(p.endDate);
-                return endDate <= sixtyDaysFromNow && endDate >= today;
-              }).length > 0 && (
-                <button 
-                  onClick={() => setCurrentView('packages')}
-                  style={{marginTop: '12px', width: '100%', padding: '10px', background: '#f0fdf4', color: '#059669', border: '1px solid #10b981', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500'}}
-                >
+                  })()}
+                </div>
+                <button onClick={() => setCurrentView('packages')} style={{marginTop: '8px', width: '100%', padding: '8px', background: '#fef3c7', color: '#92400e', border: '1px solid #f59e0b', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}>
                   View All Packages →
                 </button>
-              )}
+              </div>
+              
+              {/* Package Expired */}
+              <div style={{background: '#fff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0'}}>
+                <h3 style={{margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#dc2626', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                  ⚠️ Expired Packages ({(() => {
+                    const pkgs = (data.packages || []).filter(p => !p.renewed);
+                    const todayNow = new Date();
+                    return pkgs.filter(p => new Date(p.endDate) < todayNow).length;
+                  })()})
+                </h3>
+                <div style={{maxHeight: '180px', overflowY: 'auto'}}>
+                  {(() => {
+                    const pkgs = (data.packages || []).filter(p => !p.renewed);
+                    const todayNow = new Date();
+                    const expiredPkgs = pkgs.filter(p => new Date(p.endDate) < todayNow)
+                      .sort((a, b) => new Date(b.endDate) - new Date(a.endDate));
+                    
+                    if (expiredPkgs.length === 0) {
+                      return <div style={{textAlign: 'center', padding: '20px', color: '#10b981', fontSize: '12px'}}>No expired packages 🎉</div>;
+                    }
+                    
+                    return (
+                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                        <thead>
+                          <tr style={{background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'}}>
+                            <th style={{padding: '6px 8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
+                            <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Expired On</th>
+                            <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Days Ago</th>
+                            <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#fff'}}>Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {expiredPkgs.slice(0, 5).map((pkg, idx) => {
+                            const endDate = new Date(pkg.endDate);
+                            const daysAgo = Math.floor((todayNow - endDate) / (1000 * 60 * 60 * 24));
+                            return (
+                              <tr key={pkg.id} style={{background: idx % 2 === 0 ? '#fff' : '#fef2f2'}}>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', fontWeight: '500', fontSize: '11px'}}>{pkg.clientName}</td>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontSize: '10px'}}>{endDate.toLocaleDateString('en-IN')}</td>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontWeight: '600', color: '#dc2626'}}>{daysAgo}d</td>
+                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'right', fontWeight: '600', color: '#059669'}}>₹{(pkg.totalAmount || 0).toLocaleString('en-IN')}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    );
+                  })()}
+                </div>
+                <button onClick={() => setCurrentView('packages')} style={{marginTop: '8px', width: '100%', padding: '8px', background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}>
+                  View All Packages →
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -24264,21 +24537,32 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       clientId: '',
       clientName: '',
       holderName: '',
-      pan: '',
       dscType: 'Signing', // Signing, Encryption, Both
       tokenSerialNo: '',
       issuingAuthority: '',
       issueDate: '',
+      validity: '2 Years', // 1 Year, 2 Years, 3 Years
       expiryDate: '',
       password: '',
       physicalLocation: '',
-      status: 'Active', // Active, Expired, Revoked, Renewed
+      location: 'In Office', // In Office, With Client
+      status: 'Pending for Verification', // Pending for Verification, Downloaded, Expired
       remarks: ''
     });
     
     const issuingAuthorities = ['eMudhra', 'Sify', 'nCode', 'Capricorn', 'CDAC', 'IDRBT', 'SafeScrypt', 'Other'];
     const dscTypes = ['Signing', 'Encryption', 'Both'];
-    const dscStatuses = ['Active', 'Expired', 'Revoked', 'Renewed'];
+    const dscStatuses = ['Pending for Verification', 'Downloaded'];
+    const validityOptions = ['1 Year', '2 Years', '3 Years'];
+    
+    // Calculate expiry date from issue date and validity
+    const calculateExpiryDate = (issueDate, validity) => {
+      if (!issueDate) return '';
+      const issue = new Date(issueDate);
+      const years = parseInt(validity) || 2;
+      issue.setFullYear(issue.getFullYear() + years);
+      return issue.toISOString().split('T')[0];
+    };
     
     // Get DSC records from data
     const dscRecords = data.dscRegister || [];
@@ -24296,6 +24580,12 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       return 'valid';
     };
     
+    // Get effective status (auto-set to Expired if validity ends)
+    const getEffectiveStatus = (dsc) => {
+      if (getExpiryStatus(dsc.expiryDate) === 'expired') return 'Expired';
+      return dsc.status || 'Pending for Verification';
+    };
+    
     // Filter DSC records
     const filteredDscRecords = dscRecords.filter(dsc => {
       // Search filter
@@ -24303,11 +24593,12 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       const matchesSearch = !dscSearch || 
         (dsc.clientName || '').toLowerCase().includes(searchLower) ||
         (dsc.holderName || '').toLowerCase().includes(searchLower) ||
-        (dsc.pan || '').toLowerCase().includes(searchLower) ||
         (dsc.tokenSerialNo || '').toLowerCase().includes(searchLower);
       
-      // Status filter
-      const matchesStatus = dscStatusFilter === 'all' || dsc.status === dscStatusFilter;
+      // Status filter (use effective status)
+      const effectiveStatus = getEffectiveStatus(dsc);
+      const matchesStatus = dscStatusFilter === 'all' || 
+        dscStatusFilter === 'Expired' ? effectiveStatus === 'Expired' : dsc.status === dscStatusFilter;
       
       // Expiry filter
       let matchesExpiry = true;
@@ -24324,7 +24615,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     
     // Summary stats
     const totalDsc = dscRecords.length;
-    const activeDsc = dscRecords.filter(d => d.status === 'Active').length;
+    const downloadedDsc = dscRecords.filter(d => d.status === 'Downloaded' && getExpiryStatus(d.expiryDate) !== 'expired').length;
     const expiredDsc = dscRecords.filter(d => getExpiryStatus(d.expiryDate) === 'expired').length;
     const expiringSoonDsc = dscRecords.filter(d => getExpiryStatus(d.expiryDate) === 'expiring-soon').length;
     
@@ -24334,15 +24625,16 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         clientId: '',
         clientName: '',
         holderName: '',
-        pan: '',
         dscType: 'Signing',
         tokenSerialNo: '',
         issuingAuthority: '',
         issueDate: '',
+        validity: '2 Years',
         expiryDate: '',
         password: '',
         physicalLocation: '',
-        status: 'Active',
+        location: 'In Office',
+        status: 'Pending for Verification',
         remarks: ''
       });
       setEditingDsc(null);
@@ -24350,18 +24642,25 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     
     // Handle form submit
     const handleDscSubmit = () => {
-      if (!dscFormData.clientName || !dscFormData.holderName || !dscFormData.expiryDate) {
-        alert('Please fill in required fields: Client Name, Holder Name, and Expiry Date');
+      if (!dscFormData.clientName || !dscFormData.holderName || !dscFormData.issueDate) {
+        alert('Please fill in required fields: Client Name, Holder Name, and Issue Date');
         return;
       }
       
       const now = new Date().toISOString();
+      // Calculate expiry date from issue date and validity
+      const calculatedExpiryDate = calculateExpiryDate(dscFormData.issueDate, dscFormData.validity);
+      
+      const dscData = {
+        ...dscFormData,
+        expiryDate: calculatedExpiryDate
+      };
       
       if (editingDsc) {
         // Update existing
         const updatedDsc = dscRecords.map(dsc => 
           dsc.id === editingDsc.id 
-            ? { ...dsc, ...dscFormData, updatedAt: now }
+            ? { ...dsc, ...dscData, updatedAt: now }
             : dsc
         );
         setData(prev => ({ ...prev, dscRegister: updatedDsc }));
@@ -24369,7 +24668,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         // Add new
         const newDsc = {
           id: generateId(),
-          ...dscFormData,
+          ...dscData,
           createdAt: now,
           updatedAt: now,
           createdBy: currentUser?.name || 'Unknown'
@@ -24383,19 +24682,31 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     
     // Handle edit
     const handleEditDsc = (dsc) => {
+      // Calculate validity from issue and expiry dates
+      let validity = '2 Years';
+      if (dsc.issueDate && dsc.expiryDate) {
+        const issue = new Date(dsc.issueDate);
+        const expiry = new Date(dsc.expiryDate);
+        const years = Math.round((expiry - issue) / (365 * 24 * 60 * 60 * 1000));
+        if (years === 1) validity = '1 Year';
+        else if (years === 3) validity = '3 Years';
+        else validity = '2 Years';
+      }
+      
       setDscFormData({
         clientId: dsc.clientId || '',
         clientName: dsc.clientName || '',
         holderName: dsc.holderName || '',
-        pan: dsc.pan || '',
         dscType: dsc.dscType || 'Signing',
         tokenSerialNo: dsc.tokenSerialNo || '',
         issuingAuthority: dsc.issuingAuthority || '',
         issueDate: dsc.issueDate || '',
+        validity: dsc.validity || validity,
         expiryDate: dsc.expiryDate || '',
         password: dsc.password || '',
         physicalLocation: dsc.physicalLocation || '',
-        status: dsc.status || 'Active',
+        location: dsc.location || 'In Office',
+        status: dsc.status || 'Pending for Verification',
         remarks: dsc.remarks || ''
       });
       setEditingDsc(dsc);
@@ -24408,6 +24719,16 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         const updatedDsc = dscRecords.filter(dsc => dsc.id !== dscId);
         setData(prev => ({ ...prev, dscRegister: updatedDsc }));
       }
+    };
+    
+    // Toggle location (In Office / With Client)
+    const toggleDscLocation = (dscId) => {
+      const updatedDsc = dscRecords.map(dsc => 
+        dsc.id === dscId 
+          ? { ...dsc, location: dsc.location === 'In Office' ? 'With Client' : 'In Office', updatedAt: new Date().toISOString() }
+          : dsc
+      );
+      setData(prev => ({ ...prev, dscRegister: updatedDsc }));
     };
     
     // Toggle password visibility
@@ -24473,8 +24794,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 <CheckCircle size={24} color="#16a34a" />
               </div>
               <div>
-                <div style={{ fontSize: '28px', fontWeight: '700', color: '#16a34a' }}>{activeDsc}</div>
-                <div style={{ fontSize: '13px', color: '#64748b' }}>Active DSCs</div>
+                <div style={{ fontSize: '28px', fontWeight: '700', color: '#16a34a' }}>{downloadedDsc}</div>
+                <div style={{ fontSize: '13px', color: '#64748b' }}>Downloaded DSCs</div>
               </div>
             </div>
           </div>
@@ -24486,7 +24807,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               </div>
               <div>
                 <div style={{ fontSize: '28px', fontWeight: '700', color: '#d97706' }}>{expiringSoonDsc}</div>
-                <div style={{ fontSize: '13px', color: '#64748b' }}>Expiring Soon (30 days)</div>
+                <div style={{ fontSize: '13px', color: '#64748b' }}>Due for Renewal (30 days)</div>
               </div>
             </div>
           </div>
@@ -24512,7 +24833,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
               <input
                 type="text"
-                placeholder="Search by client, holder, PAN, token..."
+                placeholder="Search by client, holder, token..."
                 value={dscSearch}
                 onChange={(e) => setDscSearch(e.target.value)}
                 style={{
@@ -24537,13 +24858,13 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 fontSize: '14px',
                 background: '#fff',
                 cursor: 'pointer',
-                minWidth: '140px'
+                minWidth: '160px'
               }}
             >
               <option value="all">All Status</option>
-              {dscStatuses.map(status => (
-                <option key={status} value={status}>{status}</option>
-              ))}
+              <option value="Pending for Verification">Pending for Verification</option>
+              <option value="Downloaded">Downloaded</option>
+              <option value="Expired">Expired</option>
             </select>
             
             {/* Expiry Filter */}
@@ -24562,8 +24883,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             >
               <option value="all">All Expiry</option>
               <option value="expired">Expired</option>
-              <option value="expiring-soon">Expiring in 30 days</option>
-              <option value="expiring-60">Expiring in 60 days</option>
+              <option value="expiring-soon">Due in 30 days</option>
+              <option value="expiring-60">Due in 60 days</option>
               <option value="valid">Valid</option>
             </select>
           </div>
@@ -24611,12 +24932,12 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 <thead>
                   <tr style={{ background: 'linear-gradient(180deg, #10b981 0%, #059669 100%)' }}>
                     <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>Client / Holder</th>
-                    <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>PAN</th>
                     <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>Type</th>
                     <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>Token Serial</th>
                     <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>Issuing Authority</th>
                     <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>Expiry</th>
                     <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>Password</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'center', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>Location</th>
                     <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>Status</th>
                     <th style={{ padding: '12px 14px', textAlign: 'center', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Actions</th>
                   </tr>
@@ -24637,7 +24958,6 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         <div style={{ fontWeight: '600', color: '#0f172a', marginBottom: '2px', fontSize: '12px' }}>{dsc.clientName}</div>
                         <div style={{ fontSize: '11px', color: '#64748b' }}>{dsc.holderName}</div>
                       </td>
-                      <td style={{ padding: '12px 14px', borderRight: '1px solid #e2e8f0', fontFamily: 'monospace', fontSize: '12px' }}>{dsc.pan || '-'}</td>
                       <td style={{ padding: '12px 14px', borderRight: '1px solid #e2e8f0' }}>
                         <span style={{
                           padding: '3px 8px',
@@ -24680,16 +25000,67 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           )}
                         </div>
                       </td>
+                      <td style={{ padding: '12px 14px', borderRight: '1px solid #e2e8f0', textAlign: 'center' }}>
+                        {/* Location Toggle Switch */}
+                        <div 
+                          onClick={() => toggleDscLocation(dsc.id)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            cursor: 'pointer',
+                            background: (dsc.location || 'In Office') === 'In Office' ? '#dcfce7' : '#fef3c7',
+                            borderRadius: '20px',
+                            padding: '4px',
+                            position: 'relative',
+                            width: '90px',
+                            border: `1px solid ${(dsc.location || 'In Office') === 'In Office' ? '#10b981' : '#f59e0b'}`
+                          }}
+                        >
+                          <div style={{
+                            position: 'absolute',
+                            left: (dsc.location || 'In Office') === 'In Office' ? '4px' : 'calc(100% - 44px)',
+                            width: '40px',
+                            height: '20px',
+                            background: (dsc.location || 'In Office') === 'In Office' ? '#10b981' : '#f59e0b',
+                            borderRadius: '16px',
+                            transition: 'left 0.2s ease'
+                          }} />
+                          <span style={{
+                            flex: 1,
+                            textAlign: 'center',
+                            fontSize: '9px',
+                            fontWeight: '600',
+                            color: (dsc.location || 'In Office') === 'In Office' ? '#fff' : '#92400e',
+                            position: 'relative',
+                            zIndex: 1,
+                            padding: '2px 4px'
+                          }}>
+                            Office
+                          </span>
+                          <span style={{
+                            flex: 1,
+                            textAlign: 'center',
+                            fontSize: '9px',
+                            fontWeight: '600',
+                            color: (dsc.location || 'In Office') === 'With Client' ? '#fff' : '#065f46',
+                            position: 'relative',
+                            zIndex: 1,
+                            padding: '2px 4px'
+                          }}>
+                            Client
+                          </span>
+                        </div>
+                      </td>
                       <td style={{ padding: '12px 14px', borderRight: '1px solid #e2e8f0' }}>
                         <span style={{
                           padding: '3px 8px',
                           borderRadius: '4px',
-                          fontSize: '11px',
+                          fontSize: '10px',
                           fontWeight: '600',
-                          background: dsc.status === 'Active' ? '#dcfce7' : dsc.status === 'Expired' ? '#fee2e2' : dsc.status === 'Renewed' ? '#dbeafe' : '#f1f5f9',
-                          color: dsc.status === 'Active' ? '#16a34a' : dsc.status === 'Expired' ? '#dc2626' : dsc.status === 'Renewed' ? '#2563eb' : '#64748b'
+                          background: getEffectiveStatus(dsc) === 'Downloaded' ? '#dcfce7' : getEffectiveStatus(dsc) === 'Expired' ? '#fee2e2' : '#fef3c7',
+                          color: getEffectiveStatus(dsc) === 'Downloaded' ? '#16a34a' : getEffectiveStatus(dsc) === 'Expired' ? '#dc2626' : '#d97706'
                         }}>
-                          {dsc.status}
+                          {getEffectiveStatus(dsc)}
                         </span>
                       </td>
                       <td style={{ padding: '12px 14px' }}>
@@ -24838,28 +25209,6 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     />
                   </div>
                   
-                  {/* PAN */}
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#374151' }}>
-                      PAN Number
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="AAAAA0000A"
-                      value={dscFormData.pan}
-                      onChange={(e) => setDscFormData({ ...dscFormData, pan: e.target.value.toUpperCase() })}
-                      maxLength={10}
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        textTransform: 'uppercase'
-                      }}
-                    />
-                  </div>
-                  
                   {/* DSC Type */}
                   <div>
                     <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#374151' }}>
@@ -24930,12 +25279,16 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   {/* Issue Date */}
                   <div>
                     <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#374151' }}>
-                      Issue Date
+                      Issue Date <span style={{ color: '#dc2626' }}>*</span>
                     </label>
                     <input
                       type="date"
                       value={dscFormData.issueDate}
-                      onChange={(e) => setDscFormData({ ...dscFormData, issueDate: e.target.value })}
+                      onChange={(e) => {
+                        const newIssueDate = e.target.value;
+                        const newExpiryDate = calculateExpiryDate(newIssueDate, dscFormData.validity);
+                        setDscFormData({ ...dscFormData, issueDate: newIssueDate, expiryDate: newExpiryDate });
+                      }}
                       style={{
                         width: '100%',
                         padding: '10px 12px',
@@ -24946,21 +25299,50 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     />
                   </div>
                   
-                  {/* Expiry Date */}
+                  {/* Validity */}
                   <div>
                     <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#374151' }}>
-                      Expiry Date <span style={{ color: '#dc2626' }}>*</span>
+                      Validity
                     </label>
-                    <input
-                      type="date"
-                      value={dscFormData.expiryDate}
-                      onChange={(e) => setDscFormData({ ...dscFormData, expiryDate: e.target.value })}
+                    <select
+                      value={dscFormData.validity}
+                      onChange={(e) => {
+                        const newValidity = e.target.value;
+                        const newExpiryDate = calculateExpiryDate(dscFormData.issueDate, newValidity);
+                        setDscFormData({ ...dscFormData, validity: newValidity, expiryDate: newExpiryDate });
+                      }}
                       style={{
                         width: '100%',
                         padding: '10px 12px',
                         border: '1px solid #d1d5db',
                         borderRadius: '8px',
-                        fontSize: '14px'
+                        fontSize: '14px',
+                        background: '#fff'
+                      }}
+                    >
+                      {validityOptions.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {/* Expiry Date (Auto-calculated) */}
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#374151' }}>
+                      Expiry Date <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '400' }}>(Auto-calculated)</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={dscFormData.expiryDate || calculateExpiryDate(dscFormData.issueDate, dscFormData.validity)}
+                      readOnly
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        background: '#f3f4f6',
+                        color: '#6b7280'
                       }}
                     />
                   </div>
