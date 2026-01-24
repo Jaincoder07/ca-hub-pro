@@ -4185,14 +4185,15 @@ const PracticeManagementApp = () => {
         <div style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr 1fr',
-          gap: '20px',
-          marginBottom: '20px'
+          gap: '24px',
+          marginBottom: '20px',
+          padding: '0 8px'
         }}>
           {/* LEFT: Status Filter Boxes - 2x2 Grid */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: '10px'
+            gap: '12px'
           }}>
             {/* Open Tasks Box - Green Pastel */}
             <div 
@@ -4200,7 +4201,7 @@ const PracticeManagementApp = () => {
               style={{
                 background: activeStatusFilter === 'Open' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
                 color: activeStatusFilter === 'Open' ? '#fff' : '#065f46',
-                padding: '12px 14px',
+                padding: '8px 12px',
                 borderRadius: '10px',
                 boxShadow: activeStatusFilter === 'Open' ? '0 4px 12px rgba(16,185,129,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
                 cursor: 'pointer',
@@ -4209,8 +4210,8 @@ const PracticeManagementApp = () => {
                 transform: activeStatusFilter === 'Open' ? 'translateY(-2px)' : 'none'
               }}
             >
-              <div style={{fontSize: '24px', fontWeight: '700', marginBottom: '2px'}}>{openTasks.length}</div>
-              <div style={{fontSize: '11px', fontWeight: '600'}}>Open Tasks</div>
+              <div style={{fontSize: '20px', fontWeight: '700', marginBottom: '0'}}>{openTasks.length}</div>
+              <div style={{fontSize: '10px', fontWeight: '600'}}>Open Tasks</div>
             </div>
 
             {/* In Progress Tasks Box - Blue Pastel */}
@@ -4219,7 +4220,7 @@ const PracticeManagementApp = () => {
               style={{
                 background: activeStatusFilter === 'InProgress' ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
                 color: activeStatusFilter === 'InProgress' ? '#fff' : '#1e40af',
-                padding: '12px 14px',
+                padding: '8px 12px',
                 borderRadius: '10px',
                 boxShadow: activeStatusFilter === 'InProgress' ? '0 4px 12px rgba(59,130,246,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
                 cursor: 'pointer',
@@ -4228,8 +4229,8 @@ const PracticeManagementApp = () => {
                 transform: activeStatusFilter === 'InProgress' ? 'translateY(-2px)' : 'none'
               }}
             >
-              <div style={{fontSize: '24px', fontWeight: '700', marginBottom: '2px'}}>{inProgressTasks.length}</div>
-              <div style={{fontSize: '11px', fontWeight: '600'}}>In Progress</div>
+              <div style={{fontSize: '20px', fontWeight: '700', marginBottom: '0'}}>{inProgressTasks.length}</div>
+              <div style={{fontSize: '10px', fontWeight: '600'}}>In Progress</div>
             </div>
 
             {/* Long Due Tasks Box - Amber Pastel */}
@@ -4238,7 +4239,7 @@ const PracticeManagementApp = () => {
               style={{
                 background: activeStatusFilter === 'LongDue' ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
                 color: activeStatusFilter === 'LongDue' ? '#fff' : '#92400e',
-                padding: '12px 14px',
+                padding: '8px 12px',
                 borderRadius: '10px',
                 boxShadow: activeStatusFilter === 'LongDue' ? '0 4px 12px rgba(245,158,11,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
                 cursor: 'pointer',
@@ -4247,8 +4248,8 @@ const PracticeManagementApp = () => {
                 transform: activeStatusFilter === 'LongDue' ? 'translateY(-2px)' : 'none'
               }}
             >
-              <div style={{fontSize: '24px', fontWeight: '700', marginBottom: '2px'}}>{longDueTasks.length}</div>
-              <div style={{fontSize: '11px', fontWeight: '600'}}>Long Due (60+)</div>
+              <div style={{fontSize: '20px', fontWeight: '700', marginBottom: '0'}}>{longDueTasks.length}</div>
+              <div style={{fontSize: '10px', fontWeight: '600'}}>Long Due (60+)</div>
             </div>
 
             {/* Deleted Tasks Box - Red Pastel */}
@@ -4257,7 +4258,7 @@ const PracticeManagementApp = () => {
               style={{
                 background: activeStatusFilter === 'Deleted' ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
                 color: activeStatusFilter === 'Deleted' ? '#fff' : '#991b1b',
-                padding: '12px 14px',
+                padding: '8px 12px',
                 borderRadius: '10px',
                 boxShadow: activeStatusFilter === 'Deleted' ? '0 4px 12px rgba(239,68,68,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
                 cursor: 'pointer',
@@ -4266,8 +4267,8 @@ const PracticeManagementApp = () => {
                 transform: activeStatusFilter === 'Deleted' ? 'translateY(-2px)' : 'none'
               }}
             >
-              <div style={{fontSize: '24px', fontWeight: '700', marginBottom: '2px'}}>{deletedTasks.length}</div>
-              <div style={{fontSize: '11px', fontWeight: '600'}}>Deleted Tasks</div>
+              <div style={{fontSize: '20px', fontWeight: '700', marginBottom: '0'}}>{deletedTasks.length}</div>
+              <div style={{fontSize: '10px', fontWeight: '600'}}>Deleted Tasks</div>
             </div>
           </div>
 
@@ -5242,7 +5243,7 @@ const PracticeManagementApp = () => {
                   )}
 
                   {/* Row 1: Group No., Client Code, Client Name (wide), Type of Client, Date of Enrollment */}
-                  <div style={{display: 'grid', gridTemplateColumns: '70px 90px 1fr 150px 150px', gap: '12px', alignItems: 'end'}}>
+                  <div style={{display: 'grid', gridTemplateColumns: '65px 80px 1fr 120px 130px', gap: '12px', alignItems: 'end'}}>
                     {/* Group No. */}
                     <div>
                       <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Group No.</label>
@@ -27754,7 +27755,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         .templates-view,
         .approvals-view,
         .tasks-view {
-          padding: 28px 32px;
+          padding: 24px 40px;
           margin: 0;
           background: #f8fafc;
         }
