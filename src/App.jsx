@@ -26,6 +26,16 @@ const storage = getStorage(firebaseApp);
 // Utility function for generating IDs
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
+// Helper function to format fileNo to always show 2 digits after decimal
+const formatFileNo = (fileNo) => {
+  if (!fileNo) return '';
+  const parts = String(fileNo).split('.');
+  if (parts.length !== 2) return fileNo;
+  const groupNo = parts[0];
+  const clientNo = String(parseInt(parts[1]) || 0).padStart(2, '0');
+  return `${groupNo}.${clientNo}`;
+};
+
 // Helper function to remove/convert undefined values (Firebase doesn't accept undefined)
 // This recursively processes all nested objects and arrays
 const removeUndefined = (obj) => {
@@ -3133,10 +3143,11 @@ const PracticeManagementApp = () => {
       // Apply search filters
       if (filters.fileNo && !(task.fileNo || '').includes(filters.fileNo)) return false;
       if (filters.clientName && !task.clientName?.toLowerCase().includes(filters.clientName.toLowerCase())) return false;
-      // Filter by Group No. (derived from fileNo - digits before decimal)
+      // Filter by Group No. (derived from fileNo - digits before decimal) - EXACT MATCH
       if (filters.groupName) {
         const taskGroupNo = task.fileNo ? task.fileNo.split('.')[0] : '';
-        if (!taskGroupNo.includes(filters.groupName)) return false;
+        // Use exact match for group number
+        if (taskGroupNo !== filters.groupName.trim()) return false;
       }
       if (filters.taskFinancialYear && task.financialYear !== filters.taskFinancialYear) return false;
       if (filters.taskPeriod && !(task.period || '').toLowerCase().includes(filters.taskPeriod.toLowerCase())) return false;
@@ -3148,7 +3159,7 @@ const PracticeManagementApp = () => {
         const taskGroupNo = task.fileNo ? task.fileNo.split('.')[0] : '';
         return (task.clientName || '').toLowerCase().includes(searchLower) ||
                (task.fileNo || '').includes(searchLower) ||
-               taskGroupNo.includes(searchLower);
+               taskGroupNo === searchLower; // Exact match for group number in search
       }
       
       return true;
@@ -3555,11 +3566,22 @@ const PracticeManagementApp = () => {
       }));
     };
 
-    // Filter clients for search
-    const filteredClientsForRecurring = data.clients.filter(c => 
-      c.name.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
-      (c.fileNo || '').toLowerCase().includes(clientSearchTerm.toLowerCase())
-    );
+    // Filter clients for search and remove duplicates by name
+    const filteredClientsForRecurring = (() => {
+      const filtered = data.clients.filter(c => 
+        !c.disabled &&
+        (c.name?.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
+        (c.fileNo || '').toLowerCase().includes(clientSearchTerm.toLowerCase()))
+      );
+      // Remove duplicates by name (keep first occurrence)
+      const seen = new Set();
+      return filtered.filter(c => {
+        const name = (c.name || '').toLowerCase().trim();
+        if (seen.has(name)) return false;
+        seen.add(name);
+        return true;
+      });
+    })();
 
     return (
       <div className="task-detail-view">
@@ -3885,7 +3907,7 @@ const PracticeManagementApp = () => {
                               />
                               <div style={{flex: 1}}>
                                 <div style={{fontWeight: '500', fontSize: '13px'}}>{client.name}</div>
-                                {client.fileNo && <div style={{color: '#64748b', fontSize: '11px'}}>Code: {client.fileNo}</div>}
+                                {client.fileNo && <div style={{color: '#64748b', fontSize: '11px'}}>Code: {formatFileNo(client.fileNo)}</div>}
                               </div>
                               {client.fileNo && (
                                 <span style={{color: '#64748b', fontSize: '11px', background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px'}}>
@@ -3945,7 +3967,7 @@ const PracticeManagementApp = () => {
                                 }}
                               >
                                 <span>{client.name}</span>
-                                <span style={{color: '#64748b', fontSize: '11px'}}>{client.fileNo}</span>
+                                <span style={{color: '#64748b', fontSize: '11px'}}>{formatFileNo(client.fileNo)}</span>
                               </div>
                             ))}
                           </div>
@@ -4603,7 +4625,7 @@ const PracticeManagementApp = () => {
                     <td style={{padding: '10px 8px', maxWidth: '150px'}}>
                       <div style={{wordWrap: 'break-word', whiteSpace: 'normal', lineHeight: '1.3', maxHeight: '40px', overflow: 'hidden'}}>{task.clientName || '-'}</div>
                     </td>
-                    <td style={{padding: '10px 8px', fontSize: '11px'}}>{task.fileNo || '-'}</td>
+                    <td style={{padding: '10px 8px', fontSize: '11px'}}>{formatFileNo(task.fileNo) || '-'}</td>
                     <td style={{padding: '10px 8px', maxWidth: '200px'}}>
                       <div style={{wordWrap: 'break-word', whiteSpace: 'normal', lineHeight: '1.3', fontSize: '11px', color: '#475569'}} title={task.taskDescription || task.description || ''}>
                         {task.taskDescription || task.description || '-'}
@@ -4696,7 +4718,7 @@ const PracticeManagementApp = () => {
     
     // Helper function to get the last client code number in a group
     const getLastClientCode = (groupCode) => {
-      const groupClients = data.clients.filter(c => c.fileNo && c.fileNo.startsWith(groupCode + '.'));
+      const groupClients = data.clients.filter(c => c.fileNo && c.fileNo.split('.')[0] === String(groupCode));
       if (groupClients.length === 0) return null;
       
       const codes = groupClients.map(c => {
@@ -4717,7 +4739,7 @@ const PracticeManagementApp = () => {
     
     // Helper function to get client count in a group
     const getGroupClientCount = (groupCode) => {
-      return data.clients.filter(c => c.fileNo && c.fileNo.startsWith(groupCode + '.')).length;
+      return data.clients.filter(c => c.fileNo && c.fileNo.split('.')[0] === String(groupCode)).length;
     };
     
     // Validate client code format and uniqueness (simplified - no manual entry)
@@ -4747,6 +4769,39 @@ const PracticeManagementApp = () => {
       }
       
       return { valid: true, message: '' };
+    };
+    
+    // Validate for duplicate client (same name AND PAN)
+    const validateDuplicateClient = (name, pan) => {
+      if (!name) return { valid: true };
+      
+      const editingClientId = editingClient?.id;
+      const duplicate = data.clients.find(c => {
+        // Skip the client being edited
+        if (editingClientId && String(c.id) === String(editingClientId)) return false;
+        
+        // Check for same name (case-insensitive)
+        const sameName = c.name?.toLowerCase().trim() === name.toLowerCase().trim() ||
+                         c.clientName?.toLowerCase().trim() === name.toLowerCase().trim();
+        
+        // If PAN is provided, also check PAN
+        if (pan && pan.trim()) {
+          const samePan = c.pancard?.toUpperCase().trim() === pan.toUpperCase().trim();
+          return sameName && samePan;
+        }
+        
+        // If no PAN, just check name
+        return sameName;
+      });
+      
+      if (duplicate) {
+        if (pan && pan.trim()) {
+          return { valid: false, message: `A client with the same Name and PAN already exists: ${duplicate.name || duplicate.clientName} (${duplicate.fileNo})` };
+        }
+        return { valid: false, message: `A client with the same Name already exists: ${duplicate.name || duplicate.clientName} (${duplicate.fileNo}). Add PAN to differentiate.` };
+      }
+      
+      return { valid: true };
     };
     
     // Create fresh initial state
@@ -4951,8 +5006,16 @@ const PracticeManagementApp = () => {
         return;
       }
       
-      // Get Group No. from fileNo
+      // Check for duplicate client (same name AND PAN)
+      const duplicateCheck = validateDuplicateClient(clientData.clientName, clientData.pancard);
+      if (!duplicateCheck.valid) {
+        alert(`❌ Duplicate Client!\n\n${duplicateCheck.message}`);
+        return;
+      }
+      
+      // Get Group No. from fileNo and format fileNo with 2 decimal places
       const groupNo = clientData.fileNo.split('.')[0] || '';
+      const formattedFileNo = formatFileNo(clientData.fileNo);
       
       // Map form data to client object structure - save ALL fields
       const newClient = {
@@ -4961,11 +5024,12 @@ const PracticeManagementApp = () => {
         name: clientData.clientName ? clientData.clientName.trim() : '',
         email: clientData.email ? clientData.email.trim() : '',
         phone: clientData.phone ? clientData.phone.trim() : '',
-        fileNo: clientData.fileNo ? clientData.fileNo.trim() : '',
+        fileNo: formattedFileNo, // Use formatted fileNo
         groupNo: groupNo, // Store Group No. derived from Client Code
         address: clientData.address ? clientData.address.trim() : '',
         gstin: clientData.gstin ? clientData.gstin.trim() : '',
         pan: clientData.pancard ? clientData.pancard.trim() : '',
+        pancard: clientData.pancard ? clientData.pancard.trim() : '', // Keep both for compatibility
         aadhaar: clientData.aadhaar ? clientData.aadhaar.trim() : '',
         state: clientData.state ? clientData.state.trim() : '',
         typeOfClient: clientData.typeOfClient ? clientData.typeOfClient.trim() : '',
@@ -5163,6 +5227,46 @@ const PracticeManagementApp = () => {
                           </span>
                         )}
                       </div>
+                      
+                      {/* Group No. Display Field */}
+                      <div style={{display: 'flex', gap: '16px', marginTop: '8px'}}>
+                        <div style={{flex: 1}}>
+                          <label style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', display: 'block'}}>Group No.</label>
+                          <input
+                            type="text"
+                            value={clientData.fileNo ? clientData.fileNo.split('.')[0] : (clientData.groupMode === 'new' ? getNextNewGroup() : clientData.selectedGroup || '')}
+                            readOnly
+                            style={{
+                              width: '100%',
+                              padding: '8px 12px',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '6px',
+                              background: '#f8fafc',
+                              fontSize: '14px',
+                              fontWeight: '600',
+                              color: '#1e293b'
+                            }}
+                          />
+                        </div>
+                        <div style={{flex: 2}}>
+                          <label style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', display: 'block'}}>Next Client Code</label>
+                          <input
+                            type="text"
+                            value={formatFileNo(clientData.fileNo) || ''}
+                            readOnly
+                            style={{
+                              width: '100%',
+                              padding: '8px 12px',
+                              border: '1px solid #10b981',
+                              borderRadius: '6px',
+                              background: '#f0fdf4',
+                              fontSize: '14px',
+                              fontWeight: '600',
+                              color: '#166534'
+                            }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -5170,11 +5274,11 @@ const PracticeManagementApp = () => {
                   <div className="form-field-pro span-1">
                     <label>
                       Client Code <span className="required-star">*</span>
-                      <span style={{fontSize: '10px', color: '#64748b', marginLeft: '6px'}}>(Auto-generated)</span>
+                      <span style={{fontSize: '10px', color: '#64748b', marginLeft: '6px'}}>(Auto)</span>
                     </label>
                     <input
                       type="text"
-                      value={clientData.fileNo}
+                      value={formatFileNo(clientData.fileNo)}
                       readOnly={!editingClient}
                       disabled={!editingClient}
                       style={{
@@ -6260,6 +6364,7 @@ const PracticeManagementApp = () => {
 
       return clients.filter(client => {
         const searchLower = clientSearchTerm.toLowerCase().trim();
+        const searchTerm = clientSearchTerm.trim();
         
         switch(clientSearchType) {
           case 'Client Name':
@@ -6267,7 +6372,9 @@ const PracticeManagementApp = () => {
           case 'Client Code':
             return client.fileNo?.toLowerCase().includes(searchLower);
           case 'Group No.':
-            return client.groupName?.toLowerCase().includes(searchLower);
+            // Use exact match for Group No.
+            const clientGroupNo = client.fileNo ? client.fileNo.split('.')[0] : '';
+            return clientGroupNo === searchTerm;
           case 'PAN Card No':
             return client.pan?.toLowerCase().includes(searchLower);
           case 'Email':
@@ -6458,7 +6565,7 @@ const PracticeManagementApp = () => {
                             </div>
                           </td>
                           <td>{index + 1}</td>
-                          <td>{client.fileNo || ''}</td>
+                          <td>{formatFileNo(client.fileNo) || ''}</td>
                           <td>{client.name || ''}</td>
                           <td>{client.fileNo ? client.fileNo.split('.')[0] : ''}</td>
                           <td>{client.phone || ''}</td>
@@ -6506,7 +6613,7 @@ const PracticeManagementApp = () => {
                         filteredDisabledClients.map((client, index) => (
                           <tr key={client.id}>
                             <td>{index + 1}</td>
-                            <td>{client.fileNo || ''}</td>
+                            <td>{formatFileNo(client.fileNo) || ''}</td>
                             <td>{client.name || ''}</td>
                             <td>{client.fileNo ? client.fileNo.split('.')[0] : ''}</td>
                             <td>{client.phone || ''}</td>
@@ -10243,7 +10350,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               <div style={{width: '36px', height: '36px', borderRadius: '50%', background: '#8b5cf6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: '600'}}>{client.name.charAt(0)}</div>
                               <div>
                                 <div style={{fontSize: '12px', fontWeight: '500'}}>{client.name}</div>
-                                <div style={{fontSize: '10px', color: '#64748b'}}>{client.fileNo || 'No Code'} • Group {client.fileNo ? client.fileNo.split('.')[0] : 'N/A'}</div>
+                                <div style={{fontSize: '10px', color: '#64748b'}}>{formatFileNo(client.fileNo) || 'No Code'} • Group {client.fileNo ? client.fileNo.split('.')[0] : 'N/A'}</div>
                               </div>
                             </div>
                           ))}
@@ -12566,12 +12673,22 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const [showClientDropdown, setShowClientDropdown] = useState(false);
     const [taskSearchTerm, setTaskSearchTerm] = useState('');
 
-    // Filter clients based on search
-    const filteredClients = data.clients.filter(c => 
-      !c.disabled && 
-      (c.name?.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
-       c.fileNo?.toLowerCase().includes(clientSearchTerm.toLowerCase()))
-    );
+    // Filter clients based on search and remove duplicates by name
+    const filteredClients = (() => {
+      const filtered = data.clients.filter(c => 
+        !c.disabled && 
+        (c.name?.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
+         c.fileNo?.toLowerCase().includes(clientSearchTerm.toLowerCase()))
+      );
+      // Remove duplicates by name (keep first occurrence)
+      const seen = new Set();
+      return filtered.filter(c => {
+        const name = (c.name || '').toLowerCase().trim();
+        if (seen.has(name)) return false;
+        seen.add(name);
+        return true;
+      });
+    })();
 
     // Filter parent tasks based on search
     const filteredParentTasks = Object.keys(PARENT_CHILD_TASKS).filter(parent =>
@@ -13579,7 +13696,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               onMouseLeave={(e) => e.target.style.background = '#fff'}
                             >
                               <div style={{ fontWeight: 600 }}>{client.name}</div>
-                              {client.fileNo && <div style={{ fontSize: '11px', color: '#64748b' }}>Code: {client.fileNo}</div>}
+                              {client.fileNo && <div style={{ fontSize: '11px', color: '#64748b' }}>Code: {formatFileNo(client.fileNo)}</div>}
                             </div>
                           ))}
                           {filteredClients.length > 10 && (
