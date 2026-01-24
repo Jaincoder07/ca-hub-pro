@@ -1,69 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Clock, FileText, DollarSign, Bell, Settings, Home, Briefcase, TrendingUp, Plus, Search, Filter, ChevronDown, ChevronRight, ChevronLeft, Mail, MessageSquare, Download, Upload, CheckCircle, AlertCircle, XCircle, Menu, X, MoreVertical, Edit, Trash2, Eye, User, LogOut, BarChart3, PieChart, Activity, Check, Building, Percent } from 'lucide-react';
-
-// Firebase imports
-import { initializeApp } from "firebase/app";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, doc, getDoc, setDoc, collection, getDocs, onSnapshot } from "firebase/firestore";
-
-// Firebase Configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyCv1f44t61b8r11PUC3E0UtwxzwtlVOIOQ",
-  authDomain: "ca-hub-pro.firebaseapp.com",
-  projectId: "ca-hub-pro",
-  storageBucket: "ca-hub-pro.firebasestorage.app",
-  messagingSenderId: "72722363355",
-  appId: "1:72722363355:web:f4f284624eb96ab59dadfe"
-};
-
-// Initialize Firebase
-const firebaseApp = initializeApp(firebaseConfig);
-const auth = getAuth(firebaseApp);
-const db = getFirestore(firebaseApp);
+import { Calendar, Users, Clock, FileText, DollarSign, Bell, Settings, Home, Briefcase, TrendingUp, Plus, Search, Filter, ChevronDown, ChevronRight, ChevronLeft, Mail, MessageSquare, Download, Upload, CheckCircle, AlertCircle, XCircle, Menu, X, MoreVertical, Edit, Trash2, Eye, User, LogOut, BarChart3, PieChart, Activity, Check, Building, Percent, Key, Shield } from 'lucide-react';
 
 // Utility function for generating IDs
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
-// Helper function to remove/convert undefined values (Firebase doesn't accept undefined)
-// This recursively processes all nested objects and arrays
-const removeUndefined = (obj) => {
-  if (obj === undefined) return null;
-  if (obj === null) return null;
-  if (typeof obj !== 'object') return obj;
-  
-  if (Array.isArray(obj)) {
-    return obj.map(item => removeUndefined(item));
-  }
-  
-  const newObj = {};
-  for (const key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key)) {
-      const value = obj[key];
-      if (value === undefined) {
-        newObj[key] = null; // Convert undefined to null
-      } else {
-        newObj[key] = removeUndefined(value);
-      }
-    }
-  }
-  return newObj;
-};
-
-// BULLETPROOF: Clean data for Firebase using JSON stringify/parse
-// This is GUARANTEED to remove all undefined values
-const cleanForFirebase = (data) => {
-  // JSON.stringify automatically excludes undefined values
-  // We use a replacer to convert undefined to null explicitly
-  const jsonString = JSON.stringify(data, (key, value) => {
-    if (value === undefined) {
-      return null;
-    }
-    return value;
-  });
-  
-  // Parse it back to object - now guaranteed to have no undefined
-  return JSON.parse(jsonString);
-};
+// LocalStorage keys
+const STORAGE_KEY = 'ca-hub-pro-data';
+const AUTH_KEY = 'ca-hub-pro-auth';
 
 // Parent and Child Task Data
 // Default Parent-Child Tasks Configuration (can be modified via Configuration)
@@ -116,16 +59,16 @@ const initialData = {
   parentChildTasks: { ...DEFAULT_PARENT_CHILD_TASKS }, // Configurable task categories
   recurringBatches: [], // {id, name, parentTask, childTask, clients: [], autoCreate: true/false, isActive: true}
   checklists: [], // {id, name, parentTask, childTask, items: [{id, text, required}], isActive: true}
-  pendingApprovals: [] // {id, type, requestedBy, requestedByRole, approverId, approverRole, status, data, createdAt, updatedAt, comments, actionedBy}
+  pendingApprovals: [], // {id, type, requestedBy, requestedByRole, approverId, approverRole, status, data, createdAt, updatedAt, comments, actionedBy}
+  dscRegister: [] // {id, clientId, holderName, holderPan, provider, dscClass, dscType, tokenSerial, issueDate, expiryDate, password, location, status, remarks}
 };
 
 const PracticeManagementApp = () => {
-  // Firebase loading states
-  const [firebaseLoading, setFirebaseLoading] = useState(true);
-  const [firebaseUser, setFirebaseUser] = useState(null);
+  // Loading states
+  const [appLoading, setAppLoading] = useState(true);
   const [dataLoaded, setDataLoaded] = useState(false);
   
-  // Data state - starts empty, loaded from Firebase
+  // Data state - loaded from localStorage
   const [data, setData] = useState({
     tasks: [],
     clients: [],
@@ -141,7 +84,8 @@ const PracticeManagementApp = () => {
     parentChildTasks: { ...DEFAULT_PARENT_CHILD_TASKS },
     recurringBatches: [],
     checklists: [],
-    pendingApprovals: []
+    pendingApprovals: [],
+    dscRegister: []
   });
   
   const [currentUser, setCurrentUser] = useState(null);
@@ -201,6 +145,29 @@ const PracticeManagementApp = () => {
   const [selectedApproval, setSelectedApproval] = useState(null);
   const [showApprovalEditModal, setShowApprovalEditModal] = useState(false);
   const [approvalEditData, setApprovalEditData] = useState(null);
+  
+  // DSC Register State
+  const [showDSCModal, setShowDSCModal] = useState(false);
+  const [selectedDSC, setSelectedDSC] = useState(null);
+  const [dscSearchTerm, setDscSearchTerm] = useState('');
+  const [dscFilterStatus, setDscFilterStatus] = useState('all');
+  const [dscFormData, setDscFormData] = useState({
+    clientId: '',
+    holderName: '',
+    holderPan: '',
+    provider: '',
+    dscClass: 'Class 3',
+    dscType: 'Signing',
+    tokenSerial: '',
+    issueDate: '',
+    expiryDate: '',
+    password: '',
+    location: '',
+    status: 'Active',
+    mobileNumber: '',
+    email: '',
+    remarks: ''
+  });
   
   // Computed PARENT_CHILD_TASKS - uses stored config or defaults
   const PARENT_CHILD_TASKS = data.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS;
@@ -442,218 +409,99 @@ const PracticeManagementApp = () => {
     }
   };
   
-  // Firebase Auth State Listener
+  // Load data from localStorage on mount
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log('Auth state changed:', user?.email);
-      setFirebaseUser(user);
-      
-      if (user) {
-        // User is logged in, load data from Firebase
-        try {
-          const docRef = doc(db, 'appData', 'mainData');
-          const docSnap = await getDoc(docRef);
+    const loadData = () => {
+      try {
+        // Check for saved auth
+        const savedAuth = localStorage.getItem(AUTH_KEY);
+        const savedData = localStorage.getItem(STORAGE_KEY);
+        
+        if (savedAuth) {
+          const authUser = JSON.parse(savedAuth);
+          setCurrentUser(authUser);
           
-          if (docSnap.exists()) {
-            const firebaseData = docSnap.data();
-            console.log('Loaded data from Firebase:', Object.keys(firebaseData));
-            
-            // Properly merge ALL data fields with defaults
+          if (savedData) {
+            const parsedData = JSON.parse(savedData);
             setData(prev => ({
-              tasks: firebaseData.tasks || prev.tasks || [],
-              clients: firebaseData.clients || prev.clients || [],
-              staff: firebaseData.staff || prev.staff || [],
-              timesheets: firebaseData.timesheets || prev.timesheets || [],
-              invoices: firebaseData.invoices || prev.invoices || [],
-              receipts: firebaseData.receipts || prev.receipts || [],
-              organizations: firebaseData.organizations || prev.organizations || [],
-              recurringSchedules: firebaseData.recurringSchedules || prev.recurringSchedules || [],
-              leaves: firebaseData.leaves || prev.leaves || [],
-              documents: firebaseData.documents || prev.documents || [],
-              userPermissions: firebaseData.userPermissions || prev.userPermissions || {},
-              parentChildTasks: firebaseData.parentChildTasks || prev.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
-              recurringBatches: firebaseData.recurringBatches || prev.recurringBatches || [],
-              checklists: firebaseData.checklists || prev.checklists || [],
-              pendingApprovals: firebaseData.pendingApprovals || prev.pendingApprovals || []
+              tasks: parsedData.tasks || [],
+              clients: parsedData.clients || [],
+              staff: parsedData.staff || initialData.staff,
+              timesheets: parsedData.timesheets || [],
+              invoices: parsedData.invoices || [],
+              receipts: parsedData.receipts || [],
+              organizations: parsedData.organizations || [],
+              recurringSchedules: parsedData.recurringSchedules || [],
+              leaves: parsedData.leaves || [],
+              documents: parsedData.documents || [],
+              userPermissions: parsedData.userPermissions || {},
+              parentChildTasks: parsedData.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
+              recurringBatches: parsedData.recurringBatches || [],
+              checklists: parsedData.checklists || [],
+              pendingApprovals: parsedData.pendingApprovals || [],
+              dscRegister: parsedData.dscRegister || []
             }));
-            
-            // Find current user in staff
-            const staffData = firebaseData.staff || [];
-            const found = staffData.find(s => s.email?.toLowerCase() === user.email?.toLowerCase());
-            if (found) {
-              setCurrentUser({
-                name: found.name,
-                role: found.role,
-                email: found.email,
-                isSuperAdmin: found.isSuperAdmin || found.role === 'Superadmin',
-                id: found.id
-              });
-            } else {
-              // User exists in Firebase Auth but not in staff, add them as Superadmin
-              const newStaffMember = {
-                id: 'firebase-' + user.uid,
-                name: user.email.split('@')[0],
-                email: user.email,
-                phone: '',
-                role: 'Superadmin',
-                dateOfJoin: new Date().toISOString().split('T')[0],
-                status: 'Active',
-                isSuperAdmin: true
-              };
-              setCurrentUser({
-                name: newStaffMember.name,
-                role: 'Superadmin',
-                email: user.email,
-                isSuperAdmin: true,
-                id: newStaffMember.id
-              });
-              // Add new user to staff
-              setData(prev => ({
-                ...prev,
-                staff: [...(prev.staff || []), newStaffMember]
-              }));
-            }
           } else {
-            // No data in Firebase, initialize with default data
-            console.log('No data in Firebase, initializing...');
-            const initialStaff = [{
-              id: 'staff-superadmin-001',
-              name: user.email.split('@')[0],
-              email: user.email,
-              phone: '',
-              role: 'Superadmin',
-              dateOfJoin: new Date().toISOString().split('T')[0],
-              status: 'Active',
-              isSuperAdmin: true
-            }];
-            
-            const initialData = {
-              tasks: [],
-              clients: [],
-              staff: initialStaff,
-              timesheets: [],
-              invoices: [],
-              receipts: [],
-              organizations: [],
-              recurringSchedules: [],
-              leaves: [],
-              documents: [],
-              userPermissions: {},
-              parentChildTasks: DEFAULT_PARENT_CHILD_TASKS,
-              recurringBatches: [],
-              checklists: [],
-              pendingApprovals: []
-            };
-            
             setData(initialData);
-            setCurrentUser({
-              name: initialStaff[0].name,
-              role: 'Superadmin',
-              email: user.email,
-              isSuperAdmin: true,
-              id: initialStaff[0].id
-            });
-            
-            // Save initial data to Firebase
-            await setDoc(doc(db, 'appData', 'mainData'), cleanForFirebase({
-              ...initialData,
-              lastUpdated: new Date().toISOString()
-            }));
           }
-          
           setCurrentView('dashboard');
           setDataLoaded(true);
-        } catch (error) {
-          console.error('Error loading data from Firebase:', error);
-          setDataLoaded(true);
+        } else {
+          // No saved auth, show login
+          setData(initialData);
         }
-      } else {
-        // User is logged out
-        setCurrentUser(null);
-        setCurrentView('login');
-        setDataLoaded(false);
+      } catch (error) {
+        console.error('Error loading data:', error);
+        setData(initialData);
       }
-      setFirebaseLoading(false);
-    });
+      setAppLoading(false);
+    };
     
-    return () => unsubscribe();
+    loadData();
   }, []);
   
-  // BULLETPROOF save function - used by all save operations
-  // SIMPLE AND BULLETPROOF Firebase save function
-  const saveAllDataToFirebase = async (dataObj) => {
-    console.log('=== saveAllDataToFirebase V13 SIMPLE ===');
-    
-    try {
-      // Step 1: Handle base64 images in organizations (they're too large for Firebase)
-      const orgs = (dataObj.organizations || []).map(org => {
-        const o = { ...org };
-        if (o.logo && typeof o.logo === 'string' && o.logo.startsWith('data:')) o.logo = '[IMAGE]';
-        if (o.signatureImage && typeof o.signatureImage === 'string' && o.signatureImage.startsWith('data:')) o.signatureImage = '[IMAGE]';
-        if (o.qrCode && typeof o.qrCode === 'string' && o.qrCode.startsWith('data:')) o.qrCode = '[IMAGE]';
-        return o;
-      });
-      
-      // Step 2: Build data object
-      const rawData = {
-        tasks: dataObj.tasks || [],
-        clients: dataObj.clients || [],
-        staff: dataObj.staff || [],
-        timesheets: dataObj.timesheets || [],
-        invoices: dataObj.invoices || [],
-        receipts: dataObj.receipts || [],
-        organizations: orgs,
-        recurringSchedules: dataObj.recurringSchedules || [],
-        leaves: dataObj.leaves || [],
-        documents: dataObj.documents || [],
-        userPermissions: dataObj.userPermissions || {},
-        parentChildTasks: dataObj.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
-        recurringBatches: dataObj.recurringBatches || [],
-        checklists: dataObj.checklists || [],
-        pendingApprovals: dataObj.pendingApprovals || [],
-        lastUpdated: new Date().toISOString()
-      };
-      
-      // Step 3: THE MAGIC - JSON.parse(JSON.stringify()) removes ALL undefined values
-      // This is GUARANTEED to work because undefined is not valid JSON
-      const cleanData = JSON.parse(JSON.stringify(rawData));
-      
-      console.log('Data prepared. Counts:', {
-        tasks: cleanData.tasks.length,
-        clients: cleanData.clients.length,
-        staff: cleanData.staff.length
-      });
-      
-      // Step 4: Save to Firebase
-      await setDoc(doc(db, 'appData', 'mainData'), cleanData);
-      console.log('✅ Firebase save SUCCESS!');
-      
-      return cleanData;
-    } catch (error) {
-      console.error('❌ Firebase save FAILED:', error);
-      throw error;
-    }
-  };
-  
-  // Save data to Firebase whenever it changes (debounced)
+  // Save data to localStorage whenever it changes (debounced)
   useEffect(() => {
-    if (!firebaseUser || !dataLoaded) {
-      console.log('Skip save - firebaseUser:', !!firebaseUser, 'dataLoaded:', dataLoaded);
+    if (!dataLoaded) {
       return;
     }
     
-    const saveTimeout = setTimeout(async () => {
+    const saveTimeout = setTimeout(() => {
       try {
-        console.log('Debounced save starting...');
-        await saveAllDataToFirebase(data);
-        console.log('✅ Data saved to Firebase successfully');
+        const dataToSave = {
+          tasks: data.tasks || [],
+          clients: data.clients || [],
+          staff: data.staff || [],
+          timesheets: data.timesheets || [],
+          invoices: data.invoices || [],
+          receipts: data.receipts || [],
+          organizations: (data.organizations || []).map(org => ({
+            ...org,
+            logo: org.logo?.startsWith('data:') ? '[IMAGE]' : org.logo,
+            signatureImage: org.signatureImage?.startsWith('data:') ? '[IMAGE]' : org.signatureImage,
+            qrCode: org.qrCode?.startsWith('data:') ? '[IMAGE]' : org.qrCode
+          })),
+          recurringSchedules: data.recurringSchedules || [],
+          leaves: data.leaves || [],
+          documents: data.documents || [],
+          userPermissions: data.userPermissions || {},
+          parentChildTasks: data.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
+          recurringBatches: data.recurringBatches || [],
+          checklists: data.checklists || [],
+          pendingApprovals: data.pendingApprovals || [],
+          dscRegister: data.dscRegister || [],
+          lastUpdated: new Date().toISOString()
+        };
+        
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+        console.log('✅ Data saved to localStorage');
       } catch (error) {
-        console.error('❌ Error saving to Firebase:', error);
+        console.error('❌ Error saving to localStorage:', error);
       }
-    }, 1500); // Debounce saves by 1.5 seconds
+    }, 1000);
     
     return () => clearTimeout(saveTimeout);
-  }, [data, firebaseUser, dataLoaded]);
+  }, [data, dataLoaded]);
   
   // Sync task client codes with client database
   useEffect(() => {
@@ -682,7 +530,7 @@ const PracticeManagementApp = () => {
   // Logout function  
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      // Logout handled by handleLogout
       setCurrentView('login');
       setCurrentUser(null);
     } catch (error) {
@@ -690,61 +538,48 @@ const PracticeManagementApp = () => {
     }
   };
   
-  // Login View Component
+  // Login View Component  
   const LoginView = () => {
-    const [email, setEmail] = useState('');
+    const [selectedUser, setSelectedUser] = useState('');
     const [pass, setPass] = useState('');
     const [msg, setMsg] = useState('');
-    const [isSignUp, setIsSignUp] = useState(false);
     const [loading, setLoading] = useState(false);
     
-    const tryLogin = async () => {
-      if (!email || !pass) {
-        setMsg('Please enter email and password');
+    // Demo users from staff
+    const availableUsers = data.staff.filter(s => s.status === 'Active');
+    
+    const tryLogin = () => {
+      if (!selectedUser) {
+        setMsg('Please select a user');
         return;
       }
       
       setLoading(true);
       setMsg('');
       
-      try {
-        if (isSignUp) {
-          // Create new account
-          await createUserWithEmailAndPassword(auth, email.trim(), pass.trim());
-          console.log('Account created successfully');
-        } else {
-          // Sign in existing account
-          await signInWithEmailAndPassword(auth, email.trim(), pass.trim());
-          console.log('Login successful');
+      const staffMember = data.staff.find(s => s.id === selectedUser);
+      if (staffMember) {
+        // Check password if set
+        if (staffMember.password && pass !== staffMember.password) {
+          setMsg('Incorrect password');
+          setLoading(false);
+          return;
         }
-        // Auth state listener will handle the rest
-      } catch (error) {
-        console.error('Auth error:', error);
-        switch (error.code) {
-          case 'auth/invalid-email':
-            setMsg('Invalid email address');
-            break;
-          case 'auth/user-disabled':
-            setMsg('This account has been disabled');
-            break;
-          case 'auth/user-not-found':
-            setMsg('No account found with this email. Click "Create Account" to sign up.');
-            break;
-          case 'auth/wrong-password':
-            setMsg('Incorrect password');
-            break;
-          case 'auth/invalid-credential':
-            setMsg('Invalid email or password. Try again or create a new account.');
-            break;
-          case 'auth/email-already-in-use':
-            setMsg('This email is already registered. Try signing in.');
-            break;
-          case 'auth/weak-password':
-            setMsg('Password should be at least 6 characters');
-            break;
-          default:
-            setMsg(error.message);
-        }
+        
+        const authUser = {
+          name: staffMember.name,
+          role: staffMember.role,
+          email: staffMember.email,
+          isSuperAdmin: staffMember.isSuperAdmin || staffMember.role === 'Superadmin',
+          id: staffMember.id
+        };
+        
+        localStorage.setItem(AUTH_KEY, JSON.stringify(authUser));
+        setCurrentUser(authUser);
+        setCurrentView('dashboard');
+        setDataLoaded(true);
+      } else {
+        setMsg('User not found');
       }
       setLoading(false);
     };
@@ -770,37 +605,42 @@ const PracticeManagementApp = () => {
           boxShadow: '0 20px 60px rgba(0,0,0,0.1)'
         }}>
           <div style={{
-            background: 'linear-gradient(135deg, #10b981, #059669)',
+            background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
             padding: '28px',
             textAlign: 'center',
-            color: '#fff',
-            borderRadius: '16px 16px 0 0'
+            color: '#059669',
+            borderRadius: '16px 16px 0 0',
+            borderBottom: '1px solid #a7f3d0'
           }}>
             <Briefcase size={36} />
-            <h1 style={{ margin: '10px 0 0', fontSize: '22px' }}>CA Hub Pro <span style={{fontSize: '10px', color: '#94a3b8'}}>v15</span></h1>
-            <p style={{ margin: '5px 0 0', fontSize: '13px', opacity: 0.9 }}>Practice Management</p>
+            <h1 style={{ margin: '10px 0 0', fontSize: '22px', color: '#059669' }}>CA Hub Pro</h1>
+            <p style={{ margin: '5px 0 0', fontSize: '13px', opacity: 0.8 }}>Practice Management</p>
           </div>
           
           <div style={{ padding: '24px' }}>
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="your@email.com"
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>Select User</label>
+              <select
+                value={selectedUser}
+                onChange={e => setSelectedUser(e.target.value)}
                 style={{ width: '100%', padding: '12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
-                onKeyPress={e => e.key === 'Enter' && tryLogin()}
-              />
+              >
+                <option value="">-- Select User --</option>
+                {availableUsers.map(user => (
+                  <option key={user.id} value={user.id}>
+                    {user.name} ({user.role})
+                  </option>
+                ))}
+              </select>
             </div>
             
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>Password</label>
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>Password (optional)</label>
               <input
                 type="password"
                 value={pass}
                 onChange={e => setPass(e.target.value)}
-                placeholder={isSignUp ? "Min 6 characters" : "Enter password"}
+                placeholder="Enter password if set"
                 style={{ width: '100%', padding: '12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
                 onKeyPress={e => e.key === 'Enter' && tryLogin()}
               />
@@ -815,44 +655,27 @@ const PracticeManagementApp = () => {
             <button
               type="button"
               onClick={tryLogin}
-              disabled={loading}
+              disabled={loading || !selectedUser}
               style={{ 
                 width: '100%', 
                 padding: '14px', 
-                background: loading ? '#9ca3af' : '#10b981', 
+                background: (loading || !selectedUser) ? '#9ca3af' : '#10b981', 
                 color: '#fff', 
                 border: 'none', 
                 borderRadius: '8px', 
                 fontSize: '15px', 
                 fontWeight: 600, 
-                cursor: loading ? 'not-allowed' : 'pointer' 
+                cursor: (loading || !selectedUser) ? 'not-allowed' : 'pointer' 
               }}
             >
-              {loading ? 'Please wait...' : (isSignUp ? 'Create Account' : 'Sign In')}
+              {loading ? 'Please wait...' : 'Sign In'}
             </button>
-            
-            <div style={{ marginTop: '16px', textAlign: 'center' }}>
-              <button
-                type="button"
-                onClick={() => { setIsSignUp(!isSignUp); setMsg(''); }}
-                style={{ 
-                  background: 'none', 
-                  border: 'none', 
-                  color: '#10b981', 
-                  fontSize: '13px', 
-                  cursor: 'pointer',
-                  textDecoration: 'underline'
-                }}
-              >
-                {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Create one"}
-              </button>
-            </div>
             
             {/* Info Box */}
             <div style={{ marginTop: '16px', padding: '12px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
               <div style={{ fontSize: '11px', color: '#166534' }}>
-                <strong>🔥 Firebase Powered</strong><br/>
-                Your data is securely stored in the cloud. Create an account to get started!
+                <strong>💾 Local Storage</strong><br/>
+                Data is saved in your browser. Default user: Test1 (Superadmin)
               </div>
             </div>
           </div>
@@ -1613,6 +1436,13 @@ const PracticeManagementApp = () => {
         <button className={currentView === 'clients' ? 'active' : ''} onClick={() => setCurrentView('clients')}>
           <Users size={20} />
           <span>Clients</span>
+        </button>
+        )}
+        
+        {hasAccess('dscRegister') && (
+        <button className={currentView === 'dscRegister' ? 'active' : ''} onClick={() => setCurrentView('dscRegister')}>
+          <Key size={20} />
+          <span>DSC Register</span>
         </button>
         )}
         
@@ -2901,7 +2731,8 @@ const PracticeManagementApp = () => {
 
     // Calculate month-wise and year-wise summary
     const getSummaryData = () => {
-      const months = ['March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December', 'January', 'February'];
+      // Financial Year order: April to March
+      const months = ['April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December', 'January', 'February', 'March'];
       const years = ['FY 2025-26', 'FY 2024-25', 'FY 2023-24', 'Previous years'];
       
       const summary = months.map(month => {
@@ -5463,7 +5294,7 @@ const PracticeManagementApp = () => {
 
       const reader = new FileReader();
       
-      reader.onload = async (e) => {
+      reader.onload = (e) => {
         try {
           const text = e.target.result;
           const lines = text.split('\n');
@@ -5579,36 +5410,51 @@ const PracticeManagementApp = () => {
             return;
           }
           
-          // Add clients to data - EXPLICITLY list all fields (no spread operator!)
+          // Add clients to data
           const updatedClients = [...data.clients, ...newClients];
-          const updatedData = {
-            tasks: data.tasks || [],
-            clients: updatedClients,
-            staff: data.staff || [],
-            timesheets: data.timesheets || [],
-            invoices: data.invoices || [],
-            receipts: data.receipts || [],
-            organizations: data.organizations || [],
-            recurringSchedules: data.recurringSchedules || [],
-            leaves: data.leaves || [],
-            documents: data.documents || [],
-            userPermissions: data.userPermissions || {},
-            parentChildTasks: data.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
-            recurringBatches: data.recurringBatches || [],
-            checklists: data.checklists || [],
-            pendingApprovals: data.pendingApprovals || []
-          };
-          setData(updatedData);
+          setData(prev => ({
+            ...prev,
+            clients: updatedClients
+          }));
           
-          // Immediately save to Firebase using bulletproof function
-          try {
-            await saveAllDataToFirebase(updatedData);
-            console.log('✅ Bulk clients saved to Firebase!');
-            alert(`✅ Successfully imported ${newClients.length} client(s) and saved to database!`);
-          } catch (error) {
-            console.error('❌ Error saving bulk clients:', error);
-            alert(`Imported ${newClients.length} clients but error saving: ` + error.message);
-          }
+          // Immediately save to localStorage and WAIT for completion
+          const saveTolocalStorage = async () => {
+            try {
+              const dataToSave = {
+                tasks: data.tasks || [],
+                clients: updatedClients,
+                staff: data.staff || [],
+                timesheets: data.timesheets || [],
+                invoices: data.invoices || [],
+                receipts: data.receipts || [],
+                organizations: (data.organizations || []).map(org => ({
+                  ...org,
+                  logo: org.logo?.startsWith('data:') ? '[IMAGE]' : org.logo,
+                  signatureImage: org.signatureImage?.startsWith('data:') ? '[IMAGE]' : org.signatureImage,
+                  qrCode: org.qrCode?.startsWith('data:') ? '[IMAGE]' : org.qrCode
+                })),
+                recurringSchedules: data.recurringSchedules || [],
+                leaves: data.leaves || [],
+                documents: data.documents || [],
+                userPermissions: data.userPermissions || {},
+                parentChildTasks: data.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
+                recurringBatches: data.recurringBatches || [],
+                checklists: data.checklists || [],
+                pendingApprovals: data.pendingApprovals || [],
+                dscRegister: data.dscRegister || [],
+                lastUpdated: new Date().toISOString()
+              };
+              
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+              console.log('✅ Bulk clients saved to localStorage immediately!');
+              alert(`✅ Successfully imported ${newClients.length} client(s) and saved to database!`);
+            } catch (error) {
+              console.error('❌ Error saving bulk clients to localStorage:', error);
+              alert(`Imported ${newClients.length} clients but error saving to database: ` + error.message);
+            }
+          };
+          
+          saveTolocalStorage();
           
           // Reset file input
           document.getElementById('import-clients-file').value = '';
@@ -6083,14 +5929,15 @@ const PracticeManagementApp = () => {
               {/* Modal Header */}
               <div style={{
                 padding: '20px 24px',
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                color: '#fff',
+                background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+                color: '#059669',
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'center'
+                alignItems: 'center',
+                borderBottom: '1px solid #a7f3d0'
               }}>
                 <div>
-                  <h2 style={{margin: 0, fontSize: '20px', fontWeight: '600'}}>
+                  <h2 style={{margin: 0, fontSize: '20px', fontWeight: '600', color: '#059669'}}>
                     <User size={24} style={{marginRight: '10px', verticalAlign: 'middle'}} />
                     {viewingClient.name}
                   </h2>
@@ -6449,7 +6296,7 @@ const PracticeManagementApp = () => {
     reader.readAsText(file);
   };
 
-  const confirmUpload = async () => {
+  const confirmUpload = () => {
     // Final duplicate check before saving
     const existingEmails = data.staff.map(s => s.email.toLowerCase());
     const validStaff = uploadPreview.filter(s => !existingEmails.includes(s.email.toLowerCase()));
@@ -6460,39 +6307,53 @@ const PracticeManagementApp = () => {
     }
     
     const updatedStaff = [...data.staff, ...validStaff];
-    // EXPLICITLY list all fields (no spread operator!)
-    const updatedData = {
-      tasks: data.tasks || [],
-      clients: data.clients || [],
-      staff: updatedStaff,
-      timesheets: data.timesheets || [],
-      invoices: data.invoices || [],
-      receipts: data.receipts || [],
-      organizations: data.organizations || [],
-      recurringSchedules: data.recurringSchedules || [],
-      leaves: data.leaves || [],
-      documents: data.documents || [],
-      userPermissions: data.userPermissions || {},
-      parentChildTasks: data.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
-      recurringBatches: data.recurringBatches || [],
-      checklists: data.checklists || [],
-      pendingApprovals: data.pendingApprovals || []
-    };
-    setData(updatedData);
+    setData(prev => ({
+      ...prev,
+      staff: updatedStaff
+    }));
     
-    // Immediately save to Firebase using bulletproof function
-    try {
-      await saveAllDataToFirebase(updatedData);
-      console.log('✅ Bulk staff saved to Firebase!');
-      alert(`✅ Successfully imported ${validStaff.length} staff members and saved to database!`);
-      setShowUploadModal(false);
-      setUploadPreview([]);
-    } catch (error) {
-      console.error('❌ Error saving bulk staff:', error);
-      alert(`Imported ${validStaff.length} staff but error saving: ` + error.message);
-      setShowUploadModal(false);
-      setUploadPreview([]);
-    }
+    // Immediately save to localStorage and WAIT for completion
+    const saveTolocalStorage = async () => {
+      try {
+        const dataToSave = {
+          tasks: data.tasks || [],
+          clients: data.clients || [],
+          staff: updatedStaff,
+          timesheets: data.timesheets || [],
+          invoices: data.invoices || [],
+          receipts: data.receipts || [],
+          organizations: (data.organizations || []).map(org => ({
+            ...org,
+            logo: org.logo?.startsWith('data:') ? '[IMAGE]' : org.logo,
+            signatureImage: org.signatureImage?.startsWith('data:') ? '[IMAGE]' : org.signatureImage,
+            qrCode: org.qrCode?.startsWith('data:') ? '[IMAGE]' : org.qrCode
+          })),
+          recurringSchedules: data.recurringSchedules || [],
+          leaves: data.leaves || [],
+          documents: data.documents || [],
+          userPermissions: data.userPermissions || {},
+          parentChildTasks: data.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
+          recurringBatches: data.recurringBatches || [],
+          checklists: data.checklists || [],
+          pendingApprovals: data.pendingApprovals || [],
+          dscRegister: data.dscRegister || [],
+          lastUpdated: new Date().toISOString()
+        };
+        
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+        console.log('✅ Bulk staff saved to localStorage immediately!');
+        alert(`✅ Successfully imported ${validStaff.length} staff members and saved to database!`);
+        setShowUploadModal(false);
+        setUploadPreview([]);
+      } catch (error) {
+        console.error('❌ Error saving bulk staff to localStorage:', error);
+        alert(`Imported ${validStaff.length} staff but error saving to database: ` + error.message);
+        setShowUploadModal(false);
+        setUploadPreview([]);
+      }
+    };
+    
+    saveTolocalStorage();
   };
 
   const downloadSampleCSV = () => {
@@ -6986,7 +6847,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000}}>
           <div style={{background: '#fff', borderRadius: '12px', width: '95%', maxWidth: '1000px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column'}}>
             {/* Header */}
-            <div style={{padding: '16px 24px', borderBottom: '1px solid #e2e8f0', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+            <div style={{padding: '16px 24px', borderBottom: '1px solid #a7f3d0', background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', color: '#059669', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
               <div>
                 <h3 style={{margin: 0, fontSize: '18px', fontWeight: '600'}}>
                   Assign Controls to {controllingStaff.name}
@@ -12081,11 +11942,34 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           headers.forEach((h, i) => colIdx[h] = i);
           
           const tasks = [];
-          const warnings = [];
+          const errors = [];
+          const skippedRows = [];
+          
+          // Valid options for validation
+          const validFinancialYears = ['FY 2023-24', 'FY 2024-25', 'FY 2025-26', 'FY 2026-27'];
+          const validPeriods = ['Monthly', 'Quarterly', 'Half Yearly', 'Annual', 'Half-Yearly', 'Annually'];
+          const validMonths = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+          const validQuarters = ['Quarter 1', 'Quarter 2', 'Quarter 3', 'Quarter 4', 'Q1', 'Q2', 'Q3', 'Q4'];
+          const validHalfYearly = ['H1', 'H2', 'Half 1', 'Half 2'];
+          
+          // Get active staff list
+          const activeStaff = data.staff.filter(s => s.status === 'Active');
+          const superadmins = activeStaff.filter(s => s.role === 'Superadmin' || s.isSuperAdmin);
+          const reportingManagers = activeStaff.filter(s => s.role === 'Reporting Manager');
+          const allStaffNames = activeStaff.map(s => s.name.toLowerCase());
+          
+          // Get valid parent and child tasks
+          const validParentTasks = Object.keys(PARENT_CHILD_TASKS);
+          
+          // Get active clients
+          const activeClients = data.clients.filter(c => !c.disabled);
           
           for (let i = 1; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
+            
+            const rowNum = i + 1;
+            const rowErrors = [];
             
             // Handle quoted values
             const values = [];
@@ -12114,82 +11998,209 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             };
             
             const clientName = getValue('clientname');
+            const clientCode = getValue('fileno') || getValue('clientcode') || getValue('code');
             const parentTask = getValue('parenttask');
             const childTask = getValue('childtask');
             const taskLeader = getValue('taskleader');
             const taskManager = getValue('taskmanager');
             const primaryUser = getValue('primaryassign') || getValue('primaryassigneduser') || getValue('primaryuser') || getValue('assigneduser');
+            const financialYear = getValue('financialyear') || getValue('fy');
+            const period = getValue('period');
+            const subPeriod = getValue('subperiod');
             
-            // Validate required fields
-            if (!clientName || !parentTask || !childTask) {
-              warnings.push(`Row ${i + 1}: Missing client/parent/child task`);
-              continue;
+            // ========== STRICT VALIDATION ==========
+            
+            // 1. Validate Client (REQUIRED) - must exist by name or code
+            let matchedClient = null;
+            if (clientCode) {
+              matchedClient = activeClients.find(c => c.fileNo?.toLowerCase() === clientCode.toLowerCase());
+              if (!matchedClient) {
+                rowErrors.push(`Client Code "${clientCode}" not found`);
+              }
+            } else if (clientName) {
+              matchedClient = activeClients.find(c => c.name?.toLowerCase() === clientName.toLowerCase());
+              if (!matchedClient) {
+                rowErrors.push(`Client "${clientName}" not found`);
+              }
+            } else {
+              rowErrors.push('Client Name or Code is required');
             }
             
-            // Validate task leader is Superadmin
-            const leaderStaff = data.staff.find(s => s.name.toLowerCase() === taskLeader.toLowerCase() && s.role === 'Superadmin');
-            if (!leaderStaff && taskLeader) {
-              warnings.push(`Row ${i + 1}: Task Leader "${taskLeader}" is not a Superadmin`);
-            }
-            
-            // Validate task manager is Reporting Manager
-            const managerStaff = data.staff.find(s => s.name.toLowerCase() === taskManager.toLowerCase() && s.role === 'Reporting Manager');
-            if (!managerStaff && taskManager) {
-              warnings.push(`Row ${i + 1}: Task Manager "${taskManager}" is not a Reporting Manager`);
-            }
-            
-            // Validate primary user is under the manager
-            const userStaff = data.staff.find(s => s.name.toLowerCase() === primaryUser.toLowerCase());
-            if (userStaff && managerStaff && userStaff.reportingManager !== managerStaff.name) {
-              warnings.push(`Row ${i + 1}: "${primaryUser}" is not under manager "${taskManager}"`);
-            }
-            
-            // Look up client code from clients database if not provided in CSV
-            let clientCode = getValue('fileno') || getValue('clientcode') || getValue('code');
-            if (!clientCode) {
-              const matchingClient = data.clients.find(c => 
-                c.name?.toLowerCase() === clientName.toLowerCase()
-              );
-              if (matchingClient && matchingClient.fileNo) {
-                clientCode = matchingClient.fileNo;
+            // 2. Validate Parent Task (REQUIRED) - must exist in task categories
+            if (!parentTask) {
+              rowErrors.push('Parent Task is required');
+            } else {
+              const parentExists = validParentTasks.some(p => p.toLowerCase() === parentTask.toLowerCase());
+              if (!parentExists) {
+                rowErrors.push(`Parent Task "${parentTask}" not found in system. Valid options: ${validParentTasks.join(', ')}`);
               }
             }
             
+            // 3. Validate Child Task (REQUIRED) - must exist under the parent task
+            if (!childTask) {
+              rowErrors.push('Child Task is required');
+            } else if (parentTask) {
+              const parentKey = validParentTasks.find(p => p.toLowerCase() === parentTask.toLowerCase());
+              if (parentKey) {
+                const validChildTasks = PARENT_CHILD_TASKS[parentKey] || [];
+                const childExists = validChildTasks.some(c => c.toLowerCase() === childTask.toLowerCase());
+                if (!childExists) {
+                  rowErrors.push(`Child Task "${childTask}" not found under "${parentTask}". Valid options: ${validChildTasks.join(', ')}`);
+                }
+              }
+            }
+            
+            // 4. Validate Task Leader (REQUIRED) - must be Superadmin
+            let matchedLeader = null;
+            if (!taskLeader) {
+              rowErrors.push('Task Leader is required');
+            } else {
+              matchedLeader = superadmins.find(s => s.name.toLowerCase() === taskLeader.toLowerCase());
+              if (!matchedLeader) {
+                const existsAsStaff = activeStaff.find(s => s.name.toLowerCase() === taskLeader.toLowerCase());
+                if (existsAsStaff) {
+                  rowErrors.push(`"${taskLeader}" exists but is not a Superadmin (Role: ${existsAsStaff.role})`);
+                } else {
+                  rowErrors.push(`Task Leader "${taskLeader}" not found. Valid Superadmins: ${superadmins.map(s => s.name).join(', ') || 'None'}`);
+                }
+              }
+            }
+            
+            // 5. Validate Task Manager (REQUIRED) - must be Reporting Manager
+            let matchedManager = null;
+            if (!taskManager) {
+              rowErrors.push('Task Manager is required');
+            } else {
+              matchedManager = reportingManagers.find(s => s.name.toLowerCase() === taskManager.toLowerCase());
+              if (!matchedManager) {
+                const existsAsStaff = activeStaff.find(s => s.name.toLowerCase() === taskManager.toLowerCase());
+                if (existsAsStaff) {
+                  rowErrors.push(`"${taskManager}" exists but is not a Reporting Manager (Role: ${existsAsStaff.role})`);
+                } else {
+                  rowErrors.push(`Task Manager "${taskManager}" not found. Valid RMs: ${reportingManagers.map(s => s.name).join(', ') || 'None'}`);
+                }
+              }
+            }
+            
+            // 6. Validate Primary Assigned User (REQUIRED) - must be active staff
+            let matchedUser = null;
+            if (!primaryUser) {
+              rowErrors.push('Primary Assigned User is required');
+            } else {
+              matchedUser = activeStaff.find(s => s.name.toLowerCase() === primaryUser.toLowerCase());
+              if (!matchedUser) {
+                rowErrors.push(`Assigned User "${primaryUser}" not found in active staff`);
+              }
+            }
+            
+            // 7. Validate Financial Year (REQUIRED)
+            if (!financialYear) {
+              rowErrors.push('Financial Year is required');
+            } else {
+              const fyExists = validFinancialYears.some(fy => fy.toLowerCase() === financialYear.toLowerCase());
+              if (!fyExists) {
+                rowErrors.push(`Financial Year "${financialYear}" is invalid. Valid options: ${validFinancialYears.join(', ')}`);
+              }
+            }
+            
+            // 8. Validate Period (REQUIRED)
+            let normalizedPeriod = '';
+            if (!period) {
+              rowErrors.push('Period is required');
+            } else {
+              const periodExists = validPeriods.some(p => p.toLowerCase() === period.toLowerCase());
+              if (!periodExists) {
+                rowErrors.push(`Period "${period}" is invalid. Valid options: ${validPeriods.join(', ')}`);
+              } else {
+                // Normalize period
+                normalizedPeriod = validPeriods.find(p => p.toLowerCase() === period.toLowerCase()) || period;
+              }
+            }
+            
+            // 9. Validate Sub-Period based on Period type
+            if (subPeriod && normalizedPeriod) {
+              const periodLower = normalizedPeriod.toLowerCase();
+              if (periodLower === 'monthly') {
+                const monthExists = validMonths.some(m => m.toLowerCase() === subPeriod.toLowerCase());
+                if (!monthExists) {
+                  rowErrors.push(`Sub-Period "${subPeriod}" invalid for Monthly. Valid: ${validMonths.join(', ')}`);
+                }
+              } else if (periodLower === 'quarterly') {
+                const qtrExists = validQuarters.some(q => q.toLowerCase() === subPeriod.toLowerCase());
+                if (!qtrExists) {
+                  rowErrors.push(`Sub-Period "${subPeriod}" invalid for Quarterly. Valid: ${validQuarters.join(', ')}`);
+                }
+              } else if (periodLower.includes('half')) {
+                const halfExists = validHalfYearly.some(h => h.toLowerCase() === subPeriod.toLowerCase());
+                if (!halfExists) {
+                  rowErrors.push(`Sub-Period "${subPeriod}" invalid for Half-Yearly. Valid: ${validHalfYearly.join(', ')}`);
+                }
+              }
+            }
+            
+            // ========== END VALIDATION ==========
+            
+            // If there are errors, skip this row
+            if (rowErrors.length > 0) {
+              skippedRows.push({
+                row: rowNum,
+                clientName: clientName || clientCode || 'Unknown',
+                errors: rowErrors
+              });
+              continue;
+            }
+            
+            // All validations passed - create task data with matched values
             const taskData = {
-              clientName: clientName || '',
-              fileNo: clientCode || '',
-              groupName: getValue('groupname') || clientName || '',
-              parentTask: parentTask || '',
-              childTask: childTask || '',
-              financialYear: getValue('financialyear') || getValue('fy') || '',
-              period: getValue('period') || '',
-              subPeriod: getValue('subperiod') || '',
-              taskLeader: leaderStaff?.name || taskLeader || '',
-              taskManager: managerStaff?.name || taskManager || '',
-              primaryAssignedUser: userStaff?.name || primaryUser || '',
-              startDate: getValue('startdate') || '',
-              expectedCompletionDate: getValue('expecteddateofcompletion') || getValue('expectedcompletiondate') || getValue('expecteddat') || getValue('duedate') || getValue('completiondate') || '',
-              description: getValue('taskdescription') || getValue('description') || ''
+              clientId: matchedClient?.id,
+              clientName: matchedClient?.name || clientName,
+              fileNo: matchedClient?.fileNo || clientCode,
+              groupName: getValue('groupname') || matchedClient?.groupName || matchedClient?.name || clientName,
+              parentTask: validParentTasks.find(p => p.toLowerCase() === parentTask.toLowerCase()) || parentTask,
+              childTask: childTask,
+              financialYear: validFinancialYears.find(fy => fy.toLowerCase() === financialYear.toLowerCase()) || financialYear,
+              period: normalizedPeriod || period,
+              subPeriod: subPeriod,
+              taskLeader: matchedLeader?.name,
+              taskManager: matchedManager?.name,
+              primaryAssignedUser: matchedUser?.name,
+              startDate: getValue('startdate'),
+              expectedCompletionDate: getValue('expecteddateofcompletion') || getValue('expectedcompletiondate') || getValue('expecteddat') || getValue('duedate') || getValue('completiondate'),
+              description: getValue('taskdescription') || getValue('description'),
+              isValid: true
             };
             
             // Debug log for first row
-            if (i === 1) {
-              console.log('First row parsed values:', taskData);
+            if (tasks.length === 0) {
+              console.log('First valid row parsed:', taskData);
               console.log('All column indices:', colIdx);
             }
             
             tasks.push(taskData);
           }
           
+          // Generate error summary
+          if (skippedRows.length > 0) {
+            const errorSummary = skippedRows.map(r => 
+              `Row ${r.row} (${r.clientName}): ${r.errors.join('; ')}`
+            ).join('\n');
+            
+            console.log('Skipped rows with errors:', skippedRows);
+            
+            if (tasks.length === 0) {
+              setBulkError(`All ${skippedRows.length} row(s) have validation errors:\n\n${skippedRows.slice(0, 5).map(r => `Row ${r.row}: ${r.errors[0]}`).join('\n')}${skippedRows.length > 5 ? `\n...and ${skippedRows.length - 5} more` : ''}`);
+              return;
+            } else {
+              setBulkWarning(`${skippedRows.length} row(s) skipped due to validation errors. ${tasks.length} valid task(s) ready to import.\n\nSkipped: ${skippedRows.slice(0, 3).map(r => `Row ${r.row}: ${r.errors[0]}`).join('; ')}${skippedRows.length > 3 ? '...' : ''}`);
+            }
+          }
+          
           if (tasks.length === 0) {
-            setBulkError('No valid tasks found in CSV');
+            setBulkError('No valid tasks found in CSV. Please check that all required fields match existing data in the system.');
             return;
           }
           
           setBulkPreview(tasks);
-          if (warnings.length > 0) {
-            setBulkWarning(`${warnings.length} warning(s): ${warnings.slice(0, 3).join('; ')}${warnings.length > 3 ? '...' : ''}`);
-          }
           
         } catch (err) {
           console.error('CSV Parse Error:', err);
@@ -12200,19 +12211,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     };
 
     // Confirm bulk import
-    const [bulkSaving, setBulkSaving] = useState(false);
-    
-    const confirmBulkImport = async () => {
-      console.log('=== confirmBulkImport CALLED ===');
-      console.log('bulkPreview length:', bulkPreview.length);
-      
-      if (bulkPreview.length === 0) {
-        alert('No tasks to import!');
-        return;
-      }
-      
-      setBulkSaving(true); // Show loading
-      
+    const confirmBulkImport = () => {
       const newTasks = bulkPreview.map(t => {
         // Combine period and subPeriod if both exist
         let periodDisplay = t.period || '';
@@ -12220,25 +12219,23 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           periodDisplay = `${t.period} - ${t.subPeriod}`;
         }
         
-        // IMPORTANT: Every field MUST have a value (use empty string for missing values)
-        // Firebase does NOT accept undefined values
         return {
           id: generateId(),
-          fileNo: t.fileNo || '',
-          clientName: t.clientName || '',
-          groupName: t.groupName || t.clientName || '',
-          parentTask: t.parentTask || '',
-          childTask: t.childTask || '',
-          financialYear: t.financialYear || '',
-          period: periodDisplay || '',
-          subPeriod: t.subPeriod || '',
-          taskLeader: t.taskLeader || '',
-          taskManager: t.taskManager || '',
-          primaryAssignedUser: t.primaryAssignedUser || '',
-          assignedTo: t.primaryAssignedUser || '',
-          startDate: t.startDate || '',
-          expectedCompletionDate: t.expectedCompletionDate || '',
-          taskDescription: t.description || '',
+          fileNo: t.fileNo,
+          clientName: t.clientName,
+          groupName: t.groupName || t.clientName,
+          parentTask: t.parentTask,
+          childTask: t.childTask,
+          financialYear: t.financialYear,
+          period: periodDisplay,
+          subPeriod: t.subPeriod,
+          taskLeader: t.taskLeader,
+          taskManager: t.taskManager,
+          primaryAssignedUser: t.primaryAssignedUser,
+          assignedTo: t.primaryAssignedUser,
+          startDate: t.startDate,
+          expectedCompletionDate: t.expectedCompletionDate,
+          taskDescription: t.description,
           comments: '',
           status: 'Pending',
           priority: 'Medium',
@@ -12246,35 +12243,18 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           completedBy: '',
           currentPosition: 'New Task Created',
           pendingIssues: '',
-          checkGroupsName: `${periodDisplay || ''}-${t.childTask || ''}`
+          checkGroupsName: `${periodDisplay}-${t.childTask}`
         };
       });
       
-      console.log('=== BULK IMPORT: Created task objects ===');
-      console.log('Tasks created:', newTasks.length);
-      console.log('First task sample:', JSON.stringify(newTasks[0], null, 2));
-      
-      // Extra safety: clean tasks with JSON to remove any undefined
-      const cleanTasks = JSON.parse(JSON.stringify(newTasks));
-      console.log('Tasks cleaned via JSON, count:', cleanTasks.length);
-      
-      // Use bulk save callback - it handles everything including Firebase save
+      // Use bulk save callback - it handles the alert and close
       if (onBulkSave) {
-        console.log('Calling onBulkSave...');
-        try {
-          await onBulkSave(cleanTasks);  // AWAIT the async function!
-          console.log('onBulkSave completed');
-        } catch (err) {
-          console.error('onBulkSave error:', err);
-          alert('Error during save: ' + err.message);
-        }
+        onBulkSave(newTasks);
       } else {
-        console.error('onBulkSave callback is undefined!');
-        alert('Error: Save function not available. Please refresh and try again.');
+        // Fallback if no callback
+        alert(`Successfully imported ${newTasks.length} tasks!`);
         onClose();
       }
-      
-      setBulkSaving(false); // Hide loading
     };
 
     return (
@@ -12425,11 +12405,32 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           headers.forEach((h, i) => colIdx[h] = i);
                           
                           const tasks = [];
-                          const warnings = [];
+                          const skippedRows = [];
+                          
+                          // Valid options for validation
+                          const validFinancialYears = ['FY 2023-24', 'FY 2024-25', 'FY 2025-26', 'FY 2026-27'];
+                          const validPeriods = ['Monthly', 'Quarterly', 'Half Yearly', 'Annual', 'Half-Yearly', 'Annually'];
+                          const validMonths = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                          const validQuarters = ['Quarter 1', 'Quarter 2', 'Quarter 3', 'Quarter 4', 'Q1', 'Q2', 'Q3', 'Q4'];
+                          const validHalfYearly = ['H1', 'H2', 'Half 1', 'Half 2'];
+                          
+                          // Get active staff list
+                          const activeStaff = data.staff.filter(s => s.status === 'Active');
+                          const superadmins = activeStaff.filter(s => s.role === 'Superadmin' || s.isSuperAdmin);
+                          const reportingManagers = activeStaff.filter(s => s.role === 'Reporting Manager');
+                          
+                          // Get valid parent and child tasks
+                          const validParentTasks = Object.keys(PARENT_CHILD_TASKS);
+                          
+                          // Get active clients
+                          const activeClients = data.clients.filter(c => !c.disabled);
                           
                           for (let i = 1; i < lines.length; i++) {
                             const line = lines[i].trim();
                             if (!line) continue;
+                            
+                            const rowNum = i + 1;
+                            const rowErrors = [];
                             
                             // Handle quoted values
                             const values = [];
@@ -12450,46 +12451,156 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             const getValue = (col) => values[colIdx[col]] || '';
                             
                             const clientName = getValue('clientname');
+                            const clientCode = getValue('fileno') || getValue('clientcode');
                             const parentTask = getValue('parenttask');
                             const childTask = getValue('childtask');
                             const taskLeader = getValue('taskleader');
                             const taskManager = getValue('taskmanager');
                             const primaryUser = getValue('primaryassigneduser');
+                            const financialYear = getValue('financialyear');
+                            const period = getValue('period');
+                            const subPeriod = getValue('subperiod');
                             
-                            // Validate required fields
-                            if (!clientName || !parentTask || !childTask) {
-                              warnings.push(`Row ${i + 1}: Missing client/parent/child task`);
+                            // ========== STRICT VALIDATION ==========
+                            
+                            // 1. Validate Client
+                            let matchedClient = null;
+                            if (clientCode) {
+                              matchedClient = activeClients.find(c => c.fileNo?.toLowerCase() === clientCode.toLowerCase());
+                              if (!matchedClient) rowErrors.push(`Client Code "${clientCode}" not found`);
+                            } else if (clientName) {
+                              matchedClient = activeClients.find(c => c.name?.toLowerCase() === clientName.toLowerCase());
+                              if (!matchedClient) rowErrors.push(`Client "${clientName}" not found`);
+                            } else {
+                              rowErrors.push('Client Name or Code required');
+                            }
+                            
+                            // 2. Validate Parent Task
+                            if (!parentTask) {
+                              rowErrors.push('Parent Task required');
+                            } else {
+                              const parentExists = validParentTasks.some(p => p.toLowerCase() === parentTask.toLowerCase());
+                              if (!parentExists) rowErrors.push(`Parent Task "${parentTask}" invalid`);
+                            }
+                            
+                            // 3. Validate Child Task
+                            if (!childTask) {
+                              rowErrors.push('Child Task required');
+                            } else if (parentTask) {
+                              const parentKey = validParentTasks.find(p => p.toLowerCase() === parentTask.toLowerCase());
+                              if (parentKey) {
+                                const validChildTasks = PARENT_CHILD_TASKS[parentKey] || [];
+                                const childExists = validChildTasks.some(c => c.toLowerCase() === childTask.toLowerCase());
+                                if (!childExists) rowErrors.push(`Child Task "${childTask}" invalid for "${parentTask}"`);
+                              }
+                            }
+                            
+                            // 4. Validate Task Leader (must be Superadmin)
+                            let matchedLeader = null;
+                            if (!taskLeader) {
+                              rowErrors.push('Task Leader required');
+                            } else {
+                              matchedLeader = superadmins.find(s => s.name.toLowerCase() === taskLeader.toLowerCase());
+                              if (!matchedLeader) rowErrors.push(`Task Leader "${taskLeader}" not a Superadmin`);
+                            }
+                            
+                            // 5. Validate Task Manager (must be RM)
+                            let matchedManager = null;
+                            if (!taskManager) {
+                              rowErrors.push('Task Manager required');
+                            } else {
+                              matchedManager = reportingManagers.find(s => s.name.toLowerCase() === taskManager.toLowerCase());
+                              if (!matchedManager) rowErrors.push(`Task Manager "${taskManager}" not an RM`);
+                            }
+                            
+                            // 6. Validate Assigned User
+                            let matchedUser = null;
+                            if (!primaryUser) {
+                              rowErrors.push('Assigned User required');
+                            } else {
+                              matchedUser = activeStaff.find(s => s.name.toLowerCase() === primaryUser.toLowerCase());
+                              if (!matchedUser) rowErrors.push(`User "${primaryUser}" not found`);
+                            }
+                            
+                            // 7. Validate Financial Year
+                            if (!financialYear) {
+                              rowErrors.push('Financial Year required');
+                            } else {
+                              const fyExists = validFinancialYears.some(fy => fy.toLowerCase() === financialYear.toLowerCase());
+                              if (!fyExists) rowErrors.push(`FY "${financialYear}" invalid`);
+                            }
+                            
+                            // 8. Validate Period
+                            let normalizedPeriod = '';
+                            if (!period) {
+                              rowErrors.push('Period required');
+                            } else {
+                              const periodExists = validPeriods.some(p => p.toLowerCase() === period.toLowerCase());
+                              if (!periodExists) {
+                                rowErrors.push(`Period "${period}" invalid`);
+                              } else {
+                                normalizedPeriod = validPeriods.find(p => p.toLowerCase() === period.toLowerCase()) || period;
+                              }
+                            }
+                            
+                            // 9. Validate Sub-Period
+                            if (subPeriod && normalizedPeriod) {
+                              const periodLower = normalizedPeriod.toLowerCase();
+                              if (periodLower === 'monthly') {
+                                if (!validMonths.some(m => m.toLowerCase() === subPeriod.toLowerCase())) {
+                                  rowErrors.push(`Sub-Period "${subPeriod}" invalid for Monthly`);
+                                }
+                              } else if (periodLower === 'quarterly') {
+                                if (!validQuarters.some(q => q.toLowerCase() === subPeriod.toLowerCase())) {
+                                  rowErrors.push(`Sub-Period "${subPeriod}" invalid for Quarterly`);
+                                }
+                              }
+                            }
+                            
+                            // Skip row if errors
+                            if (rowErrors.length > 0) {
+                              skippedRows.push({ row: rowNum, clientName: clientName || clientCode || 'Unknown', errors: rowErrors });
                               continue;
                             }
                             
                             tasks.push({
-                              clientName,
-                              fileNo: getValue('fileno'),
-                              groupName: getValue('groupname') || clientName,
-                              parentTask,
+                              clientId: matchedClient?.id,
+                              clientName: matchedClient?.name || clientName,
+                              fileNo: matchedClient?.fileNo || clientCode,
+                              groupName: getValue('groupname') || matchedClient?.groupName || matchedClient?.name || clientName,
+                              parentTask: validParentTasks.find(p => p.toLowerCase() === parentTask.toLowerCase()) || parentTask,
                               childTask,
-                              financialYear: getValue('financialyear'),
-                              period: getValue('period'),
-                              taskLeader: taskLeader,
-                              taskManager: taskManager,
-                              primaryAssignedUser: primaryUser,
+                              financialYear: validFinancialYears.find(fy => fy.toLowerCase() === financialYear.toLowerCase()) || financialYear,
+                              period: normalizedPeriod || period,
+                              subPeriod,
+                              taskLeader: matchedLeader?.name,
+                              taskManager: matchedManager?.name,
+                              primaryAssignedUser: matchedUser?.name,
                               startDate: getValue('startdate'),
                               expectedCompletionDate: getValue('expectedcompletiondate'),
-                              description: getValue('description')
+                              description: getValue('description'),
+                              isValid: true
                             });
                           }
                           
-                          console.log('Tasks parsed:', tasks.length);
+                          console.log('Tasks parsed:', tasks.length, 'Skipped:', skippedRows.length);
+                          
+                          // Handle errors
+                          if (skippedRows.length > 0) {
+                            if (tasks.length === 0) {
+                              setBulkError(`All ${skippedRows.length} row(s) have errors:\n${skippedRows.slice(0, 5).map(r => `Row ${r.row}: ${r.errors[0]}`).join('\n')}`);
+                              return;
+                            } else {
+                              setBulkWarning(`${skippedRows.length} row(s) skipped. ${tasks.length} valid. Errors: ${skippedRows.slice(0, 2).map(r => `Row ${r.row}: ${r.errors[0]}`).join('; ')}`);
+                            }
+                          }
                           
                           if (tasks.length === 0) {
-                            setBulkError('No valid tasks found in CSV');
+                            setBulkError('No valid tasks found. Ensure all data matches existing system records.');
                             return;
                           }
                           
                           setBulkPreview(tasks);
-                          if (warnings.length > 0) {
-                            setBulkWarning(`${warnings.length} warning(s): ${warnings.slice(0, 3).join('; ')}${warnings.length > 3 ? '...' : ''}`);
-                          }
                           
                         } catch (err) {
                           console.error('CSV Parse Error:', err);
@@ -12514,6 +12625,28 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       maxWidth: '300px'
                     }}
                   />
+                  
+                  {/* Validation Rules Info */}
+                  <div style={{ marginTop: '20px', padding: '16px', background: '#eff6ff', borderRadius: '8px', border: '1px solid #bfdbfe', textAlign: 'left' }}>
+                    <div style={{ fontWeight: '600', color: '#1e40af', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Shield size={16} /> Strict Validation Rules
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#1e40af', lineHeight: '1.6' }}>
+                      <strong>All fields must match existing system data:</strong>
+                      <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
+                        <li><strong>Client Name/Code</strong> - Must exist in Clients module</li>
+                        <li><strong>Parent Task</strong> - Must match configured task categories</li>
+                        <li><strong>Child Task</strong> - Must exist under the Parent Task</li>
+                        <li><strong>Task Leader</strong> - Must be an active Superadmin</li>
+                        <li><strong>Task Manager</strong> - Must be an active Reporting Manager</li>
+                        <li><strong>Assigned User</strong> - Must be an active Staff member</li>
+                        <li><strong>Financial Year</strong> - FY 2023-24, FY 2024-25, FY 2025-26, FY 2026-27</li>
+                        <li><strong>Period</strong> - Monthly, Quarterly, Half Yearly, Annual</li>
+                        <li><strong>Sub-Period</strong> - Must match Period type (e.g., January-December for Monthly)</li>
+                      </ul>
+                      <div style={{ marginTop: '8px', color: '#dc2626' }}>⚠️ Rows with invalid data will be rejected and not imported.</div>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -12526,11 +12659,13 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   borderRadius: '8px',
                   color: '#dc2626',
                   marginTop: '16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
+                  maxHeight: '150px',
+                  overflow: 'auto'
                 }}>
-                  <AlertCircle size={18} /> {bulkError}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                    <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <div style={{ whiteSpace: 'pre-wrap', fontSize: '13px' }}>{bulkError}</div>
+                  </div>
                 </div>
               )}
 
@@ -12543,7 +12678,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   borderRadius: '8px',
                   color: '#92400e',
                   marginTop: '16px',
-                  fontSize: '13px'
+                  fontSize: '13px',
+                  maxHeight: '100px',
+                  overflow: 'auto',
+                  whiteSpace: 'pre-wrap'
                 }}>
                   ⚠️ {bulkWarning}
                 </div>
@@ -12552,34 +12690,41 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               {/* Preview */}
               {bulkPreview.length > 0 && (
                 <div style={{ marginTop: '20px' }}>
-                  <h4 style={{ margin: '0 0 12px 0', color: '#1e293b' }}>
-                    Preview ({bulkPreview.length} tasks)
+                  <h4 style={{ margin: '0 0 12px 0', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <CheckCircle size={18} color="#10b981" />
+                    Preview ({bulkPreview.length} valid tasks ready to import)
                   </h4>
                   <div style={{ maxHeight: '350px', overflow: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                      <thead style={{ background: '#f1f5f9', position: 'sticky', top: 0 }}>
+                      <thead style={{ background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', position: 'sticky', top: 0 }}>
                         <tr>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>#</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Client</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Parent Task</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Child Task</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>FY</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Period</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Manager</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Assigned To</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'center', borderBottom: '1px solid #a7f3d0', width: '30px' }}>✓</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #a7f3d0' }}>#</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #a7f3d0' }}>Client</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #a7f3d0' }}>Parent Task</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #a7f3d0' }}>Child Task</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #a7f3d0' }}>FY</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #a7f3d0' }}>Period</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #a7f3d0' }}>Leader</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #a7f3d0' }}>Manager</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '1px solid #a7f3d0' }}>Assigned To</th>
                         </tr>
                       </thead>
                       <tbody>
                         {bulkPreview.map((task, idx) => (
-                          <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                            <td style={{ padding: '8px' }}>{idx + 1}</td>
-                            <td style={{ padding: '8px' }}>{task.clientName}</td>
+                          <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#f8fafc' }}>
+                            <td style={{ padding: '8px', textAlign: 'center' }}>
+                              <CheckCircle size={14} color="#10b981" />
+                            </td>
+                            <td style={{ padding: '8px', color: '#64748b' }}>{idx + 1}</td>
+                            <td style={{ padding: '8px', fontWeight: '500' }}>{task.clientName} {task.fileNo && <span style={{ color: '#94a3b8', fontSize: '10px' }}>({task.fileNo})</span>}</td>
                             <td style={{ padding: '8px' }}><span style={{ background: '#dbeafe', padding: '2px 6px', borderRadius: '4px', fontSize: '11px' }}>{task.parentTask}</span></td>
                             <td style={{ padding: '8px' }}>{task.childTask}</td>
-                            <td style={{ padding: '8px' }}>{task.financialYear}</td>
-                            <td style={{ padding: '8px' }}>{task.period}</td>
-                            <td style={{ padding: '8px', color: '#059669', fontWeight: 500 }}>{task.taskManager}</td>
-                            <td style={{ padding: '8px', color: '#7c3aed', fontWeight: 500 }}>{task.primaryAssignedUser}</td>
+                            <td style={{ padding: '8px' }}><span style={{ background: '#fef3c7', padding: '2px 6px', borderRadius: '4px', fontSize: '11px' }}>{task.financialYear}</span></td>
+                            <td style={{ padding: '8px' }}>{task.period}{task.subPeriod ? ` - ${task.subPeriod}` : ''}</td>
+                            <td style={{ padding: '8px', fontSize: '11px' }}>{task.taskLeader}</td>
+                            <td style={{ padding: '8px', fontSize: '11px' }}>{task.taskManager}</td>
+                            <td style={{ padding: '8px', fontSize: '11px' }}>{task.primaryAssignedUser}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -12603,29 +12748,21 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     </button>
                     <button
                       type="button"
-                      disabled={bulkSaving}
-                      onClick={() => {
-                        console.log('=== IMPORT & SAVE BUTTON CLICKED ===');
-                        confirmBulkImport();
-                      }}
+                      onClick={confirmBulkImport}
                       style={{
                         padding: '10px 24px',
-                        background: bulkSaving ? '#9ca3af' : '#10b981',
+                        background: '#10b981',
                         color: '#fff',
                         border: 'none',
                         borderRadius: '8px',
-                        cursor: bulkSaving ? 'wait' : 'pointer',
+                        cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
                         fontWeight: 600
                       }}
                     >
-                      {bulkSaving ? (
-                        <>⏳ Saving to Database...</>
-                      ) : (
-                        <><CheckCircle size={18} /> Import & Save {bulkPreview.length} Tasks</>
-                      )}
+                      <CheckCircle size={18} /> Import {bulkPreview.length} Tasks
                     </button>
                   </div>
                 </div>
@@ -12774,42 +12911,204 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   />
                 </div>
 
-                {/* Parent Task - Simple Dropdown */}
-                <div className="form-field-task">
-                  <label>Parent Task <span className="required-star">*</span></label>
-                  <select
-                    value={taskFormData.parentTask}
-                    onChange={(e) => {
-                      const parent = e.target.value;
-                      setTaskFormData(prev => ({ 
-                        ...prev, 
-                        parentTask: parent,
-                        childTask: '' // Reset child task when parent changes
-                      }));
+                {/* Task Selection - Side by Side Panel Style */}
+                <div className="form-field-task" style={{ gridColumn: 'span 2', position: 'relative' }}>
+                  <label>Tasks <span className="required-star">*</span></label>
+                  <div 
+                    onClick={() => setTaskFormData(prev => ({ ...prev, showTaskSelector: !prev.showTaskSelector }))}
+                    style={{
+                      padding: '12px 14px',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      background: '#fff',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
                     }}
-                    required
                   >
-                    <option value="">Select Parent Task</option>
-                    {Object.keys(PARENT_CHILD_TASKS).map(parent => (
-                      <option key={parent} value={parent}>{parent}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Child Task - Simple Dropdown */}
-                <div className="form-field-task">
-                  <label>Child Task <span className="required-star">*</span></label>
-                  <select
-                    value={taskFormData.childTask}
-                    onChange={(e) => setTaskFormData(prev => ({ ...prev, childTask: e.target.value }))}
-                    required
-                    disabled={!taskFormData.parentTask}
-                  >
-                    <option value="">Select Child Task</option>
-                    {taskFormData.parentTask && PARENT_CHILD_TASKS[taskFormData.parentTask]?.map(child => (
-                      <option key={child} value={child}>{child}</option>
-                    ))}
-                  </select>
+                    <span style={{ color: taskFormData.parentTask ? '#1e293b' : '#94a3b8', fontWeight: taskFormData.parentTask ? 500 : 400 }}>
+                      {taskFormData.parentTask && taskFormData.childTask 
+                        ? `${taskFormData.parentTask} → ${taskFormData.childTask}`
+                        : 'Click to select task...'}
+                    </span>
+                    <ChevronDown size={18} style={{ color: '#64748b', transform: taskFormData.showTaskSelector ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }} />
+                  </div>
+                  
+                  {taskFormData.showTaskSelector && (
+                    <>
+                      <div 
+                        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998 }}
+                        onClick={() => setTaskFormData(prev => ({ ...prev, showTaskSelector: false }))}
+                      />
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        background: '#fff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '12px',
+                        boxShadow: '0 8px 30px rgba(0,0,0,0.18)',
+                        zIndex: 999,
+                        maxHeight: '450px',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        marginTop: '4px'
+                      }}>
+                        {/* Parent Tasks - Left Side */}
+                        <div style={{
+                          width: '45%',
+                          borderRight: '1px solid #e2e8f0',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          maxHeight: '450px'
+                        }}>
+                          {/* Search Box */}
+                          <div style={{ padding: '12px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                            <div style={{ position: 'relative' }}>
+                              <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                              <input
+                                type="text"
+                                placeholder="Search here.."
+                                value={taskSearchTerm}
+                                onChange={(e) => setTaskSearchTerm(e.target.value)}
+                                style={{
+                                  width: '100%',
+                                  padding: '10px 12px 10px 34px',
+                                  border: '1px solid #e2e8f0',
+                                  borderRadius: '8px',
+                                  fontSize: '13px',
+                                  background: '#fff'
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </div>
+                          </div>
+                          {/* Task Categories List */}
+                          <div style={{ overflowY: 'auto', flex: 1 }}>
+                            {filteredParentTasks.map((parent, idx) => (
+                              <div
+                                key={parent}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setTaskFormData(prev => ({ 
+                                    ...prev, 
+                                    parentTask: parent,
+                                    childTask: ''
+                                  }));
+                                }}
+                                style={{
+                                  padding: '14px 16px',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  background: taskFormData.parentTask === parent ? '#dcfce7' : '#fff',
+                                  color: taskFormData.parentTask === parent ? '#166534' : '#1e293b',
+                                  borderBottom: '1px solid #f1f5f9',
+                                  fontWeight: 500,
+                                  fontSize: '14px',
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.3px',
+                                  transition: 'all 0.15s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (taskFormData.parentTask !== parent) {
+                                    e.currentTarget.style.background = '#f1f5f9';
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (taskFormData.parentTask !== parent) {
+                                    e.currentTarget.style.background = '#fff';
+                                  }
+                                }}
+                              >
+                                {parent}
+                                <ChevronRight size={18} style={{ opacity: 0.7 }} />
+                              </div>
+                            ))}
+                            {filteredParentTasks.length === 0 && (
+                              <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                                No tasks found
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Child Tasks - Right Side */}
+                        <div style={{
+                          width: '55%',
+                          maxHeight: '450px',
+                          overflowY: 'auto',
+                          background: '#f8fafc'
+                        }}>
+                          {taskFormData.parentTask ? (
+                            <>
+                              <div style={{ 
+                                padding: '14px 16px', 
+                                borderBottom: '1px solid #e2e8f0',
+                                fontWeight: 600,
+                                color: '#1e3a5f',
+                                background: '#fff',
+                                textTransform: 'uppercase',
+                                fontSize: '13px',
+                                letterSpacing: '0.5px'
+                              }}>
+                                {taskFormData.parentTask} - Sub Tasks
+                              </div>
+                              {PARENT_CHILD_TASKS[taskFormData.parentTask]?.map(child => (
+                                <div
+                                  key={child}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setTaskFormData(prev => ({ 
+                                      ...prev, 
+                                      childTask: child,
+                                      showTaskSelector: false
+                                    }));
+                                    setTaskSearchTerm('');
+                                  }}
+                                  style={{
+                                    padding: '13px 16px',
+                                    cursor: 'pointer',
+                                    background: taskFormData.childTask === child ? '#dbeafe' : '#fff',
+                                    color: taskFormData.childTask === child ? '#1d4ed8' : '#374151',
+                                    borderBottom: '1px solid #f1f5f9',
+                                    fontSize: '14px',
+                                    fontWeight: taskFormData.childTask === child ? 600 : 400,
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    if (taskFormData.childTask !== child) {
+                                      e.currentTarget.style.background = '#f0f9ff';
+                                    }
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    if (taskFormData.childTask !== child) {
+                                      e.currentTarget.style.background = '#fff';
+                                    }
+                                  }}
+                                >
+                                  {child}
+                                </div>
+                              ))}
+                            </>
+                          ) : (
+                            <div style={{ 
+                              padding: '60px 20px', 
+                              textAlign: 'center', 
+                              color: '#94a3b8',
+                              fontSize: '14px'
+                            }}>
+                              <ChevronLeft size={24} style={{ marginBottom: '8px', opacity: 0.5 }} />
+                              <div>Select a task category from the left</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Financial Year */}
@@ -14543,23 +14842,11 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           return t;
         });
         
-        // Update state - EXPLICITLY list all fields (no spread operator!)
+        // Update state
         setData({
-          tasks: updatedTasks,
-          clients: data.clients || [],
-          staff: data.staff || [],
-          timesheets: data.timesheets || [],
+          ...data,
           invoices: updatedInvoices,
-          receipts: data.receipts || [],
-          organizations: data.organizations || [],
-          recurringSchedules: data.recurringSchedules || [],
-          leaves: data.leaves || [],
-          documents: data.documents || [],
-          userPermissions: data.userPermissions || {},
-          parentChildTasks: data.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
-          recurringBatches: data.recurringBatches || [],
-          checklists: data.checklists || [],
-          pendingApprovals: data.pendingApprovals || []
+          tasks: updatedTasks
         });
         
         // Navigate back
@@ -18303,7 +18590,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       <div id="invoice-print-area" style={{padding: '24px'}}>
                         <div style={{background: '#fff', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.08)'}}>
                           {/* Invoice Header */}
-                          <div style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', padding: '30px', color: '#fff'}}>
+                          <div style={{background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', padding: '30px', color: '#059669', borderBottom: '1px solid #a7f3d0'}}>
                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                               <div style={{display: 'flex', alignItems: 'center', gap: '20px'}}>
                                 {generatedInvoice.orgLogo ? (
@@ -18364,7 +18651,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           <div style={{padding: '0'}}>
                             <table style={{width: '100%', borderCollapse: 'collapse'}}>
                               <thead>
-                                <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                                <tr style={{background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)', borderBottom: '2px solid #86efac'}}>
                                   <th style={{padding: '14px 20px', textAlign: 'center', color: '#fff', fontWeight: '600', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', width: '50px'}}>S.No</th>
                                   <th style={{padding: '14px 20px', textAlign: 'left', color: '#fff', fontWeight: '600', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Description of Services</th>
                                   <th style={{padding: '14px 20px', textAlign: 'center', color: '#fff', fontWeight: '600', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', width: '100px'}}>SAC</th>
@@ -19589,7 +19876,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       
                       return (
                         <div key={clientName} style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', marginBottom: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
-                          <div style={{padding: '16px 24px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff'}}>
+                          <div style={{padding: '16px 24px', background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', color: '#059669', borderBottom: '1px solid #a7f3d0'}}>
                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                               <div>
                                 <h4 style={{margin: 0, fontSize: '16px', fontWeight: '600'}}>{clientName}</h4>
@@ -19856,7 +20143,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
                   <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
                     <thead>
-                      <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                      <tr style={{background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)', borderBottom: '2px solid #86efac'}}>
                         <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Receipt No</th>
                         <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Date</th>
                         <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
@@ -19969,25 +20256,25 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               <>
                 {/* Summary Cards */}
                 <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '20px'}}>
-                  <div style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding: '20px', borderRadius: '12px', color: '#fff'}}>
-                    <div style={{fontSize: '12px', opacity: 0.9, marginBottom: '4px'}}>Total Debtors</div>
-                    <div style={{fontSize: '32px', fontWeight: '700'}}>{getAllDebtors().length}</div>
+                  <div style={{background: 'linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)', padding: '20px', borderRadius: '16px', border: '1px solid #c084fc'}}>
+                    <div style={{fontSize: '12px', color: '#7c3aed', fontWeight: '600', marginBottom: '4px'}}>Total Debtors</div>
+                    <div style={{fontSize: '32px', fontWeight: '700', color: '#6d28d9'}}>{getAllDebtors().length}</div>
                   </div>
-                  <div style={{background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', padding: '20px', borderRadius: '12px', color: '#fff'}}>
-                    <div style={{fontSize: '12px', opacity: 0.9, marginBottom: '4px'}}>Total Outstanding</div>
-                    <div style={{fontSize: '32px', fontWeight: '700'}}>
+                  <div style={{background: 'linear-gradient(135deg, #fef2f2 0%, #fecaca 100%)', padding: '20px', borderRadius: '16px', border: '1px solid #f87171'}}>
+                    <div style={{fontSize: '12px', color: '#dc2626', fontWeight: '600', marginBottom: '4px'}}>Total Outstanding</div>
+                    <div style={{fontSize: '32px', fontWeight: '700', color: '#b91c1c'}}>
                       ₹{getAllDebtors().reduce((sum, d) => sum + Math.max(0, d.balance), 0).toLocaleString('en-IN')}
                     </div>
                   </div>
-                  <div style={{background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', padding: '20px', borderRadius: '12px', color: '#fff'}}>
-                    <div style={{fontSize: '12px', opacity: 0.9, marginBottom: '4px'}}>With Pending Balance</div>
-                    <div style={{fontSize: '32px', fontWeight: '700'}}>
+                  <div style={{background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', padding: '20px', borderRadius: '16px', border: '1px solid #93c5fd'}}>
+                    <div style={{fontSize: '12px', color: '#2563eb', fontWeight: '600', marginBottom: '4px'}}>With Pending Balance</div>
+                    <div style={{fontSize: '32px', fontWeight: '700', color: '#1d4ed8'}}>
                       {getAllDebtors().filter(d => d.balance > 0).length}
                     </div>
                   </div>
-                  <div style={{background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', padding: '20px', borderRadius: '12px', color: '#fff'}}>
-                    <div style={{fontSize: '12px', opacity: 0.9, marginBottom: '4px'}}>Fully Paid</div>
-                    <div style={{fontSize: '32px', fontWeight: '700'}}>
+                  <div style={{background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', padding: '20px', borderRadius: '16px', border: '1px solid #6ee7b7'}}>
+                    <div style={{fontSize: '12px', color: '#059669', fontWeight: '600', marginBottom: '4px'}}>Fully Paid</div>
+                    <div style={{fontSize: '32px', fontWeight: '700', color: '#047857'}}>
                       {getAllDebtors().filter(d => d.balance <= 0).length}
                     </div>
                   </div>
@@ -20064,7 +20351,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <div style={{overflowX: 'auto'}}>
                     <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
                       <thead>
-                        <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                        <tr style={{background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)', borderBottom: '2px solid #86efac'}}>
                           <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client Name</th>
                           <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client Code</th>
                           <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Group Name</th>
@@ -20192,8 +20479,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
 
                 {/* 1. INVOICES TABLE */}
                 <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: '24px'}}>
-                  <div style={{padding: '16px 20px', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: '#fff'}}>
-                    <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                  <div style={{padding: '16px 20px', background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', color: '#92400e', borderBottom: '1px solid #fbbf24'}}>
+                    <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', color: '#92400e'}}>
                       <FileText size={18} /> Invoices
                     </h3>
                   </div>
@@ -20289,7 +20576,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
 
                 {/* 2. RECEIPTS TABLE */}
                 <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: '24px'}}>
-                  <div style={{padding: '16px 20px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff'}}>
+                  <div style={{padding: '16px 20px', background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', color: '#059669', borderBottom: '1px solid #a7f3d0'}}>
                     <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}>
                       <DollarSign size={18} /> Receipts / Payments
                     </h3>
@@ -20370,8 +20657,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
 
                 {/* 3. OUTSTANDING INVOICES TABLE */}
                 <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
-                  <div style={{padding: '16px 20px', background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: '#fff'}}>
-                    <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                  <div style={{padding: '16px 20px', background: 'linear-gradient(135deg, #fef2f2 0%, #fecaca 100%)', color: '#991b1b', borderBottom: '1px solid #f87171'}}>
+                    <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', color: '#991b1b'}}>
                       <AlertCircle size={18} /> Outstanding Invoices
                     </h3>
                   </div>
@@ -20476,15 +20763,16 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   gap: '12px',
                   marginBottom: '20px',
                   padding: '16px 20px',
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                  borderRadius: '12px'
+                  background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+                  borderRadius: '12px',
+                  border: '1px solid #a7f3d0'
                 }}>
                   <button
                     onClick={goBackToLedger}
                     style={{
                       padding: '10px 16px',
-                      background: 'rgba(255,255,255,0.1)',
-                      border: '1px solid rgba(255,255,255,0.2)',
+                      background: 'rgba(16,185,129,0.1)',
+                      border: '1px solid rgba(16,185,129,0.3)',
                       borderRadius: '8px',
                       cursor: 'pointer',
                       display: 'flex',
@@ -20492,18 +20780,18 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       gap: '8px',
                       fontSize: '13px',
                       fontWeight: '500',
-                      color: '#fff'
+                      color: '#059669'
                     }}
                   >
                     ← Back to Ledger
                   </button>
-                  <div style={{flex: 1, color: '#fff'}}>
+                  <div style={{flex: 1, color: '#059669'}}>
                     <span style={{fontSize: '14px', opacity: 0.7}}>Invoice</span>
                     <span style={{fontSize: '18px', fontWeight: '700', marginLeft: '8px'}}>{viewingInvoice.invoiceNo}</span>
                   </div>
                   <button
                     onClick={printInvoicePDF}
-                    style={{padding: '10px 20px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'}}
+                    style={{padding: '10px 20px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'}}
                   >
                     🖨️ Print
                   </button>
@@ -20587,7 +20875,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 {/* Professional Invoice Design */}
                 <div id="invoice-print-content" style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.1)'}}>
                   {/* Invoice Header */}
-                  <div style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', padding: '30px', color: '#fff'}}>
+                  <div style={{background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', padding: '30px', color: '#059669', borderBottom: '1px solid #a7f3d0'}}>
                     <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                       <div style={{display: 'flex', alignItems: 'center', gap: '20px'}}>
                         {viewingInvoice.orgLogo ? (
@@ -20648,7 +20936,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <div style={{padding: '0'}}>
                     <table style={{width: '100%', borderCollapse: 'collapse'}}>
                       <thead>
-                        <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                        <tr style={{background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)', borderBottom: '2px solid #86efac'}}>
                           <th style={{padding: '14px 20px', textAlign: 'center', color: '#fff', fontWeight: '600', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', width: '50px'}}>S.No</th>
                           <th style={{padding: '14px 20px', textAlign: 'left', color: '#fff', fontWeight: '600', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Description of Services</th>
                           <th style={{padding: '14px 20px', textAlign: 'center', color: '#fff', fontWeight: '600', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', width: '100px'}}>SAC</th>
@@ -20793,15 +21081,16 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 gap: '12px',
                 marginBottom: '20px',
                 padding: '16px 20px',
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                borderRadius: '12px'
+                background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+                borderRadius: '12px',
+                border: '1px solid #a7f3d0'
               }}>
                 <button
                   onClick={() => { setViewingReceipt(null); }}
                   style={{
                     padding: '10px 16px',
-                    background: 'rgba(255,255,255,0.1)',
-                    border: '1px solid rgba(255,255,255,0.2)',
+                    background: 'rgba(16,185,129,0.1)',
+                    border: '1px solid rgba(16,185,129,0.3)',
                     borderRadius: '8px',
                     cursor: 'pointer',
                     display: 'flex',
@@ -20809,18 +21098,18 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     gap: '8px',
                     fontSize: '13px',
                     fontWeight: '500',
-                    color: '#fff'
+                    color: '#059669'
                   }}
                 >
                   ✕ Close
                 </button>
-                <div style={{flex: 1, color: '#fff'}}>
+                <div style={{flex: 1, color: '#059669'}}>
                   <span style={{fontSize: '14px', opacity: 0.7}}>Receipt</span>
                   <span style={{fontSize: '18px', fontWeight: '700', marginLeft: '8px'}}>{viewingReceipt.receiptNo}</span>
                 </div>
                 <button
                   onClick={() => window.print()}
-                  style={{padding: '10px 20px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'}}
+                  style={{padding: '10px 20px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'}}
                 >
                   🖨️ Print
                 </button>
@@ -20829,7 +21118,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               {/* Receipt Design */}
               <div style={{background: '#fff', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', overflow: 'hidden'}} className="print-receipt">
                 {/* Receipt Header */}
-                <div style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', padding: '30px', color: '#fff', textAlign: 'center'}}>
+                <div style={{background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', padding: '30px', color: '#059669', borderBottom: '1px solid #a7f3d0', textAlign: 'center'}}>
                   <h1 style={{margin: 0, fontSize: '28px', fontWeight: '700', letterSpacing: '1px'}}>RECEIPT</h1>
                   <div style={{fontSize: '14px', opacity: 0.9, marginTop: '8px'}}>Payment Acknowledgement</div>
                 </div>
@@ -22727,6 +23016,722 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     );
   };
 
+  // DSC Register View Component
+  const DSCRegisterView = () => {
+    const dscList = data.dscRegister || [];
+    
+    // Calculate days until expiry
+    const getDaysUntilExpiry = (expiryDate) => {
+      if (!expiryDate) return null;
+      const today = new Date();
+      const expiry = new Date(expiryDate);
+      const diffTime = expiry - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays;
+    };
+    
+    // Get expiry status
+    const getExpiryStatus = (expiryDate) => {
+      const days = getDaysUntilExpiry(expiryDate);
+      if (days === null) return { status: 'unknown', color: '#64748b', bg: '#f1f5f9' };
+      if (days < 0) return { status: 'expired', color: '#dc2626', bg: '#fef2f2' };
+      if (days <= 30) return { status: 'critical', color: '#dc2626', bg: '#fef2f2' };
+      if (days <= 60) return { status: 'warning', color: '#f59e0b', bg: '#fef3c7' };
+      return { status: 'ok', color: '#16a34a', bg: '#dcfce7' };
+    };
+    
+    // Filter DSCs
+    const filteredDSCs = dscList.filter(dsc => {
+      const matchesSearch = 
+        dsc.holderName?.toLowerCase().includes(dscSearchTerm.toLowerCase()) ||
+        dsc.holderPan?.toLowerCase().includes(dscSearchTerm.toLowerCase()) ||
+        dsc.tokenSerial?.toLowerCase().includes(dscSearchTerm.toLowerCase()) ||
+        data.clients.find(c => c.id === dsc.clientId)?.name?.toLowerCase().includes(dscSearchTerm.toLowerCase());
+      
+      if (dscFilterStatus === 'all') return matchesSearch;
+      if (dscFilterStatus === 'active') return matchesSearch && dsc.status === 'Active';
+      if (dscFilterStatus === 'expiring') {
+        const days = getDaysUntilExpiry(dsc.expiryDate);
+        return matchesSearch && days !== null && days > 0 && days <= 60;
+      }
+      if (dscFilterStatus === 'expired') {
+        const days = getDaysUntilExpiry(dsc.expiryDate);
+        return matchesSearch && days !== null && days <= 0;
+      }
+      return matchesSearch;
+    });
+    
+    // Stats
+    const totalDSCs = dscList.length;
+    const activeDSCs = dscList.filter(d => d.status === 'Active').length;
+    const expiringDSCs = dscList.filter(d => {
+      const days = getDaysUntilExpiry(d.expiryDate);
+      return days !== null && days > 0 && days <= 60;
+    }).length;
+    const expiredDSCs = dscList.filter(d => {
+      const days = getDaysUntilExpiry(d.expiryDate);
+      return days !== null && days <= 0;
+    }).length;
+    
+    // Open add/edit modal
+    const openDSCModal = (dsc = null) => {
+      if (dsc) {
+        setSelectedDSC(dsc);
+        setDscFormData({
+          clientId: dsc.clientId || '',
+          holderName: dsc.holderName || '',
+          holderPan: dsc.holderPan || '',
+          provider: dsc.provider || '',
+          dscClass: dsc.dscClass || 'Class 3',
+          dscType: dsc.dscType || 'Signing',
+          tokenSerial: dsc.tokenSerial || '',
+          issueDate: dsc.issueDate || '',
+          expiryDate: dsc.expiryDate || '',
+          password: dsc.password || '',
+          location: dsc.location || '',
+          status: dsc.status || 'Active',
+          mobileNumber: dsc.mobileNumber || '',
+          email: dsc.email || '',
+          remarks: dsc.remarks || ''
+        });
+      } else {
+        setSelectedDSC(null);
+        setDscFormData({
+          clientId: '',
+          holderName: '',
+          holderPan: '',
+          provider: '',
+          dscClass: 'Class 3',
+          dscType: 'Signing',
+          tokenSerial: '',
+          issueDate: '',
+          expiryDate: '',
+          password: '',
+          location: '',
+          status: 'Active',
+          mobileNumber: '',
+          email: '',
+          remarks: ''
+        });
+      }
+      setShowDSCModal(true);
+    };
+    
+    // Save DSC
+    const saveDSC = () => {
+      if (!dscFormData.clientId) {
+        alert('Please select a client');
+        return;
+      }
+      if (!dscFormData.holderName) {
+        alert('Please enter DSC holder name');
+        return;
+      }
+      
+      if (selectedDSC) {
+        // Update existing
+        setData(prev => ({
+          ...prev,
+          dscRegister: prev.dscRegister.map(d => 
+            d.id === selectedDSC.id ? { ...d, ...dscFormData, updatedAt: new Date().toISOString() } : d
+          )
+        }));
+      } else {
+        // Add new
+        const newDSC = {
+          id: generateId(),
+          ...dscFormData,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        setData(prev => ({
+          ...prev,
+          dscRegister: [...(prev.dscRegister || []), newDSC]
+        }));
+      }
+      
+      setShowDSCModal(false);
+      setSelectedDSC(null);
+    };
+    
+    // Delete DSC
+    const deleteDSC = (dscId) => {
+      if (window.confirm('Are you sure you want to delete this DSC record?')) {
+        setData(prev => ({
+          ...prev,
+          dscRegister: prev.dscRegister.filter(d => d.id !== dscId)
+        }));
+      }
+    };
+    
+    // Get client name by ID
+    const getClientName = (clientId) => {
+      const client = data.clients.find(c => c.id === clientId);
+      return client?.name || 'Unknown Client';
+    };
+    
+    // DSC Providers
+    const DSC_PROVIDERS = ['eMudhra', 'Sify', 'nCode', 'Capricorn', 'CDAC', 'IDRBT', 'TCS', 'Other'];
+    
+    return (
+      <div>
+        {/* Header */}
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px'}}>
+          <div>
+            <h1 style={{fontSize: '24px', fontWeight: '700', color: '#1e293b', margin: 0}}>DSC Register</h1>
+            <p style={{fontSize: '14px', color: '#64748b', margin: '4px 0 0'}}>Manage Digital Signature Certificates</p>
+          </div>
+          <button
+            onClick={() => openDSCModal()}
+            style={{
+              padding: '12px 24px',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '10px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+            }}
+          >
+            <Plus size={18} /> Add DSC
+          </button>
+        </div>
+        
+        {/* Stats Cards */}
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px'}}>
+          <div style={{background: 'linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)', padding: '20px', borderRadius: '16px', border: '1px solid #c084fc'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+              <div>
+                <div style={{fontSize: '12px', color: '#7c3aed', fontWeight: '600', marginBottom: '4px'}}>Total DSCs</div>
+                <div style={{fontSize: '28px', fontWeight: '700', color: '#6d28d9'}}>{totalDSCs}</div>
+              </div>
+              <div style={{width: '40px', height: '40px', background: '#a855f7', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                <Key size={20} color="#fff" />
+              </div>
+            </div>
+          </div>
+          
+          <div style={{background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', padding: '20px', borderRadius: '16px', border: '1px solid #6ee7b7'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+              <div>
+                <div style={{fontSize: '12px', color: '#059669', fontWeight: '600', marginBottom: '4px'}}>Active</div>
+                <div style={{fontSize: '28px', fontWeight: '700', color: '#047857'}}>{activeDSCs}</div>
+              </div>
+              <div style={{width: '40px', height: '40px', background: '#10b981', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                <CheckCircle size={20} color="#fff" />
+              </div>
+            </div>
+          </div>
+          
+          <div style={{background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', padding: '20px', borderRadius: '16px', border: '1px solid #fbbf24'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+              <div>
+                <div style={{fontSize: '12px', color: '#b45309', fontWeight: '600', marginBottom: '4px'}}>Expiring Soon</div>
+                <div style={{fontSize: '28px', fontWeight: '700', color: '#92400e'}}>{expiringDSCs}</div>
+                <div style={{fontSize: '10px', color: '#b45309', marginTop: '2px'}}>Within 60 days</div>
+              </div>
+              <div style={{width: '40px', height: '40px', background: '#f59e0b', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                <AlertCircle size={20} color="#fff" />
+              </div>
+            </div>
+          </div>
+          
+          <div style={{background: 'linear-gradient(135deg, #fef2f2 0%, #fecaca 100%)', padding: '20px', borderRadius: '16px', border: '1px solid #f87171'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+              <div>
+                <div style={{fontSize: '12px', color: '#dc2626', fontWeight: '600', marginBottom: '4px'}}>Expired</div>
+                <div style={{fontSize: '28px', fontWeight: '700', color: '#b91c1c'}}>{expiredDSCs}</div>
+              </div>
+              <div style={{width: '40px', height: '40px', background: '#ef4444', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                <XCircle size={20} color="#fff" />
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Search & Filters */}
+        <div style={{background: '#fff', borderRadius: '12px', padding: '16px', marginBottom: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #e2e8f0'}}>
+          <div style={{display: 'flex', gap: '16px', alignItems: 'center'}}>
+            <div style={{flex: 1, position: 'relative'}}>
+              <Search size={18} style={{position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8'}} />
+              <input
+                type="text"
+                placeholder="Search by client, holder name, PAN, or token serial..."
+                value={dscSearchTerm}
+                onChange={e => setDscSearchTerm(e.target.value)}
+                style={{width: '100%', padding: '10px 12px 10px 40px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
+              />
+            </div>
+            <div style={{display: 'flex', gap: '8px'}}>
+              {[
+                { id: 'all', label: 'All' },
+                { id: 'active', label: 'Active' },
+                { id: 'expiring', label: 'Expiring Soon' },
+                { id: 'expired', label: 'Expired' }
+              ].map(filter => (
+                <button
+                  key={filter.id}
+                  onClick={() => setDscFilterStatus(filter.id)}
+                  style={{
+                    padding: '8px 16px',
+                    background: dscFilterStatus === filter.id ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#f1f5f9',
+                    color: dscFilterStatus === filter.id ? '#fff' : '#64748b',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        
+        {/* DSC List */}
+        {filteredDSCs.length === 0 ? (
+          <div style={{background: '#fff', borderRadius: '12px', padding: '60px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #e2e8f0'}}>
+            <Key size={48} style={{color: '#cbd5e1', marginBottom: '16px'}} />
+            <h3 style={{fontSize: '16px', fontWeight: '600', color: '#64748b', margin: '0 0 8px'}}>No DSC Records Found</h3>
+            <p style={{fontSize: '14px', color: '#94a3b8', margin: 0}}>
+              {dscSearchTerm || dscFilterStatus !== 'all' ? 'Try adjusting your search or filters' : 'Click "Add DSC" to create your first record'}
+            </p>
+          </div>
+        ) : (
+          <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '16px'}}>
+            {filteredDSCs.map(dsc => {
+              const expiryInfo = getExpiryStatus(dsc.expiryDate);
+              const daysLeft = getDaysUntilExpiry(dsc.expiryDate);
+              const client = data.clients.find(c => c.id === dsc.clientId);
+              
+              return (
+                <div
+                  key={dsc.id}
+                  style={{
+                    background: '#fff',
+                    borderRadius: '16px',
+                    overflow: 'hidden',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                    border: '1px solid #e2e8f0'
+                  }}
+                >
+                  {/* Card Header */}
+                  <div style={{padding: '16px 20px', background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                      <div style={{width: '40px', height: '40px', background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                        <Key size={20} color="#fff" />
+                      </div>
+                      <div>
+                        <div style={{fontSize: '15px', fontWeight: '600', color: '#1e293b'}}>{dsc.holderName}</div>
+                        <div style={{fontSize: '12px', color: '#64748b'}}>{client?.name || 'Unknown Client'}</div>
+                      </div>
+                    </div>
+                    <div style={{display: 'flex', gap: '8px'}}>
+                      <button
+                        onClick={() => openDSCModal(dsc)}
+                        style={{padding: '6px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer'}}
+                      >
+                        <Edit size={16} color="#64748b" />
+                      </button>
+                      <button
+                        onClick={() => deleteDSC(dsc.id)}
+                        style={{padding: '6px', background: '#fef2f2', border: 'none', borderRadius: '6px', cursor: 'pointer'}}
+                      >
+                        <Trash2 size={16} color="#ef4444" />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Card Body */}
+                  <div style={{padding: '16px 20px'}}>
+                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px'}}>
+                      <div>
+                        <div style={{fontSize: '11px', color: '#94a3b8', marginBottom: '2px'}}>PAN</div>
+                        <div style={{fontSize: '13px', fontWeight: '500', color: '#334155', fontFamily: 'monospace'}}>{dsc.holderPan || '-'}</div>
+                      </div>
+                      <div>
+                        <div style={{fontSize: '11px', color: '#94a3b8', marginBottom: '2px'}}>Token Serial</div>
+                        <div style={{fontSize: '13px', fontWeight: '500', color: '#334155', fontFamily: 'monospace'}}>{dsc.tokenSerial || '-'}</div>
+                      </div>
+                      <div>
+                        <div style={{fontSize: '11px', color: '#94a3b8', marginBottom: '2px'}}>Provider</div>
+                        <div style={{fontSize: '13px', fontWeight: '500', color: '#334155'}}>{dsc.provider || '-'}</div>
+                      </div>
+                      <div>
+                        <div style={{fontSize: '11px', color: '#94a3b8', marginBottom: '2px'}}>Class / Type</div>
+                        <div style={{fontSize: '13px', fontWeight: '500', color: '#334155'}}>{dsc.dscClass} / {dsc.dscType}</div>
+                      </div>
+                      <div>
+                        <div style={{fontSize: '11px', color: '#94a3b8', marginBottom: '2px'}}>Issue Date</div>
+                        <div style={{fontSize: '13px', fontWeight: '500', color: '#334155'}}>{dsc.issueDate || '-'}</div>
+                      </div>
+                      <div>
+                        <div style={{fontSize: '11px', color: '#94a3b8', marginBottom: '2px'}}>Location</div>
+                        <div style={{fontSize: '13px', fontWeight: '500', color: '#334155'}}>{dsc.location || '-'}</div>
+                      </div>
+                    </div>
+                    
+                    {/* Expiry & Status Row */}
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid #f1f5f9'}}>
+                      <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <span style={{
+                          padding: '4px 10px',
+                          background: dsc.status === 'Active' ? '#dcfce7' : '#f1f5f9',
+                          color: dsc.status === 'Active' ? '#16a34a' : '#64748b',
+                          borderRadius: '20px',
+                          fontSize: '11px',
+                          fontWeight: '600'
+                        }}>{dsc.status}</span>
+                      </div>
+                      <div style={{
+                        padding: '6px 12px',
+                        background: expiryInfo.bg,
+                        color: expiryInfo.color,
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        {expiryInfo.status === 'expired' ? (
+                          <>⚠️ Expired</>
+                        ) : expiryInfo.status === 'critical' ? (
+                          <>🔴 {daysLeft} days left</>
+                        ) : expiryInfo.status === 'warning' ? (
+                          <>🟡 {daysLeft} days left</>
+                        ) : daysLeft !== null ? (
+                          <>🟢 {daysLeft} days left</>
+                        ) : (
+                          <>No expiry set</>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        
+        {/* Add/Edit DSC Modal */}
+        {showDSCModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(15, 23, 42, 0.4)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px'
+          }}>
+            <div style={{
+              background: '#fff',
+              borderRadius: '20px',
+              width: '100%',
+              maxWidth: '700px',
+              maxHeight: '90vh',
+              overflow: 'hidden',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15)'
+            }}>
+              {/* Modal Header */}
+              <div style={{
+                padding: '20px 24px',
+                background: 'linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)',
+                borderBottom: '1px solid #c084fc',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <h2 style={{margin: 0, fontSize: '18px', fontWeight: '600', color: '#6d28d9', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                  <Key size={22} />
+                  {selectedDSC ? 'Edit DSC Record' : 'Add New DSC'}
+                </h2>
+                <button
+                  onClick={() => setShowDSCModal(false)}
+                  style={{background: 'rgba(109, 40, 217, 0.1)', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer'}}
+                >
+                  <X size={20} color="#6d28d9" />
+                </button>
+              </div>
+              
+              {/* Modal Body */}
+              <div style={{padding: '24px', maxHeight: 'calc(90vh - 160px)', overflowY: 'auto'}}>
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+                  {/* Client Selection */}
+                  <div style={{gridColumn: 'span 2'}}>
+                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
+                      Client <span style={{color: '#dc2626'}}>*</span>
+                    </label>
+                    <select
+                      value={dscFormData.clientId}
+                      onChange={e => setDscFormData({...dscFormData, clientId: e.target.value})}
+                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
+                    >
+                      <option value="">-- Select Client --</option>
+                      {data.clients.filter(c => !c.disabled).map(client => (
+                        <option key={client.id} value={client.id}>{client.name} {client.fileNo ? `(${client.fileNo})` : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {/* DSC Holder Name */}
+                  <div>
+                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
+                      DSC Holder Name <span style={{color: '#dc2626'}}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={dscFormData.holderName}
+                      onChange={e => setDscFormData({...dscFormData, holderName: e.target.value})}
+                      placeholder="Name on DSC"
+                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box'}}
+                    />
+                  </div>
+                  
+                  {/* PAN */}
+                  <div>
+                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
+                      Holder PAN
+                    </label>
+                    <input
+                      type="text"
+                      value={dscFormData.holderPan}
+                      onChange={e => setDscFormData({...dscFormData, holderPan: e.target.value.toUpperCase()})}
+                      placeholder="ABCDE1234F"
+                      maxLength={10}
+                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', fontFamily: 'monospace'}}
+                    />
+                  </div>
+                  
+                  {/* Provider */}
+                  <div>
+                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
+                      DSC Provider
+                    </label>
+                    <select
+                      value={dscFormData.provider}
+                      onChange={e => setDscFormData({...dscFormData, provider: e.target.value})}
+                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
+                    >
+                      <option value="">-- Select Provider --</option>
+                      {DSC_PROVIDERS.map(p => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {/* Token Serial */}
+                  <div>
+                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
+                      Token/Dongle Serial No.
+                    </label>
+                    <input
+                      type="text"
+                      value={dscFormData.tokenSerial}
+                      onChange={e => setDscFormData({...dscFormData, tokenSerial: e.target.value})}
+                      placeholder="Enter serial number"
+                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', fontFamily: 'monospace'}}
+                    />
+                  </div>
+                  
+                  {/* DSC Class */}
+                  <div>
+                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
+                      DSC Class
+                    </label>
+                    <select
+                      value={dscFormData.dscClass}
+                      onChange={e => setDscFormData({...dscFormData, dscClass: e.target.value})}
+                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
+                    >
+                      <option value="Class 2">Class 2</option>
+                      <option value="Class 3">Class 3</option>
+                    </select>
+                  </div>
+                  
+                  {/* DSC Type */}
+                  <div>
+                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
+                      DSC Type
+                    </label>
+                    <select
+                      value={dscFormData.dscType}
+                      onChange={e => setDscFormData({...dscFormData, dscType: e.target.value})}
+                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
+                    >
+                      <option value="Signing">Signing Only</option>
+                      <option value="Encryption">Encryption Only</option>
+                      <option value="Both">Signing + Encryption</option>
+                    </select>
+                  </div>
+                  
+                  {/* Issue Date */}
+                  <div>
+                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
+                      Issue Date
+                    </label>
+                    <input
+                      type="date"
+                      value={dscFormData.issueDate}
+                      onChange={e => setDscFormData({...dscFormData, issueDate: e.target.value})}
+                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box'}}
+                    />
+                  </div>
+                  
+                  {/* Expiry Date */}
+                  <div>
+                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
+                      Expiry Date
+                    </label>
+                    <input
+                      type="date"
+                      value={dscFormData.expiryDate}
+                      onChange={e => setDscFormData({...dscFormData, expiryDate: e.target.value})}
+                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box'}}
+                    />
+                  </div>
+                  
+                  {/* Password */}
+                  <div>
+                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
+                      DSC Password
+                    </label>
+                    <input
+                      type="text"
+                      value={dscFormData.password}
+                      onChange={e => setDscFormData({...dscFormData, password: e.target.value})}
+                      placeholder="Enter password"
+                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box'}}
+                    />
+                  </div>
+                  
+                  {/* Physical Location */}
+                  <div>
+                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
+                      Physical Location
+                    </label>
+                    <input
+                      type="text"
+                      value={dscFormData.location}
+                      onChange={e => setDscFormData({...dscFormData, location: e.target.value})}
+                      placeholder="Where is the token kept?"
+                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box'}}
+                    />
+                  </div>
+                  
+                  {/* Mobile Number */}
+                  <div>
+                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
+                      Registered Mobile
+                    </label>
+                    <input
+                      type="text"
+                      value={dscFormData.mobileNumber}
+                      onChange={e => setDscFormData({...dscFormData, mobileNumber: e.target.value})}
+                      placeholder="Mobile linked to DSC"
+                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box'}}
+                    />
+                  </div>
+                  
+                  {/* Email */}
+                  <div>
+                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
+                      Registered Email
+                    </label>
+                    <input
+                      type="email"
+                      value={dscFormData.email}
+                      onChange={e => setDscFormData({...dscFormData, email: e.target.value})}
+                      placeholder="Email linked to DSC"
+                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box'}}
+                    />
+                  </div>
+                  
+                  {/* Status */}
+                  <div>
+                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
+                      Status
+                    </label>
+                    <select
+                      value={dscFormData.status}
+                      onChange={e => setDscFormData({...dscFormData, status: e.target.value})}
+                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Expired">Expired</option>
+                      <option value="Revoked">Revoked</option>
+                      <option value="Lost">Lost</option>
+                      <option value="With Client">With Client</option>
+                    </select>
+                  </div>
+                  
+                  {/* Remarks */}
+                  <div style={{gridColumn: 'span 2'}}>
+                    <label style={{display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px'}}>
+                      Remarks / Notes
+                    </label>
+                    <textarea
+                      value={dscFormData.remarks}
+                      onChange={e => setDscFormData({...dscFormData, remarks: e.target.value})}
+                      placeholder="Any additional notes..."
+                      rows={3}
+                      style={{width: '100%', padding: '10px 12px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', resize: 'vertical'}}
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              {/* Modal Footer */}
+              <div style={{
+                padding: '16px 24px',
+                borderTop: '1px solid #e2e8f0',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '12px',
+                background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)'
+              }}>
+                <button
+                  onClick={() => setShowDSCModal(false)}
+                  style={{padding: '10px 20px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer'}}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveDSC}
+                  style={{
+                    padding: '10px 24px',
+                    background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {selectedDSC ? 'Update DSC' : 'Add DSC'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
 
   // Render current view
   const renderView = () => {
@@ -22735,6 +23740,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       case 'dashboard': return <DashboardView />;
       case 'task-detail': return <TaskDetailView />;
       case 'clients': return <ClientsView />;
+      case 'dscRegister': return <DSCRegisterView />;
       case 'staff': return <StaffView />;
       case 'invoicing': return <InvoicingView />;
       case 'timesheetReports': return <TimesheetReportsView />;
@@ -22745,8 +23751,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     }
   };
 
-  // Show loading screen while Firebase initializes
-  if (firebaseLoading) {
+  // Show loading screen while localStorage initializes
+  if (appLoading) {
     return (
       <div style={{
         position: 'fixed',
@@ -23123,77 +24129,116 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             setShowAddTaskModal(false);
             alert('Task created successfully! You can view it in the task list.');
           }}
-          onBulkSave={async (newTasks) => {
-            console.log('=== BULK SAVE V15 - WITH ALERTS ===');
-            console.log('New tasks count:', newTasks.length);
+          onBulkSave={(newTasks) => {
+            console.log('=== BULK SAVING TASKS ===');
+            console.log('Tasks to import:', newTasks.length);
             
-            // Skip duplicate check for now - just save
-            const tasksToAdd = newTasks;
+            // Filter out duplicate tasks
+            const { validTasks, duplicates } = filterDuplicateTasks(newTasks, data.tasks);
             
-            if (tasksToAdd.length === 0) {
-              alert('No tasks to import.');
+            if (duplicates.length > 0) {
+              const duplicateList = duplicates.slice(0, 5).map(d => 
+                `• ${d.clientName} - ${d.parentTask} → ${d.childTask} (${d.subPeriod || d.period})`
+              ).join('\n');
+              
+              const moreText = duplicates.length > 5 ? `\n...and ${duplicates.length - 5} more` : '';
+              
+              if (validTasks.length === 0) {
+                alert(`⚠️ All ${duplicates.length} tasks are duplicates!\n\n${duplicateList}${moreText}\n\nNo tasks were imported.`);
+                return;
+              }
+              
+              if (!window.confirm(`⚠️ Found ${duplicates.length} duplicate task(s):\n\n${duplicateList}${moreText}\n\nDo you want to import the remaining ${validTasks.length} task(s)?`)) {
+                return;
+              }
+            }
+            
+            if (validTasks.length === 0) {
+              alert('No valid tasks to import.');
               return;
             }
             
-            // Combine with existing tasks
-            const allTasks = [...(data.tasks || []), ...tasksToAdd];
-            console.log('Total tasks after merge:', allTasks.length);
+            // Check if approval is needed (Seniors/Articles need RM approval)
+            const userRole = getCurrentUserRole();
+            const approvalNeeded = needsApproval('bulk_task', userRole);
             
-            // Build the SIMPLEST possible data object for Firebase
-            const dataForFirebase = {
-              tasks: allTasks,
-              clients: data.clients || [],
-              staff: data.staff || [],
-              timesheets: data.timesheets || [],
-              invoices: data.invoices || [],
-              receipts: data.receipts || [],
-              organizations: (data.organizations || []).map(org => {
-                const o = JSON.parse(JSON.stringify(org || {}));
-                if (o.logo && o.logo.startsWith && o.logo.startsWith('data:')) o.logo = '[IMG]';
-                if (o.signatureImage && o.signatureImage.startsWith && o.signatureImage.startsWith('data:')) o.signatureImage = '[IMG]';
-                if (o.qrCode && o.qrCode.startsWith && o.qrCode.startsWith('data:')) o.qrCode = '[IMG]';
-                return o;
-              }),
-              recurringSchedules: data.recurringSchedules || [],
-              leaves: data.leaves || [],
-              documents: data.documents || [],
-              userPermissions: data.userPermissions || {},
-              parentChildTasks: data.parentChildTasks || {},
-              recurringBatches: data.recurringBatches || [],
-              checklists: data.checklists || [],
-              pendingApprovals: data.pendingApprovals || [],
-              lastUpdated: new Date().toISOString()
+            if (approvalNeeded) {
+              // Create approval request for bulk tasks
+              const approval = createApprovalRequest(
+                'bulk_task',
+                validTasks,
+                `Bulk Task Import: ${validTasks.length} tasks`
+              );
+              
+              if (approval) {
+                setData(prev => ({
+                  ...prev,
+                  pendingApprovals: [...(prev.pendingApprovals || []), approval]
+                }));
+                setShowAddTaskModal(false);
+                alert(`📝 ${validTasks.length} tasks submitted for approval!\n\nYour Reporting Manager will review and approve these tasks.`);
+                return;
+              }
+            }
+            
+            // Direct save for Superadmin/RM - IMMEDIATE FIREBASE SAVE
+            const updatedTasks = [...data.tasks, ...validTasks];
+            
+            // Update state
+            setData(prev => ({
+              ...prev,
+              tasks: updatedTasks
+            }));
+            
+            // Immediately save to localStorage and WAIT for it to complete
+            const saveTolocalStorage = async () => {
+              try {
+                const dataToSave = {
+                  tasks: updatedTasks,
+                  clients: data.clients || [],
+                  staff: data.staff || [],
+                  timesheets: data.timesheets || [],
+                  invoices: data.invoices || [],
+                  receipts: data.receipts || [],
+                  organizations: (data.organizations || []).map(org => ({
+                    ...org,
+                    logo: org.logo?.startsWith('data:') ? '[IMAGE]' : org.logo,
+                    signatureImage: org.signatureImage?.startsWith('data:') ? '[IMAGE]' : org.signatureImage,
+                    qrCode: org.qrCode?.startsWith('data:') ? '[IMAGE]' : org.qrCode
+                  })),
+                  recurringSchedules: data.recurringSchedules || [],
+                  leaves: data.leaves || [],
+                  documents: data.documents || [],
+                  userPermissions: data.userPermissions || {},
+                  parentChildTasks: data.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
+                  recurringBatches: data.recurringBatches || [],
+                  checklists: data.checklists || [],
+                  pendingApprovals: data.pendingApprovals || [],
+                  dscRegister: data.dscRegister || [],
+                  lastUpdated: new Date().toISOString()
+                };
+                
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+                console.log('✅ Bulk tasks saved to localStorage immediately!');
+                return true;
+              } catch (error) {
+                console.error('❌ Error saving bulk tasks to localStorage:', error);
+                alert('❌ Error saving to database: ' + error.message);
+                return false;
+              }
             };
             
-            // THE KEY: JSON.parse(JSON.stringify()) GUARANTEES no undefined
-            const cleanData = JSON.parse(JSON.stringify(dataForFirebase));
-            
-            console.log('Clean data prepared, tasks count:', cleanData.tasks.length);
-            
-            // DEBUG: Show alert before Firebase save
-            // alert('About to save ' + cleanData.tasks.length + ' tasks to Firebase...');
-            
-            try {
-              // Direct Firebase save
-              console.log('Calling setDoc NOW...');
-              await setDoc(doc(db, 'appData', 'mainData'), cleanData);
-              console.log('✅ Firebase setDoc completed!');
-              
-              // Update local state
-              setData(prev => ({
-                ...prev,
-                tasks: allTasks
-              }));
-              
+            // Wait for save to complete, then show success
+            saveTolocalStorage().then((success) => {
               setShowAddTaskModal(false);
-              alert(`✅ Successfully imported and saved ${tasksToAdd.length} task(s) to database!`);
-            } catch (err) {
-              console.error('❌ Firebase save FAILED:', err);
-              console.error('Error name:', err.name);
-              console.error('Error message:', err.message);
-              console.error('Error code:', err.code);
-              alert('❌ Error saving to Firebase: ' + err.message);
-            }
+              if (success) {
+                if (duplicates.length > 0) {
+                  alert(`✅ Imported ${validTasks.length} task(s) and saved to database!\n⚠️ Skipped ${duplicates.length} duplicate(s).`);
+                } else {
+                  alert(`✅ Successfully imported ${validTasks.length} task(s) and saved to database!`);
+                }
+              }
+            });
           }}
         />
       )}
