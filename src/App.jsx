@@ -5,6 +5,7 @@ import { Calendar, Users, Clock, FileText, DollarSign, Bell, Settings, Home, Bri
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
 import { getFirestore, doc, getDoc, setDoc, collection, getDocs, onSnapshot } from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 
 // Firebase Configuration
 const firebaseConfig = {
@@ -20,6 +21,7 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
 const db = getFirestore(firebaseApp);
+const storage = getStorage(firebaseApp);
 
 // Utility function for generating IDs
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -481,24 +483,15 @@ const PracticeManagementApp = () => {
             const firebaseData = docSnap.data();
             console.log('Loaded data from Firebase:', Object.keys(firebaseData));
             
-            // Restore organization images from localStorage
-            const orgsWithImages = (firebaseData.organizations || []).map(org => {
-              const storedImages = localStorage.getItem(`org_images_${org.id}`);
-              if (storedImages) {
-                try {
-                  const images = JSON.parse(storedImages);
-                  return {
-                    ...org,
-                    logo: images.logo || org.logo,
-                    signatureImage: images.signatureImage || org.signatureImage,
-                    qrCode: images.qrCode || org.qrCode
-                  };
-                } catch (e) {
-                  console.log('Could not parse stored images for org:', org.id);
-                }
-              }
-              return org;
-            });
+            // Process organizations - images are stored in state, not Firebase
+            // When org has [IMAGE] placeholder, it means image was uploaded but not stored in Firebase
+            const orgsProcessed = (firebaseData.organizations || []).map(org => ({
+              ...org,
+              // If image was placeholder, keep it as is (user needs to re-upload)
+              logo: org.logo === '[IMAGE]' ? '' : (org.logo || ''),
+              signatureImage: org.signatureImage === '[IMAGE]' ? '' : (org.signatureImage || ''),
+              qrCode: org.qrCode === '[IMAGE]' ? '' : (org.qrCode || '')
+            }));
             
             // Properly merge ALL data fields with defaults
             setData(prev => ({
@@ -508,7 +501,7 @@ const PracticeManagementApp = () => {
               timesheets: firebaseData.timesheets || prev.timesheets || [],
               invoices: firebaseData.invoices || prev.invoices || [],
               receipts: firebaseData.receipts || prev.receipts || [],
-              organizations: orgsWithImages,
+              organizations: orgsProcessed,
               recurringSchedules: firebaseData.recurringSchedules || prev.recurringSchedules || [],
               leaves: firebaseData.leaves || prev.leaves || [],
               documents: firebaseData.documents || prev.documents || [],
@@ -626,51 +619,68 @@ const PracticeManagementApp = () => {
   // BULLETPROOF save function - used by all save operations
   // SIMPLE AND BULLETPROOF Firebase save function
   const saveAllDataToFirebase = async (dataObj) => {
-    console.log('=== saveAllDataToFirebase V13 SIMPLE ===');
+    console.log('=== saveAllDataToFirebase V15 ULTRA-CLEAN ===');
+    
+    // Helper function to deep clean any object
+    const deepClean = (obj) => {
+      if (obj === null || obj === undefined) return null;
+      if (typeof obj !== 'object') return obj;
+      if (obj instanceof Date) return obj.toISOString();
+      if (obj instanceof File) return null;
+      if (Array.isArray(obj)) return obj.map(item => deepClean(item)).filter(x => x !== null);
+      
+      const cleaned = {};
+      for (const [key, value] of Object.entries(obj)) {
+        if (value === null || value === undefined) continue;
+        if (typeof value === 'function') continue;
+        if (value instanceof File) continue;
+        if (typeof value === 'string' && value.startsWith('data:image')) {
+          cleaned[key] = '[IMAGE]';
+        } else if (typeof value === 'object') {
+          const cleanedValue = deepClean(value);
+          if (cleanedValue !== null && Object.keys(cleanedValue).length > 0) {
+            cleaned[key] = cleanedValue;
+          }
+        } else {
+          cleaned[key] = value;
+        }
+      }
+      return cleaned;
+    };
     
     try {
-      // Step 1: Handle base64 images in organizations (they're too large for Firebase)
-      const orgs = (dataObj.organizations || []).map(org => {
-        const o = { ...org };
-        if (o.logo && typeof o.logo === 'string' && o.logo.startsWith('data:')) o.logo = '[IMAGE]';
-        if (o.signatureImage && typeof o.signatureImage === 'string' && o.signatureImage.startsWith('data:')) o.signatureImage = '[IMAGE]';
-        if (o.qrCode && typeof o.qrCode === 'string' && o.qrCode.startsWith('data:')) o.qrCode = '[IMAGE]';
-        return o;
-      });
-      
-      // Step 2: Build data object
+      // Step 1: Build data object with deep cleaning
       const rawData = {
-        tasks: dataObj.tasks || [],
-        clients: dataObj.clients || [],
-        staff: dataObj.staff || [],
-        timesheets: dataObj.timesheets || [],
-        invoices: dataObj.invoices || [],
-        receipts: dataObj.receipts || [],
-        organizations: orgs,
-        recurringSchedules: dataObj.recurringSchedules || [],
-        leaves: dataObj.leaves || [],
-        documents: dataObj.documents || [],
-        userPermissions: dataObj.userPermissions || {},
-        parentChildTasks: dataObj.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS,
-        recurringBatches: dataObj.recurringBatches || [],
-        checklists: dataObj.checklists || [],
-        pendingApprovals: dataObj.pendingApprovals || [],
-        dscRegister: dataObj.dscRegister || [],
+        tasks: deepClean(dataObj.tasks) || [],
+        clients: deepClean(dataObj.clients) || [],
+        staff: deepClean(dataObj.staff) || [],
+        timesheets: deepClean(dataObj.timesheets) || [],
+        invoices: deepClean(dataObj.invoices) || [],
+        receipts: deepClean(dataObj.receipts) || [],
+        organizations: deepClean(dataObj.organizations) || [],
+        recurringSchedules: deepClean(dataObj.recurringSchedules) || [],
+        leaves: deepClean(dataObj.leaves) || [],
+        documents: deepClean(dataObj.documents) || [],
+        userPermissions: deepClean(dataObj.userPermissions) || {},
+        parentChildTasks: deepClean(dataObj.parentChildTasks) || DEFAULT_PARENT_CHILD_TASKS,
+        recurringBatches: deepClean(dataObj.recurringBatches) || [],
+        checklists: deepClean(dataObj.checklists) || [],
+        pendingApprovals: deepClean(dataObj.pendingApprovals) || [],
+        dscRegister: deepClean(dataObj.dscRegister) || [],
         lastUpdated: new Date().toISOString()
       };
       
-      // Step 3: THE MAGIC - JSON.parse(JSON.stringify()) removes ALL undefined values
-      // This is GUARANTEED to work because undefined is not valid JSON
+      // Step 2: JSON stringify/parse to ensure everything is serializable
       const cleanData = JSON.parse(JSON.stringify(rawData));
       
       console.log('Data prepared. Counts:', {
-        tasks: cleanData.tasks.length,
-        clients: cleanData.clients.length,
-        staff: cleanData.staff.length,
-        organizations: cleanData.organizations.length
+        tasks: cleanData.tasks?.length || 0,
+        clients: cleanData.clients?.length || 0,
+        staff: cleanData.staff?.length || 0,
+        organizations: cleanData.organizations?.length || 0
       });
       
-      // Step 4: Save to Firebase
+      // Step 3: Save to Firebase
       await setDoc(doc(db, 'appData', 'mainData'), cleanData);
       console.log('✅ Firebase save SUCCESS!');
       
@@ -15029,6 +15039,13 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       const currentNo = org.invoiceCurrentNo || org.invoiceStartNo || 1;
       const invoiceNo = `${org.invoicePrefix || 'INV'}-${currentNo}${org.invoiceSuffix ? '/' + org.invoiceSuffix : ''}`;
       
+      // Determine invoice format
+      const invoiceFormat = org.invoiceFormat || (gstApplicable ? 'taxInvoice' : 'billOfSupply');
+      console.log('=== generateInvoice ===');
+      console.log('org.invoiceFormat:', org.invoiceFormat);
+      console.log('gstApplicable:', gstApplicable);
+      console.log('Final invoiceFormat:', invoiceFormat);
+      
       // Invoice object - NO base64 images stored, only references
       const invoice = {
         id: generateId(),
@@ -15037,6 +15054,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         taskId: task.id,
         clientId: client?.id,
         organizationId: org.id, // Reference to org for images
+        invoiceFormat, // Added here
         
         // Organization details (text only, no images)
         orgName: org.name,
@@ -15085,7 +15103,6 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         remark: billingDetails.remark,
         isPureAgentService: billingDetails.isPureAgentService,
         sendWhatsApp: billingDetails.sendWhatsApp,
-        invoiceFormat: org.invoiceFormat || (gstApplicable ? 'taxInvoice' : 'billOfSupply'),
         
         // Task reference
         taskType: task.childTask,
@@ -15293,10 +15310,36 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       }
     };
 
-    const saveOrganization = () => {
+    // Helper function to upload image to Firebase Storage
+    const uploadImageToStorage = async (base64Data, orgId, imageType) => {
+      if (!base64Data || !base64Data.startsWith('data:')) {
+        return base64Data; // Return as-is if it's already a URL or empty
+      }
+      
+      try {
+        // Convert base64 to blob
+        const response = await fetch(base64Data);
+        const blob = await response.blob();
+        
+        // Create storage reference
+        const storageRef = ref(storage, `organizations/${orgId}/${imageType}_${Date.now()}`);
+        
+        // Upload
+        await uploadBytes(storageRef, blob);
+        
+        // Get download URL
+        const downloadURL = await getDownloadURL(storageRef);
+        console.log(`✅ Uploaded ${imageType} to Storage:`, downloadURL);
+        
+        return downloadURL;
+      } catch (error) {
+        console.error(`❌ Failed to upload ${imageType}:`, error);
+        return null; // Return null on failure, don't block save
+      }
+    };
+
+    const saveOrganization = async () => {
       console.log('=== saveOrganization called ===');
-      console.log('orgForm:', orgForm);
-      console.log('editingOrg:', editingOrg);
       
       if (!orgForm.name) {
         alert('Organization name is required');
@@ -15304,56 +15347,83 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       }
 
       const orgId = editingOrg ? editingOrg.id : generateId();
-      console.log('Generated orgId:', orgId);
       
+      // Show loading message for image upload
+      let logoUrl = orgForm.logoPreview || editingOrg?.logo || null;
+      let signatureUrl = orgForm.signaturePreview || editingOrg?.signatureImage || null;
+      let qrCodeUrl = orgForm.qrCodePreview || editingOrg?.qrCode || null;
+      
+      // Upload images to Firebase Storage if they are base64
+      if (orgForm.logoPreview && orgForm.logoPreview.startsWith('data:')) {
+        console.log('Uploading logo to Firebase Storage...');
+        logoUrl = await uploadImageToStorage(orgForm.logoPreview, orgId, 'logo');
+      }
+      
+      if (orgForm.signaturePreview && orgForm.signaturePreview.startsWith('data:')) {
+        console.log('Uploading signature to Firebase Storage...');
+        signatureUrl = await uploadImageToStorage(orgForm.signaturePreview, orgId, 'signature');
+      }
+      
+      if (orgForm.qrCodePreview && orgForm.qrCodePreview.startsWith('data:')) {
+        console.log('Uploading QR code to Firebase Storage...');
+        qrCodeUrl = await uploadImageToStorage(orgForm.qrCodePreview, orgId, 'qrcode');
+      }
+      
+      // Create clean org data with Storage URLs instead of base64
       const orgData = {
-        ...orgForm,
         id: orgId,
-        logo: orgForm.logoPreview,
-        signatureImage: orgForm.signaturePreview,
-        qrCode: orgForm.qrCodePreview,
+        name: orgForm.name || '',
+        website: orgForm.website || '',
+        faxNo: orgForm.faxNo || '',
+        authorizedSignatory: orgForm.authorizedSignatory || '',
+        phoneNo: orgForm.phoneNo || '',
+        mobileNo: orgForm.mobileNo || '',
+        alternateMobileNo: orgForm.alternateMobileNo || '',
+        emailId: orgForm.emailId || '',
+        gstin: orgForm.gstin || '',
+        panNo: orgForm.panNo || '',
+        upiId: orgForm.upiId || '',
+        mmid: orgForm.mmid || '',
+        otherMobileNo: orgForm.otherMobileNo || '',
+        state: orgForm.state || '',
+        address: orgForm.address || '',
+        bankName: orgForm.bankName || '',
+        bankAccountNo: orgForm.bankAccountNo || '',
+        bankIfsc: orgForm.bankIfsc || '',
+        bankBranch: orgForm.bankBranch || '',
+        gstApplicable: orgForm.gstApplicable || 'yes',
+        invoiceFormat: orgForm.invoiceFormat || (orgForm.gstApplicable === 'yes' ? 'taxInvoice' : 'billOfSupply'),
+        allowBackdatedInvoicing: orgForm.allowBackdatedInvoicing !== false,
+        displayFileNoInInvoice: orgForm.displayFileNoInInvoice !== false,
+        invoicePrefix: orgForm.invoicePrefix || 'INV',
+        invoiceStartNo: orgForm.invoiceStartNo || 1,
+        invoiceCurrentNo: orgForm.invoiceCurrentNo || orgForm.invoiceStartNo || 1,
+        invoiceSuffix: orgForm.invoiceSuffix || '',
+        receiptPrefix: orgForm.receiptPrefix || 'RCP',
+        receiptStartNo: orgForm.receiptStartNo || 1,
+        receiptCurrentNo: orgForm.receiptCurrentNo || orgForm.receiptStartNo || 1,
+        receiptSuffix: orgForm.receiptSuffix || '',
+        // Store Firebase Storage URLs (not base64)
+        logo: logoUrl,
+        signatureImage: signatureUrl,
+        qrCode: qrCodeUrl,
         createdAt: editingOrg ? editingOrg.createdAt : new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
       
-      console.log('orgData to save:', orgData);
-      
-      // Store images in localStorage (Firebase can't handle large base64 images)
-      try {
-        const imagesToStore = {
-          logo: orgForm.logoPreview || null,
-          signatureImage: orgForm.signaturePreview || null,
-          qrCode: orgForm.qrCodePreview || null
-        };
-        localStorage.setItem(`org_images_${orgId}`, JSON.stringify(imagesToStore));
-        console.log('Organization images saved to localStorage for:', orgId);
-      } catch (e) {
-        console.error('Could not save org images to localStorage:', e);
-      }
+      console.log('Clean orgData to save:', orgData);
 
       if (editingOrg) {
-        console.log('Updating existing organization');
-        setData(prev => {
-          console.log('Previous organizations:', prev.organizations);
-          const updated = {
-            ...prev,
-            organizations: prev.organizations.map(o => o.id === editingOrg.id ? orgData : o)
-          };
-          console.log('Updated organizations:', updated.organizations);
-          return updated;
-        });
+        setData(prev => ({
+          ...prev,
+          organizations: prev.organizations.map(o => o.id === editingOrg.id ? orgData : o)
+        }));
         alert('Organization updated successfully!');
       } else {
-        console.log('Creating new organization');
-        setData(prev => {
-          console.log('Previous organizations:', prev.organizations);
-          const updated = {
-            ...prev,
-            organizations: [...(prev.organizations || []), orgData]
-          };
-          console.log('Updated organizations:', updated.organizations);
-          return updated;
-        });
+        setData(prev => ({
+          ...prev,
+          organizations: [...(prev.organizations || []), orgData]
+        }));
         alert('Organization created successfully!');
       }
 
@@ -15364,25 +15434,18 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const editOrganization = (org) => {
       setEditingOrg(org);
       
-      // Try to restore images from localStorage
-      let logo = org.logo || '';
-      let signatureImage = org.signatureImage || '';
-      let qrCode = org.qrCode || '';
+      // Ensure invoiceFormat has a default value
+      const gstApplicable = org.gstApplicable || 'yes';
+      const invoiceFormat = org.invoiceFormat || (gstApplicable === 'yes' ? 'taxInvoice' : 'billOfSupply');
       
-      try {
-        const storedImages = localStorage.getItem(`org_images_${org.id}`);
-        if (storedImages) {
-          const images = JSON.parse(storedImages);
-          logo = images.logo || logo;
-          signatureImage = images.signatureImage || signatureImage;
-          qrCode = images.qrCode || qrCode;
-        }
-      } catch (e) {
-        console.log('Could not restore org images from localStorage');
-      }
+      // Use images from org directly (they're stored in state)
+      const logo = org.logo || '';
+      const signatureImage = org.signatureImage || '';
+      const qrCode = org.qrCode || '';
       
       setOrgForm({
         ...org,
+        invoiceFormat,
         logo,
         signatureImage,
         qrCode,
