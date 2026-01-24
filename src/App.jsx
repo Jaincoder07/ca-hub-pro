@@ -2065,11 +2065,12 @@ const PracticeManagementApp = () => {
     billingKpis.totalOutstanding = billingKpis.totalBilled - billingKpis.totalCollected;
     
     // Task status distribution for charts
+    // Pastel green shades for pie chart
     const taskStatusData = [
-      { name: 'Open', value: kpis.openTasks, color: '#3b82f6' },
-      { name: 'In Progress', value: kpis.inProgressTasks, color: '#f59e0b' },
-      { name: 'Completed', value: kpis.completedTasks, color: '#10b981' },
-      { name: 'Overdue', value: kpis.overdueTasks, color: '#ef4444' }
+      { name: 'Open', value: kpis.openTasks, color: '#86efac' },          // Light green
+      { name: 'In Progress', value: kpis.inProgressTasks, color: '#4ade80' },  // Medium green
+      { name: 'Completed', value: kpis.completedTasks, color: '#22c55e' },     // Green
+      { name: 'Overdue', value: kpis.overdueTasks, color: '#166534' }          // Dark green
     ];
     
     // Task category distribution
@@ -2540,24 +2541,24 @@ const PracticeManagementApp = () => {
               </div>
             </div>
 
-            {/* Task Categories Chart - Pie Chart */}
+            {/* Task Categories Chart - Pie Chart with Pastel Green Shades */}
             <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', transition: 'all 0.3s ease'}}
               onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.08)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
               <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#1e293b'}}>Tasks by Category</h3>
               <AnimatedPieChart 
-                data={taskCategoryData.filter(d => d.value > 0).map((d, i) => ({...d, color: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'][i % 8]}))} 
+                data={taskCategoryData.filter(d => d.value > 0).map((d, i) => ({...d, color: ['#dcfce7', '#bbf7d0', '#86efac', '#4ade80', '#22c55e', '#16a34a', '#15803d', '#166534'][i % 8]}))} 
                 size={180}
               />
             </div>
 
-            {/* Staff Workload */}
+            {/* Staff Workload - Pastel Colors */}
             <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', transition: 'all 0.3s ease'}}
               onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.08)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
               <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#1e293b'}}>Staff Workload (Pending)</h3>
               <SimpleBarChart 
-                data={teamWorkloadData.slice(0, 6).map(d => ({name: d.name, value: d.pending, color: d.overdue > 0 ? '#ef4444' : '#3b82f6'}))} 
+                data={teamWorkloadData.slice(0, 6).map((d, i) => ({name: d.name, value: d.pending, color: d.overdue > 0 ? '#fca5a5' : ['#86efac', '#93c5fd', '#c4b5fd', '#fcd34d', '#a5f3fc', '#fda4af'][i % 6]}))} 
                 maxValue={Math.max(...teamWorkloadData.map(d => d.pending), 1)} 
               />
             </div>
@@ -4155,7 +4156,7 @@ const PracticeManagementApp = () => {
               <Calendar size={18} /> Create Recurring Tasks
             </button>
             {hasActionPermission('canCreateTask') && (
-            <button type="button" className="btn-primary" onClick={() => openModal('task')}>
+            <button type="button" className="btn-primary" onClick={() => setShowAddTaskModal(true)}>
               <Plus size={20} /> Add Task
             </button>
             )}
@@ -4248,60 +4249,59 @@ const PracticeManagementApp = () => {
 
         {/* Main Content - Filters Left, Summary Right */}
         <div style={{display: 'flex', gap: '16px', marginBottom: '20px'}}>
-          {/* Left Side - Filters - Compact Horizontal */}
+          {/* Left Side - Filters - Wider with 3 columns */}
           <div style={{
-            width: '320px',
-            flexShrink: 0,
+            flex: 1,
             background: 'linear-gradient(135deg, #dbeafe 0%, #fff 100%)',
             borderRadius: '12px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-            padding: '12px'
+            padding: '14px'
           }}>
-            <h3 style={{margin: '0 0 10px', fontSize: '13px', fontWeight: '600', color: '#1e40af'}}>
-              <Filter size={14} style={{marginRight: '6px', verticalAlign: 'middle'}} />
+            <h3 style={{margin: '0 0 12px', fontSize: '14px', fontWeight: '600', color: '#1e40af'}}>
+              <Filter size={16} style={{marginRight: '8px', verticalAlign: 'middle'}} />
               Task Filters
             </h3>
             
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px'}}>
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px'}}>
               <div>
-                <label style={{display: 'block', fontSize: '10px', fontWeight: '500', color: '#64748b', marginBottom: '2px'}}>Client Code</label>
+                <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '3px'}}>Client Code</label>
                 <input
                   type="text"
-                  placeholder="Code"
+                  placeholder="Enter Code"
                   value={filters.fileNo}
                   onChange={(e) => setFilters({...filters, fileNo: e.target.value})}
-                  style={{width: '100%', padding: '6px 8px', border: '1px solid #bfdbfe', borderRadius: '4px', fontSize: '11px'}}
+                  style={{width: '100%', padding: '8px 10px', border: '1px solid #bfdbfe', borderRadius: '6px', fontSize: '12px'}}
                 />
               </div>
               
               <div>
-                <label style={{display: 'block', fontSize: '10px', fontWeight: '500', color: '#64748b', marginBottom: '2px'}}>Client Name</label>
+                <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '3px'}}>Client Name</label>
                 <input
                   type="text"
-                  placeholder="Name"
+                  placeholder="Enter Name"
                   value={filters.clientName}
                   onChange={(e) => setFilters({...filters, clientName: e.target.value})}
-                  style={{width: '100%', padding: '6px 8px', border: '1px solid #bfdbfe', borderRadius: '4px', fontSize: '11px'}}
+                  style={{width: '100%', padding: '8px 10px', border: '1px solid #bfdbfe', borderRadius: '6px', fontSize: '12px'}}
                 />
               </div>
               
               <div>
-                <label style={{display: 'block', fontSize: '10px', fontWeight: '500', color: '#64748b', marginBottom: '2px'}}>Group No.</label>
+                <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '3px'}}>Group No.</label>
                 <input
                   type="text"
-                  placeholder="Group"
+                  placeholder="Enter Group"
                   value={filters.groupName}
                   onChange={(e) => setFilters({...filters, groupName: e.target.value})}
-                  style={{width: '100%', padding: '6px 8px', border: '1px solid #bfdbfe', borderRadius: '4px', fontSize: '11px'}}
+                  style={{width: '100%', padding: '8px 10px', border: '1px solid #bfdbfe', borderRadius: '6px', fontSize: '12px'}}
                 />
               </div>
               
               <div>
-                <label style={{display: 'block', fontSize: '10px', fontWeight: '500', color: '#64748b', marginBottom: '2px'}}>Financial Year</label>
+                <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '3px'}}>Financial Year</label>
                 <select
                   value={filters.taskFinancialYear}
                   onChange={(e) => setFilters({...filters, taskFinancialYear: e.target.value})}
-                  style={{width: '100%', padding: '6px 8px', border: '1px solid #bfdbfe', borderRadius: '4px', fontSize: '11px', background: '#fff'}}
+                  style={{width: '100%', padding: '8px 10px', border: '1px solid #bfdbfe', borderRadius: '6px', fontSize: '12px', background: '#fff'}}
                 >
                   <option value="">All Years</option>
                   {FINANCIAL_YEARS.map(fy => <option key={fy} value={fy}>{fy}</option>)}
@@ -4309,22 +4309,23 @@ const PracticeManagementApp = () => {
               </div>
               
               <div>
-                <label style={{display: 'block', fontSize: '10px', fontWeight: '500', color: '#64748b', marginBottom: '2px'}}>Period</label>
-                <input
-                  type="text"
-                  placeholder="Period"
+                <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '3px'}}>Period</label>
+                <select
                   value={filters.taskPeriod}
                   onChange={(e) => setFilters({...filters, taskPeriod: e.target.value})}
-                  style={{width: '100%', padding: '6px 8px', border: '1px solid #bfdbfe', borderRadius: '4px', fontSize: '11px'}}
-                />
+                  style={{width: '100%', padding: '8px 10px', border: '1px solid #bfdbfe', borderRadius: '6px', fontSize: '12px', background: '#fff'}}
+                >
+                  <option value="">All Periods</option>
+                  {PERIODS.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
               </div>
               
               <div>
-                <label style={{display: 'block', fontSize: '10px', fontWeight: '500', color: '#64748b', marginBottom: '2px'}}>Assigned To</label>
+                <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '3px'}}>Assigned To</label>
                 <select
                   value={filters.assignedUser}
                   onChange={(e) => setFilters({...filters, assignedUser: e.target.value})}
-                  style={{width: '100%', padding: '6px 8px', border: '1px solid #bfdbfe', borderRadius: '4px', fontSize: '11px', background: '#fff'}}
+                  style={{width: '100%', padding: '8px 10px', border: '1px solid #bfdbfe', borderRadius: '6px', fontSize: '12px', background: '#fff'}}
                 >
                   <option value="">All Staff</option>
                   {data.staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
@@ -4335,15 +4336,15 @@ const PracticeManagementApp = () => {
             <button 
               onClick={resetFilters}
               style={{
-                marginTop: '10px',
+                marginTop: '12px',
                 width: '100%',
-                padding: '8px',
-                background: '#1e40af',
+                padding: '10px',
+                background: '#10b981',
                 color: '#fff',
                 border: 'none',
                 borderRadius: '6px',
-                fontSize: '11px',
-                fontWeight: '500',
+                fontSize: '12px',
+                fontWeight: '600',
                 cursor: 'pointer'
               }}
             >
@@ -4351,87 +4352,89 @@ const PracticeManagementApp = () => {
             </button>
           </div>
 
-          {/* Right Side - Summary Report */}
+          {/* Right Side - Compact FY Task Status Report */}
           <div style={{
-            flex: 1,
+            width: 'auto',
+            flexShrink: 0,
             background: '#fff',
-            borderRadius: '12px',
+            borderRadius: '8px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
             display: 'flex',
             flexDirection: 'column',
-            background: 'linear-gradient(135deg, #f0fdf4 0%, #fff 100%)'
+            border: '1px solid #10b981',
+            overflow: 'hidden'
           }}>
-            <h3 style={{margin: 0, padding: '10px 12px', fontSize: '13px', fontWeight: '600', color: '#166534', borderBottom: '1px solid #bbf7d0'}}>
+            <h3 style={{margin: 0, padding: '8px 12px', fontSize: '12px', fontWeight: '600', color: '#fff', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
               <BarChart3 size={14} style={{marginRight: '6px', verticalAlign: 'middle'}} />
-              Financial Year Task Status
+              FY Task Status
             </h3>
             
-            <div style={{flex: 1, overflow: 'auto', padding: '0'}}>
-              <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '10px'}}>
-                <thead style={{position: 'sticky', top: 0, background: '#f0fdf4', zIndex: 1}}>
-                  <tr>
-                    <th style={{padding: '6px 4px', textAlign: 'left', borderBottom: '1px solid #bbf7d0', fontWeight: '600', minWidth: '55px', fontSize: '9px'}}>Period</th>
+            <div style={{overflow: 'auto'}}>
+              <table style={{borderCollapse: 'collapse', fontSize: '12px', width: 'auto'}}>
+                <thead>
+                  <tr style={{background: '#10b981'}}>
+                    <th style={{padding: '6px 8px', textAlign: 'left', border: '1px solid #059669', fontWeight: '700', fontSize: '11px', color: '#fff', whiteSpace: 'nowrap'}}>Month</th>
                     {years.map(fy => (
-                      <th key={fy} colSpan={2} style={{padding: '6px 2px', textAlign: 'center', borderBottom: '1px solid #bbf7d0', fontWeight: '600', fontSize: '8px'}}>{fy.replace('FY ', '').replace('Previous years', 'Prev')}</th>
+                      <th key={fy} colSpan={2} style={{padding: '6px 6px', textAlign: 'center', border: '1px solid #059669', fontWeight: '700', fontSize: '10px', color: '#fff', whiteSpace: 'nowrap'}}>{fy.replace('FY ', '').replace('Previous years', 'Prev')}</th>
                     ))}
                   </tr>
-                  <tr>
-                    <th style={{padding: '3px 4px', borderBottom: '1px solid #dcfce7', fontSize: '8px'}}></th>
+                  <tr style={{background: '#dcfce7'}}>
+                    <th style={{padding: '4px 8px', border: '1px solid #bbf7d0', fontSize: '10px'}}></th>
                     {years.map(fy => (
                       <React.Fragment key={fy}>
-                        <th style={{padding: '3px 2px', textAlign: 'center', borderBottom: '1px solid #dcfce7', color: '#ef4444', fontWeight: '500', fontSize: '8px'}}>P</th>
-                        <th style={{padding: '3px 2px', textAlign: 'center', borderBottom: '1px solid #dcfce7', color: '#10b981', fontWeight: '500', fontSize: '8px'}}>D</th>
+                        <th style={{padding: '4px 6px', textAlign: 'center', border: '1px solid #bbf7d0', color: '#dc2626', fontWeight: '700', fontSize: '10px'}}>P</th>
+                        <th style={{padding: '4px 6px', textAlign: 'center', border: '1px solid #bbf7d0', color: '#16a34a', fontWeight: '700', fontSize: '10px'}}>D</th>
                       </React.Fragment>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {summary.map((row, idx) => (
-                    <tr key={row.period} style={{background: idx % 2 === 0 ? '#fff' : '#f8fafc'}}>
-                      <td style={{padding: '4px', fontWeight: '500', borderBottom: '1px solid #f1f5f9', fontSize: '9px'}}>{row.period.substring(0, 3)}</td>
+                    <tr key={row.period} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                      <td style={{padding: '5px 8px', fontWeight: '600', border: '1px solid #e5e7eb', fontSize: '11px', color: '#374151', whiteSpace: 'nowrap'}}>{row.period.substring(0, 3)}</td>
                       {years.map(fy => (
                         <React.Fragment key={fy}>
                           <td 
                             style={{
-                              padding: '4px 2px', 
+                              padding: '5px 8px', 
                               textAlign: 'center', 
-                              borderBottom: '1px solid #f1f5f9', 
-                              color: row[`${fy}_pending`] > 0 ? '#ef4444' : '#e5e7eb', 
+                              border: '1px solid #e5e7eb', 
+                              color: row[`${fy}_pending`] > 0 ? '#dc2626' : '#6b7280', 
                               fontWeight: row[`${fy}_pending`] > 0 ? '700' : '400',
                               cursor: row[`${fy}_pending`] > 0 ? 'pointer' : 'default',
-                              background: row[`${fy}_pending`] > 0 ? '#fef2f2' : 'transparent'
+                              background: row[`${fy}_pending`] > 0 ? '#fef2f2' : 'transparent',
+                              fontSize: '12px'
                             }}
                             onClick={() => {
                               if (row[`${fy}_pending`] > 0) {
                                 setFilters({...filters, taskFinancialYear: fy === 'Previous years' ? '' : fy, taskPeriod: row.period});
                                 setActiveStatusFilter('');
-                                alert(`Showing ${row[`${fy}_pending`]} pending tasks for ${row.period} ${fy}`);
                               }
                             }}
                             title={row[`${fy}_pending`] > 0 ? `Click to view ${row[`${fy}_pending`]} pending tasks` : ''}
                           >
-                            {row[`${fy}_pending`] || '-'}
+                            {row[`${fy}_pending`] || 0}
                           </td>
                           <td 
                             style={{
-                              padding: '4px 2px', 
+                              padding: '5px 8px', 
                               textAlign: 'center', 
-                              borderBottom: '1px solid #f1f5f9', 
-                              color: row[`${fy}_completed`] > 0 ? '#10b981' : '#e5e7eb', 
+                              border: '1px solid #e5e7eb', 
+                              color: row[`${fy}_completed`] > 0 ? '#16a34a' : '#6b7280', 
                               fontWeight: row[`${fy}_completed`] > 0 ? '700' : '400',
                               cursor: row[`${fy}_completed`] > 0 ? 'pointer' : 'default',
-                              background: row[`${fy}_completed`] > 0 ? '#f0fdf4' : 'transparent'
+                              background: row[`${fy}_completed`] > 0 ? '#dcfce7' : 'transparent',
+                              fontSize: '12px'
                             }}
                             onClick={() => {
                               if (row[`${fy}_completed`] > 0) {
                                 setFilters({...filters, taskFinancialYear: fy === 'Previous years' ? '' : fy, taskPeriod: row.period, status: 'Completed'});
                                 setActiveStatusFilter('');
-                                alert(`Showing ${row[`${fy}_completed`]} completed tasks for ${row.period} ${fy}`);
                               }
                             }}
                             title={row[`${fy}_completed`] > 0 ? `Click to view ${row[`${fy}_completed`]} completed tasks` : ''}
                           >
-                            {row[`${fy}_completed`] || '-'}
+                            {row[`${fy}_completed`] || 0}
                           </td>
                         </React.Fragment>
                       ))}
@@ -4530,38 +4533,38 @@ const PracticeManagementApp = () => {
           </div>
         </div>
 
-        {/* Tasks Table */}
-        <div className="tasks-table-wrapper" style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
-          <table className="tasks-table" style={{fontSize: '12px'}}>
+        {/* Tasks Table - Excel-like Spreadsheet */}
+        <div className="tasks-table-wrapper" style={{background: '#fff', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', border: '1px solid #10b981'}}>
+          <table className="tasks-table" style={{fontSize: '12px', borderCollapse: 'collapse', width: '100%'}}>
             <thead>
-              <tr style={{background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)'}}>
-                <th style={{width: '35px', padding: '12px 8px'}}>
+              <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                <th style={{width: '35px', padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>
                   <input 
                     type="checkbox" 
                     checked={selectedTasks.length > 0 && selectedTasks.length === filteredTasks.slice(0, entriesPerPage).filter(t => !t.deleted).length}
                     onChange={toggleSelectAll}
                   />
                 </th>
-                <th style={{width: '70px', padding: '12px 8px'}}>Manage</th>
-                <th style={{minWidth: '150px', padding: '12px 8px'}}>Client Name</th>
-                <th style={{width: '80px', padding: '12px 8px'}}>Code</th>
-                <th style={{minWidth: '200px', padding: '12px 8px'}}>Description</th>
-                <th style={{width: '90px', padding: '12px 8px', whiteSpace: 'nowrap'}}>Start Date</th>
-                <th style={{width: '90px', padding: '12px 8px', whiteSpace: 'nowrap'}}>Due Date</th>
-                <th style={{width: '100px', padding: '12px 8px'}}>Manager</th>
-                <th style={{width: '100px', padding: '12px 8px'}}>Assigned</th>
-                <th style={{width: '80px', padding: '12px 8px'}}>FY</th>
-                <th style={{width: '90px', padding: '12px 8px'}}>Period</th>
-                <th style={{width: '70px', padding: '12px 8px'}}>Sub</th>
-                <th style={{width: '80px', padding: '12px 8px'}}>Status</th>
-                <th style={{width: '90px', padding: '12px 8px'}}>Completed</th>
-                <th style={{width: '50px', padding: '12px 8px'}}>Del</th>
+                <th style={{width: '60px', padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>Manage</th>
+                <th style={{minWidth: '140px', padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>Client Name</th>
+                <th style={{width: '70px', padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>Code</th>
+                <th style={{minWidth: '180px', padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>Description</th>
+                <th style={{width: '85px', padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px', whiteSpace: 'nowrap'}}>Start Date</th>
+                <th style={{width: '85px', padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px', whiteSpace: 'nowrap'}}>Due Date</th>
+                <th style={{width: '90px', padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>Manager</th>
+                <th style={{width: '90px', padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>Assigned</th>
+                <th style={{width: '70px', padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>FY</th>
+                <th style={{width: '80px', padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>Period</th>
+                <th style={{width: '60px', padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>Sub</th>
+                <th style={{width: '75px', padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>Status</th>
+                <th style={{width: '85px', padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>Completed</th>
+                <th style={{width: '45px', padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>Del</th>
               </tr>
             </thead>
             <tbody>
               {filteredTasks.length === 0 ? (
                 <tr>
-                  <td colSpan={15} style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
+                  <td colSpan={15} style={{textAlign: 'center', padding: '40px', color: '#64748b', border: '1px solid #e5e7eb'}}>
                     No tasks found. {activeStatusFilter && <span>Try clearing the filter.</span>}
                   </td>
                 </tr>
@@ -4585,8 +4588,8 @@ const PracticeManagementApp = () => {
                   const cannotDelete = hasInvoice || hasReceipt;
                   
                   return (
-                  <tr key={task.id} style={{ opacity: task.deleted ? 0.5 : 1, background: isSelected ? '#f0fdf4' : undefined }}>
-                    <td style={{padding: '10px 8px'}}>
+                  <tr key={task.id} style={{ opacity: task.deleted ? 0.5 : 1, background: isSelected ? '#dcfce7' : (idx % 2 === 0 ? '#fff' : '#f8fafc') }}>
+                    <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', textAlign: 'center'}}>
                       <input 
                         type="checkbox" 
                         checked={isSelected}
@@ -4594,7 +4597,7 @@ const PracticeManagementApp = () => {
                         disabled={task.deleted}
                       />
                     </td>
-                    <td style={{padding: '10px 8px'}}>
+                    <td style={{padding: '8px 6px', border: '1px solid #e5e7eb'}}>
                       <div style={{display: 'flex', gap: '4px'}}>
                         {hasActionPermission('canEditTask') && (
                         <button className="manage-btn" title="Manage Task" onClick={() => openTaskManageModal(task)}>
@@ -4609,42 +4612,42 @@ const PracticeManagementApp = () => {
                               background: '#10b981',
                               color: '#fff',
                               border: 'none',
-                              borderRadius: '6px',
-                              padding: '6px',
+                              borderRadius: '4px',
+                              padding: '5px',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center'
                             }}
                           >
-                            <CheckCircle size={14} />
+                            <CheckCircle size={12} />
                           </button>
                         )}
                       </div>
                     </td>
-                    <td style={{padding: '10px 8px', maxWidth: '150px'}}>
-                      <div style={{wordWrap: 'break-word', whiteSpace: 'normal', lineHeight: '1.3', maxHeight: '40px', overflow: 'hidden'}}>{task.clientName || '-'}</div>
+                    <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', maxWidth: '140px'}}>
+                      <div style={{wordWrap: 'break-word', whiteSpace: 'normal', lineHeight: '1.3', maxHeight: '36px', overflow: 'hidden', fontSize: '11px'}}>{task.clientName || '-'}</div>
                     </td>
-                    <td style={{padding: '10px 8px', fontSize: '11px'}}>{formatFileNo(task.fileNo) || '-'}</td>
-                    <td style={{padding: '10px 8px', maxWidth: '200px'}}>
+                    <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', fontSize: '11px'}}>{formatFileNo(task.fileNo) || '-'}</td>
+                    <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', maxWidth: '180px'}}>
                       <div style={{wordWrap: 'break-word', whiteSpace: 'normal', lineHeight: '1.3', fontSize: '11px', color: '#475569'}} title={task.taskDescription || task.description || ''}>
                         {task.taskDescription || task.description || '-'}
                       </div>
                     </td>
-                    <td style={{padding: '10px 8px', whiteSpace: 'nowrap', fontSize: '11px'}}>{task.startDate || '-'}</td>
-                    <td style={{padding: '10px 8px', whiteSpace: 'nowrap', fontSize: '11px'}}>{task.expectedCompletionDate || '-'}</td>
-                    <td style={{padding: '10px 8px', fontSize: '11px'}}>{task.taskManager || '-'}</td>
-                    <td style={{padding: '10px 8px', fontSize: '11px'}}>{task.primaryAssignedUser || task.assignedTo || '-'}</td>
-                    <td style={{padding: '10px 8px', fontSize: '10px'}}>{task.financialYear?.replace('FY ', '') || '-'}</td>
-                    <td style={{padding: '10px 8px', fontSize: '11px'}}>{periodDisplay || '-'}</td>
-                    <td style={{padding: '10px 8px', fontSize: '10px'}}>{subPeriodDisplay || '-'}</td>
-                    <td style={{padding: '10px 8px'}}>
-                      <span className={`status-badge-table status-${taskStatus.toLowerCase().replace(' ', '-')}`} style={{fontSize: '10px', padding: '3px 8px'}}>
+                    <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', whiteSpace: 'nowrap', fontSize: '11px'}}>{task.startDate || '-'}</td>
+                    <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', whiteSpace: 'nowrap', fontSize: '11px'}}>{task.expectedCompletionDate || '-'}</td>
+                    <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', fontSize: '11px'}}>{task.taskManager || '-'}</td>
+                    <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', fontSize: '11px'}}>{task.primaryAssignedUser || task.assignedTo || '-'}</td>
+                    <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', fontSize: '10px'}}>{task.financialYear?.replace('FY ', '') || '-'}</td>
+                    <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', fontSize: '11px'}}>{periodDisplay || '-'}</td>
+                    <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', fontSize: '10px'}}>{subPeriodDisplay || '-'}</td>
+                    <td style={{padding: '8px 6px', border: '1px solid #e5e7eb'}}>
+                      <span className={`status-badge-table status-${taskStatus.toLowerCase().replace(' ', '-')}`} style={{fontSize: '9px', padding: '2px 6px'}}>
                         {taskStatus}
                       </span>
                     </td>
-                    <td style={{padding: '10px 8px', fontSize: '11px', whiteSpace: 'nowrap'}}>{task.completedCheck ? (task.completedDate || '-') : '-'}</td>
-                    <td style={{padding: '10px 8px'}}>
+                    <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', fontSize: '11px', whiteSpace: 'nowrap'}}>{task.completedCheck ? (task.completedDate || '-') : '-'}</td>
+                    <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', textAlign: 'center'}}>
                       {!task.deleted ? (
                         hasActionPermission('canDeleteTask') && (
                           cannotDelete ? (
