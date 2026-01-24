@@ -5295,13 +5295,12 @@ const PracticeManagementApp = () => {
               {/* Section 1: Client Identification */}
               <div className="form-section-pro">
                 <h3 className="section-title-pro">Client Identification</h3>
-                <div className="form-grid-pro">
-                  
+                
                   {/* Group Selection - Only show for new clients */}
                   {!editingClient && (
-                    <div className="form-field-pro span-4" style={{marginBottom: '8px'}}>
-                      <label style={{marginBottom: '6px', display: 'block'}}>
-                        Group Type <span className="required-star">*</span>
+                    <div style={{marginBottom: '12px'}}>
+                      <label style={{marginBottom: '6px', display: 'block', fontSize: '12px', fontWeight: '500', color: '#374151'}}>
+                        Group Type <span style={{color: '#ef4444'}}>*</span>
                       </label>
                       <div style={{display: 'flex', gap: '16px', marginBottom: '8px'}}>
                         <label style={{display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', padding: '8px 14px', border: `2px solid ${clientData.groupMode === 'existing' ? '#10b981' : '#e2e8f0'}`, borderRadius: '6px', background: clientData.groupMode === 'existing' ? '#dcfce7' : '#fff', fontSize: '13px'}}>
@@ -5383,8 +5382,8 @@ const PracticeManagementApp = () => {
                     </div>
                   )}
 
-                  {/* Row 1: Group No., Client Code, Client Name (WIDE), Type of Client, Date of Enrollment */}
-                  <div style={{display: 'grid', gridTemplateColumns: '55px 65px 1fr 100px 110px', gap: '8px', alignItems: 'end'}}>
+                  {/* Row 1: Group No., Client Code, Client Name (MAX WIDTH), Type of Client, Date of Enrollment */}
+                  <div style={{display: 'grid', gridTemplateColumns: '60px 70px 1fr 100px 110px', gap: '10px', alignItems: 'end'}}>
                     {/* Group No. */}
                     <div>
                       <label style={{display: 'block', fontSize: '10px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Grp No.</label>
@@ -5430,9 +5429,9 @@ const PracticeManagementApp = () => {
                       />
                     </div>
 
-                    {/* Client Name - WIDE */}
+                    {/* Client Name - MAXIMUM WIDTH */}
                     <div>
-                      <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '600', color: '#374151', marginBottom: '4px'}}>
                         Client Name <span style={{color: '#ef4444'}}>*</span>
                       </label>
                       <input
@@ -5448,9 +5447,11 @@ const PracticeManagementApp = () => {
                         style={{
                           width: '100%',
                           padding: '10px 12px',
-                          border: '1px solid #e2e8f0',
+                          border: '2px solid #10b981',
                           borderRadius: '6px',
-                          fontSize: '14px'
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          background: '#f0fdf4'
                         }}
                       />
                     </div>
@@ -5497,7 +5498,6 @@ const PracticeManagementApp = () => {
                       />
                     </div>
                   </div>
-                </div>
               </div>
 
               {/* Section 2: Contact & Tax Details */}
@@ -30701,18 +30701,17 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         }
 
         .professional-tabs {
-          background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-          padding: 0 32px;
+          background: #fff;
+          padding: 0 16px;
           display: flex;
-          gap: 4px;
-          border-bottom: 2px solid #10b981;
-          overflow-x: auto;
+          gap: 0;
+          border-bottom: 2px solid #e2e8f0;
         }
 
         .professional-tab {
           flex: 1;
-          min-width: 160px;
-          padding: 14px 20px;
+          min-width: 100px;
+          padding: 10px 12px;
           background: transparent;
           border: none;
           border-bottom: 3px solid transparent;
@@ -30720,43 +30719,41 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           transition: all 0.2s;
           display: flex;
           align-items: center;
-          gap: 10px;
-          font-size: 13px;
+          gap: 6px;
+          font-size: 12px;
           font-weight: 500;
-          color: #166534;
+          color: #64748b;
           white-space: nowrap;
-          border-radius: 8px 8px 0 0;
         }
 
         .professional-tab:hover {
-          background: rgba(16, 185, 129, 0.15);
-          color: #065f46;
+          background: #f8fafc;
+          color: #1e293b;
         }
 
         .professional-tab.active {
-          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-          color: #fff;
+          background: #fff;
+          color: #10b981;
           border-bottom-color: #10b981;
           font-weight: 600;
-          box-shadow: 0 -2px 8px rgba(16, 185, 129, 0.3);
         }
 
         .tab-number {
-          width: 24px;
-          height: 24px;
+          width: 18px;
+          height: 18px;
           border-radius: 50%;
-          background: rgba(16, 185, 129, 0.2);
-          color: #166534;
+          background: #f1f5f9;
+          color: #64748b;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 12px;
+          font-size: 10px;
           font-weight: 600;
           transition: all 0.2s;
         }
 
         .professional-tab.active .tab-number {
-          background: rgba(255, 255, 255, 0.3);
+          background: #10b981;
           color: white;
         }
 
@@ -31168,19 +31165,20 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           width: 100%;
           border-collapse: collapse;
           margin-bottom: 32px;
+          border: 1px solid #e5e7eb;
         }
 
         .credentials-table thead {
-          background: #f8fafc;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         }
 
         .credentials-table th {
-          padding: 14px;
+          padding: 12px 14px;
           text-align: left;
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 600;
-          color: #475569;
-          border-bottom: 2px solid #10b981;
+          color: #fff;
+          border: 1px solid #059669;
         }
 
         .credentials-table th:first-child {
@@ -31188,22 +31186,24 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         }
 
         .credentials-table td {
-          padding: 12px 14px;
-          border-bottom: 1px solid #f1f5f9;
+          padding: 10px 14px;
+          border: 1px solid #e5e7eb;
+          background: #fff;
         }
 
         .credential-label {
           font-weight: 600;
           color: #1a1a1a;
-          font-size: 14px;
+          font-size: 13px;
+          background: #f0fdf4 !important;
         }
 
         .credentials-table input {
           width: 100%;
-          padding: 10px 12px;
+          padding: 9px 11px;
           border: 1.5px solid #e2e8f0;
           border-radius: 6px;
-          font-size: 14px;
+          font-size: 13px;
           outline: none;
         }
 
@@ -31214,43 +31214,45 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         .other-credentials-title {
           font-size: 14px;
           font-weight: 600;
-          color: #64748b;
+          color: #064e3b;
           text-align: center;
           margin: 24px 0 16px 0;
           padding: 12px;
-          background: #f8fafc;
+          background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
           border-radius: 8px;
         }
 
         .other-credentials-table {
           width: 100%;
           border-collapse: collapse;
+          border: 1px solid #e5e7eb;
         }
 
         .other-credentials-table thead {
-          background: #f8fafc;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         }
 
         .other-credentials-table th {
-          padding: 12px;
+          padding: 10px 12px;
           text-align: left;
-          font-size: 13px;
+          font-size: 12px;
           font-weight: 600;
-          color: #475569;
-          border-bottom: 2px solid #10b981;
+          color: #fff;
+          border: 1px solid #059669;
         }
 
         .other-credentials-table td {
-          padding: 10px 12px;
-          border-bottom: 1px solid #f1f5f9;
+          padding: 8px 12px;
+          border: 1px solid #e5e7eb;
+          background: #fff;
         }
 
         .other-credentials-table input {
           width: 100%;
-          padding: 9px 11px;
+          padding: 8px 10px;
           border: 1.5px solid #e2e8f0;
           border-radius: 6px;
-          font-size: 13px;
+          font-size: 12px;
           outline: none;
         }
 
@@ -31279,44 +31281,47 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           width: 100%;
           border-collapse: collapse;
           margin-bottom: 24px;
+          border: 1px solid #e5e7eb;
         }
 
         .contact-table thead {
-          background: #f8fafc;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         }
 
         .contact-table th {
-          padding: 14px 10px;
+          padding: 12px 10px;
           text-align: center;
-          font-size: 13px;
+          font-size: 12px;
           font-weight: 600;
-          color: #475569;
-          border-bottom: 2px solid #10b981;
+          color: #fff;
+          border: 1px solid #059669;
         }
 
         .contact-table th:first-child {
-          width: 140px;
+          width: 130px;
           text-align: left;
         }
 
         .contact-table td {
-          padding: 10px;
-          border-bottom: 1px solid #f1f5f9;
+          padding: 8px 10px;
+          border: 1px solid #e5e7eb;
+          background: #fff;
         }
 
         .contact-row-label {
           font-weight: 600;
           color: #1a1a1a;
-          font-size: 13px;
+          font-size: 12px;
           text-align: left;
+          background: #f0fdf4 !important;
         }
 
         .contact-table input {
           width: 100%;
-          padding: 9px 11px;
+          padding: 8px 10px;
           border: 1.5px solid #e2e8f0;
           border-radius: 6px;
-          font-size: 13px;
+          font-size: 12px;
           outline: none;
         }
 
@@ -31329,8 +31334,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           align-items: center;
           gap: 12px;
           padding: 16px;
-          background: #f8fafc;
+          background: #f0fdf4;
           border-radius: 8px;
+          border: 1px solid #bbf7d0;
         }
 
         .update-contact-list label {
@@ -31447,19 +31453,20 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           width: 100%;
           border-collapse: collapse;
           margin-bottom: 20px;
+          border: 1px solid #e5e7eb;
         }
 
         .kyc-table thead {
-          background: #f8fafc;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         }
 
         .kyc-table th {
-          padding: 14px 12px;
+          padding: 12px;
           text-align: left;
-          font-size: 13px;
+          font-size: 12px;
           font-weight: 600;
-          color: #475569;
-          border-bottom: 2px solid #10b981;
+          color: #fff;
+          border: 1px solid #059669;
         }
 
         .kyc-table th:first-child {
@@ -31467,30 +31474,32 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         }
 
         .kyc-table th:nth-child(2) {
-          width: 200px;
+          width: 180px;
         }
 
         .kyc-table td {
-          padding: 12px;
-          border-bottom: 1px solid #f1f5f9;
+          padding: 10px 12px;
+          border: 1px solid #e5e7eb;
+          background: #fff;
         }
 
         .doc-name {
           font-weight: 600;
           color: #1a1a1a;
+          background: #f0fdf4 !important;
         }
 
         .kyc-table input[type="file"] {
-          font-size: 13px;
+          font-size: 12px;
           padding: 6px;
         }
 
         .kyc-table input[type="text"] {
           width: 100%;
-          padding: 9px 11px;
+          padding: 8px 10px;
           border: 1.5px solid #e2e8f0;
           border-radius: 6px;
-          font-size: 13px;
+          font-size: 12px;
           outline: none;
         }
 
