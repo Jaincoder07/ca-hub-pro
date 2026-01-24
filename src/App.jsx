@@ -3163,13 +3163,25 @@ const PracticeManagementApp = () => {
         const row = { period: month };
         years.forEach(fy => {
           const fyTasks = allTasks.filter(t => {
-            if (fy === 'Previous years') {
-              return !['FY 2025-26', 'FY 2024-25', 'FY 2023-24'].includes(t.financialYear);
-            }
-            return t.financialYear === fy && (t.subPeriod === month || (t.period || '').includes(month));
+            if (t.deleted) return false;
+            
+            // Check financial year
+            const matchesFY = fy === 'Previous years' 
+              ? !['FY 2025-26', 'FY 2024-25', 'FY 2023-24'].includes(t.financialYear)
+              : t.financialYear === fy;
+            
+            if (!matchesFY) return false;
+            
+            // Check if task period contains the month
+            const taskPeriod = (t.period || '').toLowerCase();
+            const taskSubPeriod = (t.subPeriod || '').toLowerCase();
+            const monthLower = month.toLowerCase();
+            
+            return taskPeriod.includes(monthLower) || taskSubPeriod.includes(monthLower) || taskSubPeriod === monthLower;
           });
-          row[`${fy}_pending`] = fyTasks.filter(t => !t.deleted && t.status !== 'Completed').length;
-          row[`${fy}_completed`] = fyTasks.filter(t => !t.deleted && t.status === 'Completed').length;
+          
+          row[`${fy}_pending`] = fyTasks.filter(t => t.status !== 'Completed' && !t.completedCheck).length;
+          row[`${fy}_completed`] = fyTasks.filter(t => t.status === 'Completed' || t.completedCheck).length;
         });
         return row;
       });
@@ -4128,189 +4140,193 @@ const PracticeManagementApp = () => {
           </div>
         </div>
 
-        {/* Status Filter Boxes */}
+        {/* Status Filter Boxes - Colorful Pastel Shades */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
           gap: '16px',
-          marginBottom: '24px'
+          marginBottom: '20px'
         }}>
-          {/* Open Tasks Box */}
+          {/* Open Tasks Box - Green Pastel */}
           <div 
             onClick={() => setActiveStatusFilter(activeStatusFilter === 'Open' ? '' : 'Open')}
             style={{
-              background: activeStatusFilter === 'Open' ? '#10b981' : '#fff',
-              color: activeStatusFilter === 'Open' ? '#fff' : '#1e293b',
-              padding: '20px',
+              background: activeStatusFilter === 'Open' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+              color: activeStatusFilter === 'Open' ? '#fff' : '#065f46',
+              padding: '16px 20px',
               borderRadius: '12px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+              boxShadow: activeStatusFilter === 'Open' ? '0 4px 12px rgba(16,185,129,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
               cursor: 'pointer',
-              border: '2px solid',
-              borderColor: activeStatusFilter === 'Open' ? '#10b981' : '#e2e8f0',
-              transition: 'all 0.2s'
+              border: 'none',
+              transition: 'all 0.2s',
+              transform: activeStatusFilter === 'Open' ? 'translateY(-2px)' : 'none'
             }}
           >
-            <div style={{fontSize: '32px', fontWeight: '700', marginBottom: '4px'}}>{openTasks.length}</div>
-            <div style={{fontSize: '14px', fontWeight: '500', opacity: 0.9}}>Open Tasks</div>
+            <div style={{fontSize: '28px', fontWeight: '700', marginBottom: '2px'}}>{openTasks.length}</div>
+            <div style={{fontSize: '13px', fontWeight: '600'}}>Open Tasks</div>
           </div>
 
-          {/* In Progress Tasks Box */}
+          {/* In Progress Tasks Box - Blue Pastel */}
           <div 
             onClick={() => setActiveStatusFilter(activeStatusFilter === 'InProgress' ? '' : 'InProgress')}
             style={{
-              background: activeStatusFilter === 'InProgress' ? '#3b82f6' : '#fff',
-              color: activeStatusFilter === 'InProgress' ? '#fff' : '#1e293b',
-              padding: '20px',
+              background: activeStatusFilter === 'InProgress' ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
+              color: activeStatusFilter === 'InProgress' ? '#fff' : '#1e40af',
+              padding: '16px 20px',
               borderRadius: '12px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+              boxShadow: activeStatusFilter === 'InProgress' ? '0 4px 12px rgba(59,130,246,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
               cursor: 'pointer',
-              border: '2px solid',
-              borderColor: activeStatusFilter === 'InProgress' ? '#3b82f6' : '#e2e8f0',
-              transition: 'all 0.2s'
+              border: 'none',
+              transition: 'all 0.2s',
+              transform: activeStatusFilter === 'InProgress' ? 'translateY(-2px)' : 'none'
             }}
           >
-            <div style={{fontSize: '32px', fontWeight: '700', marginBottom: '4px'}}>{inProgressTasks.length}</div>
-            <div style={{fontSize: '14px', fontWeight: '500', opacity: 0.9}}>In Progress Tasks</div>
+            <div style={{fontSize: '28px', fontWeight: '700', marginBottom: '2px'}}>{inProgressTasks.length}</div>
+            <div style={{fontSize: '13px', fontWeight: '600'}}>In Progress</div>
           </div>
 
-          {/* Long Due Tasks Box */}
+          {/* Long Due Tasks Box - Amber Pastel */}
           <div 
             onClick={() => setActiveStatusFilter(activeStatusFilter === 'LongDue' ? '' : 'LongDue')}
             style={{
-              background: activeStatusFilter === 'LongDue' ? '#f59e0b' : '#fff',
-              color: activeStatusFilter === 'LongDue' ? '#fff' : '#1e293b',
-              padding: '20px',
+              background: activeStatusFilter === 'LongDue' ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+              color: activeStatusFilter === 'LongDue' ? '#fff' : '#92400e',
+              padding: '16px 20px',
               borderRadius: '12px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+              boxShadow: activeStatusFilter === 'LongDue' ? '0 4px 12px rgba(245,158,11,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
               cursor: 'pointer',
-              border: '2px solid',
-              borderColor: activeStatusFilter === 'LongDue' ? '#f59e0b' : '#e2e8f0',
-              transition: 'all 0.2s'
+              border: 'none',
+              transition: 'all 0.2s',
+              transform: activeStatusFilter === 'LongDue' ? 'translateY(-2px)' : 'none'
             }}
           >
-            <div style={{fontSize: '32px', fontWeight: '700', marginBottom: '4px'}}>{longDueTasks.length}</div>
-            <div style={{fontSize: '14px', fontWeight: '500', opacity: 0.9}}>Long Due Tasks</div>
-            <div style={{fontSize: '11px', opacity: 0.7, marginTop: '2px'}}>(60+ days)</div>
+            <div style={{fontSize: '28px', fontWeight: '700', marginBottom: '2px'}}>{longDueTasks.length}</div>
+            <div style={{fontSize: '13px', fontWeight: '600'}}>Long Due (60+ days)</div>
           </div>
 
-          {/* Deleted Tasks Box */}
+          {/* Deleted Tasks Box - Red Pastel */}
           <div 
             onClick={() => setActiveStatusFilter(activeStatusFilter === 'Deleted' ? '' : 'Deleted')}
             style={{
-              background: activeStatusFilter === 'Deleted' ? '#ef4444' : '#fff',
-              color: activeStatusFilter === 'Deleted' ? '#fff' : '#1e293b',
-              padding: '20px',
+              background: activeStatusFilter === 'Deleted' ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+              color: activeStatusFilter === 'Deleted' ? '#fff' : '#991b1b',
+              padding: '16px 20px',
               borderRadius: '12px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+              boxShadow: activeStatusFilter === 'Deleted' ? '0 4px 12px rgba(239,68,68,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
               cursor: 'pointer',
-              border: '2px solid',
-              borderColor: activeStatusFilter === 'Deleted' ? '#ef4444' : '#e2e8f0',
-              transition: 'all 0.2s'
+              border: 'none',
+              transition: 'all 0.2s',
+              transform: activeStatusFilter === 'Deleted' ? 'translateY(-2px)' : 'none'
             }}
           >
-            <div style={{fontSize: '32px', fontWeight: '700', marginBottom: '4px'}}>{deletedTasks.length}</div>
-            <div style={{fontSize: '14px', fontWeight: '500', opacity: 0.9}}>Deleted Tasks</div>
+            <div style={{fontSize: '28px', fontWeight: '700', marginBottom: '2px'}}>{deletedTasks.length}</div>
+            <div style={{fontSize: '13px', fontWeight: '600'}}>Deleted Tasks</div>
           </div>
         </div>
 
         {/* Main Content - Filters Left, Summary Right */}
-        <div style={{display: 'flex', gap: '20px', marginBottom: '24px', height: '320px'}}>
-          {/* Left Side - Filters */}
+        <div style={{display: 'flex', gap: '16px', marginBottom: '20px'}}>
+          {/* Left Side - Filters - Compact Horizontal */}
           <div style={{
-            width: '280px',
+            width: '320px',
             flexShrink: 0,
-            background: '#fff',
+            background: 'linear-gradient(135deg, #dbeafe 0%, #fff 100%)',
             borderRadius: '12px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-            display: 'flex',
-            flexDirection: 'column'
+            padding: '12px'
           }}>
-            <h3 style={{margin: 0, padding: '14px 16px', fontSize: '14px', fontWeight: '600', color: '#1e293b', borderBottom: '1px solid #e2e8f0'}}>
-              <Filter size={16} style={{marginRight: '8px', verticalAlign: 'middle'}} />
+            <h3 style={{margin: '0 0 10px', fontSize: '13px', fontWeight: '600', color: '#1e40af'}}>
+              <Filter size={14} style={{marginRight: '6px', verticalAlign: 'middle'}} />
               Task Filters
             </h3>
             
-            <div style={{flex: 1, overflowY: 'auto', padding: '12px 16px'}}>
-              <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
-                <div>
-                  <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '3px'}}>Client Code</label>
-                  <input
-                    type="text"
-                    placeholder="Enter Client Code"
-                    value={filters.fileNo}
-                    onChange={(e) => setFilters({...filters, fileNo: e.target.value})}
-                    style={{width: '100%', padding: '7px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
-                  />
-                </div>
-                
-                <div>
-                  <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '3px'}}>Client Name</label>
-                  <input
-                    type="text"
-                    placeholder="Enter Client Name"
-                    value={filters.clientName}
-                    onChange={(e) => setFilters({...filters, clientName: e.target.value})}
-                    style={{width: '100%', padding: '7px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
-                  />
-                </div>
-                
-                <div>
-                  <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '3px'}}>Group No.</label>
-                  <input
-                    type="text"
-                    placeholder="Enter Group No."
-                    value={filters.groupName}
-                    onChange={(e) => setFilters({...filters, groupName: e.target.value})}
-                    style={{width: '100%', padding: '7px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
-                  />
-                </div>
-                
-                <div>
-                  <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '3px'}}>Financial Year</label>
-                  <select
-                    value={filters.taskFinancialYear}
-                    onChange={(e) => setFilters({...filters, taskFinancialYear: e.target.value})}
-                    style={{width: '100%', padding: '7px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', background: '#fff'}}
-                  >
-                    <option value="">All Years</option>
-                    {FINANCIAL_YEARS.map(fy => <option key={fy} value={fy}>{fy}</option>)}
-                  </select>
-                </div>
-                
-                <div>
-                  <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '3px'}}>Period</label>
-                  <select
-                    value={filters.taskPeriod}
-                    onChange={(e) => setFilters({...filters, taskPeriod: e.target.value})}
-                    style={{width: '100%', padding: '7px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', background: '#fff'}}
-                  >
-                    <option value="">All Periods</option>
-                    {PERIODS.map(p => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                </div>
-                
-                <div>
-                  <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '3px'}}>Assigned User</label>
-                  <select
-                    value={filters.assignedUser}
-                    onChange={(e) => setFilters({...filters, assignedUser: e.target.value})}
-                    style={{width: '100%', padding: '7px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', background: '#fff'}}
-                  >
-                    <option value="">All Users</option>
-                    {data.staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                  </select>
-                </div>
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px'}}>
+              <div>
+                <label style={{display: 'block', fontSize: '10px', fontWeight: '500', color: '#64748b', marginBottom: '2px'}}>Client Code</label>
+                <input
+                  type="text"
+                  placeholder="Code"
+                  value={filters.fileNo}
+                  onChange={(e) => setFilters({...filters, fileNo: e.target.value})}
+                  style={{width: '100%', padding: '6px 8px', border: '1px solid #bfdbfe', borderRadius: '4px', fontSize: '11px'}}
+                />
+              </div>
+              
+              <div>
+                <label style={{display: 'block', fontSize: '10px', fontWeight: '500', color: '#64748b', marginBottom: '2px'}}>Client Name</label>
+                <input
+                  type="text"
+                  placeholder="Name"
+                  value={filters.clientName}
+                  onChange={(e) => setFilters({...filters, clientName: e.target.value})}
+                  style={{width: '100%', padding: '6px 8px', border: '1px solid #bfdbfe', borderRadius: '4px', fontSize: '11px'}}
+                />
+              </div>
+              
+              <div>
+                <label style={{display: 'block', fontSize: '10px', fontWeight: '500', color: '#64748b', marginBottom: '2px'}}>Group No.</label>
+                <input
+                  type="text"
+                  placeholder="Group"
+                  value={filters.groupName}
+                  onChange={(e) => setFilters({...filters, groupName: e.target.value})}
+                  style={{width: '100%', padding: '6px 8px', border: '1px solid #bfdbfe', borderRadius: '4px', fontSize: '11px'}}
+                />
+              </div>
+              
+              <div>
+                <label style={{display: 'block', fontSize: '10px', fontWeight: '500', color: '#64748b', marginBottom: '2px'}}>Financial Year</label>
+                <select
+                  value={filters.taskFinancialYear}
+                  onChange={(e) => setFilters({...filters, taskFinancialYear: e.target.value})}
+                  style={{width: '100%', padding: '6px 8px', border: '1px solid #bfdbfe', borderRadius: '4px', fontSize: '11px', background: '#fff'}}
+                >
+                  <option value="">All Years</option>
+                  {FINANCIAL_YEARS.map(fy => <option key={fy} value={fy}>{fy}</option>)}
+                </select>
+              </div>
+              
+              <div>
+                <label style={{display: 'block', fontSize: '10px', fontWeight: '500', color: '#64748b', marginBottom: '2px'}}>Period</label>
+                <input
+                  type="text"
+                  placeholder="Period"
+                  value={filters.taskPeriod}
+                  onChange={(e) => setFilters({...filters, taskPeriod: e.target.value})}
+                  style={{width: '100%', padding: '6px 8px', border: '1px solid #bfdbfe', borderRadius: '4px', fontSize: '11px'}}
+                />
+              </div>
+              
+              <div>
+                <label style={{display: 'block', fontSize: '10px', fontWeight: '500', color: '#64748b', marginBottom: '2px'}}>Assigned To</label>
+                <select
+                  value={filters.assignedUser}
+                  onChange={(e) => setFilters({...filters, assignedUser: e.target.value})}
+                  style={{width: '100%', padding: '6px 8px', border: '1px solid #bfdbfe', borderRadius: '4px', fontSize: '11px', background: '#fff'}}
+                >
+                  <option value="">All Staff</option>
+                  {data.staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                </select>
               </div>
             </div>
             
-            <div style={{padding: '12px 16px', borderTop: '1px solid #e2e8f0'}}>
-              <button 
-                onClick={resetFilters}
-                style={{width: '100%', padding: '8px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500'}}
-              >
-                Reset Filters
-              </button>
-            </div>
+            <button 
+              onClick={resetFilters}
+              style={{
+                marginTop: '10px',
+                width: '100%',
+                padding: '8px',
+                background: '#1e40af',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: '500',
+                cursor: 'pointer'
+              }}
+            >
+              Reset Filters
+            </button>
           </div>
 
           {/* Right Side - Summary Report */}
@@ -4320,28 +4336,29 @@ const PracticeManagementApp = () => {
             borderRadius: '12px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            background: 'linear-gradient(135deg, #f0fdf4 0%, #fff 100%)'
           }}>
-            <h3 style={{margin: 0, padding: '14px 16px', fontSize: '14px', fontWeight: '600', color: '#1e293b', borderBottom: '1px solid #e2e8f0'}}>
-              <BarChart3 size={16} style={{marginRight: '8px', verticalAlign: 'middle'}} />
-              Financial Year Wise Task Status Report
+            <h3 style={{margin: 0, padding: '10px 12px', fontSize: '13px', fontWeight: '600', color: '#166534', borderBottom: '1px solid #bbf7d0'}}>
+              <BarChart3 size={14} style={{marginRight: '6px', verticalAlign: 'middle'}} />
+              Financial Year Task Status
             </h3>
             
             <div style={{flex: 1, overflow: 'auto', padding: '0'}}>
-              <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
-                <thead style={{position: 'sticky', top: 0, background: '#f8fafc', zIndex: 1}}>
+              <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '10px'}}>
+                <thead style={{position: 'sticky', top: 0, background: '#f0fdf4', zIndex: 1}}>
                   <tr>
-                    <th style={{padding: '8px 6px', textAlign: 'left', borderBottom: '2px solid #e2e8f0', fontWeight: '600', minWidth: '70px'}}>Period</th>
+                    <th style={{padding: '6px 4px', textAlign: 'left', borderBottom: '1px solid #bbf7d0', fontWeight: '600', minWidth: '55px', fontSize: '9px'}}>Period</th>
                     {years.map(fy => (
-                      <th key={fy} colSpan={2} style={{padding: '8px 4px', textAlign: 'center', borderBottom: '2px solid #e2e8f0', fontWeight: '600', fontSize: '10px'}}>{fy.replace('FY ', '')}</th>
+                      <th key={fy} colSpan={2} style={{padding: '6px 2px', textAlign: 'center', borderBottom: '1px solid #bbf7d0', fontWeight: '600', fontSize: '8px'}}>{fy.replace('FY ', '').replace('Previous years', 'Prev')}</th>
                     ))}
                   </tr>
                   <tr>
-                    <th style={{padding: '4px 6px', borderBottom: '1px solid #e2e8f0'}}></th>
+                    <th style={{padding: '3px 4px', borderBottom: '1px solid #dcfce7', fontSize: '8px'}}></th>
                     {years.map(fy => (
                       <React.Fragment key={fy}>
-                        <th style={{padding: '4px', textAlign: 'center', borderBottom: '1px solid #e2e8f0', color: '#ef4444', fontWeight: '500', fontSize: '9px'}}>Pending</th>
-                        <th style={{padding: '4px', textAlign: 'center', borderBottom: '1px solid #e2e8f0', color: '#10b981', fontWeight: '500', fontSize: '9px'}}>Done</th>
+                        <th style={{padding: '3px 2px', textAlign: 'center', borderBottom: '1px solid #dcfce7', color: '#ef4444', fontWeight: '500', fontSize: '8px'}}>P</th>
+                        <th style={{padding: '3px 2px', textAlign: 'center', borderBottom: '1px solid #dcfce7', color: '#10b981', fontWeight: '500', fontSize: '8px'}}>D</th>
                       </React.Fragment>
                     ))}
                   </tr>
@@ -4349,11 +4366,51 @@ const PracticeManagementApp = () => {
                 <tbody>
                   {summary.map((row, idx) => (
                     <tr key={row.period} style={{background: idx % 2 === 0 ? '#fff' : '#f8fafc'}}>
-                      <td style={{padding: '6px', fontWeight: '500', borderBottom: '1px solid #f1f5f9'}}>{row.period}</td>
+                      <td style={{padding: '4px', fontWeight: '500', borderBottom: '1px solid #f1f5f9', fontSize: '9px'}}>{row.period.substring(0, 3)}</td>
                       {years.map(fy => (
                         <React.Fragment key={fy}>
-                          <td style={{padding: '6px 4px', textAlign: 'center', borderBottom: '1px solid #f1f5f9', color: row[`${fy}_pending`] > 0 ? '#ef4444' : '#d1d5db', fontWeight: row[`${fy}_pending`] > 0 ? '600' : '400'}}>{row[`${fy}_pending`]}</td>
-                          <td style={{padding: '6px 4px', textAlign: 'center', borderBottom: '1px solid #f1f5f9', color: row[`${fy}_completed`] > 0 ? '#10b981' : '#d1d5db', fontWeight: row[`${fy}_completed`] > 0 ? '600' : '400'}}>{row[`${fy}_completed`]}</td>
+                          <td 
+                            style={{
+                              padding: '4px 2px', 
+                              textAlign: 'center', 
+                              borderBottom: '1px solid #f1f5f9', 
+                              color: row[`${fy}_pending`] > 0 ? '#ef4444' : '#e5e7eb', 
+                              fontWeight: row[`${fy}_pending`] > 0 ? '700' : '400',
+                              cursor: row[`${fy}_pending`] > 0 ? 'pointer' : 'default',
+                              background: row[`${fy}_pending`] > 0 ? '#fef2f2' : 'transparent'
+                            }}
+                            onClick={() => {
+                              if (row[`${fy}_pending`] > 0) {
+                                setFilters({...filters, taskFinancialYear: fy === 'Previous years' ? '' : fy, taskPeriod: row.period});
+                                setActiveStatusFilter('');
+                                alert(`Showing ${row[`${fy}_pending`]} pending tasks for ${row.period} ${fy}`);
+                              }
+                            }}
+                            title={row[`${fy}_pending`] > 0 ? `Click to view ${row[`${fy}_pending`]} pending tasks` : ''}
+                          >
+                            {row[`${fy}_pending`] || '-'}
+                          </td>
+                          <td 
+                            style={{
+                              padding: '4px 2px', 
+                              textAlign: 'center', 
+                              borderBottom: '1px solid #f1f5f9', 
+                              color: row[`${fy}_completed`] > 0 ? '#10b981' : '#e5e7eb', 
+                              fontWeight: row[`${fy}_completed`] > 0 ? '700' : '400',
+                              cursor: row[`${fy}_completed`] > 0 ? 'pointer' : 'default',
+                              background: row[`${fy}_completed`] > 0 ? '#f0fdf4' : 'transparent'
+                            }}
+                            onClick={() => {
+                              if (row[`${fy}_completed`] > 0) {
+                                setFilters({...filters, taskFinancialYear: fy === 'Previous years' ? '' : fy, taskPeriod: row.period, status: 'Completed'});
+                                setActiveStatusFilter('');
+                                alert(`Showing ${row[`${fy}_completed`]} completed tasks for ${row.period} ${fy}`);
+                              }
+                            }}
+                            title={row[`${fy}_completed`] > 0 ? `Click to view ${row[`${fy}_completed`]} completed tasks` : ''}
+                          >
+                            {row[`${fy}_completed`] || '-'}
+                          </td>
                         </React.Fragment>
                       ))}
                     </tr>
@@ -4452,37 +4509,37 @@ const PracticeManagementApp = () => {
         </div>
 
         {/* Tasks Table */}
-        <div className="tasks-table-wrapper">
-          <table className="tasks-table">
+        <div className="tasks-table-wrapper" style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+          <table className="tasks-table" style={{fontSize: '12px'}}>
             <thead>
-              <tr>
-                <th style={{width: '40px'}}>
+              <tr style={{background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)'}}>
+                <th style={{width: '35px', padding: '12px 8px'}}>
                   <input 
                     type="checkbox" 
                     checked={selectedTasks.length > 0 && selectedTasks.length === filteredTasks.slice(0, entriesPerPage).filter(t => !t.deleted).length}
                     onChange={toggleSelectAll}
                   />
                 </th>
-                <th style={{width: '80px'}}>Manage</th>
-                <th>Client Name</th>
-                <th>Client Code</th>
-                <th>Description</th>
-                <th>Start Date</th>
-                <th>Due Date</th>
-                <th>Task Manager</th>
-                <th>Assigned User</th>
-                <th>Financial Year</th>
-                <th>Period</th>
-                <th>Sub Period</th>
-                <th>Status</th>
-                <th>Completion Date</th>
-                <th style={{width: '60px'}}>Delete</th>
+                <th style={{width: '70px', padding: '12px 8px'}}>Manage</th>
+                <th style={{minWidth: '150px', padding: '12px 8px'}}>Client Name</th>
+                <th style={{width: '80px', padding: '12px 8px'}}>Code</th>
+                <th style={{minWidth: '200px', padding: '12px 8px'}}>Description</th>
+                <th style={{width: '90px', padding: '12px 8px', whiteSpace: 'nowrap'}}>Start Date</th>
+                <th style={{width: '90px', padding: '12px 8px', whiteSpace: 'nowrap'}}>Due Date</th>
+                <th style={{width: '100px', padding: '12px 8px'}}>Manager</th>
+                <th style={{width: '100px', padding: '12px 8px'}}>Assigned</th>
+                <th style={{width: '80px', padding: '12px 8px'}}>FY</th>
+                <th style={{width: '90px', padding: '12px 8px'}}>Period</th>
+                <th style={{width: '70px', padding: '12px 8px'}}>Sub</th>
+                <th style={{width: '80px', padding: '12px 8px'}}>Status</th>
+                <th style={{width: '90px', padding: '12px 8px'}}>Completed</th>
+                <th style={{width: '50px', padding: '12px 8px'}}>Del</th>
               </tr>
             </thead>
             <tbody>
               {filteredTasks.length === 0 ? (
                 <tr>
-                  <td colSpan={16} style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
+                  <td colSpan={15} style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>
                     No tasks found. {activeStatusFilter && <span>Try clearing the filter.</span>}
                   </td>
                 </tr>
@@ -4500,9 +4557,14 @@ const PracticeManagementApp = () => {
                     subPeriodDisplay = parts[1] || '';
                   }
                   
+                  // Check if task has invoice/receipt
+                  const hasInvoice = (data.invoices || []).some(inv => inv.taskId === task.id || (inv.tasks || []).includes(task.id));
+                  const hasReceipt = (data.receipts || []).some(r => r.taskId === task.id);
+                  const cannotDelete = hasInvoice || hasReceipt;
+                  
                   return (
                   <tr key={task.id} style={{ opacity: task.deleted ? 0.5 : 1, background: isSelected ? '#f0fdf4' : undefined }}>
-                    <td>
+                    <td style={{padding: '10px 8px'}}>
                       <input 
                         type="checkbox" 
                         checked={isSelected}
@@ -4510,7 +4572,7 @@ const PracticeManagementApp = () => {
                         disabled={task.deleted}
                       />
                     </td>
-                    <td>
+                    <td style={{padding: '10px 8px'}}>
                       <div style={{display: 'flex', gap: '4px'}}>
                         {hasActionPermission('canEditTask') && (
                         <button className="manage-btn" title="Manage Task" onClick={() => openTaskManageModal(task)}>
@@ -4538,25 +4600,36 @@ const PracticeManagementApp = () => {
                         )}
                       </div>
                     </td>
-                    <td>{task.clientName || '-'}</td>
-                    <td>{task.fileNo || '-'}</td>
-                    <td style={{maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={task.taskDescription || task.description || ''}>{task.taskDescription || task.description || '-'}</td>
-                    <td>{task.startDate || '-'}</td>
-                    <td>{task.expectedCompletionDate || '-'}</td>
-                    <td>{task.taskManager || '-'}</td>
-                    <td>{task.primaryAssignedUser || task.assignedTo || '-'}</td>
-                    <td>{task.financialYear || '-'}</td>
-                    <td>{periodDisplay || '-'}</td>
-                    <td>{subPeriodDisplay || '-'}</td>
-                    <td>
-                      <span className={`status-badge-table status-${taskStatus.toLowerCase().replace(' ', '-')}`}>
+                    <td style={{padding: '10px 8px', maxWidth: '150px'}}>
+                      <div style={{wordWrap: 'break-word', whiteSpace: 'normal', lineHeight: '1.3', maxHeight: '40px', overflow: 'hidden'}}>{task.clientName || '-'}</div>
+                    </td>
+                    <td style={{padding: '10px 8px', fontSize: '11px'}}>{task.fileNo || '-'}</td>
+                    <td style={{padding: '10px 8px', maxWidth: '200px'}}>
+                      <div style={{wordWrap: 'break-word', whiteSpace: 'normal', lineHeight: '1.3', fontSize: '11px', color: '#475569'}} title={task.taskDescription || task.description || ''}>
+                        {task.taskDescription || task.description || '-'}
+                      </div>
+                    </td>
+                    <td style={{padding: '10px 8px', whiteSpace: 'nowrap', fontSize: '11px'}}>{task.startDate || '-'}</td>
+                    <td style={{padding: '10px 8px', whiteSpace: 'nowrap', fontSize: '11px'}}>{task.expectedCompletionDate || '-'}</td>
+                    <td style={{padding: '10px 8px', fontSize: '11px'}}>{task.taskManager || '-'}</td>
+                    <td style={{padding: '10px 8px', fontSize: '11px'}}>{task.primaryAssignedUser || task.assignedTo || '-'}</td>
+                    <td style={{padding: '10px 8px', fontSize: '10px'}}>{task.financialYear?.replace('FY ', '') || '-'}</td>
+                    <td style={{padding: '10px 8px', fontSize: '11px'}}>{periodDisplay || '-'}</td>
+                    <td style={{padding: '10px 8px', fontSize: '10px'}}>{subPeriodDisplay || '-'}</td>
+                    <td style={{padding: '10px 8px'}}>
+                      <span className={`status-badge-table status-${taskStatus.toLowerCase().replace(' ', '-')}`} style={{fontSize: '10px', padding: '3px 8px'}}>
                         {taskStatus}
                       </span>
                     </td>
-                    <td>{task.completedCheck ? (task.completedDate || '-') : '-'}</td>
-                    <td>
+                    <td style={{padding: '10px 8px', fontSize: '11px', whiteSpace: 'nowrap'}}>{task.completedCheck ? (task.completedDate || '-') : '-'}</td>
+                    <td style={{padding: '10px 8px'}}>
                       {!task.deleted ? (
                         hasActionPermission('canDeleteTask') && (
+                          cannotDelete ? (
+                            <span title="Cannot delete - Invoice/Receipt exists" style={{color: '#9ca3af', cursor: 'not-allowed'}}>
+                              <Trash2 size={14} />
+                            </span>
+                          ) : (
                         <button 
                           type="button"
                           className="delete-btn-table" 
@@ -4571,11 +4644,12 @@ const PracticeManagementApp = () => {
                             }
                           }}
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={14} />
                         </button>
+                          )
                         )
                       ) : (
-                        <span style={{color: '#9ca3af', fontSize: '11px'}}>Deleted</span>
+                        <span style={{color: '#9ca3af', fontSize: '10px'}}>Del</span>
                       )}
                     </td>
                   </tr>
@@ -12321,6 +12395,37 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 </div>
 
                 <div className="edit-form-grid">
+                  {/* Parent and Child Task - Added */}
+                  <div className="form-field-task">
+                    <label>Parent Task (Category)</label>
+                    <select 
+                      value={taskFormData.parentTask} 
+                      onChange={(e) => setTaskFormData({...taskFormData, parentTask: e.target.value, childTask: ''})}
+                    >
+                      <option value="">Select Parent Task</option>
+                      {Object.keys(data.parentChildTasks || {}).map(parent => (
+                        <option key={parent} value={parent}>{parent}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-field-task">
+                    <label>Child Task (Task Type)</label>
+                    <select 
+                      value={taskFormData.childTask} 
+                      onChange={(e) => {
+                        const childTask = e.target.value;
+                        const description = `${childTask} for ${taskFormData.clientName}`;
+                        setTaskFormData({...taskFormData, childTask, taskDescription: description, description});
+                      }}
+                    >
+                      <option value="">Select Child Task</option>
+                      {(data.parentChildTasks?.[taskFormData.parentTask] || []).map(child => (
+                        <option key={child} value={child}>{child}</option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div className="form-field-task">
                     <label>Status</label>
                     <select value={taskFormData.status} onChange={(e) => setTaskFormData({...taskFormData, status: e.target.value})}>
@@ -12336,6 +12441,32 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       <option value="Low">Low</option>
                       <option value="Medium">Medium</option>
                       <option value="High">High</option>
+                    </select>
+                  </div>
+
+                  <div className="form-field-task">
+                    <label>Financial Year</label>
+                    <select 
+                      value={taskFormData.financialYear} 
+                      onChange={(e) => setTaskFormData({...taskFormData, financialYear: e.target.value})}
+                    >
+                      <option value="">Select FY</option>
+                      {FINANCIAL_YEARS.map(fy => (
+                        <option key={fy} value={fy}>{fy}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-field-task">
+                    <label>Period</label>
+                    <select 
+                      value={taskFormData.period} 
+                      onChange={(e) => setTaskFormData({...taskFormData, period: e.target.value})}
+                    >
+                      <option value="">Select Period</option>
+                      {PERIODS.map(p => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
                     </select>
                   </div>
 
@@ -27454,7 +27585,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           border: none;
         }
 
-        /* All Views Padding */
+        /* All Views Padding - Increased */
         .dashboard-view,
         .clients-view,
         .staff-view,
@@ -27463,7 +27594,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         .templates-view,
         .approvals-view,
         .tasks-view {
-          padding: 24px;
+          padding: 28px 32px;
           margin: 0;
           background: #f8fafc;
         }
