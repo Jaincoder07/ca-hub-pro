@@ -2629,46 +2629,80 @@ const PracticeManagementApp = () => {
               </div>
             </div>
 
-            {/* Overdue Tasks */}
+            {/* Due for Renewal Packages */}
             <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', transition: 'all 0.3s ease'}}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(239, 68, 68, 0.1)'; }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(245, 158, 11, 0.1)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
-              <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#ef4444'}}>⚠️ Overdue Tasks ({overdueTasks.length})</h3>
+              <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#d97706'}}>📦 Packages Due for Renewal ({(() => {
+                const pkgs = data.packages || [];
+                const sixtyDays = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
+                return pkgs.filter(p => {
+                  const ed = new Date(p.endDate);
+                  return ed <= sixtyDays && ed >= today;
+                }).length;
+              })()})</h3>
               <div style={{overflowX: 'auto', maxHeight: '300px', overflowY: 'auto'}}>
-                {overdueTasks.length === 0 ? (
-                  <div style={{textAlign: 'center', padding: '40px', color: '#10b981'}}>
-                    <CheckCircle size={32} style={{marginBottom: '8px'}} />
-                    <div>No overdue tasks! 🎉</div>
-                  </div>
-                ) : (
-                  <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
-                    <thead>
-                      <tr style={{background: '#fef2f2'}}>
-                        <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #fecaca'}}>Task</th>
-                        <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #fecaca'}}>Client</th>
-                        <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #fecaca'}}>Due Date</th>
-                        <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #fecaca'}}>Overdue By</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {overdueTasks.slice(0, 5).map(task => {
-                        const dueDate = new Date(task.dueDate.split('-').reverse().join('-'));
-                        const daysOverdue = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
-                        return (
-                          <tr key={task.id} style={{borderBottom: '1px solid #fef2f2'}}>
-                            <td style={{padding: '10px 12px'}}>{task.childTask || task.parentTask}</td>
-                            <td style={{padding: '10px 12px', color: '#64748b'}}>{task.client || '-'}</td>
-                            <td style={{padding: '10px 12px', color: '#ef4444'}}>{task.dueDate}</td>
-                            <td style={{padding: '10px 12px'}}>
-                              <span style={{color: '#ef4444', fontWeight: '600'}}>{daysOverdue} days</span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                )}
+                {(() => {
+                  const pkgs = data.packages || [];
+                  const sixtyDays = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
+                  const duePkgs = pkgs.filter(p => {
+                    const ed = new Date(p.endDate);
+                    return ed <= sixtyDays && ed >= today;
+                  }).sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
+                  
+                  if (duePkgs.length === 0) {
+                    return (
+                      <div style={{textAlign: 'center', padding: '40px', color: '#10b981'}}>
+                        <CheckCircle size={32} style={{marginBottom: '8px'}} />
+                        <div>No packages due for renewal! 🎉</div>
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+                      <thead>
+                        <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                          <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client</th>
+                          <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Code</th>
+                          <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>End Date</th>
+                          <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Days Left</th>
+                          <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {duePkgs.slice(0, 5).map((pkg, idx) => {
+                          const endDate = new Date(pkg.endDate);
+                          const daysLeft = Math.floor((endDate - today) / (1000 * 60 * 60 * 24));
+                          return (
+                            <tr key={pkg.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                              <td style={{padding: '6px 10px', border: '1px solid #e5e7eb', fontWeight: '500'}}>{pkg.clientName}</td>
+                              <td style={{padding: '6px 10px', border: '1px solid #e5e7eb', color: '#6366f1', fontSize: '11px'}}>{pkg.clientCode}</td>
+                              <td style={{padding: '6px 10px', border: '1px solid #e5e7eb', textAlign: 'center', fontSize: '11px'}}>{endDate.toLocaleDateString('en-IN')}</td>
+                              <td style={{padding: '6px 10px', border: '1px solid #e5e7eb', textAlign: 'center', fontWeight: '600', 
+                                color: daysLeft <= 15 ? '#dc2626' : daysLeft <= 30 ? '#d97706' : '#059669'
+                              }}>{daysLeft}d</td>
+                              <td style={{padding: '6px 10px', border: '1px solid #e5e7eb', textAlign: 'right', fontWeight: '600', color: '#059669'}}>₹{(pkg.totalAmount || 0).toLocaleString('en-IN')}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  );
+                })()}
               </div>
+              {(data.packages || []).filter(p => {
+                const sixtyDays = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
+                const ed = new Date(p.endDate);
+                return ed <= sixtyDays && ed >= today;
+              }).length > 0 && (
+                <button 
+                  onClick={() => setCurrentView('packages')}
+                  style={{marginTop: '12px', width: '100%', padding: '10px', background: '#f0fdf4', color: '#059669', border: '1px solid #10b981', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500'}}
+                >
+                  View All Packages →
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -25177,12 +25211,12 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const [searchTerm, setSearchTerm] = useState('');
     
     const PACKAGE_SERVICES = [
-      { id: 'retainership', name: 'Retainership', defaultFrequency: 'Monthly' },
-      { id: 'gstReturn', name: 'GST Return', defaultFrequency: 'Monthly' },
-      { id: 'itr', name: 'Income Tax Return', defaultFrequency: 'Annual' },
-      { id: 'itrPersonal', name: 'Income Tax Return (Personal)', defaultFrequency: 'Annual' },
-      { id: 'epfEsic', name: 'EPF-ESIC Return', defaultFrequency: 'Monthly' },
-      { id: 'advisory', name: 'Advisory', defaultFrequency: 'Monthly' }
+      { id: 'retainership', name: 'Retainership' },
+      { id: 'gstReturn', name: 'GST Return' },
+      { id: 'itr', name: 'Income Tax Return' },
+      { id: 'itrPersonal', name: 'Income Tax Return (Personal)' },
+      { id: 'epfEsic', name: 'EPF-ESIC Return' },
+      { id: 'advisory', name: 'Advisory' }
     ];
     
     const FREQUENCIES = ['Monthly', 'Quarterly', 'Half Yearly', 'Annual'];
@@ -25193,12 +25227,621 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       groupNo: '',
       clientCode: '',
       startDate: new Date().toISOString().split('T')[0],
-      endDate: '',
-      services: {},
-      totalAmount: 0,
+      frequency: 'Monthly',
+      services: [],
+      amount: '',
       billed: false,
       notes: ''
     });
+    
+    // Calculate statistics
+    const packages = data.packages || [];
+    const today = new Date();
+    const sixtyDaysFromNow = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
+    
+    const totalPackageClients = packages.length;
+    const dueForRenewal = packages.filter(p => {
+      const endDate = new Date(p.endDate);
+      return endDate <= sixtyDaysFromNow && endDate >= today;
+    });
+    const billedPackages = packages.filter(p => p.billed);
+    const unbilledPackages = packages.filter(p => !p.billed);
+    
+    // Filter packages
+    const filteredPackages = packages.filter(p => {
+      if (packageFilter === 'billed' && !p.billed) return false;
+      if (packageFilter === 'unbilled' && p.billed) return false;
+      if (packageFilter === 'dueRenewal') {
+        const endDate = new Date(p.endDate);
+        if (endDate > sixtyDaysFromNow || endDate < today) return false;
+      }
+      if (searchTerm) {
+        const search = searchTerm.toLowerCase();
+        return (p.clientName || '').toLowerCase().includes(search) ||
+               (p.clientCode || '').toLowerCase().includes(search) ||
+               (p.groupNo || '').toString().includes(search);
+      }
+      return true;
+    });
+    
+    // Handle client selection
+    const handleClientSelect = (clientId) => {
+      const client = data.clients.find(c => c.id === clientId);
+      if (client) {
+        const groupNo = client.fileNo ? client.fileNo.split('.')[0] : '';
+        setPackageForm(prev => ({
+          ...prev,
+          clientId: client.id,
+          clientName: client.name,
+          groupNo: groupNo,
+          clientCode: formatFileNo(client.fileNo)
+        }));
+      }
+    };
+    
+    // Calculate end date based on frequency
+    const calculateEndDate = (startDate, frequency) => {
+      if (!startDate) return '';
+      const start = new Date(startDate);
+      let end = new Date(start);
+      switch (frequency) {
+        case 'Monthly': end.setMonth(end.getMonth() + 1); break;
+        case 'Quarterly': end.setMonth(end.getMonth() + 3); break;
+        case 'Half Yearly': end.setMonth(end.getMonth() + 6); break;
+        case 'Annual': end.setFullYear(end.getFullYear() + 1); break;
+        default: end.setMonth(end.getMonth() + 1);
+      }
+      end.setDate(end.getDate() - 1);
+      return end.toISOString().split('T')[0];
+    };
+    
+    // Save package
+    const savePackage = () => {
+      if (!packageForm.clientId) {
+        alert('Please select a client');
+        return;
+      }
+      if (packageForm.services.length === 0) {
+        alert('Please select at least one service');
+        return;
+      }
+      if (!packageForm.amount || parseFloat(packageForm.amount) <= 0) {
+        alert('Please enter package amount');
+        return;
+      }
+      
+      const endDate = calculateEndDate(packageForm.startDate, packageForm.frequency);
+      
+      const packageData = {
+        id: editingPackage ? editingPackage.id : `pkg_${Date.now()}`,
+        clientId: packageForm.clientId,
+        clientName: packageForm.clientName,
+        groupNo: packageForm.groupNo,
+        clientCode: packageForm.clientCode,
+        startDate: packageForm.startDate,
+        endDate: endDate,
+        frequency: packageForm.frequency,
+        services: packageForm.services,
+        totalAmount: parseFloat(packageForm.amount) || 0,
+        billed: packageForm.billed,
+        notes: packageForm.notes,
+        createdAt: editingPackage ? editingPackage.createdAt : new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        createdBy: currentUser?.name || 'Unknown',
+        renewalCount: editingPackage ? editingPackage.renewalCount : 0
+      };
+      
+      setData(prev => ({
+        ...prev,
+        packages: editingPackage 
+          ? prev.packages.map(p => p.id === editingPackage.id ? packageData : p)
+          : [...(prev.packages || []), packageData]
+      }));
+      
+      resetForm();
+    };
+    
+    // Reset form
+    const resetForm = () => {
+      setPackageForm({
+        clientId: '',
+        clientName: '',
+        groupNo: '',
+        clientCode: '',
+        startDate: new Date().toISOString().split('T')[0],
+        frequency: 'Monthly',
+        services: [],
+        amount: '',
+        billed: false,
+        notes: ''
+      });
+      setEditingPackage(null);
+      setShowAddPackageModal(false);
+    };
+    
+    // Edit package
+    const handleEdit = (pkg) => {
+      setPackageForm({
+        clientId: pkg.clientId,
+        clientName: pkg.clientName,
+        groupNo: pkg.groupNo,
+        clientCode: pkg.clientCode,
+        startDate: pkg.startDate,
+        frequency: pkg.frequency || 'Monthly',
+        services: pkg.services || [],
+        amount: pkg.totalAmount?.toString() || '',
+        billed: pkg.billed,
+        notes: pkg.notes || ''
+      });
+      setEditingPackage(pkg);
+      setShowAddPackageModal(true);
+    };
+    
+    // Delete package
+    const handleDelete = (pkgId) => {
+      if (window.confirm('Are you sure you want to delete this package?')) {
+        setData(prev => ({
+          ...prev,
+          packages: prev.packages.filter(p => p.id !== pkgId)
+        }));
+      }
+    };
+    
+    // Renew package
+    const handleRenew = (pkg) => {
+      const oldEndDate = new Date(pkg.endDate);
+      const newStartDate = new Date(oldEndDate);
+      newStartDate.setDate(newStartDate.getDate() + 1);
+      const newEndDate = calculateEndDate(newStartDate.toISOString().split('T')[0], pkg.frequency || 'Monthly');
+      
+      const renewedPackage = {
+        ...pkg,
+        startDate: newStartDate.toISOString().split('T')[0],
+        endDate: newEndDate,
+        billed: false,
+        updatedAt: new Date().toISOString(),
+        renewalCount: (pkg.renewalCount || 0) + 1
+      };
+      
+      setData(prev => ({
+        ...prev,
+        packages: prev.packages.map(p => p.id === pkg.id ? renewedPackage : p)
+      }));
+      
+      alert(`Package renewed!\nNew period: ${newStartDate.toLocaleDateString('en-IN')} to ${new Date(newEndDate).toLocaleDateString('en-IN')}`);
+    };
+    
+    // Toggle billed status
+    const toggleBilled = (pkgId) => {
+      setData(prev => ({
+        ...prev,
+        packages: prev.packages.map(p => p.id === pkgId ? {...p, billed: !p.billed, updatedAt: new Date().toISOString()} : p)
+      }));
+    };
+    
+    // Get service names from package
+    const getServiceNames = (services) => {
+      if (!services || services.length === 0) return '-';
+      return services.map(svcId => {
+        const svc = PACKAGE_SERVICES.find(s => s.id === svcId);
+        return svc ? svc.name : svcId;
+      }).join(', ');
+    };
+    
+    // Toggle service selection
+    const toggleService = (serviceId) => {
+      setPackageForm(prev => ({
+        ...prev,
+        services: prev.services.includes(serviceId)
+          ? prev.services.filter(s => s !== serviceId)
+          : [...prev.services, serviceId]
+      }));
+    };
+    
+    return (
+      <div style={{padding: '24px 40px', background: '#f8fafc', minHeight: '100%'}}>
+        {/* Header */}
+        <div className="view-header">
+          <div>
+            <div className="breadcrumb">
+              <span onClick={() => setCurrentView('dashboard')} style={{cursor: 'pointer', color: '#10b981'}}>Dashboard</span>
+              <ChevronRight size={16} />
+              <span className="current">Client Packages</span>
+            </div>
+            <h1>Client Packages</h1>
+          </div>
+          <button className="btn-primary" onClick={() => setShowAddPackageModal(true)}>
+            <Plus size={20} /> Add Package
+          </button>
+        </div>
+        
+        {/* Statistics Cards */}
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px'}}>
+          <div 
+            onClick={() => setPackageFilter('all')}
+            style={{
+              background: packageFilter === 'all' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+              color: packageFilter === 'all' ? '#fff' : '#065f46',
+              padding: '16px 20px',
+              borderRadius: '12px',
+              cursor: 'pointer',
+              boxShadow: packageFilter === 'all' ? '0 4px 12px rgba(16,185,129,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
+              transition: 'all 0.2s'
+            }}
+          >
+            <div style={{fontSize: '28px', fontWeight: '700'}}>{totalPackageClients}</div>
+            <div style={{fontSize: '12px', fontWeight: '600'}}>Total Package Clients</div>
+          </div>
+          
+          <div 
+            onClick={() => setPackageFilter('dueRenewal')}
+            style={{
+              background: packageFilter === 'dueRenewal' ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+              color: packageFilter === 'dueRenewal' ? '#fff' : '#92400e',
+              padding: '16px 20px',
+              borderRadius: '12px',
+              cursor: 'pointer',
+              boxShadow: packageFilter === 'dueRenewal' ? '0 4px 12px rgba(245,158,11,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
+              transition: 'all 0.2s'
+            }}
+          >
+            <div style={{fontSize: '28px', fontWeight: '700'}}>{dueForRenewal.length}</div>
+            <div style={{fontSize: '12px', fontWeight: '600'}}>Due for Renewal (60 days)</div>
+          </div>
+          
+          <div 
+            onClick={() => setPackageFilter('billed')}
+            style={{
+              background: packageFilter === 'billed' ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
+              color: packageFilter === 'billed' ? '#fff' : '#1e40af',
+              padding: '16px 20px',
+              borderRadius: '12px',
+              cursor: 'pointer',
+              boxShadow: packageFilter === 'billed' ? '0 4px 12px rgba(59,130,246,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
+              transition: 'all 0.2s'
+            }}
+          >
+            <div style={{fontSize: '28px', fontWeight: '700'}}>{billedPackages.length}</div>
+            <div style={{fontSize: '12px', fontWeight: '600'}}>Billed</div>
+          </div>
+          
+          <div 
+            onClick={() => setPackageFilter('unbilled')}
+            style={{
+              background: packageFilter === 'unbilled' ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+              color: packageFilter === 'unbilled' ? '#fff' : '#991b1b',
+              padding: '16px 20px',
+              borderRadius: '12px',
+              cursor: 'pointer',
+              boxShadow: packageFilter === 'unbilled' ? '0 4px 12px rgba(239,68,68,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
+              transition: 'all 0.2s'
+            }}
+          >
+            <div style={{fontSize: '28px', fontWeight: '700'}}>{unbilledPackages.length}</div>
+            <div style={{fontSize: '12px', fontWeight: '600'}}>Unbilled</div>
+          </div>
+        </div>
+        
+        {/* Search */}
+        <div style={{marginBottom: '16px'}}>
+          <input
+            type="text"
+            placeholder="Search by client name, code, or group no..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              width: '300px',
+              padding: '10px 16px',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
+              fontSize: '13px'
+            }}
+          />
+        </div>
+        
+        {/* Packages Table */}
+        <div style={{background: '#fff', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb'}}>
+          <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+            <thead>
+              <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>S.No</th>
+                <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Group No.</th>
+                <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client Code</th>
+                <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client Name</th>
+                <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Services</th>
+                <th style={{padding: '10px 12px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Frequency</th>
+                <th style={{padding: '10px 12px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Start Date</th>
+                <th style={{padding: '10px 12px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>End Date</th>
+                <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Amount</th>
+                <th style={{padding: '10px 12px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Status</th>
+                <th style={{padding: '10px 12px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredPackages.length === 0 ? (
+                <tr>
+                  <td colSpan={11} style={{padding: '40px', textAlign: 'center', color: '#64748b', border: '1px solid #e5e7eb'}}>
+                    No packages found
+                  </td>
+                </tr>
+              ) : (
+                filteredPackages.map((pkg, idx) => {
+                  const endDate = new Date(pkg.endDate);
+                  const isDueForRenewal = endDate <= sixtyDaysFromNow && endDate >= today;
+                  const isExpired = endDate < today;
+                  
+                  return (
+                    <tr key={pkg.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                      <td style={{padding: '8px 12px', border: '1px solid #e5e7eb'}}>{idx + 1}</td>
+                      <td style={{padding: '8px 12px', border: '1px solid #e5e7eb', fontWeight: '600'}}>{pkg.groupNo}</td>
+                      <td style={{padding: '8px 12px', border: '1px solid #e5e7eb', color: '#6366f1', fontWeight: '500'}}>{pkg.clientCode}</td>
+                      <td style={{padding: '8px 12px', border: '1px solid #e5e7eb', fontWeight: '500'}}>{pkg.clientName}</td>
+                      <td style={{padding: '8px 12px', border: '1px solid #e5e7eb', fontSize: '11px', maxWidth: '180px'}}>
+                        {getServiceNames(pkg.services)}
+                      </td>
+                      <td style={{padding: '8px 12px', border: '1px solid #e5e7eb', textAlign: 'center'}}>
+                        <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: '600', background: '#e0e7ff', color: '#4338ca'}}>
+                          {pkg.frequency || 'Monthly'}
+                        </span>
+                      </td>
+                      <td style={{padding: '8px 12px', border: '1px solid #e5e7eb', textAlign: 'center', fontSize: '11px'}}>
+                        {new Date(pkg.startDate).toLocaleDateString('en-IN')}
+                      </td>
+                      <td style={{padding: '8px 12px', border: '1px solid #e5e7eb', textAlign: 'center', fontSize: '11px',
+                        color: isExpired ? '#dc2626' : isDueForRenewal ? '#d97706' : '#1e293b',
+                        fontWeight: isExpired || isDueForRenewal ? '600' : '400'
+                      }}>
+                        {new Date(pkg.endDate).toLocaleDateString('en-IN')}
+                        {isDueForRenewal && <span style={{display: 'block', fontSize: '9px'}}>Due for renewal</span>}
+                        {isExpired && <span style={{display: 'block', fontSize: '9px'}}>Expired</span>}
+                      </td>
+                      <td style={{padding: '8px 12px', border: '1px solid #e5e7eb', textAlign: 'right', fontWeight: '600', color: '#059669'}}>
+                        ₹{(pkg.totalAmount || 0).toLocaleString('en-IN')}
+                      </td>
+                      <td style={{padding: '8px 12px', border: '1px solid #e5e7eb', textAlign: 'center'}}>
+                        <span 
+                          onClick={() => toggleBilled(pkg.id)}
+                          style={{
+                            padding: '3px 10px',
+                            borderRadius: '12px',
+                            fontSize: '10px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            background: pkg.billed ? '#d1fae5' : '#fee2e2',
+                            color: pkg.billed ? '#065f46' : '#991b1b'
+                          }}
+                        >
+                          {pkg.billed ? 'Billed' : 'Unbilled'}
+                        </span>
+                      </td>
+                      <td style={{padding: '8px 12px', border: '1px solid #e5e7eb', textAlign: 'center'}}>
+                        <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
+                          <button
+                            onClick={() => handleEdit(pkg)}
+                            style={{padding: '4px 8px', background: '#fef3c7', color: '#d97706', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}
+                            title="Edit"
+                          >
+                            <Edit size={12} />
+                          </button>
+                          <button
+                            onClick={() => handleRenew(pkg)}
+                            style={{padding: '4px 8px', background: '#dbeafe', color: '#2563eb', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}
+                            title="Renew"
+                          >
+                            <RefreshCw size={12} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(pkg.id)}
+                            style={{padding: '4px 8px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}
+                            title="Delete"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+        
+        {/* Add/Edit Package Modal */}
+        {showAddPackageModal && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+          }}>
+            <div style={{
+              background: '#fff', borderRadius: '12px', width: '600px', maxWidth: '95%',
+              maxHeight: '90vh', overflow: 'auto'
+            }}>
+              <div style={{padding: '20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <h2 style={{margin: 0, fontSize: '18px', fontWeight: '600'}}>
+                  {editingPackage ? 'Edit Package' : 'Add New Package'}
+                </h2>
+                <button onClick={resetForm} style={{background: 'none', border: 'none', cursor: 'pointer', padding: '4px'}}>
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div style={{padding: '20px'}}>
+                {/* Client Selection */}
+                <div style={{marginBottom: '16px'}}>
+                  <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>
+                    Select Client <span style={{color: '#ef4444'}}>*</span>
+                  </label>
+                  <select
+                    value={packageForm.clientId}
+                    onChange={(e) => handleClientSelect(e.target.value)}
+                    style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'}}
+                  >
+                    <option value="">-- Select Client --</option>
+                    {data.clients.filter(c => !c.disabled).map(c => (
+                      <option key={c.id} value={c.id}>{c.name} ({formatFileNo(c.fileNo)})</option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* Auto-filled fields */}
+                {packageForm.clientId && (
+                  <div style={{display: 'grid', gridTemplateColumns: '80px 100px 1fr', gap: '12px', marginBottom: '16px'}}>
+                    <div>
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '500', marginBottom: '4px', color: '#64748b'}}>Group No.</label>
+                      <input
+                        type="text"
+                        value={packageForm.groupNo}
+                        readOnly
+                        style={{width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px', background: '#f8fafc', fontSize: '13px', fontWeight: '600', textAlign: 'center'}}
+                      />
+                    </div>
+                    <div>
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '500', marginBottom: '4px', color: '#64748b'}}>Client Code</label>
+                      <input
+                        type="text"
+                        value={packageForm.clientCode}
+                        readOnly
+                        style={{width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px', background: '#f0fdf4', fontSize: '13px', fontWeight: '600', color: '#166534', textAlign: 'center'}}
+                      />
+                    </div>
+                    <div>
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '500', marginBottom: '4px', color: '#64748b'}}>Client Name</label>
+                      <input
+                        type="text"
+                        value={packageForm.clientName}
+                        readOnly
+                        style={{width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px', background: '#f8fafc', fontSize: '13px'}}
+                      />
+                    </div>
+                  </div>
+                )}
+                
+                {/* Services Selection */}
+                <div style={{marginBottom: '16px'}}>
+                  <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '8px', color: '#374151'}}>
+                    Services <span style={{color: '#ef4444'}}>*</span>
+                  </label>
+                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px'}}>
+                    {PACKAGE_SERVICES.map(svc => (
+                      <label 
+                        key={svc.id}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px',
+                          border: packageForm.services.includes(svc.id) ? '2px solid #10b981' : '1px solid #e2e8f0',
+                          borderRadius: '8px', cursor: 'pointer',
+                          background: packageForm.services.includes(svc.id) ? '#f0fdf4' : '#fff',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={packageForm.services.includes(svc.id)}
+                          onChange={() => toggleService(svc.id)}
+                          style={{width: '16px', height: '16px', accentColor: '#10b981'}}
+                        />
+                        <span style={{fontSize: '12px', fontWeight: packageForm.services.includes(svc.id) ? '600' : '400'}}>{svc.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Frequency and Amount */}
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px'}}>
+                  <div>
+                    <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>
+                      Frequency <span style={{color: '#ef4444'}}>*</span>
+                    </label>
+                    <select
+                      value={packageForm.frequency}
+                      onChange={(e) => setPackageForm(prev => ({...prev, frequency: e.target.value}))}
+                      style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'}}
+                    >
+                      {FREQUENCIES.map(f => <option key={f} value={f}>{f}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>
+                      Package Amount (₹) <span style={{color: '#ef4444'}}>*</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={packageForm.amount}
+                      onChange={(e) => setPackageForm(prev => ({...prev, amount: e.target.value}))}
+                      placeholder="Enter total package amount"
+                      style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'}}
+                    />
+                  </div>
+                </div>
+                
+                {/* Dates */}
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px'}}>
+                  <div>
+                    <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>Start Date</label>
+                    <input
+                      type="date"
+                      value={packageForm.startDate}
+                      onChange={(e) => setPackageForm(prev => ({...prev, startDate: e.target.value}))}
+                      style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'}}
+                    />
+                  </div>
+                  <div>
+                    <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>End Date (Auto-calculated)</label>
+                    <input
+                      type="text"
+                      value={packageForm.startDate ? new Date(calculateEndDate(packageForm.startDate, packageForm.frequency)).toLocaleDateString('en-IN') : ''}
+                      readOnly
+                      style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', background: '#f8fafc', fontWeight: '600', color: '#059669'}}
+                    />
+                  </div>
+                </div>
+                
+                {/* Notes */}
+                <div style={{marginBottom: '16px'}}>
+                  <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>Notes</label>
+                  <textarea
+                    value={packageForm.notes}
+                    onChange={(e) => setPackageForm(prev => ({...prev, notes: e.target.value}))}
+                    placeholder="Any additional notes..."
+                    rows={2}
+                    style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', resize: 'none'}}
+                  />
+                </div>
+                
+                {/* Billed Status */}
+                <div style={{marginBottom: '16px'}}>
+                  <label style={{display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer'}}>
+                    <input
+                      type="checkbox"
+                      checked={packageForm.billed}
+                      onChange={(e) => setPackageForm(prev => ({...prev, billed: e.target.checked}))}
+                      style={{width: '16px', height: '16px', accentColor: '#10b981'}}
+                    />
+                    <span style={{fontSize: '13px', fontWeight: '500'}}>Mark as Billed</span>
+                  </label>
+                </div>
+              </div>
+              
+              <div style={{padding: '16px 20px', borderTop: '1px solid #e2e8f0', display: 'flex', gap: '12px', justifyContent: 'flex-end'}}>
+                <button
+                  onClick={resetForm}
+                  style={{padding: '10px 20px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500'}}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={savePackage}
+                  style={{padding: '10px 20px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500'}}
+                >
+                  {editingPackage ? 'Update Package' : 'Save Package'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
     
     // Calculate statistics
     const packages = data.packages || [];
