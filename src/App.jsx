@@ -503,10 +503,27 @@ const PracticeManagementApp = () => {
               qrCode: org.qrCode === '[IMAGE]' ? '' : (org.qrCode || '')
             }));
             
+            // Remove duplicate clients by Client Code (keep first occurrence)
+            const clientsFromFirebase = firebaseData.clients || [];
+            const seenClientCodes = new Set();
+            const uniqueClients = clientsFromFirebase.filter(c => {
+              if (!c.fileNo) return true; // Keep clients without fileNo
+              if (seenClientCodes.has(c.fileNo)) {
+                console.log('Removing duplicate client:', c.name, c.fileNo);
+                return false;
+              }
+              seenClientCodes.add(c.fileNo);
+              return true;
+            });
+            
+            if (uniqueClients.length < clientsFromFirebase.length) {
+              console.log(`Removed ${clientsFromFirebase.length - uniqueClients.length} duplicate clients`);
+            }
+            
             // Properly merge ALL data fields with defaults
             setData(prev => ({
               tasks: firebaseData.tasks || prev.tasks || [],
-              clients: firebaseData.clients || prev.clients || [],
+              clients: uniqueClients, // Use deduplicated clients
               staff: firebaseData.staff || prev.staff || [],
               timesheets: firebaseData.timesheets || prev.timesheets || [],
               invoices: firebaseData.invoices || prev.invoices || [],
@@ -5230,97 +5247,97 @@ const PracticeManagementApp = () => {
                           </span>
                         )}
                       </div>
-                      
-                      {/* Group No. Display Field */}
-                      <div style={{display: 'flex', gap: '16px', marginTop: '8px'}}>
-                        <div style={{flex: 1}}>
-                          <label style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', display: 'block'}}>Group No.</label>
-                          <input
-                            type="text"
-                            value={clientData.fileNo ? clientData.fileNo.split('.')[0] : (clientData.groupMode === 'new' ? getNextNewGroup() : clientData.selectedGroup || '')}
-                            readOnly
-                            style={{
-                              width: '100%',
-                              padding: '8px 12px',
-                              border: '1px solid #e2e8f0',
-                              borderRadius: '6px',
-                              background: '#f8fafc',
-                              fontSize: '14px',
-                              fontWeight: '600',
-                              color: '#1e293b'
-                            }}
-                          />
-                        </div>
-                        <div style={{flex: 2}}>
-                          <label style={{fontSize: '11px', color: '#64748b', marginBottom: '4px', display: 'block'}}>Next Client Code</label>
-                          <input
-                            type="text"
-                            value={formatFileNo(clientData.fileNo) || ''}
-                            readOnly
-                            style={{
-                              width: '100%',
-                              padding: '8px 12px',
-                              border: '1px solid #10b981',
-                              borderRadius: '6px',
-                              background: '#f0fdf4',
-                              fontSize: '14px',
-                              fontWeight: '600',
-                              color: '#166534'
-                            }}
-                          />
-                        </div>
-                      </div>
                     </div>
                   )}
 
-                  {/* Client Code Display (Read-only) */}
-                  <div className="form-field-pro span-1">
-                    <label>
-                      Client Code <span className="required-star">*</span>
-                      <span style={{fontSize: '10px', color: '#64748b', marginLeft: '6px'}}>(Auto)</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formatFileNo(clientData.fileNo)}
-                      readOnly={!editingClient}
-                      disabled={!editingClient}
-                      style={{
-                        background: editingClient ? '#fff' : '#f8fafc',
-                        borderColor: clientData.fileNo ? '#10b981' : '#e2e8f0',
-                        fontWeight: '600',
-                        fontSize: '16px',
-                        color: '#1e293b'
-                      }}
-                    />
-                    {clientData.fileNo && (
-                      <small style={{color: '#10b981', fontSize: '11px', marginTop: '4px'}}>
-                        ✓ Group No. {clientData.fileNo.split('.')[0]}
-                      </small>
-                    )}
-                  </div>
+                  {/* Single Row: Group No., Client Code, Client Name, Date of Enrollment */}
+                  <div style={{display: 'grid', gridTemplateColumns: '80px 100px 1fr 150px', gap: '12px', alignItems: 'end'}}>
+                    {/* Group No. */}
+                    <div>
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Group No.</label>
+                      <input
+                        type="text"
+                        value={clientData.fileNo ? clientData.fileNo.split('.')[0] : (clientData.groupMode === 'new' ? getNextNewGroup() : clientData.selectedGroup || '')}
+                        readOnly
+                        style={{
+                          width: '100%',
+                          padding: '10px 8px',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '6px',
+                          background: '#f8fafc',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          color: '#1e293b',
+                          textAlign: 'center'
+                        }}
+                      />
+                    </div>
 
-                  <div className="form-field-pro span-2">
-                    <label>Client Name <span className="required-star">*</span></label>
-                    <input
-                      type="text"
-                      placeholder="Enter client full name"
-                      value={clientData.clientName}
-                      onChange={(e) => {
-                        setClientData(prev => ({
-                          ...prev, 
-                          clientName: e.target.value
-                        }));
-                      }}
-                    />
-                  </div>
+                    {/* Client Code */}
+                    <div>
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>
+                        Client Code <span style={{color: '#ef4444'}}>*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formatFileNo(clientData.fileNo)}
+                        readOnly={!editingClient}
+                        disabled={!editingClient}
+                        style={{
+                          width: '100%',
+                          padding: '10px 8px',
+                          background: editingClient ? '#fff' : '#f0fdf4',
+                          border: clientData.fileNo ? '1px solid #10b981' : '1px solid #e2e8f0',
+                          borderRadius: '6px',
+                          fontWeight: '600',
+                          fontSize: '14px',
+                          color: '#166534',
+                          textAlign: 'center'
+                        }}
+                      />
+                    </div>
 
-                  <div className="form-field-pro span-1">
-                    <label>Date of Enrollment</label>
-                    <input
-                      type="date"
-                      value={clientData.dateOfEnrollment}
-                      onChange={(e) => setClientData({...clientData, dateOfEnrollment: e.target.value})}
-                    />
+                    {/* Client Name */}
+                    <div>
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>
+                        Client Name <span style={{color: '#ef4444'}}>*</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Enter client full name"
+                        value={clientData.clientName}
+                        onChange={(e) => {
+                          setClientData(prev => ({
+                            ...prev, 
+                            clientName: e.target.value
+                          }));
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '10px 12px',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '6px',
+                          fontSize: '13px'
+                        }}
+                      />
+                    </div>
+
+                    {/* Date of Enrollment */}
+                    <div>
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>Date of Enrollment</label>
+                      <input
+                        type="date"
+                        value={clientData.dateOfEnrollment}
+                        onChange={(e) => setClientData({...clientData, dateOfEnrollment: e.target.value})}
+                        style={{
+                          width: '100%',
+                          padding: '10px 8px',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '6px',
+                          fontSize: '13px'
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -5456,24 +5473,6 @@ const PracticeManagementApp = () => {
                     </select>
                   </div>
                 </div>
-              </div>
-
-              {/* Additional Notes - Collapsible */}
-              <div className="form-section-pro" style={{padding: '12px 16px'}}>
-                <button type="button" className="btn-add-section" onClick={() => setClientData({...clientData, showNotes: !clientData.showNotes})} style={{padding: '8px 16px', fontSize: '12px'}}>
-                  <Plus size={16} />
-                  {clientData.showNotes ? 'Hide Notes' : 'Add Client Notes'}
-                </button>
-                {clientData.showNotes && (
-                  <div className="form-field-pro span-4" style={{marginTop: '12px'}}>
-                    <textarea
-                      rows="2"
-                      placeholder="Add any additional notes..."
-                      value={clientData.clientNotes}
-                      onChange={(e) => setClientData({...clientData, clientNotes: e.target.value})}
-                    />
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -6060,11 +6059,36 @@ const PracticeManagementApp = () => {
     const [clientViewTab, setClientViewTab] = useState('basic');
     const [activeClientTab, setActiveClientTab] = useState('enable');
     const [selectedClients, setSelectedClients] = useState([]);
-    const [sortBy, setSortBy] = useState('default');
+    const [sortBy, setSortBy] = useState('fileno'); // Default sort by Client Code
     const [clientFormStep, setClientFormStep] = useState('basic');
 
-    const enabledClients = data.clients.filter(c => !c.disabled);
-    const disabledClients = data.clients.filter(c => c.disabled);
+    // Helper to parse fileNo for numeric sorting (e.g., "1.10" -> 1.10)
+    const parseFileNo = (fileNo) => {
+      if (!fileNo) return 9999999;
+      const parts = fileNo.split('.');
+      if (parts.length !== 2) return 9999999;
+      const group = parseInt(parts[0]) || 0;
+      const client = parseInt(parts[1]) || 0;
+      return group * 1000 + client; // e.g., 1.10 = 1010, 2.05 = 2005
+    };
+
+    // Remove duplicate clients by Client Code and sort by Client Code
+    const dedupeAndSortClients = (clients) => {
+      // Remove duplicates by fileNo (keep first occurrence)
+      const seen = new Set();
+      const uniqueClients = clients.filter(c => {
+        if (!c.fileNo) return true; // Keep clients without fileNo
+        if (seen.has(c.fileNo)) return false;
+        seen.add(c.fileNo);
+        return true;
+      });
+      
+      // Sort by fileNo (numeric comparison)
+      return uniqueClients.sort((a, b) => parseFileNo(a.fileNo) - parseFileNo(b.fileNo));
+    };
+
+    const enabledClients = dedupeAndSortClients(data.clients.filter(c => !c.disabled));
+    const disabledClients = dedupeAndSortClients(data.clients.filter(c => c.disabled));
 
     const handleToggleClient = (clientId) => {
       setSelectedClients(prev => 
@@ -6396,11 +6420,13 @@ const PracticeManagementApp = () => {
         case 'name':
           return sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
         case 'fileno':
-          return sorted.sort((a, b) => (a.fileNo || '').localeCompare(b.fileNo || ''));
+          // Sort by Client Code numerically (1.01 < 1.10 < 2.01)
+          return sorted.sort((a, b) => parseFileNo(a.fileNo) - parseFileNo(b.fileNo));
         case 'recent':
           return sorted.reverse();
         default:
-          return sorted;
+          // Default: sort by Client Code
+          return sorted.sort((a, b) => parseFileNo(a.fileNo) - parseFileNo(b.fileNo));
       }
     };
 
@@ -6507,53 +6533,53 @@ const PracticeManagementApp = () => {
                   </div>
                 </div>
 
-                <div className="clients-table-wrapper">
-                  <table className="clients-table">
+                <div className="clients-table-wrapper" style={{border: '1px solid #10b981', borderRadius: '8px', overflow: 'hidden'}}>
+                  <table className="clients-table" style={{borderCollapse: 'collapse', width: '100%', fontSize: '12px'}}>
                     <thead>
-                      <tr>
-                        <th><input type="checkbox" onChange={(e) => {
+                      <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                        <th style={{padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px', width: '35px'}}><input type="checkbox" onChange={(e) => {
                           if (e.target.checked) {
                             setSelectedClients(filteredEnabledClients.map(c => c.id));
                           } else {
                             setSelectedClients([]);
                           }
                         }} /></th>
-                        <th>Edit</th>
-                        <th>Sr. No.</th>
-                        <th>Client Code</th>
-                        <th>Client Name</th>
-                        <th>Group No.</th>
-                        <th>Contact No.</th>
-                        <th>Address</th>
-                        <th>Email Id</th>
-                        <th>PAN Card No.</th>
-                        <th>Gstin</th>
-                        <th>GSTIN Password</th>
-                        <th>Income Tax Password</th>
-                        <th>State</th>
-                        <th>Aadhaar No.</th>
+                        <th style={{padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px', width: '60px'}}>Edit</th>
+                        <th style={{padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px', width: '45px'}}>Sr.</th>
+                        <th style={{padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px', width: '70px'}}>Code</th>
+                        <th style={{padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px', minWidth: '150px'}}>Client Name</th>
+                        <th style={{padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px', width: '55px'}}>Group</th>
+                        <th style={{padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px', width: '100px'}}>Contact</th>
+                        <th style={{padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px', minWidth: '200px'}}>Address</th>
+                        <th style={{padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px', width: '150px'}}>Email</th>
+                        <th style={{padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px', width: '100px'}}>PAN</th>
+                        <th style={{padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px', width: '130px'}}>GSTIN</th>
+                        <th style={{padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px', width: '90px'}}>GSTIN Pwd</th>
+                        <th style={{padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px', width: '90px'}}>IT Pwd</th>
+                        <th style={{padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px', width: '80px'}}>State</th>
+                        <th style={{padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px', width: '110px'}}>Aadhaar</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredEnabledClients.map((client, index) => (
-                        <tr key={client.id}>
-                          <td>
+                        <tr key={client.id} style={{background: index % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                          <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', textAlign: 'center'}}>
                             <input 
                               type="checkbox"
                               checked={selectedClients.includes(client.id)}
                               onChange={() => handleToggleClient(client.id)}
                             />
                           </td>
-                          <td>
+                          <td style={{padding: '8px 6px', border: '1px solid #e5e7eb'}}>
                             <div style={{display: 'flex', gap: '4px'}}>
                               {hasActionPermission('canViewClients') && (
                               <button 
                                 className="edit-icon-btn" 
                                 onClick={() => { setViewingClient(client); setClientViewTab('basic'); }}
                                 title="View Details"
-                                style={{background: '#3b82f6', color: '#fff'}}
+                                style={{background: '#3b82f6', color: '#fff', padding: '4px', borderRadius: '4px', border: 'none', cursor: 'pointer'}}
                               >
-                                <Eye size={16} />
+                                <Eye size={14} />
                               </button>
                               )}
                               {hasActionPermission('canEditClient') && (
@@ -6561,25 +6587,26 @@ const PracticeManagementApp = () => {
                                 className="edit-icon-btn" 
                                 onClick={() => handleEditClient(client)}
                                 title="Edit Client"
+                                style={{background: '#10b981', color: '#fff', padding: '4px', borderRadius: '4px', border: 'none', cursor: 'pointer'}}
                               >
-                                <Edit size={16} />
+                                <Edit size={14} />
                               </button>
                               )}
                             </div>
                           </td>
-                          <td>{index + 1}</td>
-                          <td>{formatFileNo(client.fileNo) || ''}</td>
-                          <td>{client.name || ''}</td>
-                          <td>{client.fileNo ? client.fileNo.split('.')[0] : ''}</td>
-                          <td>{client.phone || ''}</td>
-                          <td>{client.address || ''}</td>
-                          <td>{client.email || ''}</td>
-                          <td>{client.pan || ''}</td>
-                          <td>{client.gstin || ''}</td>
-                          <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>{client.gstnPassword || '-'}</td>
-                          <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>{client.incomeTaxPassword || '-'}</td>
-                          <td>{client.state || ''}</td>
-                          <td>{client.aadhaar || ''}</td>
+                          <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', textAlign: 'center', fontSize: '11px'}}>{index + 1}</td>
+                          <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', fontWeight: '600', fontSize: '11px', color: '#166534'}}>{formatFileNo(client.fileNo) || ''}</td>
+                          <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', fontSize: '11px'}}>{client.name || ''}</td>
+                          <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', textAlign: 'center', fontSize: '11px'}}>{client.fileNo ? client.fileNo.split('.')[0] : ''}</td>
+                          <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', fontSize: '11px'}}>{client.phone || ''}</td>
+                          <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', fontSize: '11px', maxWidth: '200px', whiteSpace: 'normal', lineHeight: '1.3'}}>{client.address || ''}</td>
+                          <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', fontSize: '11px'}}>{client.email || ''}</td>
+                          <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', fontSize: '11px'}}>{client.pan || ''}</td>
+                          <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', fontSize: '11px'}}>{client.gstin || ''}</td>
+                          <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', fontFamily: 'monospace', fontSize: '10px'}}>{client.gstnPassword || '-'}</td>
+                          <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', fontFamily: 'monospace', fontSize: '10px'}}>{client.incomeTaxPassword || '-'}</td>
+                          <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', fontSize: '11px'}}>{client.state || ''}</td>
+                          <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', fontSize: '11px'}}>{client.aadhaar || ''}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -6592,50 +6619,49 @@ const PracticeManagementApp = () => {
             {activeClientTab === 'disable' && (
               <div className="clients-table-section">
                 <h3>Disabled Clients</h3>
-                <div className="clients-table-wrapper">
-                  <table className="clients-table">
+                <div className="clients-table-wrapper" style={{border: '1px solid #10b981', borderRadius: '8px', overflow: 'hidden'}}>
+                  <table className="clients-table" style={{borderCollapse: 'collapse', width: '100%', fontSize: '12px'}}>
                     <thead>
-                      <tr>
-                        <th>Sr. No.</th>
-                        <th>Client Code</th>
-                        <th>Client Name</th>
-                        <th>Group No.</th>
-                        <th>Contact No.</th>
-                        <th>Email Id</th>
-                        <th>Actions</th>
+                      <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                        <th style={{padding: '10px 8px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>Sr.</th>
+                        <th style={{padding: '10px 8px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>Code</th>
+                        <th style={{padding: '10px 8px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>Client Name</th>
+                        <th style={{padding: '10px 8px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>Group</th>
+                        <th style={{padding: '10px 8px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>Contact</th>
+                        <th style={{padding: '10px 8px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>Email</th>
+                        <th style={{padding: '10px 8px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {disabledClients.length === 0 ? (
                         <tr>
-                          <td colSpan="7" style={{textAlign: 'center', padding: '40px'}}>
+                          <td colSpan="7" style={{textAlign: 'center', padding: '40px', border: '1px solid #e5e7eb'}}>
                             No disabled clients
                           </td>
                         </tr>
                       ) : (
                         filteredDisabledClients.map((client, index) => (
-                          <tr key={client.id}>
-                            <td>{index + 1}</td>
-                            <td>{formatFileNo(client.fileNo) || ''}</td>
-                            <td>{client.name || ''}</td>
-                            <td>{client.fileNo ? client.fileNo.split('.')[0] : ''}</td>
-                            <td>{client.phone || ''}</td>
-                            <td>{client.email || ''}</td>
-                            <td>
+                          <tr key={client.id} style={{background: index % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                            <td style={{padding: '8px', border: '1px solid #e5e7eb', textAlign: 'center', fontSize: '11px'}}>{index + 1}</td>
+                            <td style={{padding: '8px', border: '1px solid #e5e7eb', fontWeight: '600', fontSize: '11px', color: '#166534'}}>{formatFileNo(client.fileNo) || ''}</td>
+                            <td style={{padding: '8px', border: '1px solid #e5e7eb', fontSize: '11px'}}>{client.name || ''}</td>
+                            <td style={{padding: '8px', border: '1px solid #e5e7eb', textAlign: 'center', fontSize: '11px'}}>{client.fileNo ? client.fileNo.split('.')[0] : ''}</td>
+                            <td style={{padding: '8px', border: '1px solid #e5e7eb', fontSize: '11px'}}>{client.phone || ''}</td>
+                            <td style={{padding: '8px', border: '1px solid #e5e7eb', fontSize: '11px'}}>{client.email || ''}</td>
+                            <td style={{padding: '8px', border: '1px solid #e5e7eb'}}>
                               <div style={{display: 'flex', gap: '8px'}}>
                                 <button 
-                                  className="btn-secondary" 
                                   onClick={() => setViewingClient(client)}
-                                  style={{padding: '6px 12px', fontSize: '12px'}}
+                                  style={{padding: '5px 10px', fontSize: '11px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'}}
                                 >
-                                  <Eye size={14} style={{marginRight: '4px'}} /> View
+                                  <Eye size={12} /> View
                                 </button>
                                 <button 
-                                  className="btn-secondary" 
                                   onClick={() => handleReEnableClient(client.id)}
-                                  style={{padding: '6px 12px', fontSize: '12px'}}
+                                  style={{padding: '5px 10px', fontSize: '11px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer'}}
                                 >
                                   Re-enable
+                                </button>
                                 </button>
                               </div>
                             </td>
