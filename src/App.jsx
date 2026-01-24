@@ -481,6 +481,25 @@ const PracticeManagementApp = () => {
             const firebaseData = docSnap.data();
             console.log('Loaded data from Firebase:', Object.keys(firebaseData));
             
+            // Restore organization images from localStorage
+            const orgsWithImages = (firebaseData.organizations || []).map(org => {
+              const storedImages = localStorage.getItem(`org_images_${org.id}`);
+              if (storedImages) {
+                try {
+                  const images = JSON.parse(storedImages);
+                  return {
+                    ...org,
+                    logo: images.logo || org.logo,
+                    signatureImage: images.signatureImage || org.signatureImage,
+                    qrCode: images.qrCode || org.qrCode
+                  };
+                } catch (e) {
+                  console.log('Could not parse stored images for org:', org.id);
+                }
+              }
+              return org;
+            });
+            
             // Properly merge ALL data fields with defaults
             setData(prev => ({
               tasks: firebaseData.tasks || prev.tasks || [],
@@ -489,7 +508,7 @@ const PracticeManagementApp = () => {
               timesheets: firebaseData.timesheets || prev.timesheets || [],
               invoices: firebaseData.invoices || prev.invoices || [],
               receipts: firebaseData.receipts || prev.receipts || [],
-              organizations: firebaseData.organizations || prev.organizations || [],
+              organizations: orgsWithImages,
               recurringSchedules: firebaseData.recurringSchedules || prev.recurringSchedules || [],
               leaves: firebaseData.leaves || prev.leaves || [],
               documents: firebaseData.documents || prev.documents || [],
@@ -13921,9 +13940,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       bankIfsc: '',
       bankBranch: '',
       gstApplicable: 'yes', // 'yes' or 'no'
+      invoiceFormat: 'taxInvoice', // taxInvoice, billOfSupply, proformaInvoice, billOfSupplyBlue
       allowBackdatedInvoicing: true,
       displayFileNoInInvoice: true,
-      defaultBillFormat: 'Format A',
       // Invoice/Receipt number configuration
       invoicePrefix: 'INV',
       invoiceStartNo: 1,
@@ -15065,6 +15084,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         remark: billingDetails.remark,
         isPureAgentService: billingDetails.isPureAgentService,
         sendWhatsApp: billingDetails.sendWhatsApp,
+        invoiceFormat: org.invoiceFormat || (gstApplicable ? 'taxInvoice' : 'billOfSupply'),
         
         // Task reference
         taskType: task.childTask,
@@ -15243,7 +15263,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         gstApplicable: 'yes',
         allowBackdatedInvoicing: true,
         displayFileNoInInvoice: true,
-        defaultBillFormat: 'Format A',
+        invoiceFormat: 'taxInvoice', // taxInvoice, billOfSupply, proformaInvoice, billOfSupplyBlue
+        invoiceTheme: 'green', // green, blue
         invoicePrefix: 'INV',
         invoiceStartNo: 1,
         invoiceCurrentNo: 1,
@@ -15277,15 +15298,30 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         return;
       }
 
+      const orgId = editingOrg ? editingOrg.id : generateId();
+      
       const orgData = {
         ...orgForm,
-        id: editingOrg ? editingOrg.id : generateId(),
+        id: orgId,
         logo: orgForm.logoPreview,
         signatureImage: orgForm.signaturePreview,
         qrCode: orgForm.qrCodePreview,
         createdAt: editingOrg ? editingOrg.createdAt : new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
+      
+      // Store images in localStorage (Firebase can't handle large base64 images)
+      try {
+        const imagesToStore = {
+          logo: orgForm.logoPreview || null,
+          signatureImage: orgForm.signaturePreview || null,
+          qrCode: orgForm.qrCodePreview || null
+        };
+        localStorage.setItem(`org_images_${orgId}`, JSON.stringify(imagesToStore));
+        console.log('Organization images saved to localStorage for:', orgId);
+      } catch (e) {
+        console.error('Could not save org images to localStorage:', e);
+      }
 
       if (editingOrg) {
         setData(prev => ({
@@ -15307,11 +15343,32 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
 
     const editOrganization = (org) => {
       setEditingOrg(org);
+      
+      // Try to restore images from localStorage
+      let logo = org.logo || '';
+      let signatureImage = org.signatureImage || '';
+      let qrCode = org.qrCode || '';
+      
+      try {
+        const storedImages = localStorage.getItem(`org_images_${org.id}`);
+        if (storedImages) {
+          const images = JSON.parse(storedImages);
+          logo = images.logo || logo;
+          signatureImage = images.signatureImage || signatureImage;
+          qrCode = images.qrCode || qrCode;
+        }
+      } catch (e) {
+        console.log('Could not restore org images from localStorage');
+      }
+      
       setOrgForm({
         ...org,
-        logoPreview: org.logo || '',
-        signaturePreview: org.signatureImage || '',
-        qrCodePreview: org.qrCode || ''
+        logo,
+        signatureImage,
+        qrCode,
+        logoPreview: logo,
+        signaturePreview: signatureImage,
+        qrCodePreview: qrCode
       });
       setShowOrgModal(true);
     };
@@ -18561,7 +18618,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   </div>
                 )}
                 
-                {/* Invoice Preview Modal */}
+                {/* Invoice Preview Modal - Multiple Formats */}
                 {showInvoicePreview && generatedInvoice && (
                   <div style={{
                     position: 'fixed',
@@ -18577,10 +18634,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     padding: '20px'
                   }}>
                     <div style={{
-                      background: '#f1f5f9',
+                      background: '#f8fafc',
                       borderRadius: '12px',
                       width: '100%',
-                      maxWidth: '900px',
+                      maxWidth: '850px',
                       maxHeight: '95vh',
                       overflow: 'auto',
                       boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
@@ -18590,7 +18647,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         display: 'flex',
                         gap: '8px',
                         padding: '12px 16px',
-                        background: '#f8fafc',
+                        background: '#fff',
                         borderBottom: '1px solid #e2e8f0',
                         position: 'sticky',
                         top: 0,
@@ -18598,7 +18655,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         alignItems: 'center'
                       }}>
                         <div style={{color: '#1e293b', fontSize: '14px', fontWeight: '600'}}>
-                          Invoice Generated: <span style={{color: '#10b981'}}>{generatedInvoice.invoiceNo}</span>
+                          Preview: <span style={{color: generatedInvoice.gstApplicable !== false ? '#10b981' : '#3b82f6'}}>{generatedInvoice.invoiceNo}</span>
                         </div>
                         <div style={{flex: 1}} />
                         <button
@@ -18620,193 +18677,249 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         </button>
                       </div>
                       
-                      {/* Professional Invoice Design */}
-                      <div id="invoice-print-area" style={{padding: '24px'}}>
-                        <div style={{background: '#fff', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.08)'}}>
-                          {/* Invoice Header */}
-                          <div style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', padding: '30px', color: '#fff'}}>
-                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
-                              <div style={{display: 'flex', alignItems: 'center', gap: '20px'}}>
-                                {generatedInvoice.orgLogo ? (
-                                  <img src={generatedInvoice.orgLogo} alt="Logo" style={{width: '80px', height: '80px', objectFit: 'contain', background: '#fff', borderRadius: '8px', padding: '8px'}} />
-                                ) : (
-                                  <div style={{width: '80px', height: '80px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', fontSize: '32px', fontWeight: '700'}}>
-                                    {generatedInvoice.orgName?.[0] || 'O'}
+                      {/* Invoice Template */}
+                      <div id="invoice-print-area" style={{padding: '20px'}}>
+                        {(() => {
+                          // Determine invoice type and theme
+                          const gstApplicable = generatedInvoice.gstApplicable !== false;
+                          const invoiceFormat = generatedInvoice.invoiceFormat || (gstApplicable ? 'taxInvoice' : 'billOfSupply');
+                          const isBlueTheme = invoiceFormat === 'billOfSupplyBlue';
+                          const themeColor = isBlueTheme ? '#3b82f6' : '#10b981';
+                          const themeLightBg = isBlueTheme ? '#eff6ff' : '#ecfdf5';
+                          const themeBorder = isBlueTheme ? '#bfdbfe' : '#a7f3d0';
+                          
+                          // Determine invoice title
+                          let invoiceTitle = 'Tax Invoice';
+                          if (invoiceFormat === 'billOfSupply' || invoiceFormat === 'billOfSupplyBlue') {
+                            invoiceTitle = 'Bill of Supply';
+                          } else if (invoiceFormat === 'proformaInvoice') {
+                            invoiceTitle = 'Proforma Invoice';
+                          }
+                          
+                          const showGst = gstApplicable && invoiceFormat !== 'billOfSupply' && invoiceFormat !== 'billOfSupplyBlue';
+                          
+                          return (
+                            <div style={{background: '#fff', fontFamily: "'Segoe UI', system-ui, sans-serif", fontSize: '13px', color: '#1e293b', boxShadow: '0 4px 20px rgba(0,0,0,0.1)'}}>
+                              
+                              {/* ========== HEADER SECTION ========== */}
+                              <div style={{padding: '32px 40px', borderBottom: `1px solid #e2e8f0`}}>
+                                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                                  
+                                  {/* Left: Logo & Company */}
+                                  <div style={{display: 'flex', alignItems: 'flex-start', gap: '16px'}}>
+                                    {generatedInvoice.orgLogo ? (
+                                      <img src={generatedInvoice.orgLogo} alt="Logo" style={{width: '70px', height: '70px', objectFit: 'contain'}} />
+                                    ) : (
+                                      <div style={{width: '70px', height: '70px', background: themeLightBg, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', fontSize: '32px', fontWeight: '700', color: themeColor}}>
+                                        {generatedInvoice.orgName?.[0] || 'O'}
+                                      </div>
+                                    )}
+                                    <div>
+                                      <h1 style={{margin: 0, fontSize: '20px', fontWeight: '700', color: '#0f172a'}}>{generatedInvoice.orgName}</h1>
+                                      <div style={{fontSize: '12px', color: '#64748b', marginTop: '6px', maxWidth: '260px', lineHeight: '1.5'}}>{generatedInvoice.orgAddress}</div>
+                                      {generatedInvoice.orgMobile && <div style={{fontSize: '12px', color: '#64748b', marginTop: '4px'}}>{generatedInvoice.orgMobile}</div>}
+                                      {generatedInvoice.orgEmail && <div style={{fontSize: '12px', color: themeColor}}>{generatedInvoice.orgEmail}</div>}
+                                    </div>
                                   </div>
-                                )}
-                                <div>
-                                  <h1 style={{margin: 0, fontSize: '24px', fontWeight: '700'}}>{generatedInvoice.orgName}</h1>
-                                  <div style={{fontSize: '13px', opacity: 0.8, marginTop: '4px', maxWidth: '300px'}}>{generatedInvoice.orgAddress}</div>
+                                  
+                                  {/* Right: Invoice Title & Details */}
+                                  <div style={{textAlign: 'right'}}>
+                                    <div style={{fontSize: '26px', fontWeight: '300', color: themeColor, letterSpacing: '0.5px'}}>{invoiceTitle}</div>
+                                    <div style={{marginTop: '16px', fontSize: '12px', color: '#64748b'}}>
+                                      <table style={{marginLeft: 'auto'}}>
+                                        <tbody>
+                                          <tr>
+                                            <td style={{padding: '3px 12px 3px 0', textAlign: 'right'}}>Invoice No:</td>
+                                            <td style={{fontWeight: '600', color: '#0f172a'}}>{generatedInvoice.invoiceNo}</td>
+                                          </tr>
+                                          <tr>
+                                            <td style={{padding: '3px 12px 3px 0', textAlign: 'right'}}>Date:</td>
+                                            <td style={{fontWeight: '600', color: '#0f172a'}}>{formatInvoiceDate(generatedInvoice.invoiceDate)}</td>
+                                          </tr>
+                                          {generatedInvoice.dueDate && (
+                                            <tr>
+                                              <td style={{padding: '3px 12px 3px 0', textAlign: 'right'}}>Due:</td>
+                                              <td style={{fontWeight: '600', color: '#0f172a'}}>{formatInvoiceDate(generatedInvoice.dueDate)}</td>
+                                            </tr>
+                                          )}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
-                              <div style={{textAlign: 'right'}}>
-                                <div style={{fontSize: '36px', fontWeight: '800', letterSpacing: '2px'}}>TAX INVOICE</div>
-                                <div style={{marginTop: '12px', fontSize: '13px', opacity: 0.8}}>
-                                  <div>GSTIN: {generatedInvoice.orgGstin || 'N/A'}</div>
-                                  <div>PAN: {generatedInvoice.orgPan || 'N/A'}</div>
+                              
+                              {/* ========== FROM / BILL TO SECTION ========== */}
+                              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: `1px solid #e2e8f0`}}>
+                                {/* From */}
+                                <div style={{padding: '24px 40px', borderRight: '1px solid #e2e8f0'}}>
+                                  <div style={{fontSize: '11px', color: themeColor, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px'}}>From</div>
+                                  <div style={{fontSize: '14px', fontWeight: '600', color: '#0f172a'}}>{generatedInvoice.orgName}</div>
+                                  {showGst && generatedInvoice.orgGstin && (
+                                    <div style={{fontSize: '12px', color: '#64748b', marginTop: '6px'}}>GSTIN: <span style={{fontWeight: '500', color: '#0f172a'}}>{generatedInvoice.orgGstin}</span></div>
+                                  )}
+                                  {generatedInvoice.orgPan && (
+                                    <div style={{fontSize: '12px', color: '#64748b', marginTop: '2px'}}>PAN: <span style={{fontWeight: '500', color: '#0f172a'}}>{generatedInvoice.orgPan}</span></div>
+                                  )}
+                                </div>
+                                
+                                {/* Bill To */}
+                                <div style={{padding: '24px 40px'}}>
+                                  <div style={{fontSize: '11px', color: themeColor, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px'}}>Bill To</div>
+                                  <div style={{fontSize: '14px', fontWeight: '600', color: '#0f172a'}}>{generatedInvoice.clientName}</div>
+                                  {generatedInvoice.clientAddress && <div style={{fontSize: '12px', color: '#64748b', marginTop: '6px', lineHeight: '1.5'}}>{generatedInvoice.clientAddress}</div>}
+                                  {generatedInvoice.clientCode && <div style={{fontSize: '12px', color: '#64748b', marginTop: '4px'}}>Code: <span style={{fontWeight: '500'}}>{generatedInvoice.clientCode}</span></div>}
+                                  {showGst && generatedInvoice.clientGstin && (
+                                    <div style={{fontSize: '12px', color: '#64748b', marginTop: '2px'}}>GSTIN: <span style={{fontWeight: '500', color: '#0f172a'}}>{generatedInvoice.clientGstin}</span></div>
+                                  )}
+                                  {showGst && generatedInvoice.placeOfSupply && (
+                                    <div style={{fontSize: '12px', color: '#64748b', marginTop: '2px'}}>Place of Supply: <span style={{fontWeight: '500'}}>{generatedInvoice.placeOfSupply} ({generatedInvoice.receiverStateCode})</span></div>
+                                  )}
                                 </div>
                               </div>
-                            </div>
-                          </div>
-                          
-                          {/* Invoice Details Bar */}
-                          <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', background: '#f8fafc', borderBottom: '2px solid #e2e8f0'}}>
-                            <div style={{padding: '16px 20px', borderRight: '1px solid #e2e8f0'}}>
-                              <div style={{fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Invoice No.</div>
-                              <div style={{fontSize: '16px', fontWeight: '700', color: '#1e293b', marginTop: '4px'}}>{generatedInvoice.invoiceNo}</div>
-                            </div>
-                            <div style={{padding: '16px 20px', borderRight: '1px solid #e2e8f0'}}>
-                              <div style={{fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Invoice Date</div>
-                              <div style={{fontSize: '16px', fontWeight: '700', color: '#1e293b', marginTop: '4px'}}>{formatInvoiceDate(generatedInvoice.invoiceDate)}</div>
-                            </div>
-                            <div style={{padding: '16px 20px', borderRight: '1px solid #e2e8f0'}}>
-                              <div style={{fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Place of Supply</div>
-                              <div style={{fontSize: '16px', fontWeight: '700', color: '#1e293b', marginTop: '4px'}}>{generatedInvoice.placeOfSupply || 'N/A'}</div>
-                            </div>
-                            <div style={{padding: '16px 20px'}}>
-                              <div style={{fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px'}}>State Code</div>
-                              <div style={{fontSize: '16px', fontWeight: '700', color: '#1e293b', marginTop: '4px'}}>{generatedInvoice.receiverStateCode || 'N/A'}</div>
-                            </div>
-                          </div>
-                          
-                          {/* Bill To Section */}
-                          <div style={{padding: '24px 30px', borderBottom: '1px solid #e2e8f0'}}>
-                            <div style={{fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px'}}>Bill To</div>
-                            <div style={{fontSize: '18px', fontWeight: '700', color: '#1e293b'}}>{generatedInvoice.clientName}</div>
-                            {generatedInvoice.clientAddress && <div style={{fontSize: '13px', color: '#64748b', marginTop: '4px'}}>{generatedInvoice.clientAddress}</div>}
-                            <div style={{display: 'flex', gap: '24px', marginTop: '12px', fontSize: '13px'}}>
-                              {generatedInvoice.clientGstin && <div><span style={{color: '#64748b'}}>GSTIN:</span> <strong>{generatedInvoice.clientGstin}</strong></div>}
-                              <div><span style={{color: '#64748b'}}>State:</span> <strong>{generatedInvoice.clientState || 'N/A'}</strong></div>
-                              <div><span style={{color: '#64748b'}}>Code:</span> <strong>{generatedInvoice.clientCode || 'N/A'}</strong></div>
-                            </div>
-                          </div>
-                          
-                          {/* Services Table */}
-                          <div style={{padding: '0'}}>
-                            <table style={{width: '100%', borderCollapse: 'collapse'}}>
-                              <thead>
-                                <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
-                                  <th style={{padding: '14px 20px', textAlign: 'center', color: '#fff', fontWeight: '600', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', width: '50px'}}>S.No</th>
-                                  <th style={{padding: '14px 20px', textAlign: 'left', color: '#fff', fontWeight: '600', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Description of Services</th>
-                                  <th style={{padding: '14px 20px', textAlign: 'center', color: '#fff', fontWeight: '600', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', width: '100px'}}>SAC</th>
-                                  <th style={{padding: '14px 20px', textAlign: 'right', color: '#fff', fontWeight: '600', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', width: '120px'}}>Amount (₹)</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {/* Task Wise: Show each line item separately */}
-                                {generatedInvoice.lineItems && generatedInvoice.lineItems.length > 0 ? (
-                                  <>
-                                    {generatedInvoice.lineItems.map((item, idx) => (
-                                      <tr key={idx} style={{borderBottom: '1px solid #e2e8f0'}}>
-                                        <td style={{padding: '16px 20px', textAlign: 'center', color: '#64748b'}}>{idx + 1}</td>
-                                        <td style={{padding: '16px 20px'}}>
-                                          <div style={{fontWeight: '500', fontSize: '13px', color: '#1e293b'}}>{item.description}</div>
-                                          {item.remark && <div style={{fontSize: '11px', color: '#64748b', marginTop: '4px'}}>Remark: {item.remark}</div>}
+                              
+                              {/* ========== ITEMS TABLE ========== */}
+                              <div style={{padding: '0'}}>
+                                <table style={{width: '100%', borderCollapse: 'collapse'}}>
+                                  <thead>
+                                    <tr style={{background: themeLightBg}}>
+                                      <th style={{padding: '12px 16px', textAlign: 'left', fontWeight: '600', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: themeColor, borderBottom: `2px solid ${themeBorder}`, borderRight: `1px solid ${themeBorder}`, width: '50%'}}>Description</th>
+                                      {showGst && <th style={{padding: '12px 16px', textAlign: 'center', fontWeight: '600', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: themeColor, borderBottom: `2px solid ${themeBorder}`, borderRight: `1px solid ${themeBorder}`, width: '15%'}}>SAC</th>}
+                                      {showGst && <th style={{padding: '12px 16px', textAlign: 'center', fontWeight: '600', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: themeColor, borderBottom: `2px solid ${themeBorder}`, borderRight: `1px solid ${themeBorder}`, width: '15%'}}>Tax</th>}
+                                      <th style={{padding: '12px 16px', textAlign: 'right', fontWeight: '600', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: themeColor, borderBottom: `2px solid ${themeBorder}`, width: showGst ? '20%' : '50%'}}>Amount</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {generatedInvoice.lineItems && generatedInvoice.lineItems.length > 0 ? (
+                                      generatedInvoice.lineItems.map((item, idx) => (
+                                        <tr key={idx}>
+                                          <td style={{padding: '14px 16px', borderBottom: '1px solid #f1f5f9', borderRight: '1px solid #f1f5f9', verticalAlign: 'top'}}>
+                                            <div style={{fontWeight: '500', color: '#0f172a'}}>{item.description}</div>
+                                            {item.remark && <div style={{fontSize: '11px', color: '#94a3b8', marginTop: '4px', fontStyle: 'italic'}}>{item.remark}</div>}
+                                          </td>
+                                          {showGst && <td style={{padding: '14px 16px', textAlign: 'center', borderBottom: '1px solid #f1f5f9', borderRight: '1px solid #f1f5f9', color: '#64748b', fontSize: '12px'}}>{item.sacCode || '998231'}</td>}
+                                          {showGst && <td style={{padding: '14px 16px', textAlign: 'center', borderBottom: '1px solid #f1f5f9', borderRight: '1px solid #f1f5f9', color: '#64748b', fontSize: '12px'}}>18%</td>}
+                                          <td style={{padding: '14px 16px', textAlign: 'right', borderBottom: '1px solid #f1f5f9', fontWeight: '600', color: '#0f172a'}}>₹{(item.netAmount || item.amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                                        </tr>
+                                      ))
+                                    ) : (
+                                      <tr>
+                                        <td style={{padding: '14px 16px', borderBottom: '1px solid #f1f5f9', borderRight: '1px solid #f1f5f9', verticalAlign: 'top'}}>
+                                          <div style={{fontWeight: '500', color: '#0f172a'}}>{generatedInvoice.serviceDescription}</div>
+                                          {generatedInvoice.remark && <div style={{fontSize: '11px', color: '#94a3b8', marginTop: '4px', fontStyle: 'italic'}}>{generatedInvoice.remark}</div>}
                                         </td>
-                                        <td style={{padding: '16px 20px', textAlign: 'center', color: '#64748b', fontSize: '12px'}}>{item.sacCode || '-'}</td>
-                                        <td style={{padding: '16px 20px', textAlign: 'right', fontWeight: '600', fontSize: '13px'}}>{(item.netAmount || item.amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                                      </tr>
-                                    ))}
-                                    {/* Subtotal row for multiple items */}
-                                    {generatedInvoice.lineItems.length > 1 && (
-                                      <tr style={{background: '#f8fafc', borderTop: '2px solid #e2e8f0'}}>
-                                        <td colSpan={3} style={{padding: '14px 20px', textAlign: 'right', fontWeight: '700', fontSize: '13px'}}>Subtotal</td>
-                                        <td style={{padding: '14px 20px', textAlign: 'right', fontWeight: '700', fontSize: '14px', color: '#1e293b'}}>
-                                          {generatedInvoice.lineItems.reduce((sum, item) => sum + (item.netAmount || item.amount || 0), 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
-                                        </td>
+                                        {showGst && <td style={{padding: '14px 16px', textAlign: 'center', borderBottom: '1px solid #f1f5f9', borderRight: '1px solid #f1f5f9', color: '#64748b', fontSize: '12px'}}>{generatedInvoice.sac || '998231'}</td>}
+                                        {showGst && <td style={{padding: '14px 16px', textAlign: 'center', borderBottom: '1px solid #f1f5f9', borderRight: '1px solid #f1f5f9', color: '#64748b', fontSize: '12px'}}>18%</td>}
+                                        <td style={{padding: '14px 16px', textAlign: 'right', borderBottom: '1px solid #f1f5f9', fontWeight: '600', color: '#0f172a'}}>₹{generatedInvoice.netAmount?.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                                       </tr>
                                     )}
-                                  </>
-                                ) : (
-                                  /* Combined/Single: Show single row */
-                                  <tr style={{borderBottom: '1px solid #e2e8f0'}}>
-                                    <td style={{padding: '20px', textAlign: 'center', color: '#64748b'}}>1</td>
-                                    <td style={{padding: '20px'}}>
-                                      <div style={{fontWeight: '600', fontSize: '14px', color: '#1e293b'}}>{generatedInvoice.serviceDescription}</div>
-                                      {generatedInvoice.remark && <div style={{fontSize: '12px', color: '#64748b', marginTop: '4px'}}>Remark: {generatedInvoice.remark}</div>}
-                                    </td>
-                                    <td style={{padding: '20px', textAlign: 'center', color: '#64748b'}}>{generatedInvoice.sac || '-'}</td>
-                                    <td style={{padding: '20px', textAlign: 'right', fontWeight: '600', fontSize: '15px'}}>{generatedInvoice.netAmount?.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                                  </tr>
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-                          
-                          {/* Tax & Total Section */}
-                          <div style={{display: 'flex', borderTop: '1px solid #e2e8f0'}}>
-                            <div style={{flex: 1, padding: '20px 30px', borderRight: '1px solid #e2e8f0'}}>
-                              <div style={{fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px'}}>Amount in Words</div>
-                              <div style={{fontSize: '14px', fontWeight: '600', color: '#1e293b', fontStyle: 'italic'}}>{generatedInvoice.amountInWords}</div>
-                            </div>
-                            <div style={{width: '300px', padding: '16px 20px'}}>
-                              <div style={{display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f5f9'}}>
-                                <span style={{color: '#64748b'}}>Subtotal</span>
-                                <span style={{fontWeight: '500'}}>₹{generatedInvoice.netAmount?.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                                    {/* Empty rows for aesthetics */}
+                                    {(!generatedInvoice.lineItems || generatedInvoice.lineItems.length < 3) && (
+                                      <>
+                                        <tr><td style={{padding: '14px 16px', borderBottom: '1px solid #f1f5f9', borderRight: '1px solid #f1f5f9'}}>&nbsp;</td>{showGst && <td style={{borderBottom: '1px solid #f1f5f9', borderRight: '1px solid #f1f5f9'}}></td>}{showGst && <td style={{borderBottom: '1px solid #f1f5f9', borderRight: '1px solid #f1f5f9'}}></td>}<td style={{borderBottom: '1px solid #f1f5f9'}}></td></tr>
+                                      </>
+                                    )}
+                                  </tbody>
+                                </table>
                               </div>
-                              {generatedInvoice.cgst > 0 && (
-                                <div style={{display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f5f9'}}>
-                                  <span style={{color: '#64748b'}}>CGST @9%</span>
-                                  <span style={{fontWeight: '500'}}>₹{generatedInvoice.cgst?.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                              
+                              {/* ========== PAYMENT & TOTALS SECTION ========== */}
+                              <div style={{display: 'flex', borderBottom: '1px solid #e2e8f0'}}>
+                                {/* Left: Payment Instructions */}
+                                <div style={{flex: 1, padding: '24px 40px', borderRight: '1px solid #e2e8f0'}}>
+                                  <div style={{fontSize: '11px', color: themeColor, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px'}}>Payment Details</div>
+                                  <div style={{fontSize: '12px', color: '#64748b', lineHeight: '1.8'}}>
+                                    <div><span style={{color: '#94a3b8'}}>Bank:</span> <span style={{color: '#0f172a', fontWeight: '500'}}>{generatedInvoice.orgBankName || '-'}</span></div>
+                                    <div><span style={{color: '#94a3b8'}}>A/C No:</span> <span style={{color: '#0f172a', fontWeight: '500'}}>{generatedInvoice.orgBankAccount || '-'}</span></div>
+                                    <div><span style={{color: '#94a3b8'}}>IFSC:</span> <span style={{color: '#0f172a', fontWeight: '500'}}>{generatedInvoice.orgBankIfsc || '-'}</span></div>
+                                    <div><span style={{color: '#94a3b8'}}>Branch:</span> <span style={{color: '#0f172a', fontWeight: '500'}}>{generatedInvoice.orgBankBranch || '-'}</span></div>
+                                  </div>
                                 </div>
-                              )}
-                              {generatedInvoice.sgst > 0 && (
-                                <div style={{display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f5f9'}}>
-                                  <span style={{color: '#64748b'}}>SGST @9%</span>
-                                  <span style={{fontWeight: '500'}}>₹{generatedInvoice.sgst?.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                                
+                                {/* Right: Totals */}
+                                <div style={{width: '300px', padding: '24px 30px', background: themeLightBg}}>
+                                  <table style={{width: '100%', fontSize: '12px'}}>
+                                    <tbody>
+                                      <tr>
+                                        <td style={{padding: '6px 0', color: '#64748b'}}>Subtotal:</td>
+                                        <td style={{padding: '6px 0', textAlign: 'right', fontWeight: '500', color: '#0f172a'}}>₹{generatedInvoice.netAmount?.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                                      </tr>
+                                      {generatedInvoice.discount > 0 && (
+                                        <tr>
+                                          <td style={{padding: '6px 0', color: '#64748b'}}>Discount:</td>
+                                          <td style={{padding: '6px 0', textAlign: 'right', fontWeight: '500', color: '#ef4444'}}>- ₹{generatedInvoice.discount?.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                                        </tr>
+                                      )}
+                                      {showGst && generatedInvoice.cgst > 0 && (
+                                        <tr>
+                                          <td style={{padding: '6px 0', color: '#64748b'}}>CGST @9%:</td>
+                                          <td style={{padding: '6px 0', textAlign: 'right', fontWeight: '500', color: '#0f172a'}}>₹{generatedInvoice.cgst?.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                                        </tr>
+                                      )}
+                                      {showGst && generatedInvoice.sgst > 0 && (
+                                        <tr>
+                                          <td style={{padding: '6px 0', color: '#64748b'}}>SGST @9%:</td>
+                                          <td style={{padding: '6px 0', textAlign: 'right', fontWeight: '500', color: '#0f172a'}}>₹{generatedInvoice.sgst?.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                                        </tr>
+                                      )}
+                                      {showGst && generatedInvoice.igst > 0 && (
+                                        <tr>
+                                          <td style={{padding: '6px 0', color: '#64748b'}}>IGST @18%:</td>
+                                          <td style={{padding: '6px 0', textAlign: 'right', fontWeight: '500', color: '#0f172a'}}>₹{generatedInvoice.igst?.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                                        </tr>
+                                      )}
+                                      {!showGst && (
+                                        <tr>
+                                          <td style={{padding: '6px 0', color: '#64748b'}}>Tax:</td>
+                                          <td style={{padding: '6px 0', textAlign: 'right', fontWeight: '500', color: '#f59e0b'}}>N/A</td>
+                                        </tr>
+                                      )}
+                                      <tr>
+                                        <td colSpan={2} style={{padding: '8px 0 0 0'}}><div style={{borderTop: `1px solid ${themeBorder}`}}></div></td>
+                                      </tr>
+                                      <tr>
+                                        <td style={{padding: '8px 0', fontWeight: '700', fontSize: '14px', color: themeColor}}>Balance Due:</td>
+                                        <td style={{padding: '8px 0', textAlign: 'right', fontWeight: '800', fontSize: '16px', color: themeColor}}>₹{generatedInvoice.totalAmount?.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
                                 </div>
-                              )}
-                              {generatedInvoice.igst > 0 && (
-                                <div style={{display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f5f9'}}>
-                                  <span style={{color: '#64748b'}}>IGST @18%</span>
-                                  <span style={{fontWeight: '500'}}>₹{generatedInvoice.igst?.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                              </div>
+                              
+                              {/* ========== AMOUNT IN WORDS & SIGNATURE ========== */}
+                              <div style={{display: 'flex'}}>
+                                {/* Left: Amount in Words + Notes */}
+                                <div style={{flex: 1, padding: '24px 40px', borderRight: '1px solid #e2e8f0'}}>
+                                  <div style={{fontSize: '11px', color: themeColor, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px'}}>Amount in Words</div>
+                                  <div style={{fontSize: '12px', fontWeight: '500', color: '#0f172a', fontStyle: 'italic', marginBottom: '16px'}}>{generatedInvoice.amountInWords}</div>
+                                  
+                                  <div style={{fontSize: '11px', color: themeColor, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px', marginTop: '16px'}}>Notes</div>
+                                  <div style={{fontSize: '11px', color: '#64748b', lineHeight: '1.6'}}>
+                                    Thank you for your business. Payment is due within 15 days of invoice date.
+                                  </div>
                                 </div>
-                              )}
-                              {generatedInvoice.gstApplicable === false && (
-                                <div style={{display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f5f9'}}>
-                                  <span style={{color: '#64748b'}}>GST</span>
-                                  <span style={{fontWeight: '500', color: '#f59e0b'}}>Not Applicable</span>
+                                
+                                {/* Right: Signature */}
+                                <div style={{width: '200px', padding: '24px 30px', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end'}}>
+                                  {generatedInvoice.orgSignature ? (
+                                    <img src={generatedInvoice.orgSignature} alt="Signature" style={{maxHeight: '50px', marginBottom: '8px', alignSelf: 'center'}} />
+                                  ) : (
+                                    <div style={{height: '50px', marginBottom: '8px'}}></div>
+                                  )}
+                                  <div style={{borderTop: `2px solid ${themeColor}`, paddingTop: '8px', fontWeight: '500', fontSize: '11px', color: '#0f172a'}}>
+                                    {generatedInvoice.orgSignatory || 'Authorized Signatory'}
+                                  </div>
+                                  <div style={{fontSize: '10px', color: '#94a3b8', marginTop: '4px'}}>For {generatedInvoice.orgName}</div>
                                 </div>
-                              )}
-                              <div style={{display: 'flex', justifyContent: 'space-between', padding: '16px 20px', marginTop: '8px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', margin: '8px -20px -16px', borderRadius: '0'}}>
-                                <span style={{color: '#fff', fontWeight: '700', fontSize: '16px'}}>TOTAL</span>
-                                <span style={{color: '#fff', fontWeight: '700', fontSize: '18px'}}>₹{generatedInvoice.totalAmount?.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                              </div>
+                              
+                              {/* ========== FOOTER ========== */}
+                              <div style={{background: themeLightBg, padding: '12px 40px', borderTop: `2px solid ${themeBorder}`, fontSize: '10px', color: '#64748b', textAlign: 'center'}}>
+                                This is a computer generated {invoiceTitle.toLowerCase()}. {showGst ? 'Subject to ' + (generatedInvoice.placeOfSupply || 'local') + ' jurisdiction.' : 'GST Not Applicable as per notification.'}
                               </div>
                             </div>
-                          </div>
-                          
-                          {/* Bank Details & Signature */}
-                          <div style={{display: 'flex', borderTop: '2px solid #10b981'}}>
-                            <div style={{flex: 1, padding: '24px 30px', borderRight: '1px solid #e2e8f0'}}>
-                              <div style={{fontSize: '12px', color: '#10b981', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px'}}>Bank Details</div>
-                              <table style={{fontSize: '13px'}}>
-                                <tbody>
-                                  <tr><td style={{padding: '4px 16px 4px 0', color: '#64748b'}}>Bank Name</td><td style={{fontWeight: '500'}}>{generatedInvoice.orgBankName || 'N/A'}</td></tr>
-                                  <tr><td style={{padding: '4px 16px 4px 0', color: '#64748b'}}>Account No.</td><td style={{fontWeight: '500'}}>{generatedInvoice.orgBankAccount || 'N/A'}</td></tr>
-                                  <tr><td style={{padding: '4px 16px 4px 0', color: '#64748b'}}>IFSC Code</td><td style={{fontWeight: '500'}}>{generatedInvoice.orgBankIfsc || 'N/A'}</td></tr>
-                                  <tr><td style={{padding: '4px 16px 4px 0', color: '#64748b'}}>Branch</td><td style={{fontWeight: '500'}}>{generatedInvoice.orgBankBranch || 'N/A'}</td></tr>
-                                </tbody>
-                              </table>
-                            </div>
-                            <div style={{width: '250px', padding: '24px 30px', textAlign: 'center'}}>
-                              <div style={{fontSize: '12px', color: '#64748b', marginBottom: '12px'}}>For {generatedInvoice.orgName}</div>
-                              {generatedInvoice.orgSignature ? (
-                                <img src={generatedInvoice.orgSignature} alt="Signature" style={{maxHeight: '60px', marginBottom: '12px'}} />
-                              ) : (
-                                <div style={{height: '60px', marginBottom: '12px'}}></div>
-                              )}
-                              <div style={{borderTop: '2px solid #10b981', paddingTop: '8px', fontWeight: '600', fontSize: '13px'}}>
-                                {generatedInvoice.orgSignatory || 'Authorized Signatory'}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {/* Footer */}
-                          <div style={{background: '#f8fafc', padding: '16px 30px', borderTop: '1px solid #e2e8f0', fontSize: '11px', color: '#64748b', textAlign: 'center'}}>
-                            <div>This is a computer generated invoice.</div>
-                            {generatedInvoice.orgEmail && <div style={{marginTop: '4px'}}>For queries: {generatedInvoice.orgEmail} | {generatedInvoice.orgMobile}</div>}
-                          </div>
-                        </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -21801,6 +21914,28 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       </select>
                     </div>
                     <div>
+                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '4px'}}>
+                        Invoice Format <span style={{color: '#ef4444'}}>*</span>
+                      </label>
+                      <select
+                        value={orgForm.invoiceFormat || (orgForm.gstApplicable === 'yes' ? 'taxInvoice' : 'billOfSupply')}
+                        onChange={(e) => setOrgForm({...orgForm, invoiceFormat: e.target.value})}
+                        style={{width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'}}
+                      >
+                        {orgForm.gstApplicable === 'yes' ? (
+                          <>
+                            <option value="taxInvoice">Tax Invoice (Green)</option>
+                            <option value="proformaInvoice">Proforma Invoice (Green)</option>
+                          </>
+                        ) : (
+                          <>
+                            <option value="billOfSupply">Bill of Supply (Green)</option>
+                            <option value="billOfSupplyBlue">Bill of Supply (Blue)</option>
+                          </>
+                        )}
+                      </select>
+                    </div>
+                    <div>
                       <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '4px'}}>GSTIN</label>
                       <input
                         type="text"
@@ -21820,6 +21955,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         style={{width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'}}
                       />
                     </div>
+                  </div>
+                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginTop: '16px'}}>
                     <div>
                       <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '4px'}}>UPI ID</label>
                       <input
@@ -21829,8 +21966,6 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         style={{width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'}}
                       />
                     </div>
-                  </div>
-                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginTop: '16px'}}>
                     <div>
                       <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '4px'}}>MMID</label>
                       <input
