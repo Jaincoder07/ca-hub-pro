@@ -4581,7 +4581,7 @@ const PracticeManagementApp = () => {
                   </td>
                 </tr>
               ) : (
-                filteredTasks.slice(0, entriesPerPage).map(task => {
+                filteredTasks.slice(0, entriesPerPage).map((task, idx) => {
                   const taskStatus = task.deleted ? 'Deleted' : (task.status === 'Completed' || task.completedCheck) ? 'Completed' : task.status === 'In Progress' ? 'In Progress' : 'Open';
                   const isSelected = selectedTasks.includes(task.id);
                   
