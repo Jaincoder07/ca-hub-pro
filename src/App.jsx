@@ -6518,8 +6518,8 @@ const PracticeManagementApp = () => {
                             <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>{viewingClient.primaryOwner.name}</div>
                             {viewingClient.primaryOwner.contact1 && <div style={{ fontSize: '13px', color: '#64748b' }}>📞 {viewingClient.primaryOwner.contact1}</div>}
                             {viewingClient.primaryOwner.contact2 && <div style={{ fontSize: '13px', color: '#64748b' }}>📞 {viewingClient.primaryOwner.contact2}</div>}
-                            {viewingClient.primaryOwner.email1 && <div style={{ fontSize: '13px', color: '#64748b' }}>✉️ {viewingClient.primaryOwner.email1}</div>}
-                            {viewingClient.primaryOwner.email2 && <div style={{ fontSize: '13px', color: '#64748b' }}>✉️ {viewingClient.primaryOwner.email2}</div>}
+                            {viewingClient.primaryOwner.email1 && <div style={{ fontSize: '13px', color: '#64748b' }}>Email:  {viewingClient.primaryOwner.email1}</div>}
+                            {viewingClient.primaryOwner.email2 && <div style={{ fontSize: '13px', color: '#64748b' }}>Email:  {viewingClient.primaryOwner.email2}</div>}
                           </div>
                         )}
                         {viewingClient.secondaryOwner?.name && (
@@ -6527,7 +6527,7 @@ const PracticeManagementApp = () => {
                             <div style={{ fontSize: '12px', color: '#3b82f6', fontWeight: '600', marginBottom: '8px' }}>SECONDARY OWNER</div>
                             <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>{viewingClient.secondaryOwner.name}</div>
                             {viewingClient.secondaryOwner.contact1 && <div style={{ fontSize: '13px', color: '#64748b' }}>📞 {viewingClient.secondaryOwner.contact1}</div>}
-                            {viewingClient.secondaryOwner.email1 && <div style={{ fontSize: '13px', color: '#64748b' }}>✉️ {viewingClient.secondaryOwner.email1}</div>}
+                            {viewingClient.secondaryOwner.email1 && <div style={{ fontSize: '13px', color: '#64748b' }}>Email:  {viewingClient.secondaryOwner.email1}</div>}
                           </div>
                         )}
                         {viewingClient.accountant?.name && (
@@ -6535,7 +6535,7 @@ const PracticeManagementApp = () => {
                             <div style={{ fontSize: '12px', color: '#f59e0b', fontWeight: '600', marginBottom: '8px' }}>ACCOUNTANT</div>
                             <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>{viewingClient.accountant.name}</div>
                             {viewingClient.accountant.contact1 && <div style={{ fontSize: '13px', color: '#64748b' }}>📞 {viewingClient.accountant.contact1}</div>}
-                            {viewingClient.accountant.email1 && <div style={{ fontSize: '13px', color: '#64748b' }}>✉️ {viewingClient.accountant.email1}</div>}
+                            {viewingClient.accountant.email1 && <div style={{ fontSize: '13px', color: '#64748b' }}>Email:  {viewingClient.accountant.email1}</div>}
                           </div>
                         )}
                         {viewingClient.otherContact?.name && (
@@ -6543,7 +6543,7 @@ const PracticeManagementApp = () => {
                             <div style={{ fontSize: '12px', color: '#8b5cf6', fontWeight: '600', marginBottom: '8px' }}>OTHER CONTACT</div>
                             <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>{viewingClient.otherContact.name}</div>
                             {viewingClient.otherContact.contact1 && <div style={{ fontSize: '13px', color: '#64748b' }}>📞 {viewingClient.otherContact.contact1}</div>}
-                            {viewingClient.otherContact.email1 && <div style={{ fontSize: '13px', color: '#64748b' }}>✉️ {viewingClient.otherContact.email1}</div>}
+                            {viewingClient.otherContact.email1 && <div style={{ fontSize: '13px', color: '#64748b' }}>Email:  {viewingClient.otherContact.email1}</div>}
                           </div>
                         )}
                       </div>
@@ -18860,8 +18860,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                   <div style={{textAlign: 'right'}}>
                                     <div style={{fontSize: '24px', fontWeight: '800', letterSpacing: '2px'}}>{invoiceTitle}</div>
                                     <div style={{fontSize: '11px', opacity: 0.85, marginTop: '5px'}}>
-                                      {displayOrg.mobile && <span>☎ {displayOrg.mobile}</span>}
-                                      {displayOrg.email && <span style={{marginLeft: '10px'}}>✉ {displayOrg.email}</span>}
+                                      {displayOrg.mobile && <span>Tel: {displayOrg.mobile}</span>}
+                                      {displayOrg.email && <span style={{marginLeft: '10px'}}>Email: {displayOrg.email}</span>}
                                     </div>
                                   </div>
                                 </div>
@@ -21278,8 +21278,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             <div style={{textAlign: 'right'}}>
                               <div style={{fontSize: '24px', fontWeight: '800', letterSpacing: '2px'}}>{invoiceTitle}</div>
                               <div style={{fontSize: '11px', opacity: 0.85, marginTop: '5px'}}>
-                                {displayOrg.mobile && <span>☎ {displayOrg.mobile}</span>}
-                                {displayOrg.email && <span style={{marginLeft: '10px'}}>✉ {displayOrg.email}</span>}
+                                {displayOrg.mobile && <span>Tel: {displayOrg.mobile}</span>}
+                                {displayOrg.email && <span style={{marginLeft: '10px'}}>Email: {displayOrg.email}</span>}
                               </div>
                             </div>
                           </div>
@@ -21448,7 +21448,6 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       </div>
                     );
                   })()}
-                </div>
                 </div>
               </div>
             )}
