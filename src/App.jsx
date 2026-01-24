@@ -4180,281 +4180,288 @@ const PracticeManagementApp = () => {
           </div>
         </div>
 
-        {/* Status Filter Boxes - 2x2 Grid */}
+        {/* Main Row: Status Cards | Task Filters | FY Task Status - Side by Side */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: '16px',
-          marginBottom: '16px'
-        }}>
-          {/* Row 1 */}
-          {/* Open Tasks Box - Green Pastel */}
-          <div 
-            onClick={() => setActiveStatusFilter(activeStatusFilter === 'Open' ? '' : 'Open')}
-            style={{
-              background: activeStatusFilter === 'Open' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
-              color: activeStatusFilter === 'Open' ? '#fff' : '#065f46',
-              padding: '16px 20px',
-              borderRadius: '12px',
-              boxShadow: activeStatusFilter === 'Open' ? '0 4px 12px rgba(16,185,129,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
-              cursor: 'pointer',
-              border: 'none',
-              transition: 'all 0.2s',
-              transform: activeStatusFilter === 'Open' ? 'translateY(-2px)' : 'none'
-            }}
-          >
-            <div style={{fontSize: '28px', fontWeight: '700', marginBottom: '2px'}}>{openTasks.length}</div>
-            <div style={{fontSize: '13px', fontWeight: '600'}}>Open Tasks</div>
-          </div>
-
-          {/* In Progress Tasks Box - Blue Pastel */}
-          <div 
-            onClick={() => setActiveStatusFilter(activeStatusFilter === 'InProgress' ? '' : 'InProgress')}
-            style={{
-              background: activeStatusFilter === 'InProgress' ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
-              color: activeStatusFilter === 'InProgress' ? '#fff' : '#1e40af',
-              padding: '16px 20px',
-              borderRadius: '12px',
-              boxShadow: activeStatusFilter === 'InProgress' ? '0 4px 12px rgba(59,130,246,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
-              cursor: 'pointer',
-              border: 'none',
-              transition: 'all 0.2s',
-              transform: activeStatusFilter === 'InProgress' ? 'translateY(-2px)' : 'none'
-            }}
-          >
-            <div style={{fontSize: '28px', fontWeight: '700', marginBottom: '2px'}}>{inProgressTasks.length}</div>
-            <div style={{fontSize: '13px', fontWeight: '600'}}>In Progress</div>
-          </div>
-
-          {/* Row 2 */}
-          {/* Long Due Tasks Box - Amber Pastel */}
-          <div 
-            onClick={() => setActiveStatusFilter(activeStatusFilter === 'LongDue' ? '' : 'LongDue')}
-            style={{
-              background: activeStatusFilter === 'LongDue' ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-              color: activeStatusFilter === 'LongDue' ? '#fff' : '#92400e',
-              padding: '16px 20px',
-              borderRadius: '12px',
-              boxShadow: activeStatusFilter === 'LongDue' ? '0 4px 12px rgba(245,158,11,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
-              cursor: 'pointer',
-              border: 'none',
-              transition: 'all 0.2s',
-              transform: activeStatusFilter === 'LongDue' ? 'translateY(-2px)' : 'none'
-            }}
-          >
-            <div style={{fontSize: '28px', fontWeight: '700', marginBottom: '2px'}}>{longDueTasks.length}</div>
-            <div style={{fontSize: '13px', fontWeight: '600'}}>Long Due (60+ days)</div>
-          </div>
-
-          {/* Deleted Tasks Box - Red Pastel */}
-          <div 
-            onClick={() => setActiveStatusFilter(activeStatusFilter === 'Deleted' ? '' : 'Deleted')}
-            style={{
-              background: activeStatusFilter === 'Deleted' ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
-              color: activeStatusFilter === 'Deleted' ? '#fff' : '#991b1b',
-              padding: '16px 20px',
-              borderRadius: '12px',
-              boxShadow: activeStatusFilter === 'Deleted' ? '0 4px 12px rgba(239,68,68,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
-              cursor: 'pointer',
-              border: 'none',
-              transition: 'all 0.2s',
-              transform: activeStatusFilter === 'Deleted' ? 'translateY(-2px)' : 'none'
-            }}
-          >
-            <div style={{fontSize: '28px', fontWeight: '700', marginBottom: '2px'}}>{deletedTasks.length}</div>
-            <div style={{fontSize: '13px', fontWeight: '600'}}>Deleted Tasks</div>
-          </div>
-        </div>
-
-        {/* Task Filters - Full Width Horizontal */}
-        <div style={{
-          background: 'linear-gradient(135deg, #dbeafe 0%, #fff 100%)',
-          borderRadius: '12px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-          padding: '14px',
-          marginBottom: '16px'
-        }}>
-          <h3 style={{margin: '0 0 12px', fontSize: '14px', fontWeight: '600', color: '#1e40af'}}>
-            <Filter size={16} style={{marginRight: '8px', verticalAlign: 'middle'}} />
-            Task Filters
-          </h3>
-          
-          <div style={{display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px', alignItems: 'end'}}>
-            <div>
-              <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '3px'}}>Client Code</label>
-              <input
-                type="text"
-                placeholder="Enter Code"
-                value={filters.fileNo}
-                onChange={(e) => setFilters({...filters, fileNo: e.target.value})}
-                style={{width: '100%', padding: '8px 10px', border: '1px solid #bfdbfe', borderRadius: '6px', fontSize: '12px'}}
-              />
-            </div>
-            
-            <div>
-              <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '3px'}}>Client Name</label>
-              <input
-                type="text"
-                placeholder="Enter Name"
-                value={filters.clientName}
-                onChange={(e) => setFilters({...filters, clientName: e.target.value})}
-                style={{width: '100%', padding: '8px 10px', border: '1px solid #bfdbfe', borderRadius: '6px', fontSize: '12px'}}
-              />
-            </div>
-            
-            <div>
-              <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '3px'}}>Group No.</label>
-              <input
-                type="text"
-                placeholder="Enter Group"
-                value={filters.groupName}
-                onChange={(e) => setFilters({...filters, groupName: e.target.value})}
-                style={{width: '100%', padding: '8px 10px', border: '1px solid #bfdbfe', borderRadius: '6px', fontSize: '12px'}}
-              />
-            </div>
-            
-            <div>
-              <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '3px'}}>Financial Year</label>
-              <select
-                value={filters.taskFinancialYear}
-                onChange={(e) => setFilters({...filters, taskFinancialYear: e.target.value})}
-                style={{width: '100%', padding: '8px 10px', border: '1px solid #bfdbfe', borderRadius: '6px', fontSize: '12px', background: '#fff'}}
-              >
-                <option value="">All Years</option>
-                {FINANCIAL_YEARS.map(fy => <option key={fy} value={fy}>{fy}</option>)}
-              </select>
-            </div>
-            
-            <div>
-              <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '3px'}}>Period</label>
-              <select
-                value={filters.taskPeriod}
-                onChange={(e) => setFilters({...filters, taskPeriod: e.target.value})}
-                style={{width: '100%', padding: '8px 10px', border: '1px solid #bfdbfe', borderRadius: '6px', fontSize: '12px', background: '#fff'}}
-              >
-                <option value="">All Periods</option>
-                {PERIODS.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
-            
-            <div>
-              <label style={{display: 'block', fontSize: '11px', fontWeight: '500', color: '#64748b', marginBottom: '3px'}}>Assigned To</label>
-              <select
-                value={filters.assignedUser}
-                onChange={(e) => setFilters({...filters, assignedUser: e.target.value})}
-                style={{width: '100%', padding: '8px 10px', border: '1px solid #bfdbfe', borderRadius: '6px', fontSize: '12px', background: '#fff'}}
-              >
-                <option value="">All Staff</option>
-                {data.staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-              </select>
-            </div>
-          </div>
-          
-          <button 
-            onClick={resetFilters}
-            style={{
-              marginTop: '12px',
-              padding: '10px 24px',
-              background: '#10b981',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '12px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
-          >
-            Reset Filters
-          </button>
-        </div>
-
-        {/* FY Task Status Report - Full Width, Wider */}
-        <div style={{
-          background: '#fff',
-          borderRadius: '12px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-          border: '1px solid #10b981',
-          overflow: 'hidden',
+          gridTemplateColumns: '1fr 1fr 1fr',
+          gap: '20px',
           marginBottom: '20px'
         }}>
-          <h3 style={{margin: 0, padding: '12px 16px', fontSize: '14px', fontWeight: '600', color: '#fff', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
-            <BarChart3 size={16} style={{marginRight: '8px', verticalAlign: 'middle'}} />
-            Financial Year Wise Task Status Report
-          </h3>
-          
-          <div style={{overflowX: 'auto', padding: '8px'}}>
-            <table style={{borderCollapse: 'collapse', fontSize: '13px', width: '100%'}}>
-              <thead>
-                <tr style={{background: '#10b981'}}>
-                  <th style={{padding: '10px 16px', textAlign: 'left', border: '1px solid #059669', fontWeight: '700', fontSize: '12px', color: '#fff', minWidth: '80px'}}>Month</th>
-                  {years.map(fy => (
-                    <th key={fy} colSpan={2} style={{padding: '10px 12px', textAlign: 'center', border: '1px solid #059669', fontWeight: '700', fontSize: '11px', color: '#fff', minWidth: '100px'}}>{fy.replace('FY ', '').replace('Previous years', 'Prev')}</th>
-                  ))}
-                </tr>
-                <tr style={{background: '#dcfce7'}}>
-                  <th style={{padding: '8px 16px', border: '1px solid #bbf7d0', fontSize: '11px'}}></th>
-                  {years.map(fy => (
-                    <React.Fragment key={fy}>
-                      <th style={{padding: '8px 12px', textAlign: 'center', border: '1px solid #bbf7d0', color: '#dc2626', fontWeight: '700', fontSize: '11px', minWidth: '45px'}}>Pending</th>
-                      <th style={{padding: '8px 12px', textAlign: 'center', border: '1px solid #bbf7d0', color: '#16a34a', fontWeight: '700', fontSize: '11px', minWidth: '45px'}}>Done</th>
-                    </React.Fragment>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {summary.map((row, idx) => (
-                  <tr key={row.period} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
-                    <td style={{padding: '10px 16px', fontWeight: '600', border: '1px solid #e5e7eb', fontSize: '12px', color: '#374151'}}>{row.period}</td>
+          {/* LEFT: Status Filter Boxes - 2x2 Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '10px'
+          }}>
+            {/* Open Tasks Box - Green Pastel */}
+            <div 
+              onClick={() => setActiveStatusFilter(activeStatusFilter === 'Open' ? '' : 'Open')}
+              style={{
+                background: activeStatusFilter === 'Open' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+                color: activeStatusFilter === 'Open' ? '#fff' : '#065f46',
+                padding: '12px 14px',
+                borderRadius: '10px',
+                boxShadow: activeStatusFilter === 'Open' ? '0 4px 12px rgba(16,185,129,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
+                cursor: 'pointer',
+                border: 'none',
+                transition: 'all 0.2s',
+                transform: activeStatusFilter === 'Open' ? 'translateY(-2px)' : 'none'
+              }}
+            >
+              <div style={{fontSize: '24px', fontWeight: '700', marginBottom: '2px'}}>{openTasks.length}</div>
+              <div style={{fontSize: '11px', fontWeight: '600'}}>Open Tasks</div>
+            </div>
+
+            {/* In Progress Tasks Box - Blue Pastel */}
+            <div 
+              onClick={() => setActiveStatusFilter(activeStatusFilter === 'InProgress' ? '' : 'InProgress')}
+              style={{
+                background: activeStatusFilter === 'InProgress' ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
+                color: activeStatusFilter === 'InProgress' ? '#fff' : '#1e40af',
+                padding: '12px 14px',
+                borderRadius: '10px',
+                boxShadow: activeStatusFilter === 'InProgress' ? '0 4px 12px rgba(59,130,246,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
+                cursor: 'pointer',
+                border: 'none',
+                transition: 'all 0.2s',
+                transform: activeStatusFilter === 'InProgress' ? 'translateY(-2px)' : 'none'
+              }}
+            >
+              <div style={{fontSize: '24px', fontWeight: '700', marginBottom: '2px'}}>{inProgressTasks.length}</div>
+              <div style={{fontSize: '11px', fontWeight: '600'}}>In Progress</div>
+            </div>
+
+            {/* Long Due Tasks Box - Amber Pastel */}
+            <div 
+              onClick={() => setActiveStatusFilter(activeStatusFilter === 'LongDue' ? '' : 'LongDue')}
+              style={{
+                background: activeStatusFilter === 'LongDue' ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                color: activeStatusFilter === 'LongDue' ? '#fff' : '#92400e',
+                padding: '12px 14px',
+                borderRadius: '10px',
+                boxShadow: activeStatusFilter === 'LongDue' ? '0 4px 12px rgba(245,158,11,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
+                cursor: 'pointer',
+                border: 'none',
+                transition: 'all 0.2s',
+                transform: activeStatusFilter === 'LongDue' ? 'translateY(-2px)' : 'none'
+              }}
+            >
+              <div style={{fontSize: '24px', fontWeight: '700', marginBottom: '2px'}}>{longDueTasks.length}</div>
+              <div style={{fontSize: '11px', fontWeight: '600'}}>Long Due (60+)</div>
+            </div>
+
+            {/* Deleted Tasks Box - Red Pastel */}
+            <div 
+              onClick={() => setActiveStatusFilter(activeStatusFilter === 'Deleted' ? '' : 'Deleted')}
+              style={{
+                background: activeStatusFilter === 'Deleted' ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+                color: activeStatusFilter === 'Deleted' ? '#fff' : '#991b1b',
+                padding: '12px 14px',
+                borderRadius: '10px',
+                boxShadow: activeStatusFilter === 'Deleted' ? '0 4px 12px rgba(239,68,68,0.3)' : '0 2px 8px rgba(0,0,0,0.06)',
+                cursor: 'pointer',
+                border: 'none',
+                transition: 'all 0.2s',
+                transform: activeStatusFilter === 'Deleted' ? 'translateY(-2px)' : 'none'
+              }}
+            >
+              <div style={{fontSize: '24px', fontWeight: '700', marginBottom: '2px'}}>{deletedTasks.length}</div>
+              <div style={{fontSize: '11px', fontWeight: '600'}}>Deleted Tasks</div>
+            </div>
+          </div>
+
+          {/* MIDDLE: Task Filters */}
+          <div style={{
+            background: 'linear-gradient(135deg, #dbeafe 0%, #fff 100%)',
+            borderRadius: '10px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            padding: '12px',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <h3 style={{margin: '0 0 10px', fontSize: '13px', fontWeight: '600', color: '#1e40af'}}>
+              <Filter size={14} style={{marginRight: '6px', verticalAlign: 'middle'}} />
+              Task Filters
+            </h3>
+            
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', flex: 1}}>
+              <div>
+                <label style={{display: 'block', fontSize: '10px', fontWeight: '500', color: '#64748b', marginBottom: '2px'}}>Client Code</label>
+                <input
+                  type="text"
+                  placeholder="Code"
+                  value={filters.fileNo}
+                  onChange={(e) => setFilters({...filters, fileNo: e.target.value})}
+                  style={{width: '100%', padding: '6px 8px', border: '1px solid #bfdbfe', borderRadius: '5px', fontSize: '11px'}}
+                />
+              </div>
+              
+              <div>
+                <label style={{display: 'block', fontSize: '10px', fontWeight: '500', color: '#64748b', marginBottom: '2px'}}>Client Name</label>
+                <input
+                  type="text"
+                  placeholder="Name"
+                  value={filters.clientName}
+                  onChange={(e) => setFilters({...filters, clientName: e.target.value})}
+                  style={{width: '100%', padding: '6px 8px', border: '1px solid #bfdbfe', borderRadius: '5px', fontSize: '11px'}}
+                />
+              </div>
+              
+              <div>
+                <label style={{display: 'block', fontSize: '10px', fontWeight: '500', color: '#64748b', marginBottom: '2px'}}>Group No.</label>
+                <input
+                  type="text"
+                  placeholder="Group"
+                  value={filters.groupName}
+                  onChange={(e) => setFilters({...filters, groupName: e.target.value})}
+                  style={{width: '100%', padding: '6px 8px', border: '1px solid #bfdbfe', borderRadius: '5px', fontSize: '11px'}}
+                />
+              </div>
+              
+              <div>
+                <label style={{display: 'block', fontSize: '10px', fontWeight: '500', color: '#64748b', marginBottom: '2px'}}>Financial Year</label>
+                <select
+                  value={filters.taskFinancialYear}
+                  onChange={(e) => setFilters({...filters, taskFinancialYear: e.target.value})}
+                  style={{width: '100%', padding: '6px 8px', border: '1px solid #bfdbfe', borderRadius: '5px', fontSize: '11px', background: '#fff'}}
+                >
+                  <option value="">All Years</option>
+                  {FINANCIAL_YEARS.map(fy => <option key={fy} value={fy}>{fy}</option>)}
+                </select>
+              </div>
+              
+              <div>
+                <label style={{display: 'block', fontSize: '10px', fontWeight: '500', color: '#64748b', marginBottom: '2px'}}>Period</label>
+                <select
+                  value={filters.taskPeriod}
+                  onChange={(e) => setFilters({...filters, taskPeriod: e.target.value})}
+                  style={{width: '100%', padding: '6px 8px', border: '1px solid #bfdbfe', borderRadius: '5px', fontSize: '11px', background: '#fff'}}
+                >
+                  <option value="">All Periods</option>
+                  {PERIODS.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+              
+              <div>
+                <label style={{display: 'block', fontSize: '10px', fontWeight: '500', color: '#64748b', marginBottom: '2px'}}>Assigned To</label>
+                <select
+                  value={filters.assignedUser}
+                  onChange={(e) => setFilters({...filters, assignedUser: e.target.value})}
+                  style={{width: '100%', padding: '6px 8px', border: '1px solid #bfdbfe', borderRadius: '5px', fontSize: '11px', background: '#fff'}}
+                >
+                  <option value="">All Staff</option>
+                  {data.staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                </select>
+              </div>
+            </div>
+            
+            <button 
+              onClick={resetFilters}
+              style={{
+                marginTop: '10px',
+                padding: '8px 16px',
+                background: '#10b981',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '5px',
+                fontSize: '11px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Reset Filters
+            </button>
+          </div>
+
+          {/* RIGHT: FY Task Status Report */}
+          <div style={{
+            background: '#fff',
+            borderRadius: '10px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            border: '1px solid #10b981',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <h3 style={{margin: 0, padding: '8px 12px', fontSize: '12px', fontWeight: '600', color: '#fff', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+              <BarChart3 size={14} style={{marginRight: '6px', verticalAlign: 'middle'}} />
+              FY Task Status
+            </h3>
+            
+            <div style={{overflowX: 'auto', overflowY: 'auto', flex: 1, maxHeight: '220px'}}>
+              <table style={{borderCollapse: 'collapse', fontSize: '10px', width: '100%'}}>
+                <thead style={{position: 'sticky', top: 0}}>
+                  <tr style={{background: '#10b981'}}>
+                    <th style={{padding: '5px 6px', textAlign: 'left', border: '1px solid #059669', fontWeight: '700', fontSize: '9px', color: '#fff'}}>Month</th>
+                    {years.map(fy => (
+                      <th key={fy} colSpan={2} style={{padding: '5px 4px', textAlign: 'center', border: '1px solid #059669', fontWeight: '700', fontSize: '9px', color: '#fff'}}>{fy.replace('FY ', '').replace('Previous years', 'Prev')}</th>
+                    ))}
+                  </tr>
+                  <tr style={{background: '#dcfce7'}}>
+                    <th style={{padding: '4px 6px', border: '1px solid #bbf7d0', fontSize: '8px'}}></th>
                     {years.map(fy => (
                       <React.Fragment key={fy}>
-                        <td 
-                          style={{
-                            padding: '10px 12px', 
-                            textAlign: 'center', 
-                            border: '1px solid #e5e7eb', 
-                            color: row[`${fy}_pending`] > 0 ? '#dc2626' : '#9ca3af', 
-                            fontWeight: row[`${fy}_pending`] > 0 ? '700' : '400',
-                            cursor: row[`${fy}_pending`] > 0 ? 'pointer' : 'default',
-                            background: row[`${fy}_pending`] > 0 ? '#fef2f2' : 'transparent',
-                            fontSize: '13px'
-                          }}
-                          onClick={() => {
-                            if (row[`${fy}_pending`] > 0) {
-                              setFilters({...filters, taskFinancialYear: fy === 'Previous years' ? '' : fy, taskPeriod: row.period});
-                              setActiveStatusFilter('');
-                            }
-                          }}
-                          title={row[`${fy}_pending`] > 0 ? `Click to view ${row[`${fy}_pending`]} pending tasks` : ''}
-                        >
-                          {row[`${fy}_pending`] || 0}
-                        </td>
-                        <td 
-                          style={{
-                            padding: '10px 12px', 
-                            textAlign: 'center', 
-                            border: '1px solid #e5e7eb', 
-                            color: row[`${fy}_completed`] > 0 ? '#16a34a' : '#9ca3af', 
-                            fontWeight: row[`${fy}_completed`] > 0 ? '700' : '400',
-                            cursor: row[`${fy}_completed`] > 0 ? 'pointer' : 'default',
-                            background: row[`${fy}_completed`] > 0 ? '#dcfce7' : 'transparent',
-                            fontSize: '13px'
-                          }}
-                          onClick={() => {
-                            if (row[`${fy}_completed`] > 0) {
-                              setFilters({...filters, taskFinancialYear: fy === 'Previous years' ? '' : fy, taskPeriod: row.period, status: 'Completed'});
-                              setActiveStatusFilter('');
-                            }
-                          }}
-                          title={row[`${fy}_completed`] > 0 ? `Click to view ${row[`${fy}_completed`]} completed tasks` : ''}
-                        >
-                          {row[`${fy}_completed`] || 0}
-                        </td>
+                        <th style={{padding: '4px 4px', textAlign: 'center', border: '1px solid #bbf7d0', color: '#dc2626', fontWeight: '700', fontSize: '8px'}}>P</th>
+                        <th style={{padding: '4px 4px', textAlign: 'center', border: '1px solid #bbf7d0', color: '#16a34a', fontWeight: '700', fontSize: '8px'}}>D</th>
                       </React.Fragment>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {summary.map((row, idx) => (
+                    <tr key={row.period} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                      <td style={{padding: '4px 6px', fontWeight: '600', border: '1px solid #e5e7eb', fontSize: '9px', color: '#374151'}}>{row.period.substring(0, 3)}</td>
+                      {years.map(fy => (
+                        <React.Fragment key={fy}>
+                          <td 
+                            style={{
+                              padding: '4px 4px', 
+                              textAlign: 'center', 
+                              border: '1px solid #e5e7eb', 
+                              color: row[`${fy}_pending`] > 0 ? '#dc2626' : '#9ca3af', 
+                              fontWeight: row[`${fy}_pending`] > 0 ? '700' : '400',
+                              cursor: row[`${fy}_pending`] > 0 ? 'pointer' : 'default',
+                              background: row[`${fy}_pending`] > 0 ? '#fef2f2' : 'transparent',
+                              fontSize: '10px'
+                            }}
+                            onClick={() => {
+                              if (row[`${fy}_pending`] > 0) {
+                                setFilters({...filters, taskFinancialYear: fy === 'Previous years' ? '' : fy, taskPeriod: row.period});
+                                setActiveStatusFilter('');
+                              }
+                            }}
+                            title={row[`${fy}_pending`] > 0 ? `Click to view ${row[`${fy}_pending`]} pending tasks` : ''}
+                          >
+                            {row[`${fy}_pending`] || 0}
+                          </td>
+                          <td 
+                            style={{
+                              padding: '4px 4px', 
+                              textAlign: 'center', 
+                              border: '1px solid #e5e7eb', 
+                              color: row[`${fy}_completed`] > 0 ? '#16a34a' : '#9ca3af', 
+                              fontWeight: row[`${fy}_completed`] > 0 ? '700' : '400',
+                              cursor: row[`${fy}_completed`] > 0 ? 'pointer' : 'default',
+                              background: row[`${fy}_completed`] > 0 ? '#dcfce7' : 'transparent',
+                              fontSize: '10px'
+                            }}
+                            onClick={() => {
+                              if (row[`${fy}_completed`] > 0) {
+                                setFilters({...filters, taskFinancialYear: fy === 'Previous years' ? '' : fy, taskPeriod: row.period, status: 'Completed'});
+                                setActiveStatusFilter('');
+                              }
+                            }}
+                            title={row[`${fy}_completed`] > 0 ? `Click to view ${row[`${fy}_completed`]} completed tasks` : ''}
+                          >
+                            {row[`${fy}_completed`] || 0}
+                          </td>
+                        </React.Fragment>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
