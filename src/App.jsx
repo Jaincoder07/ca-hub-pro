@@ -14804,7 +14804,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const [multipleTaskInvoiceDate, setMultipleTaskInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
     const [multipleTaskInvoiceNo, setMultipleTaskInvoiceNo] = useState('');
     const [multipleTaskClientBilling, setMultipleTaskClientBilling] = useState([]); // Client-wise billing data
-    const [multipleTaskBillingStep, setMultipleTaskBillingStep] = useState('select'); // 'select' or 'billing'
+    const [multipleTaskBillingStep, setMultipleTaskBillingStep] = useState('group'); // 'group', 'clients', 'tasks', or 'billing'
+    const [multipleTaskSelectedClients, setMultipleTaskSelectedClients] = useState([]); // Selected clients for billing
     const [showClientSuggestions, setShowClientSuggestions] = useState(false);
     const [showCodeSuggestions, setShowCodeSuggestions] = useState(false);
     const [showMultipleTaskGroupSuggestions, setShowMultipleTaskGroupSuggestions] = useState(false);
@@ -19244,14 +19245,14 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 {/* Multiple Task Mode */}
                 {billingMode === 'multiple' && (
                   <div>
-                    {/* Step 1: Group Selection - show until user clicks "View Clients & Tasks" */}
-                    {(!multipleTaskClient || !multipleTaskClient.groupMode) && multipleTaskLineItems.length === 0 && (
+                    {/* Step 1: Group Selection */}
+                    {multipleTaskBillingStep === 'group' && (
                       <div style={{background: '#fff', padding: '28px', borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', border: '1px solid #e2e8f0'}}>
                         <div style={{marginBottom: '24px', paddingBottom: '16px', borderBottom: '2px solid #d1fae5'}}>
                           <h3 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: '#065f46', display: 'flex', alignItems: 'center', gap: '10px'}}>
                             <Users size={22} style={{color: '#10b981'}} /> Multiple Task Billing - Select Group
                           </h3>
-                          <p style={{margin: '8px 0 0', fontSize: '13px', color: '#64748b'}}>Select a group to view all clients and their unbilled tasks</p>
+                          <p style={{margin: '8px 0 0', fontSize: '13px', color: '#64748b'}}>Select a group to view all clients with unbilled tasks</p>
                         </div>
                         
                         <div style={{background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #86efac'}}>
@@ -19328,10 +19329,11 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 alert('Please select a group');
                                 return;
                               }
-                              // Set a dummy client to trigger step 2
-                              setMultipleTaskClient({ groupMode: true, groupName: multipleTaskFilters.groupName });
+                              // Clear all selections and move to client selection
+                              setMultipleTaskSelectedClients([]);
                               setMultipleTaskSelectedTasks([]);
-                              setMultipleTaskLineItems([]);
+                              setMultipleTaskClientBilling([]);
+                              setMultipleTaskBillingStep('clients');
                             }}
                             disabled={!multipleTaskFilters.groupName}
                             style={{
@@ -19346,110 +19348,200 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               boxShadow: multipleTaskFilters.groupName ? '0 2px 8px rgba(16,185,129,0.3)' : 'none'
                             }}
                           >
-                            🔍 View Clients & Tasks →
+                            🔍 View Clients →
                           </button>
                         </div>
                       </div>
                     )}
                     
-                    {/* Step 2: Task Selection - Grouped by Client */}
-                    {multipleTaskClient?.groupMode && multipleTaskFilters.groupName && (
+                    {/* Step 2: Client Selection */}
+                    {multipleTaskBillingStep === 'clients' && multipleTaskFilters.groupName && (
                       <div style={{background: '#fff', padding: '24px', borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', border: '1px solid #e2e8f0'}}>
                         {/* Header */}
                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
                           <div>
                             <h3 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: '#065f46'}}>
-                              Group: {multipleTaskFilters.groupName}
+                              Group {multipleTaskFilters.groupName} - Select Clients
                             </h3>
                             <p style={{margin: '4px 0 0', fontSize: '13px', color: '#64748b'}}>
-                              Select tasks to invoice - grouped by Client Name & Code
+                              Select clients to generate invoices for
                             </p>
                           </div>
-                          <div style={{display: 'flex', gap: '10px'}}>
-                            <button
-                              onClick={() => {
-                                setMultipleTaskClient(null);
-                                setMultipleTaskFilters({...multipleTaskFilters, groupName: ''});
-                              }}
-                              style={{padding: '10px 20px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '500'}}
-                            >
-                              ← Back to Group Selection
-                            </button>
-                            <button
-                              onClick={() => {
-                                if (multipleTaskSelectedTasks.length === 0) {
-                                  alert('Please select at least one task');
-                                  return;
-                                }
-                                // Group selected tasks by client
-                                const clientGroups = {};
-                                multipleTaskSelectedTasks.forEach(task => {
-                                  const clientKey = task.clientName || task.clientId;
-                                  if (!clientGroups[clientKey]) {
-                                    const client = (data.clients || []).find(c => c.name === task.clientName || c.id === task.clientId);
-                                    clientGroups[clientKey] = {
-                                      clientId: client?.id || task.clientId,
-                                      clientName: task.clientName,
-                                      clientCode: task.fileNo || client?.fileNo || '',
-                                      clientAddress: client?.address || '',
-                                      clientGstin: client?.gstin || '',
-                                      clientState: client?.state || '',
-                                      organizationId: '',
-                                      tasks: []
-                                    };
-                                  }
-                                  // For Task Wise mode - each task has individual billing
-                                  const taskItem = {
-                                    taskId: task.id,
-                                    parentTask: task.parentTask || '',
-                                    taskType: task.childTask || '',
-                                    taskDescription: task.taskDescription || task.childTask || '',
-                                    financialYear: task.financialYear || '',
-                                    period: task.period || '',
-                                    subPeriod: task.subPeriod || '',
-                                    agreedFees: parseFloat(task.agreedFees) || 0,
-                                    amount: parseFloat(task.agreedFees) || 0,
-                                    discount: 0,
-                                    narration: `${task.parentTask || ''} - ${task.childTask || ''}`.trim().replace(/^- /, ''),
-                                    sacCode: '998231',
-                                    remark: ''
-                                  };
-                                  clientGroups[clientKey].tasks.push(taskItem);
-                                });
-                                
-                                // Convert to array and set billing data
-                                const billingData = Object.values(clientGroups).map(client => ({
-                                  ...client,
-                                  // For Combined mode - calculate combined totals
-                                  combinedAmount: client.tasks.reduce((sum, t) => sum + t.amount, 0),
-                                  combinedDiscount: 0,
-                                  combinedNarration: client.tasks.map(t => t.narration).join('; '),
-                                  extraNarrations: [] // For adding extra items in combined mode
-                                }));
-                                
-                                setMultipleTaskClientBilling(billingData);
-                                setMultipleTaskBillingStep('billing');
-                              }}
-                              disabled={multipleTaskSelectedTasks.length === 0}
-                              style={{
-                                padding: '10px 24px',
-                                background: multipleTaskSelectedTasks.length > 0 ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#e2e8f0',
-                                color: multipleTaskSelectedTasks.length > 0 ? '#fff' : '#94a3b8',
-                                border: 'none',
-                                borderRadius: '8px',
-                                cursor: multipleTaskSelectedTasks.length > 0 ? 'pointer' : 'not-allowed',
-                                fontSize: '13px',
-                                fontWeight: '700'
-                              }}
-                            >
-                              Proceed with {multipleTaskSelectedTasks.length} Tasks →
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => {
+                              setMultipleTaskBillingStep('group');
+                              setMultipleTaskSelectedClients([]);
+                              setMultipleTaskSelectedTasks([]);
+                            }}
+                            style={{padding: '10px 20px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '500'}}
+                          >
+                            ← Back to Group Selection
+                          </button>
                         </div>
                         
-                        {/* Tasks grouped by Client */}
+                        {/* Client List */}
                         {(() => {
                           const groupClients = (data.clients || []).filter(c => c.fileNo && c.fileNo.split('.')[0] === multipleTaskFilters.groupName);
+                          const clientsWithTasks = groupClients.map(client => {
+                            const unbilledTasks = (data.tasks || []).filter(t => 
+                              (t.clientName === client.name || t.clientId === client.id || t.fileNo === client.fileNo) && 
+                              !t.billed
+                            );
+                            const openTasks = unbilledTasks.filter(t => t.status !== 'Completed').length;
+                            const completedTasks = unbilledTasks.filter(t => t.status === 'Completed').length;
+                            return { client, unbilledTasks, openTasks, completedTasks, totalTasks: unbilledTasks.length };
+                          }).filter(c => c.totalTasks > 0);
+                          
+                          if (clientsWithTasks.length === 0) {
+                            return (
+                              <div style={{textAlign: 'center', padding: '60px 20px', background: '#f8fafc', borderRadius: '12px', border: '2px dashed #e2e8f0'}}>
+                                <div style={{fontSize: '48px', marginBottom: '16px'}}>📋</div>
+                                <div style={{fontSize: '16px', fontWeight: '600', color: '#64748b', marginBottom: '8px'}}>No Unbilled Tasks</div>
+                                <div style={{fontSize: '13px', color: '#94a3b8'}}>All tasks for clients in this group have been billed</div>
+                              </div>
+                            );
+                          }
+                          
+                          const allSelected = clientsWithTasks.every(c => multipleTaskSelectedClients.some(sc => sc.id === c.client.id));
+                          
+                          return (
+                            <div>
+                              {/* Select All */}
+                              <div style={{marginBottom: '16px', padding: '12px 16px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                                <label style={{display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer'}}>
+                                  <input
+                                    type="checkbox"
+                                    checked={allSelected}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setMultipleTaskSelectedClients(clientsWithTasks.map(c => c.client));
+                                      } else {
+                                        setMultipleTaskSelectedClients([]);
+                                      }
+                                    }}
+                                    style={{width: '18px', height: '18px', cursor: 'pointer'}}
+                                  />
+                                  <span style={{fontWeight: '600', color: '#065f46'}}>Select All Clients ({clientsWithTasks.length})</span>
+                                </label>
+                                <span style={{fontSize: '12px', color: '#64748b'}}>
+                                  {multipleTaskSelectedClients.length} of {clientsWithTasks.length} selected
+                                </span>
+                              </div>
+                              
+                              {/* Client Cards */}
+                              <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px'}}>
+                                {clientsWithTasks.map(({ client, openTasks, completedTasks, totalTasks }) => {
+                                  const isSelected = multipleTaskSelectedClients.some(sc => sc.id === client.id);
+                                  return (
+                                    <div
+                                      key={client.id}
+                                      onClick={() => {
+                                        if (isSelected) {
+                                          setMultipleTaskSelectedClients(prev => prev.filter(c => c.id !== client.id));
+                                        } else {
+                                          setMultipleTaskSelectedClients(prev => [...prev, client]);
+                                        }
+                                      }}
+                                      style={{
+                                        padding: '16px',
+                                        background: isSelected ? '#f0fdf4' : '#fff',
+                                        border: isSelected ? '2px solid #10b981' : '1px solid #e2e8f0',
+                                        borderRadius: '12px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        boxShadow: isSelected ? '0 4px 12px rgba(16,185,129,0.15)' : 'none'
+                                      }}
+                                    >
+                                      <div style={{display: 'flex', alignItems: 'flex-start', gap: '12px'}}>
+                                        <input
+                                          type="checkbox"
+                                          checked={isSelected}
+                                          onChange={() => {}}
+                                          style={{width: '18px', height: '18px', marginTop: '2px', cursor: 'pointer'}}
+                                        />
+                                        <div style={{flex: 1}}>
+                                          <div style={{fontWeight: '700', fontSize: '15px', color: '#1e293b', marginBottom: '4px'}}>{client.name}</div>
+                                          <div style={{fontSize: '12px', color: '#64748b', marginBottom: '12px'}}>Code: {client.fileNo}</div>
+                                          <div style={{display: 'flex', gap: '12px'}}>
+                                            <div style={{padding: '6px 12px', background: '#dcfce7', borderRadius: '6px', fontSize: '11px'}}>
+                                              <span style={{color: '#166534', fontWeight: '600'}}>{completedTasks}</span>
+                                              <span style={{color: '#065f46', marginLeft: '4px'}}>Completed</span>
+                                            </div>
+                                            <div style={{padding: '6px 12px', background: '#fef3c7', borderRadius: '6px', fontSize: '11px'}}>
+                                              <span style={{color: '#92400e', fontWeight: '600'}}>{openTasks}</span>
+                                              <span style={{color: '#78350f', marginLeft: '4px'}}>Open</span>
+                                            </div>
+                                            <div style={{padding: '6px 12px', background: '#e0f2fe', borderRadius: '6px', fontSize: '11px'}}>
+                                              <span style={{color: '#0369a1', fontWeight: '600'}}>{totalTasks}</span>
+                                              <span style={{color: '#075985', marginLeft: '4px'}}>Total</span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              
+                              {/* Proceed Button */}
+                              {multipleTaskSelectedClients.length > 0 && (
+                                <div style={{position: 'sticky', bottom: 0, background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', padding: '16px 24px', borderRadius: '12px', marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#fff', boxShadow: '0 -4px 20px rgba(16,185,129,0.3)'}}>
+                                  <div>
+                                    <span style={{fontSize: '15px', fontWeight: '600'}}>{multipleTaskSelectedClients.length} client(s) selected</span>
+                                    <span style={{fontSize: '13px', marginLeft: '16px', opacity: 0.9}}>
+                                      {clientsWithTasks.filter(c => multipleTaskSelectedClients.some(sc => sc.id === c.client.id)).reduce((sum, c) => sum + c.totalTasks, 0)} total unbilled tasks
+                                    </span>
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      setMultipleTaskBillingStep('tasks');
+                                    }}
+                                    style={{padding: '12px 28px', background: '#fff', color: '#10b981', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '700', boxShadow: '0 2px 8px rgba(0,0,0,0.15)'}}
+                                  >
+                                    Select Tasks →
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
+                    
+                    {/* Step 3: Task Selection - Grouped by Client */}
+                    {(multipleTaskBillingStep === 'tasks' || multipleTaskBillingStep === 'billing') && multipleTaskFilters.groupName && (
+                      <div style={{background: '#fff', padding: '24px', borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', border: '1px solid #e2e8f0'}}>
+                        {/* Header */}
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+                          <div>
+                            <h3 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: '#065f46'}}>
+                              {multipleTaskBillingStep === 'billing' ? '📋 Generate Invoices' : 'Select Tasks'} - Group {multipleTaskFilters.groupName}
+                            </h3>
+                            <p style={{margin: '4px 0 0', fontSize: '13px', color: '#64748b'}}>
+                              {multipleTaskSelectedClients.length} client(s) selected | 
+                              <span style={{marginLeft: '8px', padding: '2px 8px', borderRadius: '4px', background: multipleTaskFilters.invoiceType === 'taskWise' ? '#fef3c7' : '#dbeafe', color: multipleTaskFilters.invoiceType === 'taskWise' ? '#92400e' : '#1e40af', fontWeight: '600', fontSize: '11px'}}>
+                                {multipleTaskFilters.invoiceType === 'taskWise' ? 'Task Wise' : 'Combined'}
+                              </span>
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              // Clear selections and go back to client selection
+                              setMultipleTaskSelectedTasks([]);
+                              setMultipleTaskClientBilling([]);
+                              setMultipleTaskBillingStep('clients');
+                            }}
+                            style={{padding: '10px 20px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '500'}}
+                          >
+                            ← Back to Client Selection
+                          </button>
+                        </div>
+                        
+                        {/* Tasks grouped by Client - Only show selected clients */}
+                        {(() => {
+                          // Only show clients that were selected in the previous step
+                          const selectedClientIds = multipleTaskSelectedClients.map(c => c.id);
+                          const groupClients = multipleTaskSelectedClients;
                           const clientTasks = {};
                           
                           groupClients.forEach(client => {
@@ -19468,9 +19560,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               <div style={{textAlign: 'center', padding: '60px 20px', background: '#f8fafc', borderRadius: '12px', border: '2px dashed #e2e8f0'}}>
                                 <div style={{fontSize: '48px', marginBottom: '16px'}}>📋</div>
                                 <div style={{fontSize: '16px', fontWeight: '600', color: '#64748b', marginBottom: '8px'}}>No Unbilled Tasks</div>
-                                <div style={{fontSize: '13px', color: '#94a3b8'}}>All tasks for clients in this group have been billed</div>
+                                <div style={{fontSize: '13px', color: '#94a3b8'}}>All tasks for selected clients have been billed</div>
                               </div>
                             );
+                          }
                           }
                           
                           return Object.entries(clientTasks).map(([key, { client, tasks }]) => {
@@ -19917,10 +20010,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           });
                         })()}
                         
-                        {/* Summary Bar - Different modes for select vs billing */}
+                        {/* Summary Bar - Different modes for tasks vs billing */}
                         {multipleTaskSelectedTasks.length > 0 && (
                           <div style={{position: 'sticky', bottom: 0, background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', padding: '16px 24px', borderRadius: '12px', marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#fff', boxShadow: '0 -4px 20px rgba(16,185,129,0.3)'}}>
-                            {multipleTaskBillingStep === 'select' ? (
+                            {multipleTaskBillingStep === 'tasks' ? (
                               <>
                                 <div>
                                   <span style={{fontSize: '15px', fontWeight: '600'}}>{multipleTaskSelectedTasks.length} tasks selected</span>
@@ -20021,7 +20114,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                   <div style={{display: 'flex', gap: '10px'}}>
                                     <button
                                       onClick={() => {
-                                        setMultipleTaskBillingStep('select');
+                                        setMultipleTaskBillingStep('tasks');
                                         setMultipleTaskClientBilling([]);
                                       }}
                                       style={{padding: '12px 20px', background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '500'}}
@@ -20169,11 +20262,12 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                         
                                         alert(`✅ SUCCESS!\n\nGenerated ${newInvoices.length} invoice(s)\nTotal: ₹${newInvoices.reduce((s, i) => s + i.totalAmount, 0).toLocaleString('en-IN')}`);
                                         
-                                        // Reset
+                                        // Reset all states
                                         setMultipleTaskClient(null);
                                         setMultipleTaskSelectedTasks([]);
                                         setMultipleTaskClientBilling([]);
-                                        setMultipleTaskBillingStep('select');
+                                        setMultipleTaskSelectedClients([]);
+                                        setMultipleTaskBillingStep('group');
                                         setMultipleTaskOrgId('');
                                         setMultipleTaskFilters({clientName: '', clientCode: '', groupName: '', invoiceType: 'taskWise'});
                                       }}
