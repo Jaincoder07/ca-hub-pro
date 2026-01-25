@@ -19564,7 +19564,6 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               </div>
                             );
                           }
-                          }
                           
                           return Object.entries(clientTasks).map(([key, { client, tasks }]) => {
                             // Check if this client has selected tasks
