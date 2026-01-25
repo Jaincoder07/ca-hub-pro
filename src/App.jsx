@@ -19973,7 +19973,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                   clientId: '', clientName: '', clientCode: '', groupName: '', organizationId: '',
                                   invoiceDate: new Date().toISOString().split('T')[0], narration: '', amount: '', discount: '', remark: ''
                                 });
-                              }}}
+                              }}
                               style={{padding: '10px 28px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '700', boxShadow: '0 2px 8px rgba(16,185,129,0.4)'}}
                             >
                               ✓ Generate Invoice
@@ -21017,7 +21017,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                         setMultipleTaskBillingStep('group');
                                         setMultipleTaskOrgId('');
                                         setMultipleTaskFilters({clientName: '', clientCode: '', groupName: '', invoiceType: 'taskWise'});
-                                      }}}
+                                      }}
                                       style={{padding: '12px 32px', background: '#fff', color: '#10b981', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '700', boxShadow: '0 4px 12px rgba(0,0,0,0.2)'}}
                                     >
                                       ✓ Generate {multipleTaskClientBilling.length} Invoice(s)
