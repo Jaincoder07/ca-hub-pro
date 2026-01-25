@@ -14853,6 +14853,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const [editingInvoiceData, setEditingInvoiceData] = useState(null);
     const [showEditInvoiceModal, setShowEditInvoiceModal] = useState(false);
     const [invoicePreviewModal, setInvoicePreviewModal] = useState(null); // Standalone invoice preview from anywhere
+    const [ledgerFY, setLedgerFY] = useState('all'); // FY filter for debtor ledger
     
     // Receipt states
     const [receiptMode, setReceiptMode] = useState('post'); // 'post', 'view'
@@ -24676,313 +24677,555 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             
             {/* Debtor Ledger Screen */}
             {debtorViewMode === 'ledger' && selectedDebtor && (
-              <div>
-                {/* Header with Back Button */}
-                <div style={{display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px'}}>
+              <div id="debtor-ledger-content">
+                {/* Header with Back Button and Actions */}
+                <div style={{display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px'}}>
                   <button
                     onClick={goBackToDebtorsList}
-                    style={{
-                      padding: '10px 16px',
-                      background: '#f1f5f9',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      fontSize: '13px',
-                      fontWeight: '500',
-                      color: '#475569'
-                    }}
+                    style={{padding: '8px 14px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '500', color: '#475569'}}
                   >
                     ← Back to Debtors
                   </button>
                   <div style={{flex: 1}}>
-                    <h2 style={{margin: 0, fontSize: '24px', fontWeight: '700', color: '#1e293b'}}>{selectedDebtor.name}</h2>
-                    <div style={{fontSize: '13px', color: '#64748b', marginTop: '4px'}}>
+                    <h2 style={{margin: 0, fontSize: '22px', fontWeight: '700', color: '#1e293b'}}>{selectedDebtor.name}</h2>
+                    <div style={{fontSize: '12px', color: '#64748b', marginTop: '3px'}}>
                       Code: {selectedDebtor.fileNo || 'N/A'} | Group No: <strong style={{color: '#7c3aed'}}>{selectedDebtor.groupNo || selectedDebtor.fileNo?.split('.')[0] || 'N/A'}</strong>
                       {selectedDebtor.state && ` | State: ${selectedDebtor.state}`}
                     </div>
                   </div>
-                  <div style={{textAlign: 'right', background: getDebtorLedger().totals.closingBalance > 0 ? '#fef2f2' : '#f0fdf4', padding: '12px 20px', borderRadius: '8px'}}>
-                    <div style={{fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Outstanding Balance</div>
-                    <div style={{fontSize: '28px', fontWeight: '700', color: getDebtorLedger().totals.closingBalance > 0 ? '#dc2626' : '#16a34a'}}>
-                      ₹{(getDebtorLedger().totals.closingBalance || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                  
+                  {/* FY Filter */}
+                  <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                    <label style={{fontSize: '11px', fontWeight: '600', color: '#374151'}}>FY:</label>
+                    <select
+                      value={ledgerFY || 'all'}
+                      onChange={(e) => setLedgerFY(e.target.value)}
+                      style={{padding: '6px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '11px', background: '#fff'}}
+                    >
+                      <option value="all">All Years</option>
+                      {['2020-21', '2021-22', '2022-23', '2023-24', '2024-25', '2025-26', '2026-27'].map(fy => (
+                        <option key={fy} value={fy}>FY {fy}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {/* Print & Download Buttons */}
+                  <button
+                    onClick={() => {
+                      const content = document.getElementById('debtor-ledger-print');
+                      if (content) {
+                        const printWindow = window.open('', '_blank');
+                        printWindow.document.write(`
+                          <html><head><title>Ledger - ${selectedDebtor.name}</title>
+                          <style>
+                            body { font-family: Arial, sans-serif; padding: 20px; }
+                            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11px; }
+                            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                            th { background: #f5f5f5; font-weight: 600; }
+                            .header { margin-bottom: 20px; }
+                            .section-title { font-size: 14px; font-weight: 700; margin: 15px 0 10px; padding: 8px; background: #f5f5f5; }
+                            .text-right { text-align: right; }
+                            .text-center { text-align: center; }
+                            .summary-cards { display: flex; gap: 15px; margin-bottom: 20px; }
+                            .card { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 6px; }
+                            @media print { body { padding: 0; } }
+                          </style></head><body>
+                          ${content.innerHTML}
+                          </body></html>
+                        `);
+                        printWindow.document.close();
+                        printWindow.print();
+                      }
+                    }}
+                    style={{padding: '8px 14px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'}}
+                  >
+                    🖨️ Print
+                  </button>
+                  <button
+                    onClick={() => {
+                      // Generate CSV for download
+                      const clientInvoices = (data.invoices || []).filter(inv => inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
+                      const clientReceipts = (data.receipts || []).filter(r => r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
+                      
+                      let csv = `LEDGER - ${selectedDebtor.name}\n`;
+                      csv += `Code: ${selectedDebtor.fileNo || 'N/A'} | Group No: ${selectedDebtor.groupNo || selectedDebtor.fileNo?.split('.')[0] || 'N/A'}\n\n`;
+                      
+                      csv += `INVOICES\n`;
+                      csv += `Date,Invoice No,Organization,Description,Amount\n`;
+                      clientInvoices.forEach(inv => {
+                        const org = (data.organizations || []).find(o => o.id === inv.organizationId);
+                        csv += `${inv.invoiceDate || ''},${inv.invoiceNo || ''},"${org?.name || ''}","${inv.serviceDescription || ''}",${inv.totalAmount || 0}\n`;
+                      });
+                      
+                      csv += `\nRECEIPTS\n`;
+                      csv += `Date,Receipt No,Against Invoice,Mode,Amount,TDS,Discount,Total\n`;
+                      clientReceipts.forEach(r => {
+                        csv += `${r.receiptDate || ''},${r.receiptNo || ''},${r.invoiceNo || ''},${r.paymentMode || ''},${r.amount || 0},${r.tds || 0},${r.discount || 0},${(r.amount || 0) + (r.tds || 0) + (r.discount || 0)}\n`;
+                      });
+                      
+                      const blob = new Blob([csv], { type: 'text/csv' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `Ledger_${selectedDebtor.name.replace(/[^a-zA-Z0-9]/g, '_')}.csv`;
+                      a.click();
+                    }}
+                    style={{padding: '8px 14px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'}}
+                  >
+                    <Download size={14} /> Download
+                  </button>
+                </div>
+
+                {/* Printable Content Container */}
+                <div id="debtor-ledger-print">
+                  {/* Print Header (hidden on screen, shown in print) */}
+                  <div className="print-header" style={{display: 'none'}}>
+                    <h2>{selectedDebtor.name} - Ledger Statement</h2>
+                    <p>Code: {selectedDebtor.fileNo} | Group No: {selectedDebtor.groupNo || selectedDebtor.fileNo?.split('.')[0]}</p>
+                  </div>
+
+                  {/* Summary Cards */}
+                  {(() => {
+                    const fyFilter = ledgerFY && ledgerFY !== 'all';
+                    let fyStart, fyEnd;
+                    if (fyFilter) {
+                      const [startYr] = ledgerFY.split('-');
+                      fyStart = new Date(parseInt('20' + startYr.slice(-2)), 3, 1);
+                      fyEnd = new Date(parseInt('20' + startYr.slice(-2)) + 1, 2, 31, 23, 59, 59);
+                    }
+                    
+                    let clientInvoices = (data.invoices || []).filter(inv => inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
+                    let clientReceipts = (data.receipts || []).filter(r => r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
+                    
+                    if (fyFilter) {
+                      clientInvoices = clientInvoices.filter(inv => {
+                        const d = new Date(inv.invoiceDate);
+                        return d >= fyStart && d <= fyEnd;
+                      });
+                      clientReceipts = clientReceipts.filter(r => {
+                        const d = new Date(r.receiptDate);
+                        return d >= fyStart && d <= fyEnd;
+                      });
+                    }
+                    
+                    const totalInvoiced = clientInvoices.reduce((s, inv) => s + (inv.totalAmount || 0), 0);
+                    const totalReceived = clientReceipts.reduce((s, r) => s + (r.amount || 0) + (r.tds || 0) + (r.discount || 0), 0);
+                    const outstanding = totalInvoiced - totalReceived;
+                    
+                    return (
+                      <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px'}}>
+                        <div style={{background: '#f8fafc', borderRadius: '10px', padding: '14px 16px', border: '1px solid #e2e8f0'}}>
+                          <div style={{fontSize: '11px', color: '#64748b', fontWeight: '500', marginBottom: '4px'}}>Opening Balance</div>
+                          <div style={{fontSize: '22px', fontWeight: '700', color: '#475569'}}>₹0</div>
+                          <div style={{fontSize: '10px', color: '#94a3b8', marginTop: '2px'}}>As on start</div>
+                        </div>
+                        <div style={{background: '#f0fdf4', borderRadius: '10px', padding: '14px 16px', border: '1px solid #bbf7d0'}}>
+                          <div style={{fontSize: '11px', color: '#16a34a', fontWeight: '500', marginBottom: '4px'}}>Total Invoices</div>
+                          <div style={{fontSize: '22px', fontWeight: '700', color: '#166534'}}>₹{totalInvoiced.toLocaleString('en-IN')}</div>
+                          <div style={{fontSize: '10px', color: '#86efac', marginTop: '2px'}}>{clientInvoices.length} invoice(s)</div>
+                        </div>
+                        <div style={{background: '#eff6ff', borderRadius: '10px', padding: '14px 16px', border: '1px solid #bfdbfe'}}>
+                          <div style={{fontSize: '11px', color: '#2563eb', fontWeight: '500', marginBottom: '4px'}}>Total Receipts</div>
+                          <div style={{fontSize: '22px', fontWeight: '700', color: '#1d4ed8'}}>₹{totalReceived.toLocaleString('en-IN')}</div>
+                          <div style={{fontSize: '10px', color: '#93c5fd', marginTop: '2px'}}>{clientReceipts.length} receipt(s)</div>
+                        </div>
+                        <div style={{background: outstanding > 0 ? '#fff7ed' : '#f0fdf4', borderRadius: '10px', padding: '14px 16px', border: `1px solid ${outstanding > 0 ? '#fed7aa' : '#bbf7d0'}`}}>
+                          <div style={{fontSize: '11px', color: outstanding > 0 ? '#ea580c' : '#16a34a', fontWeight: '500', marginBottom: '4px'}}>Outstanding</div>
+                          <div style={{fontSize: '22px', fontWeight: '700', color: outstanding > 0 ? '#c2410c' : '#166534'}}>₹{outstanding.toLocaleString('en-IN')}</div>
+                          <div style={{fontSize: '10px', color: outstanding > 0 ? '#fdba74' : '#86efac', marginTop: '2px'}}>{outstanding > 0 ? 'Pending collection' : 'Fully settled'}</div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* 1. INVOICES TABLE - Green Pastel */}
+                  <div style={{background: '#fff', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: '16px', border: '1px solid #e2e8f0'}}>
+                    <div style={{padding: '12px 16px', background: '#f0fdf4', borderBottom: '1px solid #bbf7d0'}}>
+                      <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <FileText size={16} /> Invoices
+                      </h3>
+                    </div>
+                    <div style={{overflowX: 'auto'}}>
+                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                        <thead>
+                          <tr style={{background: '#f0fdf4'}}>
+                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#166534', borderBottom: '1px solid #bbf7d0'}}>Date</th>
+                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#166534', borderBottom: '1px solid #bbf7d0'}}>Invoice No</th>
+                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#166534', borderBottom: '1px solid #bbf7d0'}}>Organization</th>
+                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#166534', borderBottom: '1px solid #bbf7d0'}}>Description</th>
+                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#166534', borderBottom: '1px solid #bbf7d0'}}>Period</th>
+                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#166534', borderBottom: '1px solid #bbf7d0'}}>FY</th>
+                            <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#166534', borderBottom: '1px solid #bbf7d0'}}>Amount</th>
+                            <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#166534', borderBottom: '1px solid #bbf7d0'}}>Status</th>
+                            <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#166534', borderBottom: '1px solid #bbf7d0'}}>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            const fyFilter = ledgerFY && ledgerFY !== 'all';
+                            let fyStart, fyEnd;
+                            if (fyFilter) {
+                              const [startYr] = ledgerFY.split('-');
+                              fyStart = new Date(parseInt('20' + startYr.slice(-2)), 3, 1);
+                              fyEnd = new Date(parseInt('20' + startYr.slice(-2)) + 1, 2, 31, 23, 59, 59);
+                            }
+                            
+                            let clientInvoices = (data.invoices || []).filter(inv => 
+                              inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase()
+                            );
+                            
+                            if (fyFilter) {
+                              clientInvoices = clientInvoices.filter(inv => {
+                                const d = new Date(inv.invoiceDate);
+                                return d >= fyStart && d <= fyEnd;
+                              });
+                            }
+                            
+                            clientInvoices = clientInvoices.sort((a, b) => new Date(a.invoiceDate) - new Date(b.invoiceDate));
+                            
+                            if (clientInvoices.length === 0) {
+                              return <tr><td colSpan={9} style={{padding: '25px', textAlign: 'center', color: '#64748b'}}>No invoices found</td></tr>;
+                            }
+                            
+                            return clientInvoices.map((inv, idx) => {
+                              const org = (data.organizations || []).find(o => o.id === inv.organizationId);
+                              const paidAmount = (data.receipts || []).filter(r => r.invoiceId === inv.id || (r.invoiceEntries && r.invoiceEntries.some(e => e.invoiceId === inv.id))).reduce((sum, r) => {
+                                if (r.invoiceId === inv.id) return sum + (r.amount || 0) + (r.tds || 0) + (r.discount || 0);
+                                const entry = r.invoiceEntries?.find(e => e.invoiceId === inv.id);
+                                return sum + (entry?.amount || 0) + (entry?.tds || 0) + (entry?.discount || 0);
+                              }, 0);
+                              const balanceDue = (inv.totalAmount || 0) - paidAmount;
+                              const status = balanceDue <= 0.01 ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending';
+                              
+                              return (
+                                <tr key={inv.id} style={{borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#fafafa'}}>
+                                  <td style={{padding: '8px 10px', color: '#64748b'}}>{inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-'}</td>
+                                  <td style={{padding: '8px 10px', fontWeight: '600', color: '#16a34a'}}>{inv.invoiceNo}</td>
+                                  <td style={{padding: '8px 10px', color: '#64748b', fontSize: '10px'}}>{org?.name || '-'}</td>
+                                  <td style={{padding: '8px 10px', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{inv.serviceDescription || '-'}</td>
+                                  <td style={{padding: '8px 10px', color: '#64748b', fontSize: '10px'}}>{inv.subPeriod || inv.period || '-'}</td>
+                                  <td style={{padding: '8px 10px', color: '#64748b', fontSize: '10px'}}>{inv.financialYear || '-'}</td>
+                                  <td style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600'}}>₹{(inv.totalAmount || 0).toLocaleString('en-IN')}</td>
+                                  <td style={{padding: '8px 10px', textAlign: 'center'}}>
+                                    <span style={{padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: '600', background: status === 'Paid' ? '#dcfce7' : status === 'Partial' ? '#fef3c7' : '#fef2f2', color: status === 'Paid' ? '#166534' : status === 'Partial' ? '#92400e' : '#991b1b'}}>{status}</span>
+                                  </td>
+                                  <td style={{padding: '6px 8px', textAlign: 'center'}}>
+                                    <button onClick={() => setInvoicePreviewModal(inv)} style={{padding: '4px 8px', background: '#dcfce7', color: '#166534', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}><Eye size={12} /></button>
+                                  </td>
+                                </tr>
+                              );
+                            });
+                          })()}
+                        </tbody>
+                        <tfoot>
+                          <tr style={{background: '#f0fdf4'}}>
+                            <td colSpan={6} style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#166534'}}>Total Invoices:</td>
+                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#166534'}}>
+                              ₹{(() => {
+                                const fyFilter = ledgerFY && ledgerFY !== 'all';
+                                let clientInvoices = (data.invoices || []).filter(inv => inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
+                                if (fyFilter) {
+                                  const [startYr] = ledgerFY.split('-');
+                                  const fyStart = new Date(parseInt('20' + startYr.slice(-2)), 3, 1);
+                                  const fyEnd = new Date(parseInt('20' + startYr.slice(-2)) + 1, 2, 31, 23, 59, 59);
+                                  clientInvoices = clientInvoices.filter(inv => { const d = new Date(inv.invoiceDate); return d >= fyStart && d <= fyEnd; });
+                                }
+                                return clientInvoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0).toLocaleString('en-IN');
+                              })()}
+                            </td>
+                            <td colSpan={2}></td>
+                          </tr>
+                        </tfoot>
+                      </table>
                     </div>
                   </div>
-                </div>
 
-                {/* 1. INVOICES TABLE */}
-                <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: '24px'}}>
-                  <div style={{padding: '16px 20px', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: '#fff'}}>
-                    <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                      <FileText size={18} /> Invoices
-                    </h3>
-                  </div>
-                  <div style={{overflowX: 'auto'}}>
-                    <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
-                      <thead>
-                        <tr style={{background: '#fef3c7'}}>
-                          <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#92400e'}}>Date</th>
-                          <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#92400e'}}>Invoice No</th>
-                          <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#92400e'}}>Organization</th>
-                          <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#92400e'}}>Description</th>
-                          <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#92400e'}}>Sub-Period</th>
-                          <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#92400e'}}>Fin Year</th>
-                          <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#92400e'}}>Amount (₹)</th>
-                          <th style={{padding: '10px 12px', textAlign: 'center', fontWeight: '600', color: '#92400e'}}>Status</th>
-                          <th style={{padding: '10px 12px', textAlign: 'center', fontWeight: '600', color: '#92400e'}}>View Invoice</th>
-                          <th style={{padding: '10px 12px', textAlign: 'center', fontWeight: '600', color: '#92400e'}}>View Receipt</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(() => {
-                          const clientInvoices = (data.invoices || []).filter(inv => 
-                            inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase()
-                          ).sort((a, b) => new Date(a.invoiceDate) - new Date(b.invoiceDate));
-                          
-                          if (clientInvoices.length === 0) {
-                            return <tr><td colSpan={10} style={{padding: '30px', textAlign: 'center', color: '#64748b'}}>No invoices found</td></tr>;
-                          }
-                          
-                          return clientInvoices.map(inv => {
-                            const org = (data.organizations || []).find(o => o.id === inv.organizationId);
-                            const paidAmount = (data.receipts || []).filter(r => r.invoiceId === inv.id).reduce((sum, r) => sum + (r.amount || 0) + (r.tds || 0) + (r.discount || 0), 0);
-                            const invoiceReceipts = (data.receipts || []).filter(r => r.invoiceId === inv.id);
-                            const balanceDue = (inv.totalAmount || 0) - paidAmount;
-                            const status = balanceDue <= 0.01 ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending';
+                  {/* 2. RECEIPTS TABLE - Blue Pastel */}
+                  <div style={{background: '#fff', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: '16px', border: '1px solid #e2e8f0'}}>
+                    <div style={{padding: '12px 16px', background: '#eff6ff', borderBottom: '1px solid #bfdbfe'}}>
+                      <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <DollarSign size={16} /> Receipts / Payments
+                      </h3>
+                    </div>
+                    <div style={{overflowX: 'auto'}}>
+                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                        <thead>
+                          <tr style={{background: '#eff6ff'}}>
+                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#1d4ed8', borderBottom: '1px solid #bfdbfe'}}>Date</th>
+                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#1d4ed8', borderBottom: '1px solid #bfdbfe'}}>Receipt No</th>
+                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#1d4ed8', borderBottom: '1px solid #bfdbfe'}}>Against Invoice</th>
+                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#1d4ed8', borderBottom: '1px solid #bfdbfe'}}>Mode</th>
+                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#1d4ed8', borderBottom: '1px solid #bfdbfe'}}>Narration</th>
+                            <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#1d4ed8', borderBottom: '1px solid #bfdbfe'}}>Amount</th>
+                            <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#1d4ed8', borderBottom: '1px solid #bfdbfe'}}>TDS</th>
+                            <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#1d4ed8', borderBottom: '1px solid #bfdbfe'}}>Discount</th>
+                            <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#1d4ed8', borderBottom: '1px solid #bfdbfe'}}>Total</th>
+                            <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#1d4ed8', borderBottom: '1px solid #bfdbfe'}}>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            const fyFilter = ledgerFY && ledgerFY !== 'all';
+                            let fyStart, fyEnd;
+                            if (fyFilter) {
+                              const [startYr] = ledgerFY.split('-');
+                              fyStart = new Date(parseInt('20' + startYr.slice(-2)), 3, 1);
+                              fyEnd = new Date(parseInt('20' + startYr.slice(-2)) + 1, 2, 31, 23, 59, 59);
+                            }
                             
-                            return (
-                              <tr key={inv.id} style={{borderBottom: '1px solid #fef3c7'}}>
-                                <td style={{padding: '10px 12px', color: '#64748b'}}>{inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-'}</td>
-                                <td style={{padding: '10px 12px', fontWeight: '600', color: '#d97706'}}>{inv.invoiceNo}</td>
-                                <td style={{padding: '10px 12px', color: '#64748b'}}>{org?.name || inv.orgName || '-'}</td>
-                                <td style={{padding: '10px 12px', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{inv.serviceDescription || '-'}</td>
-                                <td style={{padding: '10px 12px', color: '#64748b'}}>{inv.subPeriod || inv.period || '-'}</td>
-                                <td style={{padding: '10px 12px', color: '#64748b'}}>{inv.financialYear || '-'}</td>
-                                <td style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600'}}>₹{(inv.totalAmount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                                <td style={{padding: '10px 12px', textAlign: 'center'}}>
-                                  <span style={{
-                                    padding: '4px 10px',
-                                    borderRadius: '12px',
-                                    fontSize: '11px',
-                                    fontWeight: '600',
-                                    background: status === 'Paid' ? '#dcfce7' : status === 'Partial' ? '#fef3c7' : '#fef2f2',
-                                    color: status === 'Paid' ? '#166534' : status === 'Partial' ? '#92400e' : '#991b1b'
-                                  }}>
-                                    {status}
-                                  </span>
+                            let clientReceipts = (data.receipts || []).filter(r => 
+                              r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase()
+                            );
+                            
+                            if (fyFilter) {
+                              clientReceipts = clientReceipts.filter(r => {
+                                const d = new Date(r.receiptDate);
+                                return d >= fyStart && d <= fyEnd;
+                              });
+                            }
+                            
+                            clientReceipts = clientReceipts.sort((a, b) => new Date(a.receiptDate) - new Date(b.receiptDate));
+                            
+                            if (clientReceipts.length === 0) {
+                              return <tr><td colSpan={10} style={{padding: '25px', textAlign: 'center', color: '#64748b'}}>No receipts found</td></tr>;
+                            }
+                            
+                            return clientReceipts.map((r, idx) => {
+                              const totalReceived = (r.amount || 0) + (r.tds || 0) + (r.discount || 0);
+                              return (
+                                <tr key={r.id} style={{borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#fafafa'}}>
+                                  <td style={{padding: '8px 10px', color: '#64748b'}}>{r.receiptDate ? new Date(r.receiptDate).toLocaleDateString('en-IN') : '-'}</td>
+                                  <td style={{padding: '8px 10px', fontWeight: '600', color: '#2563eb'}}>{r.receiptNo}</td>
+                                  <td style={{padding: '8px 10px', color: '#16a34a', fontSize: '10px'}}>{r.invoiceNo || '-'}</td>
+                                  <td style={{padding: '8px 10px', fontSize: '10px'}}>{r.paymentMode || '-'}</td>
+                                  <td style={{padding: '8px 10px', color: '#64748b', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '10px'}}>{r.narration || '-'}</td>
+                                  <td style={{padding: '8px 10px', textAlign: 'right', fontWeight: '500'}}>₹{(r.amount || 0).toLocaleString('en-IN')}</td>
+                                  <td style={{padding: '8px 10px', textAlign: 'right', color: '#f59e0b', fontSize: '10px'}}>{r.tds > 0 ? `₹${r.tds.toLocaleString('en-IN')}` : '-'}</td>
+                                  <td style={{padding: '8px 10px', textAlign: 'right', color: '#8b5cf6', fontSize: '10px'}}>{r.discount > 0 ? `₹${r.discount.toLocaleString('en-IN')}` : '-'}</td>
+                                  <td style={{padding: '8px 10px', textAlign: 'right', fontWeight: '700', color: '#2563eb'}}>₹{totalReceived.toLocaleString('en-IN')}</td>
+                                  <td style={{padding: '6px 8px', textAlign: 'center'}}>
+                                    <button onClick={() => setViewingReceipt(r)} style={{padding: '4px 8px', background: '#dbeafe', color: '#1d4ed8', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}><Eye size={12} /></button>
+                                  </td>
+                                </tr>
+                              );
+                            });
+                          })()}
+                        </tbody>
+                        <tfoot>
+                          <tr style={{background: '#eff6ff'}}>
+                            <td colSpan={5} style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#1d4ed8'}}>Total Received:</td>
+                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#1d4ed8'}}>
+                              ₹{(() => {
+                                const fyFilter = ledgerFY && ledgerFY !== 'all';
+                                let clientReceipts = (data.receipts || []).filter(r => r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
+                                if (fyFilter) {
+                                  const [startYr] = ledgerFY.split('-');
+                                  const fyStart = new Date(parseInt('20' + startYr.slice(-2)), 3, 1);
+                                  const fyEnd = new Date(parseInt('20' + startYr.slice(-2)) + 1, 2, 31, 23, 59, 59);
+                                  clientReceipts = clientReceipts.filter(r => { const d = new Date(r.receiptDate); return d >= fyStart && d <= fyEnd; });
+                                }
+                                return clientReceipts.reduce((sum, r) => sum + (r.amount || 0), 0).toLocaleString('en-IN');
+                              })()}
+                            </td>
+                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#f59e0b'}}>
+                              ₹{(() => {
+                                const fyFilter = ledgerFY && ledgerFY !== 'all';
+                                let clientReceipts = (data.receipts || []).filter(r => r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
+                                if (fyFilter) {
+                                  const [startYr] = ledgerFY.split('-');
+                                  const fyStart = new Date(parseInt('20' + startYr.slice(-2)), 3, 1);
+                                  const fyEnd = new Date(parseInt('20' + startYr.slice(-2)) + 1, 2, 31, 23, 59, 59);
+                                  clientReceipts = clientReceipts.filter(r => { const d = new Date(r.receiptDate); return d >= fyStart && d <= fyEnd; });
+                                }
+                                return clientReceipts.reduce((sum, r) => sum + (r.tds || 0), 0).toLocaleString('en-IN');
+                              })()}
+                            </td>
+                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#8b5cf6'}}>
+                              ₹{(() => {
+                                const fyFilter = ledgerFY && ledgerFY !== 'all';
+                                let clientReceipts = (data.receipts || []).filter(r => r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
+                                if (fyFilter) {
+                                  const [startYr] = ledgerFY.split('-');
+                                  const fyStart = new Date(parseInt('20' + startYr.slice(-2)), 3, 1);
+                                  const fyEnd = new Date(parseInt('20' + startYr.slice(-2)) + 1, 2, 31, 23, 59, 59);
+                                  clientReceipts = clientReceipts.filter(r => { const d = new Date(r.receiptDate); return d >= fyStart && d <= fyEnd; });
+                                }
+                                return clientReceipts.reduce((sum, r) => sum + (r.discount || 0), 0).toLocaleString('en-IN');
+                              })()}
+                            </td>
+                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#1d4ed8', fontSize: '12px'}}>
+                              ₹{(() => {
+                                const fyFilter = ledgerFY && ledgerFY !== 'all';
+                                let clientReceipts = (data.receipts || []).filter(r => r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
+                                if (fyFilter) {
+                                  const [startYr] = ledgerFY.split('-');
+                                  const fyStart = new Date(parseInt('20' + startYr.slice(-2)), 3, 1);
+                                  const fyEnd = new Date(parseInt('20' + startYr.slice(-2)) + 1, 2, 31, 23, 59, 59);
+                                  clientReceipts = clientReceipts.filter(r => { const d = new Date(r.receiptDate); return d >= fyStart && d <= fyEnd; });
+                                }
+                                return clientReceipts.reduce((sum, r) => sum + (r.amount || 0) + (r.tds || 0) + (r.discount || 0), 0).toLocaleString('en-IN');
+                              })()}
+                            </td>
+                            <td></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* 3. OUTSTANDING INVOICES TABLE - Orange Pastel */}
+                  <div style={{background: '#fff', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0'}}>
+                    <div style={{padding: '12px 16px', background: '#fff7ed', borderBottom: '1px solid #fed7aa'}}>
+                      <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#c2410c', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <AlertCircle size={16} /> Outstanding Invoices
+                      </h3>
+                    </div>
+                    <div style={{overflowX: 'auto'}}>
+                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                        <thead>
+                          <tr style={{background: '#fff7ed'}}>
+                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#c2410c', borderBottom: '1px solid #fed7aa'}}>Date</th>
+                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#c2410c', borderBottom: '1px solid #fed7aa'}}>Invoice No</th>
+                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#c2410c', borderBottom: '1px solid #fed7aa'}}>Organization</th>
+                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#c2410c', borderBottom: '1px solid #fed7aa'}}>Description</th>
+                            <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#c2410c', borderBottom: '1px solid #fed7aa'}}>Invoice Amt</th>
+                            <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#c2410c', borderBottom: '1px solid #fed7aa'}}>Received</th>
+                            <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#c2410c', borderBottom: '1px solid #fed7aa'}}>Balance Due</th>
+                            <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#c2410c', borderBottom: '1px solid #fed7aa'}}>Days</th>
+                            <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#c2410c', borderBottom: '1px solid #fed7aa'}}>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            const fyFilter = ledgerFY && ledgerFY !== 'all';
+                            let fyStart, fyEnd;
+                            if (fyFilter) {
+                              const [startYr] = ledgerFY.split('-');
+                              fyStart = new Date(parseInt('20' + startYr.slice(-2)), 3, 1);
+                              fyEnd = new Date(parseInt('20' + startYr.slice(-2)) + 1, 2, 31, 23, 59, 59);
+                            }
+                            
+                            let clientInvoices = (data.invoices || []).filter(inv => 
+                              inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase()
+                            );
+                            
+                            if (fyFilter) {
+                              clientInvoices = clientInvoices.filter(inv => {
+                                const d = new Date(inv.invoiceDate);
+                                return d >= fyStart && d <= fyEnd;
+                              });
+                            }
+                            
+                            const today = new Date();
+                            const outstandingInvoices = clientInvoices.map(inv => {
+                              const org = (data.organizations || []).find(o => o.id === inv.organizationId);
+                              const paidAmount = (data.receipts || [])
+                                .filter(r => r.invoiceId === inv.id || (r.invoiceEntries && r.invoiceEntries.some(e => e.invoiceId === inv.id)))
+                                .reduce((sum, r) => {
+                                  if (r.invoiceId === inv.id) return sum + (r.amount || 0) + (r.tds || 0) + (r.discount || 0);
+                                  const entry = r.invoiceEntries?.find(e => e.invoiceId === inv.id);
+                                  return sum + (entry?.amount || 0) + (entry?.tds || 0) + (entry?.discount || 0);
+                                }, 0);
+                              const balanceDue = (inv.totalAmount || 0) - paidAmount;
+                              const daysDiff = Math.floor((today - new Date(inv.invoiceDate)) / (1000 * 60 * 60 * 24));
+                              return { ...inv, orgName: org?.name || '-', paidAmount, balanceDue, daysDiff };
+                            }).filter(inv => inv.balanceDue > 0.01).sort((a, b) => new Date(a.invoiceDate) - new Date(b.invoiceDate));
+                            
+                            if (outstandingInvoices.length === 0) {
+                              return <tr><td colSpan={9} style={{padding: '25px', textAlign: 'center', color: '#16a34a', fontWeight: '600'}}>✓ All invoices are fully paid!</td></tr>;
+                            }
+                            
+                            return outstandingInvoices.map((inv, idx) => (
+                              <tr key={inv.id} style={{borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#fffbeb'}}>
+                                <td style={{padding: '8px 10px', color: '#64748b'}}>{inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-'}</td>
+                                <td style={{padding: '8px 10px', fontWeight: '600', color: '#ea580c'}}>{inv.invoiceNo}</td>
+                                <td style={{padding: '8px 10px', color: '#64748b', fontSize: '10px'}}>{inv.orgName}</td>
+                                <td style={{padding: '8px 10px', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{inv.serviceDescription || '-'}</td>
+                                <td style={{padding: '8px 10px', textAlign: 'right'}}>₹{(inv.totalAmount || 0).toLocaleString('en-IN')}</td>
+                                <td style={{padding: '8px 10px', textAlign: 'right', color: '#16a34a'}}>₹{(inv.paidAmount || 0).toLocaleString('en-IN')}</td>
+                                <td style={{padding: '8px 10px', textAlign: 'right', fontWeight: '700', color: '#ea580c'}}>₹{(inv.balanceDue || 0).toLocaleString('en-IN')}</td>
+                                <td style={{padding: '8px 10px', textAlign: 'center'}}>
+                                  <span style={{padding: '2px 6px', borderRadius: '8px', fontSize: '10px', fontWeight: '600', background: inv.daysDiff > 360 ? '#fecaca' : inv.daysDiff > 90 ? '#fed7aa' : inv.daysDiff > 30 ? '#fef9c3' : '#dcfce7', color: inv.daysDiff > 360 ? '#dc2626' : inv.daysDiff > 90 ? '#c2410c' : inv.daysDiff > 30 ? '#a16207' : '#166534'}}>{inv.daysDiff}</span>
                                 </td>
-                                <td style={{padding: '10px 12px', textAlign: 'center'}}>
-                                  <button
-                                    onClick={() => viewInvoiceFromLedger(inv.id)}
-                                    style={{padding: '4px 8px', background: '#fef3c7', color: '#92400e', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px'}}
-                                  >
-                                    <Eye size={12} />
-                                  </button>
-                                </td>
-                                <td style={{padding: '10px 12px', textAlign: 'center'}}>
-                                  {(status === 'Paid' || status === 'Partial') && invoiceReceipts.length > 0 ? (
-                                    <button
-                                      onClick={() => setViewingReceipt(invoiceReceipts[0])}
-                                      style={{padding: '4px 8px', background: '#dcfce7', color: '#166534', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px'}}
-                                    >
-                                      <Eye size={12} />
-                                    </button>
-                                  ) : '-'}
+                                <td style={{padding: '6px 8px', textAlign: 'center'}}>
+                                  <button onClick={() => setInvoicePreviewModal(inv)} style={{padding: '4px 8px', background: '#ffedd5', color: '#c2410c', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}><Eye size={12} /></button>
                                 </td>
                               </tr>
-                            );
-                          });
-                        })()}
-                      </tbody>
-                      <tfoot>
-                        <tr style={{background: '#fef3c7'}}>
-                          <td colSpan={6} style={{padding: '10px 12px', fontWeight: '700', textAlign: 'right'}}>Total Invoices:</td>
-                          <td style={{padding: '10px 12px', fontWeight: '700', textAlign: 'right', color: '#d97706'}}>
-                            ₹{(data.invoices || []).filter(inv => inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase()).reduce((sum, inv) => sum + (inv.totalAmount || 0), 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
-                          </td>
-                          <td colSpan={3}></td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                </div>
-
-                {/* 2. RECEIPTS TABLE */}
-                <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: '24px'}}>
-                  <div style={{padding: '16px 20px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff'}}>
-                    <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                      <DollarSign size={18} /> Receipts / Payments
-                    </h3>
-                  </div>
-                  <div style={{overflowX: 'auto'}}>
-                    <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
-                      <thead>
-                        <tr style={{background: '#dcfce7'}}>
-                          <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#166534'}}>Date</th>
-                          <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#166534'}}>Receipt No</th>
-                          <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#166534'}}>Against Invoice</th>
-                          <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#166534'}}>Mode</th>
-                          <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#166534'}}>Narration</th>
-                          <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#166534'}}>Amount (₹)</th>
-                          <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#166534'}}>TDS (₹)</th>
-                          <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#166534'}}>Discount (₹)</th>
-                          <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#166534'}}>Total (₹)</th>
-                          <th style={{padding: '10px 12px', textAlign: 'center', fontWeight: '600', color: '#166534'}}>View Receipt</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(() => {
-                          const clientReceipts = (data.receipts || []).filter(r => 
-                            r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase()
-                          ).sort((a, b) => new Date(a.receiptDate) - new Date(b.receiptDate));
-                          
-                          if (clientReceipts.length === 0) {
-                            return <tr><td colSpan={10} style={{padding: '30px', textAlign: 'center', color: '#64748b'}}>No receipts found</td></tr>;
-                          }
-                          
-                          return clientReceipts.map(r => {
-                            const totalReceived = (r.amount || 0) + (r.tds || 0) + (r.discount || 0);
-                            return (
-                              <tr key={r.id} style={{borderBottom: '1px solid #dcfce7'}}>
-                                <td style={{padding: '10px 12px', color: '#64748b'}}>{r.receiptDate ? new Date(r.receiptDate).toLocaleDateString('en-IN') : '-'}</td>
-                                <td style={{padding: '10px 12px', fontWeight: '600', color: '#059669'}}>{r.receiptNo}</td>
-                                <td style={{padding: '10px 12px', color: '#3b82f6'}}>{r.invoiceNo}</td>
-                                <td style={{padding: '10px 12px'}}>{r.paymentMode || '-'}</td>
-                                <td style={{padding: '10px 12px', color: '#64748b', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{r.narration || '-'}</td>
-                                <td style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600'}}>₹{(r.amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                                <td style={{padding: '10px 12px', textAlign: 'right', color: '#f59e0b'}}>{r.tds > 0 ? `₹${r.tds.toLocaleString('en-IN')}` : '-'}</td>
-                                <td style={{padding: '10px 12px', textAlign: 'right', color: '#3b82f6'}}>{r.discount > 0 ? `₹${r.discount.toLocaleString('en-IN')}` : '-'}</td>
-                                <td style={{padding: '10px 12px', textAlign: 'right', fontWeight: '700', color: '#059669'}}>₹{totalReceived.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                                <td style={{padding: '10px 12px', textAlign: 'center'}}>
-                                  <button
-                                    onClick={() => setViewingReceipt(r)}
-                                    style={{padding: '4px 8px', background: '#dcfce7', color: '#166534', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px'}}
-                                  >
-                                    <Eye size={12} />
-                                  </button>
-                                </td>
-                              </tr>
-                            );
-                          });
-                        })()}
-                      </tbody>
-                      <tfoot>
-                        <tr style={{background: '#dcfce7'}}>
-                          <td colSpan={5} style={{padding: '10px 12px', fontWeight: '700', textAlign: 'right'}}>Total Received:</td>
-                          <td style={{padding: '10px 12px', fontWeight: '700', textAlign: 'right', color: '#059669'}}>
-                            ₹{(data.receipts || []).filter(r => r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase()).reduce((sum, r) => sum + (r.amount || 0), 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
-                          </td>
-                          <td style={{padding: '10px 12px', fontWeight: '700', textAlign: 'right', color: '#f59e0b'}}>
-                            ₹{(data.receipts || []).filter(r => r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase()).reduce((sum, r) => sum + (r.tds || 0), 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
-                          </td>
-                          <td style={{padding: '10px 12px', fontWeight: '700', textAlign: 'right', color: '#3b82f6'}}>
-                            ₹{(data.receipts || []).filter(r => r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase()).reduce((sum, r) => sum + (r.discount || 0), 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
-                          </td>
-                          <td style={{padding: '10px 12px', fontWeight: '700', textAlign: 'right', color: '#059669', fontSize: '13px'}}>
-                            ₹{(data.receipts || []).filter(r => r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase()).reduce((sum, r) => sum + (r.amount || 0) + (r.tds || 0) + (r.discount || 0), 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
-                          </td>
-                          <td></td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                </div>
-
-                {/* 3. OUTSTANDING INVOICES TABLE */}
-                <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
-                  <div style={{padding: '16px 20px', background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: '#fff'}}>
-                    <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                      <AlertCircle size={18} /> Outstanding Invoices
-                    </h3>
-                  </div>
-                  <div style={{overflowX: 'auto'}}>
-                    <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
-                      <thead>
-                        <tr style={{background: '#fef2f2'}}>
-                          <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#991b1b'}}>Date</th>
-                          <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#991b1b'}}>Invoice No</th>
-                          <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#991b1b'}}>Organization</th>
-                          <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#991b1b'}}>Description</th>
-                          <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#991b1b'}}>Invoice Amt (₹)</th>
-                          <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#991b1b'}}>Received (₹)</th>
-                          <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#991b1b'}}>Balance Due (₹)</th>
-                          <th style={{padding: '10px 12px', textAlign: 'center', fontWeight: '600', color: '#991b1b'}}>View Invoice</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(() => {
-                          const clientInvoices = (data.invoices || []).filter(inv => 
-                            inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase()
-                          );
-                          
-                          const outstandingInvoices = clientInvoices.map(inv => {
-                            const org = (data.organizations || []).find(o => o.id === inv.organizationId);
-                            const paidAmount = (data.receipts || [])
-                              .filter(r => r.invoiceId === inv.id)
-                              .reduce((sum, r) => sum + (r.amount || 0) + (r.tds || 0) + (r.discount || 0), 0);
-                            const balanceDue = (inv.totalAmount || 0) - paidAmount;
-                            return { ...inv, orgName: org?.name || inv.orgName || '-', paidAmount, balanceDue };
-                          }).filter(inv => inv.balanceDue > 0.01).sort((a, b) => new Date(a.invoiceDate) - new Date(b.invoiceDate));
-                          
-                          if (outstandingInvoices.length === 0) {
-                            return <tr><td colSpan={8} style={{padding: '30px', textAlign: 'center', color: '#16a34a', fontWeight: '600'}}>✓ All invoices are fully paid!</td></tr>;
-                          }
-                          
-                          return outstandingInvoices.map(inv => (
-                            <tr key={inv.id} style={{borderBottom: '1px solid #fef2f2'}}>
-                              <td style={{padding: '10px 12px', color: '#64748b'}}>{inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-'}</td>
-                              <td style={{padding: '10px 12px', fontWeight: '600', color: '#dc2626'}}>{inv.invoiceNo}</td>
-                              <td style={{padding: '10px 12px', color: '#64748b'}}>{inv.orgName}</td>
-                              <td style={{padding: '10px 12px', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{inv.serviceDescription || '-'}</td>
-                              <td style={{padding: '10px 12px', textAlign: 'right'}}>₹{(inv.totalAmount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                              <td style={{padding: '10px 12px', textAlign: 'right', color: '#16a34a'}}>₹{(inv.paidAmount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                              <td style={{padding: '10px 12px', textAlign: 'right', fontWeight: '700', color: '#dc2626'}}>₹{(inv.balanceDue || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                              <td style={{padding: '10px 12px', textAlign: 'center'}}>
-                                <button
-                                  onClick={() => viewInvoiceFromLedger(inv.id)}
-                                  style={{padding: '4px 8px', background: '#fef2f2', color: '#991b1b', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px'}}
-                                >
-                                  <Eye size={12} />
-                                </button>
-                              </td>
-                            </tr>
-                          ));
-                        })()}
-                      </tbody>
-                      <tfoot>
-                        <tr style={{background: '#fef2f2'}}>
-                          <td colSpan={4} style={{padding: '10px 12px', fontWeight: '700', textAlign: 'right'}}>Total Outstanding:</td>
-                          <td style={{padding: '10px 12px', fontWeight: '700', textAlign: 'right'}}>
-                            ₹{(() => {
-                              const clientInvoices = (data.invoices || []).filter(inv => inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
-                              return clientInvoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0).toLocaleString('en-IN', {minimumFractionDigits: 2});
-                            })()}
-                          </td>
-                          <td style={{padding: '10px 12px', fontWeight: '700', textAlign: 'right', color: '#16a34a'}}>
-                            ₹{(() => {
-                              const clientInvoices = (data.invoices || []).filter(inv => inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
-                              return clientInvoices.reduce((total, inv) => {
-                                const paidAmount = (data.receipts || []).filter(r => r.invoiceId === inv.id).reduce((sum, r) => sum + (r.amount || 0) + (r.tds || 0) + (r.discount || 0), 0);
-                                return total + paidAmount;
-                              }, 0).toLocaleString('en-IN', {minimumFractionDigits: 2});
-                            })()}
-                          </td>
-                          <td style={{padding: '10px 12px', fontWeight: '700', textAlign: 'right', color: '#dc2626', fontSize: '13px'}}>
-                            ₹{(() => {
-                              const clientInvoices = (data.invoices || []).filter(inv => inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
-                              return clientInvoices.reduce((total, inv) => {
-                                const paidAmount = (data.receipts || []).filter(r => r.invoiceId === inv.id).reduce((sum, r) => sum + (r.amount || 0) + (r.tds || 0) + (r.discount || 0), 0);
-                                const balance = Math.max(0, (inv.totalAmount || 0) - paidAmount);
-                                return total + balance;
-                              }, 0).toLocaleString('en-IN', {minimumFractionDigits: 2});
-                            })()}
-                          </td>
-                          <td></td>
-                        </tr>
-                      </tfoot>
-                    </table>
+                            ));
+                          })()}
+                        </tbody>
+                        <tfoot>
+                          <tr style={{background: '#fff7ed'}}>
+                            <td colSpan={4} style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#c2410c'}}>Total Outstanding:</td>
+                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#c2410c'}}>
+                              ₹{(() => {
+                                const fyFilter = ledgerFY && ledgerFY !== 'all';
+                                let clientInvoices = (data.invoices || []).filter(inv => inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
+                                if (fyFilter) {
+                                  const [startYr] = ledgerFY.split('-');
+                                  const fyStart = new Date(parseInt('20' + startYr.slice(-2)), 3, 1);
+                                  const fyEnd = new Date(parseInt('20' + startYr.slice(-2)) + 1, 2, 31, 23, 59, 59);
+                                  clientInvoices = clientInvoices.filter(inv => { const d = new Date(inv.invoiceDate); return d >= fyStart && d <= fyEnd; });
+                                }
+                                const outstandingInvoices = clientInvoices.filter(inv => {
+                                  const paidAmount = (data.receipts || []).filter(r => r.invoiceId === inv.id || (r.invoiceEntries && r.invoiceEntries.some(e => e.invoiceId === inv.id))).reduce((sum, r) => {
+                                    if (r.invoiceId === inv.id) return sum + (r.amount || 0) + (r.tds || 0) + (r.discount || 0);
+                                    const entry = r.invoiceEntries?.find(e => e.invoiceId === inv.id);
+                                    return sum + (entry?.amount || 0) + (entry?.tds || 0) + (entry?.discount || 0);
+                                  }, 0);
+                                  return (inv.totalAmount || 0) - paidAmount > 0.01;
+                                });
+                                return outstandingInvoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0).toLocaleString('en-IN');
+                              })()}
+                            </td>
+                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#16a34a'}}>
+                              ₹{(() => {
+                                const fyFilter = ledgerFY && ledgerFY !== 'all';
+                                let clientInvoices = (data.invoices || []).filter(inv => inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
+                                if (fyFilter) {
+                                  const [startYr] = ledgerFY.split('-');
+                                  const fyStart = new Date(parseInt('20' + startYr.slice(-2)), 3, 1);
+                                  const fyEnd = new Date(parseInt('20' + startYr.slice(-2)) + 1, 2, 31, 23, 59, 59);
+                                  clientInvoices = clientInvoices.filter(inv => { const d = new Date(inv.invoiceDate); return d >= fyStart && d <= fyEnd; });
+                                }
+                                return clientInvoices.reduce((total, inv) => {
+                                  const paidAmount = (data.receipts || []).filter(r => r.invoiceId === inv.id || (r.invoiceEntries && r.invoiceEntries.some(e => e.invoiceId === inv.id))).reduce((sum, r) => {
+                                    if (r.invoiceId === inv.id) return sum + (r.amount || 0) + (r.tds || 0) + (r.discount || 0);
+                                    const entry = r.invoiceEntries?.find(e => e.invoiceId === inv.id);
+                                    return sum + (entry?.amount || 0) + (entry?.tds || 0) + (entry?.discount || 0);
+                                  }, 0);
+                                  const balance = Math.max(0, (inv.totalAmount || 0) - paidAmount);
+                                  if (balance > 0.01) return total + paidAmount;
+                                  return total;
+                                }, 0).toLocaleString('en-IN');
+                              })()}
+                            </td>
+                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#ea580c', fontSize: '12px'}}>
+                              ₹{(() => {
+                                const fyFilter = ledgerFY && ledgerFY !== 'all';
+                                let clientInvoices = (data.invoices || []).filter(inv => inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
+                                if (fyFilter) {
+                                  const [startYr] = ledgerFY.split('-');
+                                  const fyStart = new Date(parseInt('20' + startYr.slice(-2)), 3, 1);
+                                  const fyEnd = new Date(parseInt('20' + startYr.slice(-2)) + 1, 2, 31, 23, 59, 59);
+                                  clientInvoices = clientInvoices.filter(inv => { const d = new Date(inv.invoiceDate); return d >= fyStart && d <= fyEnd; });
+                                }
+                                return clientInvoices.reduce((total, inv) => {
+                                  const paidAmount = (data.receipts || []).filter(r => r.invoiceId === inv.id || (r.invoiceEntries && r.invoiceEntries.some(e => e.invoiceId === inv.id))).reduce((sum, r) => {
+                                    if (r.invoiceId === inv.id) return sum + (r.amount || 0) + (r.tds || 0) + (r.discount || 0);
+                                    const entry = r.invoiceEntries?.find(e => e.invoiceId === inv.id);
+                                    return sum + (entry?.amount || 0) + (entry?.tds || 0) + (entry?.discount || 0);
+                                  }, 0);
+                                  const balance = Math.max(0, (inv.totalAmount || 0) - paidAmount);
+                                  return total + balance;
+                                }, 0).toLocaleString('en-IN');
+                              })()}
+                            </td>
+                            <td colSpan={2}></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
                   </div>
                 </div>
               </div>
