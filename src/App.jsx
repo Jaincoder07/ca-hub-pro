@@ -20183,7 +20183,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                           ID: {viewingBulkBatch.id?.substring(0, 12).toUpperCase()}
                                         </span>
                                       </div>
-                                      <div style={{display: 'flex', gap: '16px', fontSize: '13px', opacity: 0.9'}}>
+                                      <div style={{display: 'flex', gap: '16px', fontSize: '13px', opacity: 0.9}}>
                                         <span>📅 {new Date(viewingBulkBatch.invoiceDate || viewingBulkBatch.createdAt).toLocaleDateString('en-IN', {weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'})}</span>
                                         <span>📝 {viewingBulkBatch.taskType || viewingBulkBatch.childTask || 'Various Tasks'}</span>
                                         <span>🏢 {viewingBulkBatch.parentTask || ''}</span>
