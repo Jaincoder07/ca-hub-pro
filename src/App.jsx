@@ -14805,6 +14805,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const [multipleTaskInvoiceNo, setMultipleTaskInvoiceNo] = useState('');
     const [showClientSuggestions, setShowClientSuggestions] = useState(false);
     const [showCodeSuggestions, setShowCodeSuggestions] = useState(false);
+    const [showMultipleTaskGroupSuggestions, setShowMultipleTaskGroupSuggestions] = useState(false);
     
     // Autocomplete states
     const [showClientNameSuggestions, setShowClientNameSuggestions] = useState(false);
@@ -19263,17 +19264,53 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', alignItems: 'end'}}>
                             <div>
                               <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Group No. <span style={{color: '#dc2626'}}>*</span></label>
-                              <select
-                                value={multipleTaskFilters.groupName}
-                                onChange={(e) => setMultipleTaskFilters({...multipleTaskFilters, groupName: e.target.value, clientName: '', clientCode: ''})}
-                                style={{width: '100%', padding: '12px', border: '2px solid #86efac', borderRadius: '8px', fontSize: '14px', background: '#fff', fontWeight: '600'}}
-                              >
-                                <option value="">-- Select Group --</option>
-                                {[...new Set((data.clients || []).map(c => c.groupName).filter(Boolean))].sort().map(g => {
-                                  const clientCount = (data.clients || []).filter(c => c.groupName === g).length;
-                                  return <option key={g} value={g}>{g} ({clientCount} clients)</option>;
-                                })}
-                              </select>
+                              <div style={{position: 'relative'}}>
+                                <input
+                                  type="text"
+                                  value={multipleTaskFilters.groupName}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setMultipleTaskFilters({...multipleTaskFilters, groupName: val, clientName: '', clientCode: ''});
+                                    setShowMultipleTaskGroupSuggestions(val.length >= 1);
+                                  }}
+                                  onFocus={() => setShowMultipleTaskGroupSuggestions(true)}
+                                  onBlur={() => setTimeout(() => setShowMultipleTaskGroupSuggestions(false), 200)}
+                                  placeholder="Type or select group..."
+                                  style={{width: '100%', padding: '12px', border: '2px solid #86efac', borderRadius: '8px', fontSize: '14px', background: '#fff', fontWeight: '600'}}
+                                />
+                                {showMultipleTaskGroupSuggestions && (
+                                  <div style={{position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '2px solid #10b981', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 100, maxHeight: '250px', overflow: 'auto'}}>
+                                    {[...new Set((data.clients || []).map(c => c.groupName).filter(Boolean))]
+                                      .filter(g => !multipleTaskFilters.groupName || g.toLowerCase().includes(multipleTaskFilters.groupName.toLowerCase()))
+                                      .sort()
+                                      .slice(0, 15)
+                                      .map(g => {
+                                        const clientCount = (data.clients || []).filter(c => c.groupName === g).length;
+                                        return (
+                                          <div
+                                            key={g}
+                                            onClick={() => {
+                                              setMultipleTaskFilters({...multipleTaskFilters, groupName: g, clientName: '', clientCode: ''});
+                                              setShowMultipleTaskGroupSuggestions(false);
+                                            }}
+                                            style={{padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}
+                                            onMouseEnter={(e) => e.currentTarget.style.background = '#f0fdf4'}
+                                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                          >
+                                            <span style={{fontWeight: '600', color: '#065f46'}}>{g}</span>
+                                            <span style={{fontSize: '11px', color: '#64748b', background: '#f1f5f9', padding: '2px 8px', borderRadius: '10px'}}>{clientCount} clients</span>
+                                          </div>
+                                        );
+                                      })}
+                                    {[...new Set((data.clients || []).map(c => c.groupName).filter(Boolean))]
+                                      .filter(g => !multipleTaskFilters.groupName || g.toLowerCase().includes(multipleTaskFilters.groupName.toLowerCase())).length === 0 && (
+                                      <div style={{padding: '16px', textAlign: 'center', color: '#64748b', fontSize: '13px'}}>
+                                        No matching groups found. You can type a new group name.
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                             <div>
                               <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Invoice Type</label>
@@ -19509,8 +19546,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     )}
                     
                     {/* Single Client Mode (backward compatibility) */}
-                    {multipleTaskClient && !multipleTaskClient.groupMode && multipleTaskLineItems.length === 0 && (
-                    {multipleTaskClient && multipleTaskSelectedTasks.length === 0 && (
+                    {multipleTaskClient && !multipleTaskClient.groupMode && multipleTaskSelectedTasks.length === 0 && (
                       <div style={{background: '#fff', padding: '28px', borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', border: '1px solid #e2e8f0'}}>
                         {/* Client Info Header - Green Theme */}
                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '16px 20px', background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '12px', border: '1px solid #86efac'}}>
