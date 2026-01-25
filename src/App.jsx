@@ -14862,6 +14862,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       toDate: ''
     });
     const [selectedClientsForReceipt, setSelectedClientsForReceipt] = useState([]);
+    const [selectedInvoicesForReceipt, setSelectedInvoicesForReceipt] = useState([]); // For multi-invoice selection
     const [receiptFormData, setReceiptFormData] = useState({
       receiptDate: new Date().toISOString().split('T')[0],
       narration: '',
@@ -23632,20 +23633,20 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         {/* Receipts Tab */}
         {activeTab === 'receipts' && (
           <div>
-            {/* Sub-tab Toggle */}
-            <div style={{display: 'flex', gap: '12px', marginBottom: '24px'}}>
+            {/* Sub-tab Toggle - Green Theme */}
+            <div style={{display: 'flex', gap: '10px', marginBottom: '20px'}}>
               <button
                 onClick={() => setReceiptMode('post')}
                 style={{
-                  padding: '14px 28px',
-                  background: receiptMode === 'post' ? '#10b981' : '#f1f5f9',
+                  padding: '10px 24px',
+                  background: receiptMode === 'post' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#f1f5f9',
                   color: receiptMode === 'post' ? '#fff' : '#64748b',
                   border: 'none',
-                  borderRadius: '8px',
+                  borderRadius: '6px',
                   cursor: 'pointer',
                   fontWeight: '600',
-                  fontSize: '14px',
-                  transition: 'all 0.2s'
+                  fontSize: '13px',
+                  boxShadow: receiptMode === 'post' ? '0 4px 12px rgba(16,185,129,0.3)' : 'none'
                 }}
               >
                 📝 Post Receipts
@@ -23653,15 +23654,15 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               <button
                 onClick={() => setReceiptMode('view')}
                 style={{
-                  padding: '14px 28px',
-                  background: receiptMode === 'view' ? '#3b82f6' : '#f1f5f9',
+                  padding: '10px 24px',
+                  background: receiptMode === 'view' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#f1f5f9',
                   color: receiptMode === 'view' ? '#fff' : '#64748b',
                   border: 'none',
-                  borderRadius: '8px',
+                  borderRadius: '6px',
                   cursor: 'pointer',
                   fontWeight: '600',
-                  fontSize: '14px',
-                  transition: 'all 0.2s'
+                  fontSize: '13px',
+                  boxShadow: receiptMode === 'view' ? '0 4px 12px rgba(16,185,129,0.3)' : 'none'
                 }}
               >
                 📋 View Receipts
@@ -23671,16 +23672,19 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             {/* POST RECEIPTS MODE */}
             {receiptMode === 'post' && (
               <div>
-                {/* Step 1: Filters */}
-                <div style={{background: '#fff', borderRadius: '12px', padding: '24px', marginBottom: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
-                  <h3 style={{margin: '0 0 20px 0', fontSize: '16px', fontWeight: '600', color: '#1e293b'}}>Step 1: Select Clients</h3>
-                  <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '16px', alignItems: 'end'}}>
+                {/* Step 1: Filters - Green Theme */}
+                <div style={{background: '#fff', borderRadius: '10px', padding: '16px 20px', marginBottom: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0'}}>
+                  <h3 style={{margin: '0 0 12px 0', fontSize: '13px', fontWeight: '600', color: '#065f46', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                    <span style={{background: '#10b981', color: '#fff', width: '20px', height: '20px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px'}}>1</span>
+                    Filter & Select Invoices
+                  </h3>
+                  <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '12px', alignItems: 'end'}}>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: '#64748b'}}>Group No.</label>
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Group Name</label>
                       <select
                         value={receiptFilters.groupName}
-                        onChange={(e) => { setReceiptFilters({...receiptFilters, groupName: e.target.value}); setSelectedClientsForReceipt([]); }}
-                        style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', background: '#fff'}}
+                        onChange={(e) => { setReceiptFilters({...receiptFilters, groupName: e.target.value}); setSelectedClientsForReceipt([]); setSelectedInvoicesForReceipt([]); }}
+                        style={{width: '100%', padding: '8px 10px', border: '2px solid #86efac', borderRadius: '6px', fontSize: '12px', background: '#f0fdf4'}}
                       >
                         <option value="">All Groups</option>
                         {[...new Set(data.clients.map(c => c.groupName).filter(Boolean))].sort().map(g => 
@@ -23689,255 +23693,301 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       </select>
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: '#64748b'}}>Client Name</label>
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Client Code</label>
+                      <select
+                        value={receiptFilters.clientCode || ''}
+                        onChange={(e) => { setReceiptFilters({...receiptFilters, clientCode: e.target.value}); setSelectedClientsForReceipt([]); setSelectedInvoicesForReceipt([]); }}
+                        style={{width: '100%', padding: '8px 10px', border: '2px solid #86efac', borderRadius: '6px', fontSize: '12px', background: '#f0fdf4'}}
+                      >
+                        <option value="">All Codes</option>
+                        {[...new Set(data.clients.map(c => c.fileNo).filter(Boolean))].sort().map(code => 
+                          <option key={code} value={code}>{code}</option>
+                        )}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Client Name</label>
                       <input
                         type="text"
                         value={receiptFilters.clientName}
-                        onChange={(e) => { setReceiptFilters({...receiptFilters, clientName: e.target.value}); setSelectedClientsForReceipt([]); }}
+                        onChange={(e) => { setReceiptFilters({...receiptFilters, clientName: e.target.value}); setSelectedClientsForReceipt([]); setSelectedInvoicesForReceipt([]); }}
                         placeholder="Search client..."
-                        style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
+                        style={{width: '100%', padding: '8px 10px', border: '2px solid #86efac', borderRadius: '6px', fontSize: '12px', background: '#f0fdf4'}}
                       />
                     </div>
                     <button
-                      onClick={() => { setReceiptFilters({groupName: '', clientName: '', fromDate: '', toDate: ''}); setSelectedClientsForReceipt([]); }}
-                      style={{padding: '10px 20px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '500'}}
+                      onClick={() => { setReceiptFilters({groupName: '', clientName: '', clientCode: '', fromDate: '', toDate: ''}); setSelectedClientsForReceipt([]); setSelectedInvoicesForReceipt([]); }}
+                      style={{padding: '8px 16px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', fontSize: '11px'}}
                     >
                       Reset
                     </button>
                   </div>
                 </div>
 
-                {/* Client Selection - Only show if no clients selected yet */}
+                {/* Invoice Selection - Multi-select */}
                 {selectedClientsForReceipt.length === 0 && (
-                  <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', marginBottom: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
-                    <div style={{padding: '16px 24px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0'}}>
-                      <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#1e293b'}}>
-                        Clients with Pending Invoices ({(() => {
-                          const clients = {};
-                          (data.invoices || []).forEach(inv => {
-                            if (!inv.clientName) return;
-                            const paid = (data.receipts || []).filter(r => r.invoiceId === inv.id).reduce((s, r) => s + (r.amount || 0) + (r.tds || 0) + (r.discount || 0), 0);
-                            const due = (inv.totalAmount || 0) - paid;
-                            if (due > 0.01) {
-                              if (!clients[inv.clientName]) clients[inv.clientName] = { count: 0, total: 0 };
-                              clients[inv.clientName].count++;
-                              clients[inv.clientName].total += due;
-                            }
-                          });
-                          let filtered = Object.entries(clients);
-                          if (receiptFilters.groupName) {
-                            filtered = filtered.filter(([name]) => {
-                              const client = data.clients.find(c => c.name === name);
-                              return client?.groupName?.toLowerCase().includes(receiptFilters.groupName.toLowerCase());
-                            });
-                          }
-                          if (receiptFilters.clientName) {
-                            filtered = filtered.filter(([name]) => name.toLowerCase().includes(receiptFilters.clientName.toLowerCase()));
-                          }
-                          return filtered.length;
-                        })()})
+                  <div style={{background: '#fff', borderRadius: '10px', overflow: 'hidden', marginBottom: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0'}}>
+                    <div style={{padding: '10px 16px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                      <h3 style={{margin: 0, fontSize: '12px', fontWeight: '600', color: '#fff'}}>
+                        📋 Select Invoices for Receipt (Multiple Selection Allowed)
                       </h3>
+                      {selectedInvoicesForReceipt.length > 0 && (
+                        <span style={{background: 'rgba(255,255,255,0.2)', padding: '3px 10px', borderRadius: '10px', fontSize: '11px', color: '#fff', fontWeight: '600'}}>
+                          {selectedInvoicesForReceipt.length} selected
+                        </span>
+                      )}
                     </div>
                     <div style={{maxHeight: '400px', overflow: 'auto'}}>
-                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
+                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
                         <thead>
-                          <tr style={{background: '#f8fafc', position: 'sticky', top: 0}}>
-                            <th style={{padding: '12px 16px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0', width: '50px'}}>Select</th>
-                            <th style={{padding: '12px 16px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Client Name</th>
-                            <th style={{padding: '12px 16px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>File No</th>
-                            <th style={{padding: '12px 16px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Group</th>
-                            <th style={{padding: '12px 16px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Invoices</th>
-                            <th style={{padding: '12px 16px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Due Amount</th>
+                          <tr style={{background: '#f0fdf4', position: 'sticky', top: 0}}>
+                            <th style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #86efac', width: '35px'}}>
+                              <input 
+                                type="checkbox" 
+                                style={{width: '14px', height: '14px', accentColor: '#10b981'}}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    const allIds = [];
+                                    (data.invoices || []).forEach(inv => {
+                                      if (!inv.clientName) return;
+                                      const client = data.clients.find(c => c.name?.toLowerCase() === inv.clientName?.toLowerCase());
+                                      const paid = (data.receipts || []).filter(r => r.invoiceId === inv.id || (r.invoiceEntries && r.invoiceEntries.some(e => e.invoiceId === inv.id))).reduce((s, r) => {
+                                        if (r.invoiceId === inv.id) return s + (r.amount || 0) + (r.tds || 0) + (r.discount || 0);
+                                        const entry = r.invoiceEntries?.find(e => e.invoiceId === inv.id);
+                                        return s + (entry?.amount || 0) + (entry?.tds || 0) + (entry?.discount || 0);
+                                      }, 0);
+                                      if ((inv.totalAmount || 0) - paid <= 0.01) return;
+                                      if (receiptFilters.groupName && client?.groupName !== receiptFilters.groupName) return;
+                                      if (receiptFilters.clientCode && client?.fileNo !== receiptFilters.clientCode) return;
+                                      if (receiptFilters.clientName && !inv.clientName.toLowerCase().includes(receiptFilters.clientName.toLowerCase())) return;
+                                      allIds.push(inv.id);
+                                    });
+                                    setSelectedInvoicesForReceipt(allIds);
+                                  } else {
+                                    setSelectedInvoicesForReceipt([]);
+                                  }
+                                }}
+                              />
+                            </th>
+                            <th style={{padding: '8px 6px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #86efac'}}>Client Code</th>
+                            <th style={{padding: '8px 6px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #86efac'}}>Client Name</th>
+                            <th style={{padding: '8px 6px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #86efac'}}>Group</th>
+                            <th style={{padding: '8px 6px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #86efac'}}>Invoice No</th>
+                            <th style={{padding: '8px 6px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #86efac'}}>Date</th>
+                            <th style={{padding: '8px 6px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #86efac'}}>Invoice Amt</th>
+                            <th style={{padding: '8px 6px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #86efac'}}>Paid</th>
+                            <th style={{padding: '8px 6px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #86efac', color: '#dc2626'}}>Due</th>
                           </tr>
                         </thead>
                         <tbody>
                           {(() => {
-                            const clientsData = {};
+                            const invoicesData = [];
                             (data.invoices || []).forEach(inv => {
                               if (!inv.clientName) return;
-                              const paid = (data.receipts || []).filter(r => r.invoiceId === inv.id).reduce((s, r) => s + (r.amount || 0) + (r.tds || 0) + (r.discount || 0), 0);
+                              const client = data.clients.find(c => c.name?.toLowerCase() === inv.clientName?.toLowerCase());
+                              const paid = (data.receipts || []).filter(r => r.invoiceId === inv.id || (r.invoiceEntries && r.invoiceEntries.some(e => e.invoiceId === inv.id))).reduce((s, r) => {
+                                if (r.invoiceId === inv.id) return s + (r.amount || 0) + (r.tds || 0) + (r.discount || 0);
+                                const entry = r.invoiceEntries?.find(e => e.invoiceId === inv.id);
+                                return s + (entry?.amount || 0) + (entry?.tds || 0) + (entry?.discount || 0);
+                              }, 0);
                               const due = (inv.totalAmount || 0) - paid;
-                              if (due > 0.01) {
-                                if (!clientsData[inv.clientName]) {
-                                  const client = data.clients.find(c => c.name?.toLowerCase() === inv.clientName?.toLowerCase());
-                                  clientsData[inv.clientName] = {
-                                    name: inv.clientName,
-                                    code: inv.clientCode || client?.fileNo || '',
-                                    group: inv.clientGroup || client?.groupName || '',
-                                    count: 0,
-                                    total: 0
-                                  };
-                                }
-                                clientsData[inv.clientName].count++;
-                                clientsData[inv.clientName].total += due;
-                              }
+                              if (due <= 0.01) return;
+                              
+                              if (receiptFilters.groupName && client?.groupName !== receiptFilters.groupName) return;
+                              if (receiptFilters.clientCode && client?.fileNo !== receiptFilters.clientCode) return;
+                              if (receiptFilters.clientName && !inv.clientName.toLowerCase().includes(receiptFilters.clientName.toLowerCase())) return;
+                              
+                              invoicesData.push({
+                                ...inv,
+                                clientCode: client?.fileNo || inv.clientCode || '',
+                                groupName: client?.groupName || '',
+                                paidAmount: paid,
+                                dueAmount: due
+                              });
                             });
-                            let filtered = Object.values(clientsData);
-                            if (receiptFilters.groupName) {
-                              filtered = filtered.filter(c => c.group?.toLowerCase().includes(receiptFilters.groupName.toLowerCase()));
-                            }
-                            if (receiptFilters.clientName) {
-                              filtered = filtered.filter(c => c.name?.toLowerCase().includes(receiptFilters.clientName.toLowerCase()));
-                            }
-                            if (filtered.length === 0) {
+                            
+                            invoicesData.sort((a, b) => {
+                              if (a.groupName !== b.groupName) return (a.groupName || '').localeCompare(b.groupName || '');
+                              return (a.clientName || '').localeCompare(b.clientName || '');
+                            });
+                            
+                            if (invoicesData.length === 0) {
                               return (
                                 <tr>
-                                  <td colSpan={6} style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>
-                                    No clients with pending invoices found
+                                  <td colSpan={9} style={{padding: '30px', textAlign: 'center', color: '#64748b', fontSize: '12px'}}>
+                                    No pending invoices found
                                   </td>
                                 </tr>
                               );
                             }
-                            return filtered.map((client, idx) => (
-                              <tr key={idx} style={{borderBottom: '1px solid #f1f5f9', cursor: 'pointer'}} onClick={() => setSelectedClientsForReceipt([client.name])}>
-                                <td style={{padding: '12px 16px', textAlign: 'center'}}>
-                                  <input type="checkbox" checked={selectedClientsForReceipt.includes(client.name)} onChange={() => {}} />
+                            return invoicesData.map((inv, idx) => {
+                              const isSelected = selectedInvoicesForReceipt.includes(inv.id);
+                              return (
+                              <tr key={inv.id} style={{borderBottom: '1px solid #f1f5f9', background: isSelected ? '#dcfce7' : idx % 2 === 0 ? '#fff' : '#f8fafc', cursor: 'pointer'}} 
+                                  onClick={() => setSelectedInvoicesForReceipt(prev => prev.includes(inv.id) ? prev.filter(x => x !== inv.id) : [...prev, inv.id])}>
+                                <td style={{padding: '6px', textAlign: 'center'}}>
+                                  <input type="checkbox" checked={isSelected} onChange={() => {}} style={{width: '14px', height: '14px', accentColor: '#10b981'}} />
                                 </td>
-                                <td style={{padding: '12px 16px', fontWeight: '500'}}>{client.name}</td>
-                                <td style={{padding: '12px 16px', color: '#64748b'}}>{client.code}</td>
-                                <td style={{padding: '12px 16px', color: '#64748b'}}>{client.group}</td>
-                                <td style={{padding: '12px 16px', textAlign: 'center'}}>
-                                  <span style={{padding: '4px 12px', background: '#fef3c7', color: '#92400e', borderRadius: '12px', fontSize: '12px', fontWeight: '600'}}>{client.count}</span>
-                                </td>
-                                <td style={{padding: '12px 16px', textAlign: 'right', fontWeight: '600', color: '#dc2626'}}>₹{client.total.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                                <td style={{padding: '6px', fontWeight: '600', color: '#4f46e5', fontFamily: 'monospace', fontSize: '10px'}}>{inv.clientCode || '-'}</td>
+                                <td style={{padding: '6px', fontWeight: '500', fontSize: '11px'}}>{inv.clientName}</td>
+                                <td style={{padding: '6px', color: '#64748b', fontSize: '10px'}}>{inv.groupName || '-'}</td>
+                                <td style={{padding: '6px', fontWeight: '500', color: '#10b981', fontSize: '11px'}}>{inv.invoiceNo}</td>
+                                <td style={{padding: '6px', color: '#64748b', fontSize: '10px'}}>{inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-'}</td>
+                                <td style={{padding: '6px', textAlign: 'right', fontSize: '11px'}}>₹{inv.totalAmount?.toLocaleString('en-IN')}</td>
+                                <td style={{padding: '6px', textAlign: 'right', fontSize: '10px', color: '#059669'}}>₹{inv.paidAmount?.toLocaleString('en-IN')}</td>
+                                <td style={{padding: '6px', textAlign: 'right', fontWeight: '600', color: '#dc2626', fontSize: '11px'}}>₹{inv.dueAmount?.toLocaleString('en-IN')}</td>
                               </tr>
-                            ));
+                            );});
                           })()}
                         </tbody>
                       </table>
                     </div>
+                    {/* Selection Action Bar */}
+                    {selectedInvoicesForReceipt.length > 0 && (
+                      <div style={{padding: '10px 16px', background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', borderTop: '1px solid #86efac', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                        <span style={{fontSize: '12px', fontWeight: '600', color: '#065f46'}}>
+                          ✓ {selectedInvoicesForReceipt.length} invoice(s) selected
+                        </span>
+                        <button
+                          onClick={() => {
+                            const selectedInvs = (data.invoices || []).filter(inv => selectedInvoicesForReceipt.includes(inv.id));
+                            const uniqueClients = [...new Set(selectedInvs.map(inv => inv.clientName))];
+                            setSelectedClientsForReceipt(uniqueClients);
+                          }}
+                          style={{padding: '6px 16px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: '600', fontSize: '11px'}}
+                        >
+                          Proceed to Enter Amounts →
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* Step 2: Enter Receipt Details - Show when client selected */}
-                {selectedClientsForReceipt.length > 0 && (
+                {/* Step 2: Enter Receipt Details - Show when invoices selected */}
+                {selectedClientsForReceipt.length > 0 && selectedInvoicesForReceipt.length > 0 && (
                   <div>
-                    {/* Receipt Header */}
-                    <div style={{background: '#ecfdf5', borderRadius: '12px', padding: '20px', marginBottom: '20px', border: '1px solid #a7f3d0'}}>
-                      <h3 style={{margin: '0 0 16px 0', fontSize: '14px', fontWeight: '600', color: '#065f46'}}>Step 2: Receipt Details</h3>
-                      <div style={{display: 'grid', gridTemplateColumns: '200px 1fr', gap: '16px'}}>
+                    {/* Receipt Header - Green Theme */}
+                    <div style={{background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', borderRadius: '10px', padding: '14px 20px', marginBottom: '14px', border: '1px solid #86efac'}}>
+                      <h3 style={{margin: '0 0 10px 0', fontSize: '13px', fontWeight: '600', color: '#065f46', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <span style={{background: '#10b981', color: '#fff', width: '20px', height: '20px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px'}}>2</span>
+                        Receipt Details (One Receipt per Client)
+                      </h3>
+                      <div style={{display: 'grid', gridTemplateColumns: '160px 1fr', gap: '12px'}}>
                         <div>
-                          <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: '#065f46'}}>Receipt Date</label>
+                          <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Receipt Date</label>
                           <input
                             type="date"
                             value={receiptFormData.receiptDate}
                             onChange={(e) => setReceiptFormData({...receiptFormData, receiptDate: e.target.value})}
-                            style={{width: '100%', padding: '10px 12px', border: '1px solid #a7f3d0', borderRadius: '8px', fontSize: '14px', background: '#fff'}}
+                            style={{width: '100%', padding: '7px 10px', border: '2px solid #86efac', borderRadius: '6px', fontSize: '12px', background: '#fff'}}
                           />
                         </div>
                         <div>
-                          <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: '#065f46'}}>Narration</label>
+                          <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Narration</label>
                           <input
                             type="text"
                             value={receiptFormData.narration}
                             onChange={(e) => setReceiptFormData({...receiptFormData, narration: e.target.value})}
                             placeholder="Enter narration..."
-                            style={{width: '100%', padding: '10px 12px', border: '1px solid #a7f3d0', borderRadius: '8px', fontSize: '14px'}}
+                            style={{width: '100%', padding: '7px 10px', border: '2px solid #86efac', borderRadius: '6px', fontSize: '12px'}}
                           />
                         </div>
                       </div>
                     </div>
 
-                    {/* Invoice Table */}
+                    {/* Invoice Entry Tables - Grouped by Client */}
                     {selectedClientsForReceipt.map(clientName => {
                       const clientInvoices = (data.invoices || []).filter(inv => {
                         if (inv.clientName !== clientName) return false;
-                        const paid = (data.receipts || []).filter(r => r.invoiceId === inv.id).reduce((s, r) => s + (r.amount || 0) + (r.tds || 0) + (r.discount || 0), 0);
-                        return (inv.totalAmount || 0) - paid > 0.01;
+                        if (!selectedInvoicesForReceipt.includes(inv.id)) return false;
+                        return true;
                       }).map(inv => {
-                        const paid = (data.receipts || []).filter(r => r.invoiceId === inv.id).reduce((s, r) => s + (r.amount || 0) + (r.tds || 0) + (r.discount || 0), 0);
+                        const paid = (data.receipts || []).filter(r => r.invoiceId === inv.id || (r.invoiceEntries && r.invoiceEntries.some(e => e.invoiceId === inv.id))).reduce((s, r) => {
+                          if (r.invoiceId === inv.id) return s + (r.amount || 0) + (r.tds || 0) + (r.discount || 0);
+                          const entry = r.invoiceEntries?.find(e => e.invoiceId === inv.id);
+                          return s + (entry?.amount || 0) + (entry?.tds || 0) + (entry?.discount || 0);
+                        }, 0);
                         return { ...inv, paidAmount: paid, dueAmount: (inv.totalAmount || 0) - paid };
                       });
                       const client = data.clients.find(c => c.name?.toLowerCase() === clientName.toLowerCase());
                       
+                      if (clientInvoices.length === 0) return null;
+                      
                       return (
-                        <div key={clientName} style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', marginBottom: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
-                          <div style={{padding: '16px 24px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff'}}>
+                        <div key={clientName} style={{background: '#fff', borderRadius: '10px', overflow: 'hidden', marginBottom: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0'}}>
+                          <div style={{padding: '10px 16px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff'}}>
                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                               <div>
-                                <h4 style={{margin: 0, fontSize: '16px', fontWeight: '600'}}>{clientName}</h4>
-                                <div style={{fontSize: '12px', opacity: 0.9, marginTop: '4px'}}>File No: {client?.fileNo || 'N/A'} | Group: {client?.groupName || 'N/A'}</div>
+                                <h4 style={{margin: 0, fontSize: '13px', fontWeight: '600'}}>{clientName}</h4>
+                                <div style={{fontSize: '10px', opacity: 0.9, marginTop: '2px'}}>Client Code: {client?.fileNo || 'N/A'} | Group: {client?.groupName || 'N/A'}</div>
                               </div>
                               <div style={{textAlign: 'right'}}>
-                                <div style={{fontSize: '11px', opacity: 0.9}}>Total Due</div>
-                                <div style={{fontSize: '20px', fontWeight: '700'}}>₹{clientInvoices.reduce((s, i) => s + i.dueAmount, 0).toLocaleString('en-IN')}</div>
+                                <div style={{fontSize: '9px', opacity: 0.9}}>Total Due</div>
+                                <div style={{fontSize: '16px', fontWeight: '700'}}>₹{clientInvoices.reduce((s, i) => s + i.dueAmount, 0).toLocaleString('en-IN')}</div>
                               </div>
                             </div>
                           </div>
                           <div style={{overflowX: 'auto'}}>
-                            <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+                            <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
                               <thead>
-                                <tr style={{background: '#f8fafc'}}>
-                                  <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Sr.No</th>
-                                  <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Bill Date</th>
-                                  <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Fin.Year</th>
-                                  <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Bill No</th>
-                                  <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Bill Amount</th>
-                                  <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Narration</th>
-                                  <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Due Amount</th>
-                                  <th style={{padding: '10px 12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Receipt Amt</th>
-                                  <th style={{padding: '10px 12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>TDS</th>
-                                  <th style={{padding: '10px 12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Discount</th>
-                                  <th style={{padding: '10px 12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Mode</th>
-                                  <th style={{padding: '10px 12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>View</th>
+                                <tr style={{background: '#f0fdf4'}}>
+                                  <th style={{padding: '8px 6px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #86efac', width: '35px'}}>Sr.</th>
+                                  <th style={{padding: '8px 6px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #86efac'}}>Date</th>
+                                  <th style={{padding: '8px 6px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #86efac'}}>Bill No</th>
+                                  <th style={{padding: '8px 6px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #86efac'}}>Bill Amt</th>
+                                  <th style={{padding: '8px 6px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #86efac', color: '#dc2626'}}>Due</th>
+                                  <th style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #86efac', background: '#dcfce7'}}>Receipt Amt</th>
+                                  <th style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #86efac', background: '#fef3c7'}}>TDS</th>
+                                  <th style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #86efac', background: '#dbeafe'}}>Discount</th>
+                                  <th style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #86efac'}}>Mode</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {clientInvoices.map((inv, idx) => (
-                                  <tr key={inv.id} style={{borderBottom: '1px solid #f1f5f9'}}>
-                                    <td style={{padding: '10px 12px'}}>{idx + 1}</td>
-                                    <td style={{padding: '10px 12px'}}>{inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-'}</td>
-                                    <td style={{padding: '10px 12px'}}>{inv.financialYear || '-'}</td>
-                                    <td style={{padding: '10px 12px', fontWeight: '500', color: '#3b82f6'}}>{inv.invoiceNo}</td>
-                                    <td style={{padding: '10px 12px', textAlign: 'right'}}>{inv.totalAmount?.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                                    <td style={{padding: '10px 12px', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{inv.serviceDescription || '-'}</td>
-                                    <td style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#dc2626'}}>{inv.dueAmount?.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                                    <td style={{padding: '8px 6px'}}>
+                                  <tr key={inv.id} style={{borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#f8fafc'}}>
+                                    <td style={{padding: '6px', fontSize: '10px'}}>{idx + 1}</td>
+                                    <td style={{padding: '6px', fontSize: '10px'}}>{inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-'}</td>
+                                    <td style={{padding: '6px', fontWeight: '500', color: '#10b981', fontSize: '11px'}}>{inv.invoiceNo}</td>
+                                    <td style={{padding: '6px', textAlign: 'right', fontSize: '11px'}}>₹{inv.totalAmount?.toLocaleString('en-IN')}</td>
+                                    <td style={{padding: '6px', textAlign: 'right', fontWeight: '600', color: '#dc2626', fontSize: '11px'}}>₹{inv.dueAmount?.toLocaleString('en-IN')}</td>
+                                    <td style={{padding: '4px', background: '#f0fdf4'}}>
                                       <input
                                         type="number"
                                         value={invoiceReceiptAmounts[inv.id]?.receiptAmount || ''}
                                         onChange={(e) => setInvoiceReceiptAmounts(prev => ({...prev, [inv.id]: {...prev[inv.id], receiptAmount: e.target.value}}))}
-                                        placeholder="0.00"
-                                        style={{width: '85px', padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '12px', textAlign: 'right'}}
+                                        placeholder="0"
+                                        style={{width: '65px', padding: '4px 6px', border: '2px solid #86efac', borderRadius: '4px', fontSize: '11px', textAlign: 'right', background: '#fff'}}
                                       />
                                     </td>
-                                    <td style={{padding: '8px 6px'}}>
+                                    <td style={{padding: '4px', background: '#fefce8'}}>
                                       <input
                                         type="number"
                                         value={invoiceReceiptAmounts[inv.id]?.tds || ''}
                                         onChange={(e) => setInvoiceReceiptAmounts(prev => ({...prev, [inv.id]: {...prev[inv.id], tds: e.target.value}}))}
-                                        placeholder="0.00"
-                                        style={{width: '65px', padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '12px', textAlign: 'right'}}
+                                        placeholder="0"
+                                        style={{width: '55px', padding: '4px 6px', border: '1px solid #fde68a', borderRadius: '4px', fontSize: '11px', textAlign: 'right'}}
                                       />
                                     </td>
-                                    <td style={{padding: '8px 6px'}}>
+                                    <td style={{padding: '4px', background: '#eff6ff'}}>
                                       <input
                                         type="number"
                                         value={invoiceReceiptAmounts[inv.id]?.discount || ''}
                                         onChange={(e) => setInvoiceReceiptAmounts(prev => ({...prev, [inv.id]: {...prev[inv.id], discount: e.target.value}}))}
-                                        placeholder="0.00"
-                                        style={{width: '65px', padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '12px', textAlign: 'right'}}
+                                        placeholder="0"
+                                        style={{width: '55px', padding: '4px 6px', border: '1px solid #bfdbfe', borderRadius: '4px', fontSize: '11px', textAlign: 'right'}}
                                       />
                                     </td>
-                                    <td style={{padding: '8px 6px'}}>
+                                    <td style={{padding: '4px'}}>
                                       <select
                                         value={invoiceReceiptAmounts[inv.id]?.paymentMode || 'Cash'}
                                         onChange={(e) => setInvoiceReceiptAmounts(prev => ({...prev, [inv.id]: {...prev[inv.id], paymentMode: e.target.value}}))}
-                                        style={{width: '75px', padding: '6px 4px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '11px'}}
+                                        style={{width: '60px', padding: '4px 3px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '10px'}}
                                       >
                                         <option value="Cash">Cash</option>
                                         <option value="Bank">Bank</option>
                                         <option value="UPI">UPI</option>
                                         <option value="Cheque">Cheque</option>
                                       </select>
-                                    </td>
-                                    <td style={{padding: '8px 6px', textAlign: 'center'}}>
-                                      <button
-                                        onClick={() => { setViewingInvoice(inv); setDebtorViewMode('invoice'); setSelectedInvoicingTab('debtors'); }}
-                                        style={{padding: '4px 8px', background: '#e0f2fe', color: '#0369a1', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px'}}
-                                      >
-                                        <Eye size={14} />
-                                      </button>
                                     </td>
                                   </tr>
                                 ))}
@@ -23949,44 +23999,47 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     })}
 
                     {/* Totals & Submit */}
-                    <div style={{background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+                    <div style={{background: '#fff', borderRadius: '10px', padding: '14px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0'}}>
                       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                        <div style={{display: 'flex', gap: '32px'}}>
+                        <div style={{display: 'flex', gap: '20px'}}>
                           <div>
-                            <div style={{fontSize: '12px', color: '#64748b'}}>Total Receipt</div>
-                            <div style={{fontSize: '20px', fontWeight: '700', color: '#10b981'}}>
-                              ₹{Object.values(invoiceReceiptAmounts).reduce((s, a) => s + parseFloat(a?.receiptAmount || 0), 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                            <div style={{fontSize: '10px', color: '#64748b'}}>Total Receipt</div>
+                            <div style={{fontSize: '16px', fontWeight: '700', color: '#10b981'}}>
+                              ₹{Object.values(invoiceReceiptAmounts).reduce((s, a) => s + parseFloat(a?.receiptAmount || 0), 0).toLocaleString('en-IN')}
                             </div>
                           </div>
                           <div>
-                            <div style={{fontSize: '12px', color: '#64748b'}}>Total TDS</div>
-                            <div style={{fontSize: '20px', fontWeight: '700', color: '#f59e0b'}}>
-                              ₹{Object.values(invoiceReceiptAmounts).reduce((s, a) => s + parseFloat(a?.tds || 0), 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                            <div style={{fontSize: '10px', color: '#64748b'}}>Total TDS</div>
+                            <div style={{fontSize: '16px', fontWeight: '700', color: '#f59e0b'}}>
+                              ₹{Object.values(invoiceReceiptAmounts).reduce((s, a) => s + parseFloat(a?.tds || 0), 0).toLocaleString('en-IN')}
                             </div>
                           </div>
                           <div>
-                            <div style={{fontSize: '12px', color: '#64748b'}}>Total Discount</div>
-                            <div style={{fontSize: '20px', fontWeight: '700', color: '#3b82f6'}}>
-                              ₹{Object.values(invoiceReceiptAmounts).reduce((s, a) => s + parseFloat(a?.discount || 0), 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                            <div style={{fontSize: '10px', color: '#64748b'}}>Total Discount</div>
+                            <div style={{fontSize: '16px', fontWeight: '700', color: '#3b82f6'}}>
+                              ₹{Object.values(invoiceReceiptAmounts).reduce((s, a) => s + parseFloat(a?.discount || 0), 0).toLocaleString('en-IN')}
                             </div>
                           </div>
                         </div>
-                        <div style={{display: 'flex', gap: '12px'}}>
+                        <div style={{display: 'flex', gap: '10px'}}>
                           <button
-                            onClick={() => { setSelectedClientsForReceipt([]); setInvoiceReceiptAmounts({}); }}
-                            style={{padding: '12px 24px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '500'}}
+                            onClick={() => { setSelectedClientsForReceipt([]); setSelectedInvoicesForReceipt([]); setInvoiceReceiptAmounts({}); }}
+                            style={{padding: '8px 18px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500'}}
                           >
                             ← Back
                           </button>
                           <button
                             onClick={() => {
-                              const newReceipts = [];
-                              // Get next receipt number based on existing receipts
+                              // Group by client and create ONE receipt per client with multiple invoice entries
+                              const clientGroups = {};
                               let counter = (data.receipts || []).length + 1;
                               
                               selectedClientsForReceipt.forEach(clientName => {
-                                const clientInvoices = (data.invoices || []).filter(inv => inv.clientName === clientName);
+                                const clientInvoices = (data.invoices || []).filter(inv => inv.clientName === clientName && selectedInvoicesForReceipt.includes(inv.id));
                                 const client = data.clients.find(c => c.name?.toLowerCase() === clientName.toLowerCase());
+                                
+                                const invoiceEntries = [];
+                                let totalReceipt = 0, totalTds = 0, totalDiscount = 0;
                                 
                                 clientInvoices.forEach(inv => {
                                   const amounts = invoiceReceiptAmounts[inv.id];
@@ -23996,13 +24049,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                   const disc = parseFloat(amounts.discount || 0);
                                   
                                   if (amt > 0 || tds > 0 || disc > 0) {
-                                    newReceipts.push({
-                                      id: Date.now().toString() + Math.random().toString(36).substr(2, 9) + counter,
-                                      receiptNo: 'RCP' + String(counter).padStart(4, '0'),
-                                      receiptDate: receiptFormData.receiptDate,
-                                      clientName: clientName,
-                                      clientCode: client?.fileNo || '',
-                                      groupName: client?.groupName || '',
+                                    invoiceEntries.push({
                                       invoiceId: inv.id,
                                       invoiceNo: inv.invoiceNo,
                                       invoiceAmount: inv.totalAmount,
@@ -24010,18 +24057,57 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                       tds: tds,
                                       discount: disc,
                                       totalSettled: amt + tds + disc,
-                                      narration: receiptFormData.narration,
                                       paymentMode: amounts.paymentMode || 'Cash',
                                       finYear: inv.financialYear,
-                                      serviceDescription: inv.serviceDescription,
-                                      createdAt: new Date().toISOString()
+                                      serviceDescription: inv.serviceDescription
                                     });
-                                    counter++;
+                                    totalReceipt += amt;
+                                    totalTds += tds;
+                                    totalDiscount += disc;
                                   }
                                 });
+                                
+                                if (invoiceEntries.length > 0) {
+                                  clientGroups[clientName] = {
+                                    client,
+                                    entries: invoiceEntries,
+                                    totalReceipt,
+                                    totalTds,
+                                    totalDiscount
+                                  };
+                                }
                               });
                               
-                              if (newReceipts.length === 0) { alert('Please enter receipt amounts'); return; }
+                              if (Object.keys(clientGroups).length === 0) {
+                                alert('Please enter receipt amounts');
+                                return;
+                              }
+                              
+                              // Create ONE receipt per client
+                              const newReceipts = [];
+                              Object.entries(clientGroups).forEach(([clientName, group]) => {
+                                const receipt = {
+                                  id: Date.now().toString() + Math.random().toString(36).substr(2, 9) + counter,
+                                  receiptNo: 'RCP' + String(counter).padStart(4, '0'),
+                                  receiptDate: receiptFormData.receiptDate,
+                                  clientName: clientName,
+                                  clientCode: group.client?.fileNo || '',
+                                  groupName: group.client?.groupName || '',
+                                  invoiceEntries: group.entries,
+                                  invoiceId: group.entries[0]?.invoiceId,
+                                  invoiceNo: group.entries.map(e => e.invoiceNo).join(', '),
+                                  invoiceAmount: group.entries.reduce((s, e) => s + (e.invoiceAmount || 0), 0),
+                                  amount: group.totalReceipt,
+                                  tds: group.totalTds,
+                                  discount: group.totalDiscount,
+                                  totalSettled: group.totalReceipt + group.totalTds + group.totalDiscount,
+                                  narration: receiptFormData.narration,
+                                  paymentMode: group.entries[0]?.paymentMode || 'Cash',
+                                  createdAt: new Date().toISOString()
+                                };
+                                newReceipts.push(receipt);
+                                counter++;
+                              });
                               
                               setData(prev => ({
                                 ...prev,
@@ -24031,11 +24117,12 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               setGeneratedReceipts(newReceipts);
                               setShowReceiptSummary(true);
                               setSelectedClientsForReceipt([]);
+                              setSelectedInvoicesForReceipt([]);
                               setInvoiceReceiptAmounts({});
                             }}
-                            style={{padding: '12px 32px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600'}}
+                            style={{padding: '8px 20px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '700', boxShadow: '0 4px 12px rgba(16,185,129,0.3)'}}
                           >
-                            ✓ Submit Receipts
+                            ✓ Submit ({selectedClientsForReceipt.length} Receipt(s))
                           </button>
                         </div>
                       </div>
@@ -24043,129 +24130,135 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   </div>
                 )}
 
-                {/* Success Summary */}
+                {/* Success Summary - Green Theme */}
                 {showReceiptSummary && (
-                  <div style={{background: '#fff', borderRadius: '12px', padding: '32px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', textAlign: 'center'}}>
-                    <div style={{width: '64px', height: '64px', background: '#dcfce7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px'}}>
-                      <Check size={32} style={{color: '#16a34a'}} />
+                  <div style={{background: '#fff', borderRadius: '10px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', textAlign: 'center', border: '2px solid #86efac'}}>
+                    <div style={{width: '50px', height: '50px', background: '#dcfce7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px'}}>
+                      <Check size={26} style={{color: '#16a34a'}} />
                     </div>
-                    <h2 style={{margin: '0 0 8px', color: '#16a34a'}}>Receipts Posted Successfully!</h2>
-                    <p style={{color: '#64748b', marginBottom: '24px'}}>{generatedReceipts.length} receipt(s) posted</p>
+                    <h2 style={{margin: '0 0 6px', color: '#16a34a', fontSize: '16px'}}>Receipts Posted Successfully!</h2>
+                    <p style={{color: '#64748b', marginBottom: '16px', fontSize: '12px'}}>{generatedReceipts.length} receipt(s) generated - One per client</p>
                     
-                    <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px', marginBottom: '24px', textAlign: 'left'}}>
+                    <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', marginBottom: '16px', textAlign: 'left'}}>
                       <thead>
-                        <tr style={{background: '#f8fafc'}}>
-                          <th style={{padding: '12px', borderBottom: '2px solid #e2e8f0'}}>Receipt No</th>
-                          <th style={{padding: '12px', borderBottom: '2px solid #e2e8f0'}}>Client</th>
-                          <th style={{padding: '12px', borderBottom: '2px solid #e2e8f0'}}>Invoice No</th>
-                          <th style={{padding: '12px', textAlign: 'right', borderBottom: '2px solid #e2e8f0'}}>Amount</th>
-                          <th style={{padding: '12px', borderBottom: '2px solid #e2e8f0'}}>Mode</th>
+                        <tr style={{background: '#f0fdf4'}}>
+                          <th style={{padding: '8px', borderBottom: '2px solid #86efac'}}>Receipt No</th>
+                          <th style={{padding: '8px', borderBottom: '2px solid #86efac'}}>Client Code</th>
+                          <th style={{padding: '8px', borderBottom: '2px solid #86efac'}}>Client</th>
+                          <th style={{padding: '8px', borderBottom: '2px solid #86efac'}}>Invoices</th>
+                          <th style={{padding: '8px', textAlign: 'right', borderBottom: '2px solid #86efac'}}>Amount</th>
+                          <th style={{padding: '8px', borderBottom: '2px solid #86efac'}}>Mode</th>
                         </tr>
                       </thead>
                       <tbody>
                         {generatedReceipts.map((r, i) => (
                           <tr key={i} style={{borderBottom: '1px solid #f1f5f9'}}>
-                            <td style={{padding: '12px', fontWeight: '600', color: '#10b981'}}>{r.receiptNo}</td>
-                            <td style={{padding: '12px'}}>{r.clientName}</td>
-                            <td style={{padding: '12px', color: '#3b82f6'}}>{r.invoiceNo}</td>
-                            <td style={{padding: '12px', textAlign: 'right', fontWeight: '600'}}>₹{r.amount?.toLocaleString('en-IN')}</td>
-                            <td style={{padding: '12px'}}>{r.paymentMode}</td>
+                            <td style={{padding: '8px', fontWeight: '600', color: '#10b981'}}>{r.receiptNo}</td>
+                            <td style={{padding: '8px', color: '#4f46e5', fontFamily: 'monospace', fontSize: '10px'}}>{r.clientCode || '-'}</td>
+                            <td style={{padding: '8px'}}>{r.clientName}</td>
+                            <td style={{padding: '8px', color: '#64748b', fontSize: '10px', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{r.invoiceNo}</td>
+                            <td style={{padding: '8px', textAlign: 'right', fontWeight: '600', color: '#10b981'}}>₹{r.amount?.toLocaleString('en-IN')}</td>
+                            <td style={{padding: '8px'}}>{r.paymentMode}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                     
-                    <div style={{display: 'flex', gap: '12px', justifyContent: 'center'}}>
-                      <button onClick={() => { setShowReceiptSummary(false); setGeneratedReceipts([]); }} style={{padding: '12px 24px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '8px', cursor: 'pointer'}}>Post More</button>
-                      <button onClick={() => setReceiptMode('view')} style={{padding: '12px 24px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer'}}>View All Receipts</button>
+                    <div style={{display: 'flex', gap: '10px', justifyContent: 'center'}}>
+                      <button onClick={() => { setShowReceiptSummary(false); setGeneratedReceipts([]); }} style={{padding: '8px 18px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px'}}>Post More</button>
+                      <button onClick={() => setReceiptMode('view')} style={{padding: '8px 18px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600'}}>View All Receipts</button>
                     </div>
                   </div>
                 )}
               </div>
             )}
 
-            {/* VIEW RECEIPTS MODE */}
+            {/* VIEW RECEIPTS MODE - Compact Green Theme */}
             {receiptMode === 'view' && (
               <div>
-                {/* Filters */}
-                <div style={{background: '#fff', borderRadius: '12px', padding: '20px', marginBottom: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
-                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px'}}>
+                {/* Filters - Green Theme */}
+                <div style={{background: '#fff', borderRadius: '10px', padding: '14px 16px', marginBottom: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0'}}>
+                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px', alignItems: 'end'}}>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: '#64748b'}}>Group No.</label>
-                      <select value={receiptFilters.groupName} onChange={(e) => setReceiptFilters({...receiptFilters, groupName: e.target.value})} style={{width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px'}}>
+                      <label style={{display: 'block', fontSize: '10px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Group Name</label>
+                      <select value={receiptFilters.groupName} onChange={(e) => setReceiptFilters({...receiptFilters, groupName: e.target.value})} style={{width: '100%', padding: '7px 8px', border: '2px solid #86efac', borderRadius: '5px', fontSize: '11px', background: '#f0fdf4'}}>
                         <option value="">All Groups</option>
                         {[...new Set((data.receipts || []).map(r => r.groupName).filter(Boolean))].map(g => <option key={g} value={g}>{g}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: '#64748b'}}>Client Name</label>
-                      <input type="text" value={receiptFilters.clientName} onChange={(e) => setReceiptFilters({...receiptFilters, clientName: e.target.value})} placeholder="Search..." style={{width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px'}} />
+                      <label style={{display: 'block', fontSize: '10px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Client Code</label>
+                      <select value={receiptFilters.clientCode || ''} onChange={(e) => setReceiptFilters({...receiptFilters, clientCode: e.target.value})} style={{width: '100%', padding: '7px 8px', border: '2px solid #86efac', borderRadius: '5px', fontSize: '11px', background: '#f0fdf4'}}>
+                        <option value="">All Codes</option>
+                        {[...new Set((data.receipts || []).map(r => r.clientCode).filter(Boolean))].map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: '#64748b'}}>From Date</label>
-                      <input type="date" value={receiptFilters.fromDate} onChange={(e) => setReceiptFilters({...receiptFilters, fromDate: e.target.value})} style={{width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px'}} />
+                      <label style={{display: 'block', fontSize: '10px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Client Name</label>
+                      <input type="text" value={receiptFilters.clientName} onChange={(e) => setReceiptFilters({...receiptFilters, clientName: e.target.value})} placeholder="Search..." style={{width: '100%', padding: '7px 8px', border: '2px solid #86efac', borderRadius: '5px', fontSize: '11px', background: '#f0fdf4'}} />
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: '#64748b'}}>To Date</label>
-                      <input type="date" value={receiptFilters.toDate} onChange={(e) => setReceiptFilters({...receiptFilters, toDate: e.target.value})} style={{width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px'}} />
+                      <label style={{display: 'block', fontSize: '10px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>From Date</label>
+                      <input type="date" value={receiptFilters.fromDate} onChange={(e) => setReceiptFilters({...receiptFilters, fromDate: e.target.value})} style={{width: '100%', padding: '7px 8px', border: '2px solid #86efac', borderRadius: '5px', fontSize: '11px', background: '#f0fdf4'}} />
                     </div>
-                    <div style={{display: 'flex', alignItems: 'flex-end'}}>
-                      <button onClick={() => setReceiptFilters({groupName: '', clientName: '', fromDate: '', toDate: ''})} style={{width: '100%', padding: '10px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '6px', cursor: 'pointer'}}>Reset</button>
+                    <div>
+                      <label style={{display: 'block', fontSize: '10px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>To Date</label>
+                      <input type="date" value={receiptFilters.toDate} onChange={(e) => setReceiptFilters({...receiptFilters, toDate: e.target.value})} style={{width: '100%', padding: '7px 8px', border: '2px solid #86efac', borderRadius: '5px', fontSize: '11px', background: '#f0fdf4'}} />
+                    </div>
+                    <div>
+                      <button onClick={() => setReceiptFilters({groupName: '', clientName: '', clientCode: '', fromDate: '', toDate: ''})} style={{width: '100%', padding: '7px 8px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '11px'}}>Reset</button>
                     </div>
                   </div>
                 </div>
 
-                {/* Receipts Table */}
-                <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
-                  <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
+                {/* Receipts Table - Compact */}
+                <div style={{background: '#fff', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0'}}>
+                  <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
                     <thead>
                       <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
-                        <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Receipt No</th>
-                        <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Date</th>
-                        <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
-                        <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Group</th>
-                        <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Invoice No</th>
-                        <th style={{padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>View Receipt</th>
-                        <th style={{padding: '14px 16px', textAlign: 'right', fontWeight: '600', color: '#fff'}}>Amount</th>
-                        <th style={{padding: '14px 16px', textAlign: 'right', fontWeight: '600', color: '#fff'}}>TDS</th>
-                        <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Mode</th>
-                        <th style={{padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Actions</th>
+                        <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Receipt No</th>
+                        <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Date</th>
+                        <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client Code</th>
+                        <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
+                        <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Group</th>
+                        <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Invoice(s)</th>
+                        <th style={{padding: '10px 8px', textAlign: 'right', fontWeight: '600', color: '#fff'}}>Amount</th>
+                        <th style={{padding: '10px 8px', textAlign: 'right', fontWeight: '600', color: '#fff'}}>TDS</th>
+                        <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Mode</th>
+                        <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {(() => {
                         let receipts = data.receipts || [];
-                        if (receiptFilters.groupName) receipts = receipts.filter(r => r.groupName?.toLowerCase().includes(receiptFilters.groupName.toLowerCase()));
+                        if (receiptFilters.groupName) receipts = receipts.filter(r => r.groupName === receiptFilters.groupName);
+                        if (receiptFilters.clientCode) receipts = receipts.filter(r => r.clientCode === receiptFilters.clientCode);
                         if (receiptFilters.clientName) receipts = receipts.filter(r => r.clientName?.toLowerCase().includes(receiptFilters.clientName.toLowerCase()));
                         if (receiptFilters.fromDate) receipts = receipts.filter(r => new Date(r.receiptDate) >= new Date(receiptFilters.fromDate));
                         if (receiptFilters.toDate) receipts = receipts.filter(r => new Date(r.receiptDate) <= new Date(receiptFilters.toDate));
                         receipts = receipts.sort((a, b) => new Date(b.receiptDate) - new Date(a.receiptDate));
                         
                         if (receipts.length === 0) {
-                          return <tr><td colSpan={10} style={{padding: '60px', textAlign: 'center', color: '#64748b'}}>No receipts found</td></tr>;
+                          return <tr><td colSpan={10} style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>No receipts found</td></tr>;
                         }
-                        return receipts.map(r => {
+                        return receipts.map((r, idx) => {
                           return (
-                            <tr key={r.id} style={{borderBottom: '1px solid #f1f5f9'}}>
-                              <td style={{padding: '14px 16px', fontWeight: '600', color: '#10b981'}}>{r.receiptNo}</td>
-                              <td style={{padding: '14px 16px'}}>{r.receiptDate ? new Date(r.receiptDate).toLocaleDateString('en-IN') : '-'}</td>
-                              <td style={{padding: '14px 16px', fontWeight: '500'}}>{r.clientName}</td>
-                              <td style={{padding: '14px 16px', color: '#64748b'}}>{r.groupName || '-'}</td>
-                              <td style={{padding: '14px 16px', color: '#3b82f6'}}>{r.invoiceNo}</td>
-                              <td style={{padding: '14px 16px', textAlign: 'center'}}>
-                                <button
-                                  onClick={() => setViewingReceipt(r)}
-                                  style={{padding: '4px 10px', background: '#dcfce7', color: '#166534', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px'}}
-                                >
-                                  <Eye size={14} />
-                                </button>
-                              </td>
-                              <td style={{padding: '14px 16px', textAlign: 'right', fontWeight: '600'}}>₹{r.amount?.toLocaleString('en-IN')}</td>
-                              <td style={{padding: '14px 16px', textAlign: 'right', color: '#64748b'}}>{r.tds > 0 ? `₹${r.tds}` : '-'}</td>
-                              <td style={{padding: '14px 16px'}}>{r.paymentMode}</td>
-                              <td style={{padding: '14px 16px', textAlign: 'center'}}>
-                                <button onClick={() => { setEditingReceipt({...r}); setShowEditReceiptModal(true); }} style={{padding: '6px 12px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', marginRight: '6px'}}>Edit</button>
-                                <button onClick={() => { if (window.confirm('Delete this receipt?')) setData(prev => ({...prev, receipts: prev.receipts.filter(x => x.id !== r.id)})); }} style={{padding: '6px 12px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px'}}>Delete</button>
+                            <tr key={r.id} style={{borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#f8fafc'}}>
+                              <td style={{padding: '8px', fontWeight: '600', color: '#10b981'}}>{r.receiptNo}</td>
+                              <td style={{padding: '8px', fontSize: '10px'}}>{r.receiptDate ? new Date(r.receiptDate).toLocaleDateString('en-IN') : '-'}</td>
+                              <td style={{padding: '8px', color: '#4f46e5', fontFamily: 'monospace', fontSize: '10px'}}>{r.clientCode || '-'}</td>
+                              <td style={{padding: '8px', fontWeight: '500'}}>{r.clientName}</td>
+                              <td style={{padding: '8px', color: '#64748b', fontSize: '10px'}}>{r.groupName || '-'}</td>
+                              <td style={{padding: '8px', color: '#10b981', fontSize: '10px', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={r.invoiceNo}>{r.invoiceNo}</td>
+                              <td style={{padding: '8px', textAlign: 'right', fontWeight: '600', color: '#059669'}}>₹{r.amount?.toLocaleString('en-IN')}</td>
+                              <td style={{padding: '8px', textAlign: 'right', color: '#64748b', fontSize: '10px'}}>{r.tds > 0 ? `₹${r.tds}` : '-'}</td>
+                              <td style={{padding: '8px', fontSize: '10px'}}>{r.paymentMode}</td>
+                              <td style={{padding: '6px', textAlign: 'center'}}>
+                                <div style={{display: 'flex', gap: '3px', justifyContent: 'center'}}>
+                                  <button onClick={() => setViewingReceipt(r)} style={{padding: '4px 8px', background: '#dcfce7', color: '#166534', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}><Eye size={12} /></button>
+                                  <button onClick={() => { setEditingReceipt({...r}); setShowEditReceiptModal(true); }} style={{padding: '4px 8px', background: '#fef3c7', color: '#92400e', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}>Edit</button>
+                                  <button onClick={() => { if (window.confirm('Delete this receipt?')) setData(prev => ({...prev, receipts: prev.receipts.filter(x => x.id !== r.id)})); }} style={{padding: '4px 8px', background: '#fef2f2', color: '#dc2626', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}>Del</button>
+                                </div>
                               </td>
                             </tr>
                           );
