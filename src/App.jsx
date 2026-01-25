@@ -15552,11 +15552,6 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       }, 1000);
     };
     
-    // Download invoice as PDF - uses browser print to PDF
-    const downloadInvoicePDF = () => {
-      printInvoicePDF();
-    };
-    
     // ============ RECEIPT FUNCTIONS ============
     
     // Get unique groups from clients
@@ -16371,6 +16366,344 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       }, 1000);
     };
     
+    // Download Invoice PDF - generates HTML and opens print dialog for PDF save
+    const downloadInvoicePDF = (invoice, orgs, clients) => {
+      if (!invoice) return;
+      
+      const currentOrg = orgs?.find(o => o.id === (invoice.orgId || invoice.organizationId)) || {};
+      const client = clients?.find(c => c.id === invoice.clientId) || {};
+      
+      const gstApplicable = invoice.gstApplicable !== false && currentOrg.gstApplicable === 'yes';
+      const invoiceFormat = invoice.invoiceFormat || (gstApplicable ? 'taxInvoice' : 'billOfSupply');
+      const isDarkTheme = invoiceFormat === 'billOfSupply';
+      
+      const primaryColor = isDarkTheme ? '#374151' : '#111827';
+      const headerGradient = isDarkTheme 
+        ? 'linear-gradient(135deg, #374151 0%, #4b5563 50%, #6b7280 100%)'
+        : 'linear-gradient(135deg, #111827 0%, #1f2937 50%, #374151 100%)';
+      
+      let invoiceTitle = 'TAX INVOICE';
+      if (invoiceFormat === 'billOfSupply') invoiceTitle = 'BILL OF SUPPLY';
+      else if (invoiceFormat === 'proformaInvoice') invoiceTitle = 'PROFORMA INVOICE';
+      
+      const showGst = gstApplicable && invoiceFormat !== 'billOfSupply';
+      
+      const displayOrg = {
+        name: currentOrg.name || invoice.orgName || invoice.organizationName,
+        address: currentOrg.address || invoice.orgAddress,
+        mobile: currentOrg.mobile || invoice.orgMobile,
+        email: currentOrg.email || invoice.orgEmail,
+        gstin: currentOrg.gstin || invoice.orgGstin,
+        pan: currentOrg.pan || invoice.orgPan,
+        logo: currentOrg.logo || invoice.orgLogo,
+        signature: currentOrg.signature || invoice.orgSignature,
+        signatory: currentOrg.signatory || invoice.orgSignatory,
+        bankName: currentOrg.bankName || invoice.orgBankName,
+        bankAccount: currentOrg.bankAccount || invoice.orgBankAccount,
+        bankIfsc: currentOrg.bankIfsc || invoice.orgBankIfsc,
+      };
+      
+      const displayClient = {
+        name: invoice.clientName || client.name,
+        address: invoice.clientAddress || client.address,
+        gstin: invoice.clientGstin || client.gstin,
+        pan: invoice.clientPan || client.pan,
+        state: invoice.clientState || client.state,
+      };
+      
+      const invoiceDate = new Date(invoice.invoiceDate).toLocaleDateString('en-IN', {day: '2-digit', month: 'short', year: 'numeric'});
+      const netAmount = (invoice.netAmount || invoice.amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2});
+      const totalAmount = (invoice.totalAmount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2});
+      
+      // Build GST rows HTML
+      let gstRowsHtml = '';
+      if (showGst) {
+        if (invoice.cgst > 0 || invoice.sgst > 0) {
+          gstRowsHtml = `
+            <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px;">
+              <span>CGST @9%:</span>
+              <span>₹${(invoice.cgst || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px;">
+              <span>SGST @9%:</span>
+              <span>₹${(invoice.sgst || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+            </div>
+          `;
+        } else if (invoice.igst > 0) {
+          gstRowsHtml = `
+            <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px;">
+              <span>IGST @18%:</span>
+              <span>₹${(invoice.igst || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+            </div>
+          `;
+        } else if ((invoice.gstAmount || invoice.taxAmount) > 0) {
+          gstRowsHtml = `
+            <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px;">
+              <span>GST @18%:</span>
+              <span>₹${(invoice.gstAmount || invoice.taxAmount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+            </div>
+          `;
+        }
+      }
+      
+      const invoiceHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Invoice ${invoice.invoiceNo}</title>
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #f8fafc; padding: 20px; }
+            @media print {
+              body { background: #fff; padding: 0; }
+              @page { size: A4 portrait; margin: 10mm; }
+            }
+            .invoice-container { background: #fff; border: 2px solid ${primaryColor}; max-width: 800px; margin: 0 auto; }
+          </style>
+        </head>
+        <body>
+          <div class="invoice-container">
+            <!-- Header -->
+            <div style="background: ${headerGradient}; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; align-items: center; gap: 16px;">
+                ${displayOrg.logo ? `<img src="${displayOrg.logo}" alt="" style="height: 60px; object-fit: contain; background: #fff; padding: 4px; border-radius: 4px;" />` : ''}
+                <div>
+                  <h1 style="margin: 0; font-size: 22px; font-weight: 800; color: #fff; letter-spacing: 0.5px;">${displayOrg.name}</h1>
+                  <div style="font-size: 11px; color: rgba(255,255,255,0.85); margin-top: 4px;">${displayOrg.address || ''}</div>
+                </div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 20px; font-weight: 800; color: #fff; letter-spacing: 2px;">${invoiceTitle}</div>
+                ${displayOrg.gstin && showGst ? `<div style="font-size: 11px; color: rgba(255,255,255,0.9); margin-top: 4px;">GSTIN: ${displayOrg.gstin}</div>` : ''}
+              </div>
+            </div>
+            
+            <!-- Invoice Details Row -->
+            <div style="display: flex; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid ${primaryColor}; background: #f8fafc;">
+              <div>
+                <div style="font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Invoice Number</div>
+                <div style="font-size: 16px; font-weight: 700; color: ${primaryColor};">${invoice.invoiceNo}</div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Invoice Date</div>
+                <div style="font-size: 16px; font-weight: 700; color: ${primaryColor};">${invoiceDate}</div>
+              </div>
+            </div>
+            
+            <!-- Bill To -->
+            <div style="padding: 16px 24px; border-bottom: 1px solid ${primaryColor};">
+              <div style="font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Bill To</div>
+              <div style="font-size: 15px; font-weight: 700; color: ${primaryColor};">${displayClient.name}</div>
+              ${displayClient.address ? `<div style="font-size: 12px; color: #64748b; margin-top: 2px;">${displayClient.address}</div>` : ''}
+              ${displayClient.gstin && showGst ? `<div style="font-size: 11px; color: #64748b; margin-top: 4px;">GSTIN: ${displayClient.gstin}</div>` : ''}
+            </div>
+            
+            <!-- Services Table -->
+            <div style="padding: 16px 24px;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                <thead>
+                  <tr style="background: ${primaryColor};">
+                    <th style="padding: 10px; text-align: left; color: #fff; font-weight: 600;">Description</th>
+                    <th style="padding: 10px; text-align: right; color: #fff; font-weight: 600;">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="padding: 12px 10px; border-bottom: 1px solid #e5e7eb;">
+                      ${invoice.serviceDescription || invoice.narration || invoice.description || 'Professional Services'}
+                    </td>
+                    <td style="padding: 12px 10px; text-align: right; border-bottom: 1px solid #e5e7eb;">
+                      ₹${netAmount}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            
+            <!-- Totals -->
+            <div style="padding: 16px 24px; background: #f8fafc; border-top: 1px solid ${primaryColor};">
+              <div style="display: flex; justify-content: flex-end;">
+                <div style="width: 250px;">
+                  <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px;">
+                    <span>Subtotal:</span>
+                    <span>₹${netAmount}</span>
+                  </div>
+                  ${gstRowsHtml}
+                  <div style="display: flex; justify-content: space-between; padding: 8px 0; font-size: 16px; font-weight: 700; border-top: 2px solid ${primaryColor}; margin-top: 8px;">
+                    <span>Total:</span>
+                    <span style="color: #10b981;">₹${totalAmount}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Bank Details & Signature -->
+            <div style="display: flex; justify-content: space-between; padding: 16px 24px; border-top: 1px solid ${primaryColor};">
+              ${displayOrg.bankName ? `
+                <div style="font-size: 11px;">
+                  <div style="font-weight: 600; margin-bottom: 4px;">Bank Details:</div>
+                  <div>Bank: ${displayOrg.bankName}</div>
+                  <div>A/C No: ${displayOrg.bankAccount || ''}</div>
+                  <div>IFSC: ${displayOrg.bankIfsc || ''}</div>
+                </div>
+              ` : '<div></div>'}
+              <div style="text-align: right;">
+                ${displayOrg.signature ? `<img src="${displayOrg.signature}" alt="Signature" style="height: 50px; margin-bottom: 4px;" />` : ''}
+                <div style="font-size: 12px; font-weight: 600;">For ${displayOrg.name}</div>
+                ${displayOrg.signatory ? `<div style="font-size: 11px; color: #64748b;">${displayOrg.signatory}</div>` : ''}
+              </div>
+            </div>
+          </div>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 500);
+            };
+          </script>
+        </body>
+        </html>
+      `;
+      
+      // Open in new window and trigger print
+      const printWindow = window.open('', '_blank', 'width=850,height=1100');
+      printWindow.document.write(invoiceHtml);
+      printWindow.document.close();
+    };
+    
+    // Download multiple invoices
+    const downloadMultipleInvoices = (invoices, orgs, clients, asSingle = false) => {
+      if (!invoices || invoices.length === 0) return;
+      
+      if (asSingle) {
+        // For combined PDF, we'll generate all invoices in one window
+        let combinedHtml = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Invoices - ${invoices.map(i => i.invoiceNo).join(', ')}</title>
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+            <style>
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #fff; }
+              @media print {
+                @page { size: A4 portrait; margin: 10mm; }
+                .page-break { page-break-after: always; }
+              }
+              .invoice-container { background: #fff; border: 2px solid #111827; max-width: 800px; margin: 0 auto 20px; }
+            </style>
+          </head>
+          <body>
+        `;
+        
+        invoices.forEach((invoice, idx) => {
+          const currentOrg = orgs?.find(o => o.id === (invoice.orgId || invoice.organizationId)) || {};
+          const client = clients?.find(c => c.id === invoice.clientId) || {};
+          
+          const gstApplicable = invoice.gstApplicable !== false && currentOrg.gstApplicable === 'yes';
+          const showGst = gstApplicable;
+          const primaryColor = '#111827';
+          const headerGradient = 'linear-gradient(135deg, #111827 0%, #1f2937 50%, #374151 100%)';
+          
+          const displayOrg = {
+            name: currentOrg.name || invoice.orgName || invoice.organizationName,
+            address: currentOrg.address || invoice.orgAddress,
+            gstin: currentOrg.gstin || invoice.orgGstin,
+            logo: currentOrg.logo || invoice.orgLogo,
+            bankName: currentOrg.bankName,
+            bankAccount: currentOrg.bankAccount,
+            bankIfsc: currentOrg.bankIfsc,
+            signature: currentOrg.signature,
+            signatory: currentOrg.signatory,
+          };
+          
+          const displayClient = {
+            name: invoice.clientName || client.name,
+            address: invoice.clientAddress || client.address,
+            gstin: invoice.clientGstin || client.gstin,
+          };
+          
+          const invoiceDate = new Date(invoice.invoiceDate).toLocaleDateString('en-IN', {day: '2-digit', month: 'short', year: 'numeric'});
+          const netAmount = (invoice.netAmount || invoice.amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2});
+          const totalAmount = (invoice.totalAmount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2});
+          
+          let gstRowsHtml = '';
+          if (showGst) {
+            if (invoice.cgst > 0) gstRowsHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;"><span>CGST @9%:</span><span>₹${(invoice.cgst||0).toLocaleString('en-IN',{minimumFractionDigits:2})}</span></div>`;
+            if (invoice.sgst > 0) gstRowsHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;"><span>SGST @9%:</span><span>₹${(invoice.sgst||0).toLocaleString('en-IN',{minimumFractionDigits:2})}</span></div>`;
+            if (invoice.igst > 0) gstRowsHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;"><span>IGST @18%:</span><span>₹${(invoice.igst||0).toLocaleString('en-IN',{minimumFractionDigits:2})}</span></div>`;
+          }
+          
+          combinedHtml += `
+            <div class="invoice-container ${idx < invoices.length - 1 ? 'page-break' : ''}">
+              <div style="background:${headerGradient};padding:20px 24px;display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:16px;">
+                  ${displayOrg.logo ? `<img src="${displayOrg.logo}" style="height:50px;object-fit:contain;background:#fff;padding:4px;border-radius:4px;"/>` : ''}
+                  <div>
+                    <h1 style="margin:0;font-size:20px;font-weight:800;color:#fff;">${displayOrg.name}</h1>
+                    <div style="font-size:10px;color:rgba(255,255,255,0.85);margin-top:4px;">${displayOrg.address||''}</div>
+                  </div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:18px;font-weight:800;color:#fff;letter-spacing:2px;">TAX INVOICE</div>
+                  ${displayOrg.gstin && showGst ? `<div style="font-size:10px;color:rgba(255,255,255,0.9);margin-top:4px;">GSTIN: ${displayOrg.gstin}</div>` : ''}
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:14px 24px;border-bottom:1px solid ${primaryColor};background:#f8fafc;">
+                <div><div style="font-size:10px;color:#64748b;text-transform:uppercase;">Invoice Number</div><div style="font-size:14px;font-weight:700;">${invoice.invoiceNo}</div></div>
+                <div style="text-align:right;"><div style="font-size:10px;color:#64748b;text-transform:uppercase;">Invoice Date</div><div style="font-size:14px;font-weight:700;">${invoiceDate}</div></div>
+              </div>
+              <div style="padding:14px 24px;border-bottom:1px solid ${primaryColor};">
+                <div style="font-size:10px;color:#64748b;text-transform:uppercase;margin-bottom:6px;">Bill To</div>
+                <div style="font-size:14px;font-weight:700;">${displayClient.name}</div>
+                ${displayClient.address ? `<div style="font-size:11px;color:#64748b;margin-top:2px;">${displayClient.address}</div>` : ''}
+              </div>
+              <div style="padding:14px 24px;">
+                <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                  <thead><tr style="background:${primaryColor};"><th style="padding:8px;text-align:left;color:#fff;">Description</th><th style="padding:8px;text-align:right;color:#fff;">Amount</th></tr></thead>
+                  <tbody><tr><td style="padding:10px 8px;border-bottom:1px solid #e5e7eb;">${invoice.serviceDescription||invoice.narration||'Professional Services'}</td><td style="padding:10px 8px;text-align:right;border-bottom:1px solid #e5e7eb;">₹${netAmount}</td></tr></tbody>
+                </table>
+              </div>
+              <div style="padding:14px 24px;background:#f8fafc;border-top:1px solid ${primaryColor};">
+                <div style="display:flex;justify-content:flex-end;">
+                  <div style="width:220px;">
+                    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:11px;"><span>Subtotal:</span><span>₹${netAmount}</span></div>
+                    ${gstRowsHtml}
+                    <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:14px;font-weight:700;border-top:2px solid ${primaryColor};margin-top:6px;"><span>Total:</span><span style="color:#10b981;">₹${totalAmount}</span></div>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:14px 24px;border-top:1px solid ${primaryColor};">
+                ${displayOrg.bankName ? `<div style="font-size:10px;"><div style="font-weight:600;margin-bottom:4px;">Bank Details:</div><div>Bank: ${displayOrg.bankName}</div><div>A/C: ${displayOrg.bankAccount||''}</div><div>IFSC: ${displayOrg.bankIfsc||''}</div></div>` : '<div></div>'}
+                <div style="text-align:right;">
+                  ${displayOrg.signature ? `<img src="${displayOrg.signature}" style="height:40px;margin-bottom:4px;"/>` : ''}
+                  <div style="font-size:11px;font-weight:600;">For ${displayOrg.name}</div>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        
+        combinedHtml += `
+            <script>window.onload = function() { setTimeout(function() { window.print(); }, 500); };</script>
+          </body>
+          </html>
+        `;
+        
+        const printWindow = window.open('', '_blank', 'width=850,height=1100');
+        printWindow.document.write(combinedHtml);
+        printWindow.document.close();
+      } else {
+        // For individual PDFs, open each in sequence with a delay
+        invoices.forEach((invoice, idx) => {
+          setTimeout(() => {
+            downloadInvoicePDF(invoice, orgs, clients);
+          }, idx * 1500); // 1.5 second delay between each to allow print dialog
+        });
+      }
+    };
+    
     // Format date
     const formatInvoiceDate = (dateStr) => {
       const date = new Date(dateStr);
@@ -17125,9 +17458,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             <button onClick={() => {
                               const selectedInvoices = (data.invoices || []).filter(inv => selectedBillIds.includes(inv.id));
                               if (selectedInvoices.length === 1) {
-                                // Single invoice - show preview directly
-                                setGeneratedInvoice(selectedInvoices[0]);
-                                setShowInvoicePreview(true);
+                                // Single invoice - direct download
+                                downloadInvoicePDF(selectedInvoices[0], data.organizations, data.clients);
+                                setSelectedBillIds([]);
                               } else {
                                 // Multiple invoices - show download options modal
                                 setBulkDownloadItems(selectedInvoices);
@@ -17136,6 +17469,16 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               }
                             }} style={{padding: '6px 12px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px'}}>
                               <Download size={12} /> Download Selected
+                            </button>
+                            <button onClick={() => {
+                              // View selected invoices
+                              const selectedInvoices = (data.invoices || []).filter(inv => selectedBillIds.includes(inv.id));
+                              if (selectedInvoices.length > 0) {
+                                setGeneratedInvoice(selectedInvoices[0]);
+                                setShowInvoicePreview(true);
+                              }
+                            }} style={{padding: '6px 12px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px'}}>
+                              <Eye size={12} /> View Selected
                             </button>
                             <button onClick={() => setSelectedBillIds([])} style={{padding: '6px 12px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px'}}>
                               Clear Selection
@@ -17316,9 +17659,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                             </button>
                                             <button 
                                               onClick={() => {
-                                                // Set invoice for download/print
-                                                setGeneratedInvoice(inv);
-                                                setShowInvoicePreview(true);
+                                                // Direct download PDF
+                                                downloadInvoicePDF(inv, data.organizations, data.clients);
                                               }}
                                               style={{padding: '3px 6px', background: '#dcfce7', color: '#16a34a', border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '9px', fontWeight: '500'}}
                                               title="Download PDF"
@@ -17724,7 +18066,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           <div style={{background: '#f8fafc', borderRadius: '12px', padding: '16px', marginBottom: '20px'}}>
                             <div style={{fontSize: '14px', color: '#64748b', marginBottom: '8px'}}>Selected Items:</div>
                             <div style={{fontSize: '24px', fontWeight: '700', color: '#10b981'}}>{bulkDownloadItems.length} {bulkDownloadType === 'bills' ? 'Invoices' : 'Receipts'}</div>
-                            <div style={{fontSize: '12px', color: '#64748b', marginTop: '4px'}}>
+                            <div style={{fontSize: '12px', color: '#64748b', marginTop: '4px', maxHeight: '60px', overflow: 'auto'}}>
                               {bulkDownloadType === 'bills' 
                                 ? bulkDownloadItems.map(i => i.invoiceNo).join(', ')
                                 : bulkDownloadItems.map(r => r.receiptNo).join(', ')
@@ -17737,22 +18079,20 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
                             <button 
                               onClick={() => {
-                                // Download as individual PDFs - open first one and show message
+                                // Download as individual PDFs
                                 if (bulkDownloadType === 'bills') {
-                                  setGeneratedInvoice(bulkDownloadItems[0]);
-                                  setShowInvoicePreview(true);
-                                } else {
-                                  setViewingReceipt(bulkDownloadItems[0]);
+                                  downloadMultipleInvoices(bulkDownloadItems, data.organizations, data.clients, false);
                                 }
                                 setShowBulkDownloadModal(false);
-                                alert(`Opening first ${bulkDownloadType === 'bills' ? 'invoice' : 'receipt'}. In production, this would download ${bulkDownloadItems.length} individual PDFs.`);
+                                setBulkDownloadItems([]);
+                                setSelectedBillIds([]);
                               }}
                               style={{padding: '16px 20px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'flex-start'}}
                             >
                               <span style={{background: 'rgba(255,255,255,0.2)', padding: '8px', borderRadius: '8px'}}>📄</span>
                               <div style={{textAlign: 'left'}}>
                                 <div>Download as Individual PDFs</div>
-                                <div style={{fontSize: '11px', fontWeight: '400', opacity: 0.9}}>{bulkDownloadItems.length} separate PDF files</div>
+                                <div style={{fontSize: '11px', fontWeight: '400', opacity: 0.9}}>{bulkDownloadItems.length} separate PDF files (opens one at a time)</div>
                               </div>
                             </button>
                             
@@ -17760,13 +18100,11 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               onClick={() => {
                                 // Download as single combined PDF
                                 if (bulkDownloadType === 'bills') {
-                                  setGeneratedInvoice(bulkDownloadItems[0]);
-                                  setShowInvoicePreview(true);
-                                } else {
-                                  setViewingReceipt(bulkDownloadItems[0]);
+                                  downloadMultipleInvoices(bulkDownloadItems, data.organizations, data.clients, true);
                                 }
                                 setShowBulkDownloadModal(false);
-                                alert(`Opening first ${bulkDownloadType === 'bills' ? 'invoice' : 'receipt'}. In production, this would download all ${bulkDownloadItems.length} items combined in a single PDF.`);
+                                setBulkDownloadItems([]);
+                                setSelectedBillIds([]);
                               }}
                               style={{padding: '16px 20px', background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'flex-start'}}
                             >
