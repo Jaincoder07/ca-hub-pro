@@ -156,7 +156,8 @@ const PracticeManagementApp = () => {
     checklists: [],
     pendingApprovals: [],
     dscRegister: [],
-    packages: []
+    packages: [],
+    bulkBatches: []
   });
   
   const [currentUser, setCurrentUser] = useState(null);
@@ -15015,7 +15016,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       setBulkOriginalTasks([]);
       
       alert('SUCCESS! Created ' + invoices.length + ' invoices. Total Amount: ₹' + invoices.reduce((s,i) => s + i.totalAmount, 0).toLocaleString('en-IN'));
+      
+      // Navigate to Bulk Invoice Log and show the created batch
       setBulkTaskStep('batches');
+      setViewingBulkBatch(batch);
     };
     
     const [editingReceipt, setEditingReceipt] = useState(null);
@@ -16705,6 +16709,192 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const formatInvoiceDate = (dateStr) => {
       const date = new Date(dateStr);
       return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    };
+
+    // Download invoices as ZIP with individual PDFs
+    const downloadInvoicesAsZip = async (invoices, orgs, clients, batchName = 'invoices') => {
+      if (!invoices || invoices.length === 0) return;
+      
+      // Load JSZip dynamically
+      if (!window.JSZip) {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+        document.head.appendChild(script);
+        await new Promise(resolve => script.onload = resolve);
+      }
+      
+      // Load html2pdf dynamically
+      if (!window.html2pdf) {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+        document.head.appendChild(script);
+        await new Promise(resolve => script.onload = resolve);
+      }
+      
+      const zip = new window.JSZip();
+      const invoiceFolder = zip.folder('Invoices');
+      
+      // Show progress
+      const progressDiv = document.createElement('div');
+      progressDiv.id = 'zip-progress';
+      progressDiv.innerHTML = `
+        <div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:10000;">
+          <div style="background:#fff;padding:40px;border-radius:16px;text-align:center;min-width:300px;">
+            <div style="font-size:48px;margin-bottom:16px;">📦</div>
+            <div style="font-size:18px;font-weight:700;color:#1e293b;margin-bottom:8px;">Generating PDFs...</div>
+            <div id="zip-progress-text" style="font-size:14px;color:#64748b;">0 of ${invoices.length} invoices</div>
+            <div style="margin-top:16px;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;">
+              <div id="zip-progress-bar" style="height:100%;background:#10b981;width:0%;transition:width 0.3s;"></div>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(progressDiv);
+      
+      try {
+        for (let idx = 0; idx < invoices.length; idx++) {
+          const invoice = invoices[idx];
+          const currentOrg = orgs?.find(o => o.id === (invoice.orgId || invoice.organizationId)) || {};
+          const client = clients?.find(c => c.id === invoice.clientId) || {};
+          
+          // Update progress
+          document.getElementById('zip-progress-text').innerText = `${idx + 1} of ${invoices.length} invoices`;
+          document.getElementById('zip-progress-bar').style.width = `${((idx + 1) / invoices.length) * 100}%`;
+          
+          const gstApplicable = invoice.gstApplicable !== false && currentOrg.gstApplicable === 'yes';
+          const showGst = gstApplicable;
+          const primaryColor = '#111827';
+          const headerGradient = 'linear-gradient(135deg, #111827 0%, #1f2937 50%, #374151 100%)';
+          
+          const displayOrg = {
+            name: currentOrg.name || invoice.orgName || invoice.organizationName || '',
+            address: currentOrg.address || invoice.orgAddress || '',
+            gstin: currentOrg.gstin || invoice.orgGstin || '',
+            logo: currentOrg.logo || invoice.orgLogo || '',
+            bankName: currentOrg.bankName || '',
+            bankAccount: currentOrg.bankAccount || '',
+            bankIfsc: currentOrg.bankIfsc || '',
+            signature: currentOrg.signature || '',
+            signatory: currentOrg.signatory || '',
+          };
+          
+          const displayClient = {
+            name: invoice.clientName || client.name || '',
+            address: invoice.clientAddress || client.address || '',
+            gstin: invoice.clientGstin || client.gstin || '',
+          };
+          
+          const invoiceDate = new Date(invoice.invoiceDate).toLocaleDateString('en-IN', {day: '2-digit', month: 'short', year: 'numeric'});
+          const netAmount = (invoice.netAmount || invoice.amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2});
+          const totalAmount = (invoice.totalAmount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2});
+          
+          let gstRowsHtml = '';
+          if (showGst) {
+            if (invoice.cgst > 0) gstRowsHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;"><span>CGST @9%:</span><span>₹${(invoice.cgst||0).toLocaleString('en-IN',{minimumFractionDigits:2})}</span></div>`;
+            if (invoice.sgst > 0) gstRowsHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;"><span>SGST @9%:</span><span>₹${(invoice.sgst||0).toLocaleString('en-IN',{minimumFractionDigits:2})}</span></div>`;
+            if (invoice.igst > 0) gstRowsHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;"><span>IGST @18%:</span><span>₹${(invoice.igst||0).toLocaleString('en-IN',{minimumFractionDigits:2})}</span></div>`;
+          }
+          
+          const invoiceHtml = `
+            <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:#fff;border:2px solid #111827;max-width:800px;margin:0 auto;">
+              <div style="background:${headerGradient};padding:20px 24px;display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:16px;">
+                  ${displayOrg.logo ? `<img src="${displayOrg.logo}" style="height:50px;object-fit:contain;background:#fff;padding:4px;border-radius:4px;" crossorigin="anonymous"/>` : ''}
+                  <div>
+                    <h1 style="margin:0;font-size:20px;font-weight:800;color:#fff;">${displayOrg.name}</h1>
+                    <div style="font-size:10px;color:rgba(255,255,255,0.85);margin-top:4px;">${displayOrg.address}</div>
+                  </div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:18px;font-weight:800;color:#fff;letter-spacing:2px;">TAX INVOICE</div>
+                  ${displayOrg.gstin && showGst ? `<div style="font-size:10px;color:rgba(255,255,255,0.9);margin-top:4px;">GSTIN: ${displayOrg.gstin}</div>` : ''}
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:14px 24px;border-bottom:1px solid ${primaryColor};background:#f8fafc;">
+                <div><div style="font-size:10px;color:#64748b;text-transform:uppercase;">Invoice Number</div><div style="font-size:14px;font-weight:700;">${invoice.invoiceNo}</div></div>
+                <div style="text-align:right;"><div style="font-size:10px;color:#64748b;text-transform:uppercase;">Invoice Date</div><div style="font-size:14px;font-weight:700;">${invoiceDate}</div></div>
+              </div>
+              <div style="padding:14px 24px;border-bottom:1px solid ${primaryColor};">
+                <div style="font-size:10px;color:#64748b;text-transform:uppercase;margin-bottom:6px;">Bill To</div>
+                <div style="font-size:14px;font-weight:700;">${displayClient.name}</div>
+                ${displayClient.address ? `<div style="font-size:11px;color:#64748b;margin-top:2px;">${displayClient.address}</div>` : ''}
+                ${displayClient.gstin && showGst ? `<div style="font-size:10px;color:#64748b;margin-top:4px;">GSTIN: ${displayClient.gstin}</div>` : ''}
+              </div>
+              <div style="padding:14px 24px;">
+                <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                  <thead><tr style="background:${primaryColor};"><th style="padding:10px;text-align:left;color:#fff;font-weight:600;">Description</th><th style="padding:10px;text-align:right;color:#fff;font-weight:600;">Amount</th></tr></thead>
+                  <tbody><tr><td style="padding:12px 10px;border-bottom:1px solid #e5e7eb;">${invoice.serviceDescription||invoice.narration||'Professional Services'}</td><td style="padding:12px 10px;text-align:right;border-bottom:1px solid #e5e7eb;">₹${netAmount}</td></tr></tbody>
+                </table>
+              </div>
+              <div style="padding:14px 24px;background:#f8fafc;border-top:1px solid ${primaryColor};">
+                <div style="display:flex;justify-content:flex-end;">
+                  <div style="width:220px;">
+                    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;"><span>Subtotal:</span><span>₹${netAmount}</span></div>
+                    ${gstRowsHtml}
+                    <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:14px;font-weight:700;border-top:2px solid ${primaryColor};margin-top:6px;"><span>Total:</span><span style="color:#10b981;">₹${totalAmount}</span></div>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:14px 24px;border-top:1px solid ${primaryColor};">
+                ${displayOrg.bankName ? `<div style="font-size:10px;"><div style="font-weight:600;margin-bottom:4px;">Bank Details:</div><div>Bank: ${displayOrg.bankName}</div><div>A/C: ${displayOrg.bankAccount}</div><div>IFSC: ${displayOrg.bankIfsc}</div></div>` : '<div></div>'}
+                <div style="text-align:right;">
+                  ${displayOrg.signature ? `<img src="${displayOrg.signature}" style="height:40px;margin-bottom:4px;" crossorigin="anonymous"/>` : ''}
+                  <div style="font-size:11px;font-weight:600;">For ${displayOrg.name}</div>
+                  ${displayOrg.signatory ? `<div style="font-size:10px;color:#64748b;">${displayOrg.signatory}</div>` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+          
+          // Create temporary container for PDF generation
+          const container = document.createElement('div');
+          container.innerHTML = invoiceHtml;
+          container.style.position = 'absolute';
+          container.style.left = '-9999px';
+          container.style.width = '800px';
+          document.body.appendChild(container);
+          
+          // Generate PDF using html2pdf
+          const opt = {
+            margin: 10,
+            filename: `${invoice.invoiceNo}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, logging: false },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+          };
+          
+          const pdfBlob = await window.html2pdf().set(opt).from(container).outputPdf('blob');
+          
+          // Add to ZIP
+          const fileName = `${invoice.invoiceNo.replace(/[^a-zA-Z0-9]/g, '_')}_${displayClient.name.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20)}.pdf`;
+          invoiceFolder.file(fileName, pdfBlob);
+          
+          // Clean up
+          document.body.removeChild(container);
+          
+          // Small delay to prevent browser freeze
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        // Generate ZIP and download
+        document.getElementById('zip-progress-text').innerText = 'Creating ZIP file...';
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        
+        const downloadLink = document.createElement('a');
+        downloadLink.href = URL.createObjectURL(zipBlob);
+        downloadLink.download = `${batchName}_${new Date().toISOString().split('T')[0]}.zip`;
+        downloadLink.click();
+        
+        // Clean up
+        URL.revokeObjectURL(downloadLink.href);
+        document.body.removeChild(progressDiv);
+        
+        alert(`✅ Successfully downloaded ${invoices.length} invoices as ZIP!`);
+      } catch (error) {
+        console.error('Error generating ZIP:', error);
+        document.body.removeChild(progressDiv);
+        alert('Error generating ZIP. Please try downloading individually.');
+      }
     };
 
     const resetOrgForm = () => {
@@ -20859,27 +21049,27 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         </div>
 
                         {/* Billing Table */}
-                        <div style={{border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden'}}>
-                          <div style={{maxHeight: '500px', overflowY: 'auto', overflowX: 'auto'}}>
-                            <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '10px', minWidth: '1200px'}}>
+                        <div style={{border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden'}}>
+                          <div style={{maxHeight: '550px', overflowY: 'auto', overflowX: 'auto'}}>
+                            <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '1400px'}}>
                               <thead style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', position: 'sticky', top: 0}}>
                                 <tr>
-                                  <th style={{padding: '8px 4px', color: '#fff', fontWeight: '600', textAlign: 'center', width: '30px'}}>✓</th>
-                                  <th style={{padding: '8px 4px', color: '#fff', fontWeight: '600', textAlign: 'left'}}>S.No</th>
-                                  <th style={{padding: '8px 4px', color: '#fff', fontWeight: '600', textAlign: 'left'}}>Grp</th>
-                                  <th style={{padding: '8px 4px', color: '#fff', fontWeight: '600', textAlign: 'left'}}>Code</th>
-                                  <th style={{padding: '8px 4px', color: '#fff', fontWeight: '600', textAlign: 'left'}}>Client Name</th>
-                                  <th style={{padding: '8px 4px', color: '#fff', fontWeight: '600', textAlign: 'left'}}>Task</th>
-                                  <th style={{padding: '8px 4px', color: '#fff', fontWeight: '600', textAlign: 'left'}}>Task Description</th>
-                                  <th style={{padding: '8px 4px', color: '#fff', fontWeight: '600', textAlign: 'left'}}>Narration</th>
-                                  <th style={{padding: '8px 4px', color: '#fff', fontWeight: '600', textAlign: 'left'}}>Period</th>
-                                  <th style={{padding: '8px 4px', color: '#fff', fontWeight: '600', textAlign: 'left', minWidth: '120px'}}>Organisation</th>
-                                  <th style={{padding: '8px 4px', color: '#fff', fontWeight: '600', textAlign: 'right'}}>Agreed Fees</th>
-                                  <th style={{padding: '8px 4px', color: '#fff', fontWeight: '600', textAlign: 'right'}}>Amount</th>
-                                  <th style={{padding: '8px 4px', color: '#fff', fontWeight: '600', textAlign: 'right'}}>Disc</th>
-                                  <th style={{padding: '8px 4px', color: '#fff', fontWeight: '600', textAlign: 'right'}}>Net</th>
-                                  <th style={{padding: '8px 4px', color: '#fff', fontWeight: '600', textAlign: 'right'}}>GST</th>
-                                  <th style={{padding: '8px 4px', color: '#fff', fontWeight: '600', textAlign: 'right'}}>Total</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'center', width: '40px'}}>✓</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'center', width: '50px'}}>S.No</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'center', width: '50px'}}>Grp</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', width: '70px'}}>Code</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', minWidth: '150px'}}>Client Name</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', width: '100px'}}>Task</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', minWidth: '150px'}}>Task Description</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', minWidth: '180px'}}>Narration</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', width: '80px'}}>Period</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', minWidth: '180px'}}>Organisation</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'right', width: '100px'}}>Agreed Fees</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'right', width: '100px'}}>Amount</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'right', width: '80px'}}>Disc</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'right', width: '90px'}}>Net</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'right', width: '80px'}}>GST</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'right', width: '100px'}}>Total</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -20897,7 +21087,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                   
                                   return (
                                     <tr key={idx} style={{background: row.selected ? '#f0fdf4' : '#fef2f2', borderBottom: '1px solid #e2e8f0'}}>
-                                      <td style={{padding: '6px 4px', textAlign: 'center'}}>
+                                      <td style={{padding: '12px 10px', textAlign: 'center'}}>
                                         <input
                                           type="checkbox"
                                           checked={row.selected}
@@ -20906,15 +21096,16 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                             updated[idx].selected = e.target.checked;
                                             setBulkBillingData(updated);
                                           }}
+                                          style={{width: '16px', height: '16px', cursor: 'pointer'}}
                                         />
                                       </td>
-                                      <td style={{padding: '6px 4px'}}>{idx + 1}</td>
-                                      <td style={{padding: '6px 4px', fontWeight: '600', color: '#10b981'}}>{row.groupNo || '-'}</td>
-                                      <td style={{padding: '6px 4px', fontSize: '9px'}}>{row.clientCode}</td>
-                                      <td style={{padding: '6px 4px', fontWeight: '500', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{row.clientName}</td>
-                                      <td style={{padding: '6px 4px', fontSize: '9px'}}>{row.taskType}</td>
-                                      <td style={{padding: '6px 4px', fontSize: '9px', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{row.taskDescription || '-'}</td>
-                                      <td style={{padding: '6px 4px'}}>
+                                      <td style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600'}}>{idx + 1}</td>
+                                      <td style={{padding: '12px 10px', textAlign: 'center', fontWeight: '700', color: '#10b981'}}>{row.groupNo || '-'}</td>
+                                      <td style={{padding: '12px 10px', fontSize: '12px', color: '#64748b'}}>{row.clientCode}</td>
+                                      <td style={{padding: '12px 10px', fontWeight: '600', color: '#1e293b'}}>{row.clientName}</td>
+                                      <td style={{padding: '12px 10px', fontSize: '12px'}}>{row.taskType}</td>
+                                      <td style={{padding: '12px 10px', fontSize: '12px', color: '#64748b'}}>{row.taskDescription || '-'}</td>
+                                      <td style={{padding: '12px 10px'}}>
                                         <input
                                           type="text"
                                           value={row.narration || ''}
@@ -20923,12 +21114,12 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                             updated[idx].narration = e.target.value;
                                             setBulkBillingData(updated);
                                           }}
-                                          style={{width: '100px', padding: '3px', border: '1px solid #e2e8f0', borderRadius: '3px', fontSize: '9px'}}
+                                          style={{width: '100%', padding: '8px 10px', border: '1px solid #d1fae5', borderRadius: '6px', fontSize: '12px', background: '#f0fdf4'}}
                                           placeholder="Auto-generated"
                                         />
                                       </td>
-                                      <td style={{padding: '6px 4px', fontSize: '9px'}}>{row.subPeriod || row.period}</td>
-                                      <td style={{padding: '6px 4px', minWidth: '120px'}}>
+                                      <td style={{padding: '12px 10px', fontSize: '12px'}}>{row.subPeriod || row.period}</td>
+                                      <td style={{padding: '12px 10px'}}>
                                         <select
                                           value={row.organizationId}
                                           onChange={(e) => {
@@ -20936,7 +21127,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                             updated[idx].organizationId = e.target.value;
                                             setBulkBillingData(updated);
                                           }}
-                                          style={{width: '100%', padding: '3px', border: '1px solid #e2e8f0', borderRadius: '3px', fontSize: '9px'}}
+                                          style={{width: '100%', padding: '8px 10px', border: '1px solid #d1fae5', borderRadius: '6px', fontSize: '12px', background: '#f0fdf4'}}
                                         >
                                           <option value="">Select</option>
                                           {(data.organizations || []).map(o => (
@@ -20944,10 +21135,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                           ))}
                                         </select>
                                       </td>
-                                      <td style={{padding: '6px 4px', textAlign: 'right', color: '#64748b', fontSize: '9px'}}>
+                                      <td style={{padding: '12px 10px', textAlign: 'right', color: '#64748b'}}>
                                         ₹{(row.agreedFees || 0).toLocaleString('en-IN')}
                                       </td>
-                                      <td style={{padding: '6px 4px', textAlign: 'right'}}>
+                                      <td style={{padding: '12px 10px', textAlign: 'right'}}>
                                         <input
                                           type="number"
                                           value={row.amount}
@@ -20956,10 +21147,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                             updated[idx].amount = parseFloat(e.target.value) || 0;
                                             setBulkBillingData(updated);
                                           }}
-                                          style={{width: '60px', padding: '3px', border: '1px solid #e2e8f0', borderRadius: '3px', textAlign: 'right', fontSize: '10px'}}
+                                          style={{width: '80px', padding: '8px', border: '1px solid #d1fae5', borderRadius: '6px', textAlign: 'right', fontSize: '12px', background: '#f0fdf4'}}
                                         />
                                       </td>
-                                      <td style={{padding: '6px 4px', textAlign: 'right'}}>
+                                      <td style={{padding: '12px 10px', textAlign: 'right'}}>
                                         <input
                                           type="number"
                                           value={row.discount || 0}
@@ -20968,40 +21159,40 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                             updated[idx].discount = parseFloat(e.target.value) || 0;
                                             setBulkBillingData(updated);
                                           }}
-                                          style={{width: '50px', padding: '3px', border: '1px solid #e2e8f0', borderRadius: '3px', textAlign: 'right', fontSize: '10px'}}
+                                          style={{width: '70px', padding: '8px', border: '1px solid #d1fae5', borderRadius: '6px', textAlign: 'right', fontSize: '12px', background: '#f0fdf4'}}
                                         />
                                       </td>
-                                      <td style={{padding: '6px 4px', textAlign: 'right', fontWeight: '500'}}>₹{net.toLocaleString('en-IN')}</td>
-                                      <td style={{padding: '6px 4px', textAlign: 'right', color: '#64748b'}}>₹{gst.toLocaleString('en-IN')}</td>
-                                      <td style={{padding: '6px 4px', textAlign: 'right', fontWeight: '700', color: '#10b981'}}>₹{total.toLocaleString('en-IN')}</td>
+                                      <td style={{padding: '12px 10px', textAlign: 'right', fontWeight: '600'}}>₹{net.toLocaleString('en-IN')}</td>
+                                      <td style={{padding: '12px 10px', textAlign: 'right', color: '#64748b'}}>₹{gst.toLocaleString('en-IN')}</td>
+                                      <td style={{padding: '12px 10px', textAlign: 'right', fontWeight: '700', color: '#10b981', fontSize: '14px'}}>₹{total.toLocaleString('en-IN')}</td>
                                     </tr>
                                   );
                                 })}
                               </tbody>
-                              <tfoot style={{background: '#f8fafc'}}>
+                              <tfoot style={{background: '#f0fdf4', borderTop: '2px solid #10b981'}}>
                                 <tr>
-                                  <td colSpan={11} style={{padding: '10px', fontWeight: '700', textAlign: 'right'}}>Selected Total:</td>
-                                  <td style={{padding: '10px', fontWeight: '600', textAlign: 'right'}}>
+                                  <td colSpan={11} style={{padding: '14px', fontWeight: '700', textAlign: 'right', fontSize: '14px', color: '#065f46'}}>Selected Total:</td>
+                                  <td style={{padding: '14px', fontWeight: '600', textAlign: 'right', fontSize: '13px'}}>
                                     ₹{bulkBillingData.filter(b => b.selected).reduce((sum, b) => sum + (parseFloat(b.amount) || 0), 0).toLocaleString('en-IN')}
                                   </td>
-                                  <td style={{padding: '10px', fontWeight: '600', textAlign: 'right'}}>
+                                  <td style={{padding: '14px', fontWeight: '600', textAlign: 'right', fontSize: '13px'}}>
                                     ₹{bulkBillingData.filter(b => b.selected).reduce((sum, b) => sum + (parseFloat(b.discount) || 0), 0).toLocaleString('en-IN')}
                                   </td>
-                                  <td style={{padding: '10px', fontWeight: '600', textAlign: 'right'}}>
+                                  <td style={{padding: '14px', fontWeight: '600', textAlign: 'right', fontSize: '13px'}}>
                                     ₹{bulkBillingData.filter(b => b.selected).reduce((sum, b) => {
                                       const amt = parseFloat(b.amount) || 0;
                                       const disc = parseFloat(b.discount) || 0;
                                       return sum + (amt - disc);
                                     }, 0).toLocaleString('en-IN')}
                                   </td>
-                                  <td style={{padding: '10px', fontWeight: '600', textAlign: 'right'}}>
+                                  <td style={{padding: '14px', fontWeight: '600', textAlign: 'right', fontSize: '13px'}}>
                                     ₹{bulkBillingData.filter(b => b.selected).reduce((sum, b) => {
                                       const org = (data.organizations || []).find(o => String(o.id) === String(b.organizationId));
                                       const net = (parseFloat(b.amount) || 0) - (parseFloat(b.discount) || 0);
                                       return sum + (org?.gstApplicable === 'yes' && net > 0 ? Math.round(net * 0.18 * 100) / 100 : 0);
                                     }, 0).toLocaleString('en-IN')}
                                   </td>
-                                  <td style={{padding: '10px', fontWeight: '700', color: '#10b981', textAlign: 'right'}}>
+                                  <td style={{padding: '14px', fontWeight: '700', color: '#10b981', textAlign: 'right', fontSize: '15px'}}>
                                     ₹{bulkBillingData.filter(b => b.selected).reduce((sum, b) => {
                                       const org = (data.organizations || []).find(o => String(o.id) === String(b.organizationId));
                                       const net = (parseFloat(b.amount) || 0) - (parseFloat(b.discount) || 0);
@@ -21169,11 +21360,20 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                       <button
                                         onClick={() => {
                                           const batchInvoices = (data.invoices || []).filter(inv => viewingBulkBatch.invoiceIds?.includes(inv.id));
+                                          downloadInvoicesAsZip(batchInvoices, data.organizations, data.clients, `Batch_${viewingBulkBatch.id?.substring(6, 14)}`);
+                                        }}
+                                        style={{padding: '10px 20px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 8px rgba(16,185,129,0.3)'}}
+                                      >
+                                        <Download size={14} /> Download ZIP (PDFs)
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          const batchInvoices = (data.invoices || []).filter(inv => viewingBulkBatch.invoiceIds?.includes(inv.id));
                                           downloadMultipleInvoices(batchInvoices, data.organizations, data.clients, true);
                                         }}
-                                        style={{padding: '10px 20px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'}}
+                                        style={{padding: '10px 20px', background: '#6366f1', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'}}
                                       >
-                                        <Download size={14} /> Download All PDFs
+                                        <Eye size={14} /> Print All
                                       </button>
                                     </div>
                                   </div>
