@@ -2589,281 +2589,237 @@ const PracticeManagementApp = () => {
             </div>
           </div>
 
-          {/* Tables Row */}
-          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px'}}>
-            {/* Recent Tasks */}
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', transition: 'all 0.3s ease'}}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.08)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
-              <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#1e293b'}}>Recent Tasks</h3>
-              <div style={{overflowX: 'auto'}}>
-                <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
-                  <thead>
-                    <tr style={{background: '#f8fafc'}}>
-                      <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Task</th>
-                      <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Client</th>
-                      <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Assigned</th>
-                      <th style={{padding: '10px 12px', textAlign: 'center', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentTasks.slice(0, 5).map(task => (
-                      <tr key={task.id} style={{borderBottom: '1px solid #f1f5f9'}}>
-                        <td style={{padding: '10px 12px'}}>{task.childTask || task.parentTask}</td>
-                        <td style={{padding: '10px 12px', color: '#64748b'}}>{task.client || '-'}</td>
-                        <td style={{padding: '10px 12px', color: '#64748b'}}>{task.primaryAssignedUser || task.assignedTo || task.assignedUser || '-'}</td>
-                        <td style={{padding: '10px 12px', textAlign: 'center'}}>
-                          <span style={{
-                            padding: '4px 8px',
-                            borderRadius: '12px',
-                            fontSize: '10px',
-                            fontWeight: '600',
-                            background: task.status === 'Completed' ? '#dcfce7' : task.status === 'In Progress' ? '#fef3c7' : '#dbeafe',
-                            color: task.status === 'Completed' ? '#166534' : task.status === 'In Progress' ? '#92400e' : '#1d4ed8'
-                          }}>{task.status || 'Open'}</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          {/* DSC & Package Due/Expired Tables - 2x2 Grid */}
+          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+            {/* DSC Due for Renewal */}
+            <div style={{background: '#fff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0'}}>
+              <h3 style={{margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#d97706', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                <Key size={16} /> DSC Due for Renewal ({(() => {
+                  const dscRecords = data.dscRegister || [];
+                  return dscRecords.filter(d => {
+                    if (!d.expiryDate) return false;
+                    const expiry = new Date(d.expiryDate);
+                    const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+                    return daysLeft >= 0 && daysLeft <= 60;
+                  }).length;
+                })()})
+              </h3>
+              <div style={{maxHeight: '200px', overflowY: 'auto'}}>
+                {(() => {
+                  const dscRecords = data.dscRegister || [];
+                  const dueDsc = dscRecords.filter(d => {
+                    if (!d.expiryDate) return false;
+                    const expiry = new Date(d.expiryDate);
+                    const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+                    return daysLeft >= 0 && daysLeft <= 60;
+                  }).sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+                  
+                  if (dueDsc.length === 0) {
+                    return <div style={{textAlign: 'center', padding: '20px', color: '#10b981', fontSize: '12px'}}>No DSC due for renewal</div>;
+                  }
+                  
+                  return (
+                    <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                      <thead>
+                        <tr style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'}}>
+                          <th style={{padding: '6px 8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client/Holder</th>
+                          <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Expiry</th>
+                          <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Days</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dueDsc.slice(0, 5).map((dsc, idx) => {
+                          const expiry = new Date(dsc.expiryDate);
+                          const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+                          return (
+                            <tr key={dsc.id} style={{background: idx % 2 === 0 ? '#fff' : '#fef9e7'}}>
+                              <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb'}}>
+                                <div style={{fontWeight: '500', fontSize: '11px'}}>{dsc.clientName}</div>
+                                <div style={{fontSize: '10px', color: '#64748b'}}>{dsc.holderName}</div>
+                              </td>
+                              <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontSize: '10px'}}>{expiry.toLocaleDateString('en-IN')}</td>
+                              <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontWeight: '600', 
+                                color: daysLeft <= 15 ? '#dc2626' : daysLeft <= 30 ? '#d97706' : '#059669'
+                              }}>{daysLeft}d</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  );
+                })()}
               </div>
+              <button onClick={() => setCurrentView('dscRegister')} style={{marginTop: '8px', width: '100%', padding: '8px', background: '#fef3c7', color: '#92400e', border: '1px solid #f59e0b', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}>
+                View DSC Register →
+              </button>
+            </div>
+            
+            {/* DSC Expired */}
+            <div style={{background: '#fff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0'}}>
+              <h3 style={{margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#dc2626', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                <Key size={16} /> DSC Expired ({(() => {
+                  const dscRecords = data.dscRegister || [];
+                  return dscRecords.filter(d => {
+                    if (!d.expiryDate) return false;
+                    return new Date(d.expiryDate) < today;
+                  }).length;
+                })()})
+              </h3>
+              <div style={{maxHeight: '200px', overflowY: 'auto'}}>
+                {(() => {
+                  const dscRecords = data.dscRegister || [];
+                  const expiredDsc = dscRecords.filter(d => {
+                    if (!d.expiryDate) return false;
+                    return new Date(d.expiryDate) < today;
+                  }).sort((a, b) => new Date(b.expiryDate) - new Date(a.expiryDate));
+                  
+                  if (expiredDsc.length === 0) {
+                    return <div style={{textAlign: 'center', padding: '20px', color: '#10b981', fontSize: '12px'}}>No expired DSC 🎉</div>;
+                  }
+                  
+                  return (
+                    <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                      <thead>
+                        <tr style={{background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'}}>
+                          <th style={{padding: '6px 8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client/Holder</th>
+                          <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Expired On</th>
+                          <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Days Ago</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {expiredDsc.slice(0, 5).map((dsc, idx) => {
+                          const expiry = new Date(dsc.expiryDate);
+                          const daysAgo = Math.ceil((today - expiry) / (1000 * 60 * 60 * 24));
+                          return (
+                            <tr key={dsc.id} style={{background: idx % 2 === 0 ? '#fff' : '#fef2f2'}}>
+                              <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb'}}>
+                                <div style={{fontWeight: '500', fontSize: '11px'}}>{dsc.clientName}</div>
+                                <div style={{fontSize: '10px', color: '#64748b'}}>{dsc.holderName}</div>
+                              </td>
+                              <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontSize: '10px'}}>{expiry.toLocaleDateString('en-IN')}</td>
+                              <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontWeight: '600', color: '#dc2626'}}>{daysAgo}d</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  );
+                })()}
+              </div>
+              <button onClick={() => setCurrentView('dscRegister')} style={{marginTop: '8px', width: '100%', padding: '8px', background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}>
+                View DSC Register →
+              </button>
             </div>
 
-            {/* DSC Due for Renewal & Expired Tables */}
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px'}}>
-              {/* DSC Due for Renewal */}
-              <div style={{background: '#fff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0'}}>
-                <h3 style={{margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#d97706', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                  <Key size={16} /> DSC Due for Renewal ({(() => {
-                    const dscRecords = data.dscRegister || [];
-                    return dscRecords.filter(d => {
-                      if (!d.expiryDate) return false;
-                      const expiry = new Date(d.expiryDate);
-                      const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-                      return daysLeft >= 0 && daysLeft <= 60;
-                    }).length;
-                  })()})
-                </h3>
-                <div style={{maxHeight: '200px', overflowY: 'auto'}}>
-                  {(() => {
-                    const dscRecords = data.dscRegister || [];
-                    const dueDsc = dscRecords.filter(d => {
-                      if (!d.expiryDate) return false;
-                      const expiry = new Date(d.expiryDate);
-                      const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-                      return daysLeft >= 0 && daysLeft <= 60;
-                    }).sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
-                    
-                    if (dueDsc.length === 0) {
-                      return <div style={{textAlign: 'center', padding: '20px', color: '#10b981', fontSize: '12px'}}>No DSC due for renewal</div>;
-                    }
-                    
-                    return (
-                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
-                        <thead>
-                          <tr style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'}}>
-                            <th style={{padding: '6px 8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client/Holder</th>
-                            <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Expiry</th>
-                            <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Days</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {dueDsc.slice(0, 5).map((dsc, idx) => {
-                            const expiry = new Date(dsc.expiryDate);
-                            const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-                            return (
-                              <tr key={dsc.id} style={{background: idx % 2 === 0 ? '#fff' : '#fef9e7'}}>
-                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb'}}>
-                                  <div style={{fontWeight: '500', fontSize: '11px'}}>{dsc.clientName}</div>
-                                  <div style={{fontSize: '10px', color: '#64748b'}}>{dsc.holderName}</div>
-                                </td>
-                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontSize: '10px'}}>{expiry.toLocaleDateString('en-IN')}</td>
-                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontWeight: '600', 
-                                  color: daysLeft <= 15 ? '#dc2626' : daysLeft <= 30 ? '#d97706' : '#059669'
-                                }}>{daysLeft}d</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    );
-                  })()}
-                </div>
-                <button onClick={() => setCurrentView('dscRegister')} style={{marginTop: '8px', width: '100%', padding: '8px', background: '#fef3c7', color: '#92400e', border: '1px solid #f59e0b', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}>
-                  View DSC Register →
-                </button>
+            {/* Package Due for Renewal */}
+            <div style={{background: '#fff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0'}}>
+              <h3 style={{margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#d97706', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                📦 Packages Due for Renewal ({(() => {
+                  const pkgs = (data.packages || []).filter(p => !p.renewed);
+                  const sixtyDays = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
+                  return pkgs.filter(p => {
+                    const ed = new Date(p.endDate);
+                    return ed <= sixtyDays && ed >= today;
+                  }).length;
+                })()})
+              </h3>
+              <div style={{maxHeight: '200px', overflowY: 'auto'}}>
+                {(() => {
+                  const pkgs = (data.packages || []).filter(p => !p.renewed);
+                  const sixtyDays = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
+                  const duePkgs = pkgs.filter(p => {
+                    const ed = new Date(p.endDate);
+                    return ed <= sixtyDays && ed >= today;
+                  }).sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
+                  
+                  if (duePkgs.length === 0) {
+                    return <div style={{textAlign: 'center', padding: '20px', color: '#10b981', fontSize: '12px'}}>No packages due for renewal 🎉</div>;
+                  }
+                  
+                  return (
+                    <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                      <thead>
+                        <tr style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'}}>
+                          <th style={{padding: '6px 8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
+                          <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>End Date</th>
+                          <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Days</th>
+                          <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#fff'}}>Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {duePkgs.slice(0, 5).map((pkg, idx) => {
+                          const endDate = new Date(pkg.endDate);
+                          const daysLeft = Math.floor((endDate - today) / (1000 * 60 * 60 * 24));
+                          return (
+                            <tr key={pkg.id} style={{background: idx % 2 === 0 ? '#fff' : '#fef9e7'}}>
+                              <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', fontWeight: '500', fontSize: '11px'}}>{pkg.clientName}</td>
+                              <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontSize: '10px'}}>{endDate.toLocaleDateString('en-IN')}</td>
+                              <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontWeight: '600', 
+                                color: daysLeft <= 15 ? '#dc2626' : daysLeft <= 30 ? '#d97706' : '#059669'
+                              }}>{daysLeft}d</td>
+                              <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'right', fontWeight: '600', color: '#059669'}}>₹{(pkg.totalAmount || 0).toLocaleString('en-IN')}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  );
+                })()}
               </div>
-              
-              {/* DSC Expired */}
-              <div style={{background: '#fff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0'}}>
-                <h3 style={{margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#dc2626', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                  <Key size={16} /> DSC Expired ({(() => {
-                    const dscRecords = data.dscRegister || [];
-                    return dscRecords.filter(d => {
-                      if (!d.expiryDate) return false;
-                      return new Date(d.expiryDate) < today;
-                    }).length;
-                  })()})
-                </h3>
-                <div style={{maxHeight: '200px', overflowY: 'auto'}}>
-                  {(() => {
-                    const dscRecords = data.dscRegister || [];
-                    const expiredDsc = dscRecords.filter(d => {
-                      if (!d.expiryDate) return false;
-                      return new Date(d.expiryDate) < today;
-                    }).sort((a, b) => new Date(b.expiryDate) - new Date(a.expiryDate));
-                    
-                    if (expiredDsc.length === 0) {
-                      return <div style={{textAlign: 'center', padding: '20px', color: '#10b981', fontSize: '12px'}}>No expired DSC 🎉</div>;
-                    }
-                    
-                    return (
-                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
-                        <thead>
-                          <tr style={{background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'}}>
-                            <th style={{padding: '6px 8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client/Holder</th>
-                            <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Expired On</th>
-                            <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Days Ago</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {expiredDsc.slice(0, 5).map((dsc, idx) => {
-                            const expiry = new Date(dsc.expiryDate);
-                            const daysAgo = Math.ceil((today - expiry) / (1000 * 60 * 60 * 24));
-                            return (
-                              <tr key={dsc.id} style={{background: idx % 2 === 0 ? '#fff' : '#fef2f2'}}>
-                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb'}}>
-                                  <div style={{fontWeight: '500', fontSize: '11px'}}>{dsc.clientName}</div>
-                                  <div style={{fontSize: '10px', color: '#64748b'}}>{dsc.holderName}</div>
-                                </td>
-                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontSize: '10px'}}>{expiry.toLocaleDateString('en-IN')}</td>
-                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontWeight: '600', color: '#dc2626'}}>{daysAgo}d</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    );
-                  })()}
-                </div>
-                <button onClick={() => setCurrentView('dscRegister')} style={{marginTop: '8px', width: '100%', padding: '8px', background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}>
-                  View DSC Register →
-                </button>
-              </div>
+              <button onClick={() => setCurrentView('packages')} style={{marginTop: '8px', width: '100%', padding: '8px', background: '#fef3c7', color: '#92400e', border: '1px solid #f59e0b', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}>
+                View All Packages →
+              </button>
             </div>
-
-            {/* Package Due for Renewal & Expired Tables */}
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px'}}>
-              {/* Package Due for Renewal */}
-              <div style={{background: '#fff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0'}}>
-                <h3 style={{margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#d97706', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                  📦 Packages Due for Renewal ({(() => {
-                    const pkgs = (data.packages || []).filter(p => !p.renewed);
-                    const sixtyDays = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
-                    return pkgs.filter(p => {
-                      const ed = new Date(p.endDate);
-                      return ed <= sixtyDays && ed >= today;
-                    }).length;
-                  })()})
-                </h3>
-                <div style={{maxHeight: '200px', overflowY: 'auto'}}>
-                  {(() => {
-                    const pkgs = (data.packages || []).filter(p => !p.renewed);
-                    const sixtyDays = new Date(today.getTime() + (60 * 24 * 60 * 60 * 1000));
-                    const duePkgs = pkgs.filter(p => {
-                      const ed = new Date(p.endDate);
-                      return ed <= sixtyDays && ed >= today;
-                    }).sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
-                    
-                    if (duePkgs.length === 0) {
-                      return <div style={{textAlign: 'center', padding: '20px', color: '#10b981', fontSize: '12px'}}>No packages due for renewal 🎉</div>;
-                    }
-                    
-                    return (
-                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
-                        <thead>
-                          <tr style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'}}>
-                            <th style={{padding: '6px 8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
-                            <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>End Date</th>
-                            <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Days</th>
-                            <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#fff'}}>Amount</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {duePkgs.slice(0, 5).map((pkg, idx) => {
-                            const endDate = new Date(pkg.endDate);
-                            const daysLeft = Math.floor((endDate - today) / (1000 * 60 * 60 * 24));
-                            return (
-                              <tr key={pkg.id} style={{background: idx % 2 === 0 ? '#fff' : '#fef9e7'}}>
-                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', fontWeight: '500', fontSize: '11px'}}>{pkg.clientName}</td>
-                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontSize: '10px'}}>{endDate.toLocaleDateString('en-IN')}</td>
-                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontWeight: '600', 
-                                  color: daysLeft <= 15 ? '#dc2626' : daysLeft <= 30 ? '#d97706' : '#059669'
-                                }}>{daysLeft}d</td>
-                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'right', fontWeight: '600', color: '#059669'}}>₹{(pkg.totalAmount || 0).toLocaleString('en-IN')}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    );
-                  })()}
-                </div>
-                <button onClick={() => setCurrentView('packages')} style={{marginTop: '8px', width: '100%', padding: '8px', background: '#fef3c7', color: '#92400e', border: '1px solid #f59e0b', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}>
-                  View All Packages →
-                </button>
+            
+            {/* Package Expired */}
+            <div style={{background: '#fff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0'}}>
+              <h3 style={{margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#dc2626', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                ⚠️ Expired Packages ({(() => {
+                  const pkgs = (data.packages || []).filter(p => !p.renewed);
+                  return pkgs.filter(p => new Date(p.endDate) < today).length;
+                })()})
+              </h3>
+              <div style={{maxHeight: '200px', overflowY: 'auto'}}>
+                {(() => {
+                  const pkgs = (data.packages || []).filter(p => !p.renewed);
+                  const expiredPkgs = pkgs.filter(p => new Date(p.endDate) < today)
+                    .sort((a, b) => new Date(b.endDate) - new Date(a.endDate));
+                  
+                  if (expiredPkgs.length === 0) {
+                    return <div style={{textAlign: 'center', padding: '20px', color: '#10b981', fontSize: '12px'}}>No expired packages 🎉</div>;
+                  }
+                  
+                  return (
+                    <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                      <thead>
+                        <tr style={{background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'}}>
+                          <th style={{padding: '6px 8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
+                          <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Expired On</th>
+                          <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Days Ago</th>
+                          <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#fff'}}>Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {expiredPkgs.slice(0, 5).map((pkg, idx) => {
+                          const endDate = new Date(pkg.endDate);
+                          const daysAgo = Math.floor((today - endDate) / (1000 * 60 * 60 * 24));
+                          return (
+                            <tr key={pkg.id} style={{background: idx % 2 === 0 ? '#fff' : '#fef2f2'}}>
+                              <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', fontWeight: '500', fontSize: '11px'}}>{pkg.clientName}</td>
+                              <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontSize: '10px'}}>{endDate.toLocaleDateString('en-IN')}</td>
+                              <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontWeight: '600', color: '#dc2626'}}>{daysAgo}d</td>
+                              <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'right', fontWeight: '600', color: '#059669'}}>₹{(pkg.totalAmount || 0).toLocaleString('en-IN')}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  );
+                })()}
               </div>
-              
-              {/* Package Expired */}
-              <div style={{background: '#fff', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0'}}>
-                <h3 style={{margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#dc2626', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                  ⚠️ Expired Packages ({(() => {
-                    const pkgs = (data.packages || []).filter(p => !p.renewed);
-                    return pkgs.filter(p => new Date(p.endDate) < today).length;
-                  })()})
-                </h3>
-                <div style={{maxHeight: '200px', overflowY: 'auto'}}>
-                  {(() => {
-                    const pkgs = (data.packages || []).filter(p => !p.renewed);
-                    const expiredPkgs = pkgs.filter(p => new Date(p.endDate) < today)
-                      .sort((a, b) => new Date(b.endDate) - new Date(a.endDate));
-                    
-                    if (expiredPkgs.length === 0) {
-                      return <div style={{textAlign: 'center', padding: '20px', color: '#10b981', fontSize: '12px'}}>No expired packages 🎉</div>;
-                    }
-                    
-                    return (
-                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
-                        <thead>
-                          <tr style={{background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'}}>
-                            <th style={{padding: '6px 8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
-                            <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Expired On</th>
-                            <th style={{padding: '6px 8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Days Ago</th>
-                            <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#fff'}}>Amount</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {expiredPkgs.slice(0, 5).map((pkg, idx) => {
-                            const endDate = new Date(pkg.endDate);
-                            const daysAgo = Math.floor((today - endDate) / (1000 * 60 * 60 * 24));
-                            return (
-                              <tr key={pkg.id} style={{background: idx % 2 === 0 ? '#fff' : '#fef2f2'}}>
-                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', fontWeight: '500', fontSize: '11px'}}>{pkg.clientName}</td>
-                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontSize: '10px'}}>{endDate.toLocaleDateString('en-IN')}</td>
-                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'center', fontWeight: '600', color: '#dc2626'}}>{daysAgo}d</td>
-                                <td style={{padding: '5px 8px', borderBottom: '1px solid #e5e7eb', textAlign: 'right', fontWeight: '600', color: '#059669'}}>₹{(pkg.totalAmount || 0).toLocaleString('en-IN')}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    );
-                  })()}
-                </div>
-                <button onClick={() => setCurrentView('packages')} style={{marginTop: '8px', width: '100%', padding: '8px', background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}>
-                  View All Packages →
-                </button>
-              </div>
+              <button onClick={() => setCurrentView('packages')} style={{marginTop: '8px', width: '100%', padding: '8px', background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}>
+                View All Packages →
+              </button>
             </div>
           </div>
         </div>
@@ -14772,6 +14728,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     });
     const [viewingDashboardInvoice, setViewingDashboardInvoice] = useState(null);
     const [viewingDashboardReceipt, setViewingDashboardReceipt] = useState(null);
+    const [selectedBillIds, setSelectedBillIds] = useState([]);
+    const [selectedReceiptIds, setSelectedReceiptIds] = useState([]);
     
     // Unbilled Tasks States
     const [unbilledTasksTab, setUnbilledTasksTab] = useState('unbilled'); // 'unbilled', 'free'
@@ -17055,11 +17013,40 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             <input type="text" value={billRegisterFilters.clientName} onChange={(e) => setBillRegisterFilters(p => ({...p, clientName: e.target.value}))}
                               placeholder="Search client..." style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}} />
                           </div>
-                          <button onClick={() => setBillRegisterFilters({fromDate: '', toDate: '', organizationId: '', clientName: '', parentTask: '', childTask: '', status: ''})}
+                          <div>
+                            <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#64748b'}}>Status</label>
+                            <select value={billRegisterFilters.status} onChange={(e) => setBillRegisterFilters(p => ({...p, status: e.target.value}))}
+                              style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', minWidth: '100px'}}>
+                              <option value="">All</option>
+                              <option value="Pending">Pending</option>
+                              <option value="Partial">Partial</option>
+                              <option value="Paid">Paid</option>
+                            </select>
+                          </div>
+                          <button onClick={() => { setBillRegisterFilters({fromDate: '', toDate: '', organizationId: '', clientName: '', parentTask: '', childTask: '', status: ''}); setSelectedBillIds([]); }}
                             style={{padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px'}}>
                             Clear
                           </button>
                         </div>
+                        {/* Download Buttons */}
+                        {selectedBillIds.length > 0 && (
+                          <div style={{marginTop: '12px', display: 'flex', gap: '10px', alignItems: 'center', paddingTop: '12px', borderTop: '1px dashed #e2e8f0'}}>
+                            <span style={{fontSize: '12px', color: '#64748b'}}>{selectedBillIds.length} selected</span>
+                            <button onClick={() => {
+                              const selectedInvoices = (data.invoices || []).filter(inv => selectedBillIds.includes(inv.id));
+                              if (selectedInvoices.length === 1) {
+                                setViewingInvoice(selectedInvoices[0]);
+                              } else {
+                                alert('Download functionality: ' + selectedInvoices.length + ' invoices selected. In production, this would generate PDFs.');
+                              }
+                            }} style={{padding: '6px 12px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px'}}>
+                              <Download size={12} /> Download Selected
+                            </button>
+                            <button onClick={() => setSelectedBillIds([])} style={{padding: '6px 12px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px'}}>
+                              Clear Selection
+                            </button>
+                          </div>
+                        )}
                       </div>
                       
                       {/* Bills Table */}
@@ -17067,12 +17054,30 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
                           <thead>
                             <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                              <th style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '30px'}}>
+                                <input type="checkbox" onChange={(e) => {
+                                  // Get filtered invoices for select all
+                                  const fyStartYear = parseInt(dashboardFY.split(' ')[1].split('-')[0]);
+                                  const fyStart = new Date(fyStartYear, 3, 1);
+                                  const fyEnd = new Date(fyStartYear + 1, 2, 31, 23, 59, 59);
+                                  let allInvoices = (data.invoices || []).filter(inv => {
+                                    const invDate = new Date(inv.invoiceDate);
+                                    return invDate >= fyStart && invDate <= fyEnd;
+                                  });
+                                  if (e.target.checked) {
+                                    setSelectedBillIds(allInvoices.map(i => i.id));
+                                  } else {
+                                    setSelectedBillIds([]);
+                                  }
+                                }} checked={selectedBillIds.length > 0} style={{cursor: 'pointer'}} />
+                              </th>
                               <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>S.No</th>
                               <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Invoice No</th>
                               <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Date</th>
                               <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client Code</th>
                               <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client Name</th>
                               <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Task</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Description</th>
                               <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Organization</th>
                               <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Amount</th>
                               <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>GST</th>
@@ -17083,6 +17088,11 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           </thead>
                           <tbody>
                             {(() => {
+                              // FY-based filtering - filter by invoice date
+                              const fyStartYear = parseInt(dashboardFY.split(' ')[1].split('-')[0]);
+                              const fyStart = new Date(fyStartYear, 3, 1); // April 1
+                              const fyEnd = new Date(fyStartYear + 1, 2, 31, 23, 59, 59); // March 31
+                              
                               // Helper function to find parent task for a child task
                               const findParentForChild = (childTask) => {
                                 for (const [parent, children] of Object.entries(PARENT_CHILD_TASKS)) {
@@ -17091,8 +17101,19 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 return null;
                               };
                               
-                              // Enrich ALL invoices with derived parentTask/childTask
-                              let enrichedInvoices = (data.invoices || []).map(inv => {
+                              // Get payment status for invoice
+                              const getInvoiceStatus = (inv) => {
+                                const paidAmt = (data.receipts || []).filter(r => r.invoiceId === inv.id).reduce((s, r) => s + (parseFloat(r.amount) || 0) + (parseFloat(r.tds) || 0) + (parseFloat(r.discount) || 0), 0);
+                                if (paidAmt >= (inv.totalAmount || 0)) return 'Paid';
+                                if (paidAmt > 0) return 'Partial';
+                                return 'Pending';
+                              };
+                              
+                              // Start with FY-filtered invoices based on invoice date
+                              let enrichedInvoices = (data.invoices || []).filter(inv => {
+                                const invDate = new Date(inv.invoiceDate);
+                                return invDate >= fyStart && invDate <= fyEnd;
+                              }).map(inv => {
                                 let parentTask = inv.parentTask;
                                 let childTask = inv.taskType;
                                 
@@ -17122,7 +17143,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 return {
                                   ...inv,
                                   parentTask: parentTask || 'Other',
-                                  childTask: childTask || inv.serviceDescription || 'Other'
+                                  childTask: childTask || inv.serviceDescription || 'Other',
+                                  paymentStatus: getInvoiceStatus(inv)
                                 };
                               });
                               
@@ -17133,13 +17155,13 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               if (billRegisterFilters.clientName) filtered = filtered.filter(inv => (inv.clientName || '').toLowerCase().includes(billRegisterFilters.clientName.toLowerCase()));
                               if (billRegisterFilters.parentTask) filtered = filtered.filter(inv => inv.parentTask.toLowerCase() === billRegisterFilters.parentTask.toLowerCase());
                               if (billRegisterFilters.childTask) filtered = filtered.filter(inv => (inv.childTask || '').toLowerCase().includes(billRegisterFilters.childTask.toLowerCase()));
+                              if (billRegisterFilters.status) filtered = filtered.filter(inv => inv.paymentStatus === billRegisterFilters.status);
                               
                               if (filtered.length === 0) {
-                                return <tr><td colSpan={12} style={{padding: '30px', textAlign: 'center', color: '#64748b', border: '1px solid #e5e7eb'}}>No invoices found</td></tr>;
+                                return <tr><td colSpan={14} style={{padding: '30px', textAlign: 'center', color: '#64748b', border: '1px solid #e5e7eb'}}>No invoices found for {dashboardFY}</td></tr>;
                               }
                               
                               const totalAmount = filtered.reduce((s, i) => s + (i.netAmount || i.amount || 0), 0);
-                              // Tax is stored in cgst+sgst+igst, taxAmount is just for reference
                               const totalGST = filtered.reduce((s, i) => {
                                 const gstTotal = (i.cgst || 0) + (i.sgst || 0) + (i.igst || 0);
                                 return s + (gstTotal > 0 ? gstTotal : (i.taxAmount || 0));
@@ -17149,17 +17171,26 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               return (
                                 <>
                                   {filtered.sort((a,b) => new Date(b.invoiceDate) - new Date(a.invoiceDate)).map((inv, idx) => {
-                                    const paidAmt = (data.receipts || []).filter(r => r.invoiceId === inv.id).reduce((s, r) => s + (parseFloat(r.amount) || 0) + (parseFloat(r.tds) || 0) + (parseFloat(r.discount) || 0), 0);
-                                    const isPaid = paidAmt >= (inv.totalAmount || 0);
-                                    const isPartial = paidAmt > 0 && paidAmt < (inv.totalAmount || 0);
+                                    const isPaid = inv.paymentStatus === 'Paid';
+                                    const isPartial = inv.paymentStatus === 'Partial';
                                     return (
                                       <tr key={inv.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                                        <td style={{padding: '6px', textAlign: 'center', border: '1px solid #e5e7eb'}}>
+                                          <input type="checkbox" checked={selectedBillIds.includes(inv.id)} onChange={(e) => {
+                                            if (e.target.checked) {
+                                              setSelectedBillIds(prev => [...prev, inv.id]);
+                                            } else {
+                                              setSelectedBillIds(prev => prev.filter(id => id !== inv.id));
+                                            }
+                                          }} style={{cursor: 'pointer'}} />
+                                        </td>
                                         <td style={{padding: '6px 10px', border: '1px solid #e5e7eb'}}>{idx + 1}</td>
                                         <td style={{padding: '6px 10px', fontWeight: '500', color: '#10b981', border: '1px solid #e5e7eb'}}>{inv.invoiceNo}</td>
                                         <td style={{padding: '6px 10px', border: '1px solid #e5e7eb'}}>{new Date(inv.invoiceDate).toLocaleDateString('en-IN')}</td>
                                         <td style={{padding: '6px 10px', fontSize: '10px', color: '#6366f1', fontWeight: '500', border: '1px solid #e5e7eb'}}>{inv.clientCode || '-'}</td>
                                         <td style={{padding: '6px 10px', border: '1px solid #e5e7eb'}}>{inv.clientName}</td>
                                         <td style={{padding: '6px 10px', fontSize: '10px', border: '1px solid #e5e7eb'}}>{inv.parentTask !== 'Other' ? `${inv.parentTask} - ` : ''}{inv.childTask}</td>
+                                        <td style={{padding: '6px 10px', fontSize: '10px', color: '#64748b', border: '1px solid #e5e7eb', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={inv.serviceDescription || inv.description || '-'}>{inv.serviceDescription || inv.description || '-'}</td>
                                         <td style={{padding: '6px 10px', fontSize: '10px', color: '#64748b', border: '1px solid #e5e7eb'}}>{inv.orgName}</td>
                                         <td style={{padding: '6px 10px', textAlign: 'right', border: '1px solid #e5e7eb'}}>₹{(inv.netAmount || inv.amount || 0).toLocaleString('en-IN')}</td>
                                         <td style={{padding: '6px 10px', textAlign: 'right', border: '1px solid #e5e7eb'}}>₹{(() => {
@@ -17172,15 +17203,15 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                             background: isPaid ? '#d1fae5' : isPartial ? '#fef3c7' : '#fee2e2',
                                             color: isPaid ? '#065f46' : isPartial ? '#92400e' : '#991b1b'
                                           }}>
-                                            {isPaid ? 'Paid' : isPartial ? 'Partial' : 'Pending'}
+                                            {inv.paymentStatus}
                                           </span>
                                         </td>
                                         <td style={{padding: '6px 10px', textAlign: 'center', border: '1px solid #e5e7eb'}}>
                                           <div style={{display: 'flex', gap: '3px', justifyContent: 'center'}}>
                                             <button 
-                                              onClick={() => setViewingDashboardInvoice(inv)}
+                                              onClick={() => setViewingInvoice(inv)}
                                               style={{padding: '3px 6px', background: '#eff6ff', color: '#2563eb', border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '9px', fontWeight: '500'}}
-                                              title="View"
+                                              title="View Invoice"
                                             >
                                               <Eye size={10} />
                                             </button>
@@ -17215,7 +17246,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                     );
                                   })}
                                   <tr style={{background: '#dcfce7', fontWeight: '700'}}>
-                                    <td colSpan={7} style={{padding: '8px 10px', border: '1px solid #e5e7eb'}}>Total ({filtered.length} invoices)</td>
+                                    <td colSpan={9} style={{padding: '8px 10px', border: '1px solid #e5e7eb'}}>Total ({filtered.length} invoices)</td>
                                     <td style={{padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb'}}>₹{totalAmount.toLocaleString('en-IN')}</td>
                                     <td style={{padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb'}}>₹{totalGST.toLocaleString('en-IN')}</td>
                                     <td style={{padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb'}}>₹{totalTotal.toLocaleString('en-IN')}</td>
@@ -17255,105 +17286,94 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             </select>
                           </div>
                           <div>
-                            <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#64748b'}}>Parent Task</label>
-                            <select value={receiptRegisterFilters.parentTask} onChange={(e) => setReceiptRegisterFilters(p => ({...p, parentTask: e.target.value, childTask: ''}))}
-                              style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', minWidth: '120px'}}>
-                              <option value="">All</option>
-                              {Object.keys(PARENT_CHILD_TASKS).map(p => <option key={p} value={p}>{p}</option>)}
-                            </select>
-                          </div>
-                          <div>
-                            <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#64748b'}}>Child Task</label>
-                            <select value={receiptRegisterFilters.childTask} onChange={(e) => setReceiptRegisterFilters(p => ({...p, childTask: e.target.value}))}
-                              style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', minWidth: '120px'}}>
-                              <option value="">All</option>
-                              {(PARENT_CHILD_TASKS[receiptRegisterFilters.parentTask] || []).map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
-                          </div>
-                          <div>
                             <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#64748b'}}>Client Name</label>
                             <input type="text" value={receiptRegisterFilters.clientName} onChange={(e) => setReceiptRegisterFilters(p => ({...p, clientName: e.target.value}))}
                               placeholder="Search client..." style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}} />
                           </div>
-                          <button onClick={() => setReceiptRegisterFilters({fromDate: '', toDate: '', organizationId: '', clientName: '', parentTask: '', childTask: ''})}
+                          <button onClick={() => { setReceiptRegisterFilters({fromDate: '', toDate: '', organizationId: '', clientName: '', parentTask: '', childTask: ''}); setSelectedReceiptIds([]); }}
                             style={{padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px'}}>
                             Clear
                           </button>
                         </div>
+                        {/* Download Buttons */}
+                        {selectedReceiptIds.length > 0 && (
+                          <div style={{marginTop: '12px', display: 'flex', gap: '10px', alignItems: 'center', paddingTop: '12px', borderTop: '1px dashed #e2e8f0'}}>
+                            <span style={{fontSize: '12px', color: '#64748b'}}>{selectedReceiptIds.length} selected</span>
+                            <button onClick={() => {
+                              const selectedReceipts = (data.receipts || []).filter(r => selectedReceiptIds.includes(r.id));
+                              if (selectedReceipts.length === 1) {
+                                setViewingReceipt(selectedReceipts[0]);
+                              } else {
+                                alert('Download functionality: ' + selectedReceipts.length + ' receipts selected. In production, this would generate PDFs.');
+                              }
+                            }} style={{padding: '6px 12px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px'}}>
+                              <Download size={12} /> Download Selected
+                            </button>
+                            <button onClick={() => setSelectedReceiptIds([])} style={{padding: '6px 12px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px'}}>
+                              Clear Selection
+                            </button>
+                          </div>
+                        )}
                       </div>
                       
                       {/* Receipts Table */}
                       <div style={{overflowX: 'auto'}}>
                         <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
                           <thead>
-                            <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
-                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>S.No</th>
-                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Receipt No</th>
-                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Date</th>
-                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client Code</th>
-                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client Name</th>
-                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Invoice No</th>
-                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Organization</th>
-                              <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Amount</th>
-                              <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>TDS</th>
-                              <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Discount</th>
-                              <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Total</th>
-                              <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Action</th>
+                            <tr style={{background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'}}>
+                              <th style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #2563eb', width: '30px'}}>
+                                <input type="checkbox" onChange={(e) => {
+                                  // Get FY-filtered receipts for select all
+                                  const fyStartYear = parseInt(dashboardFY.split(' ')[1].split('-')[0]);
+                                  const fyStart = new Date(fyStartYear, 3, 1);
+                                  const fyEnd = new Date(fyStartYear + 1, 2, 31, 23, 59, 59);
+                                  let allReceipts = (data.receipts || []).filter(r => {
+                                    const rDate = new Date(r.receiptDate || r.createdAt);
+                                    return rDate >= fyStart && rDate <= fyEnd;
+                                  });
+                                  if (e.target.checked) {
+                                    setSelectedReceiptIds(allReceipts.map(r => r.id));
+                                  } else {
+                                    setSelectedReceiptIds([]);
+                                  }
+                                }} checked={selectedReceiptIds.length > 0} style={{cursor: 'pointer'}} />
+                              </th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #2563eb'}}>S.No</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #2563eb'}}>Receipt No</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #2563eb'}}>Date</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #2563eb'}}>Client Code</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #2563eb'}}>Client Name</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #2563eb'}}>Invoice No</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #2563eb'}}>Organization</th>
+                              <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #2563eb'}}>Amount</th>
+                              <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #2563eb'}}>TDS</th>
+                              <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #2563eb'}}>Discount</th>
+                              <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #2563eb'}}>Total</th>
+                              <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #2563eb'}}>Action</th>
                             </tr>
                           </thead>
                           <tbody>
                             {(() => {
-                              // Helper function to find parent task for a child task
-                              const findParentForChild = (childTask) => {
-                                for (const [parent, children] of Object.entries(PARENT_CHILD_TASKS)) {
-                                  if (children.includes(childTask)) return parent;
-                                }
-                                return null;
-                              };
+                              // FY-based filtering - filter by receipt date
+                              const fyStartYear = parseInt(dashboardFY.split(' ')[1].split('-')[0]);
+                              const fyStart = new Date(fyStartYear, 3, 1); // April 1
+                              const fyEnd = new Date(fyStartYear + 1, 2, 31, 23, 59, 59); // March 31
                               
-                              // Enrich ALL receipts with invoice data for proper organization attribution
-                              let enrichedReceipts = (data.receipts || []).map(r => {
+                              // Start with FY-filtered receipts based on receipt date
+                              let enrichedReceipts = (data.receipts || []).filter(r => {
+                                const rDate = new Date(r.receiptDate || r.createdAt);
+                                return rDate >= fyStart && rDate <= fyEnd;
+                              }).map(r => {
                                 const inv = (data.invoices || []).find(i => i.id === r.invoiceId);
-                                
-                                // Derive organization from invoice
                                 const organizationId = inv?.organizationId || r.organizationId;
                                 const org = (data.organizations || []).find(o => String(o.id) === String(organizationId));
                                 const orgName = inv?.orgName || org?.name || r.orgName || '';
-                                
-                                // Derive parentTask and childTask from invoice
-                                let parentTask = inv?.parentTask;
-                                let childTask = inv?.taskType;
-                                
-                                // Try to derive from serviceDescription
-                                if (!parentTask && inv?.serviceDescription && inv.serviceDescription.includes(' - ')) {
-                                  const parts = inv.serviceDescription.split(' - ');
-                                  if (parts.length >= 2) {
-                                    parentTask = parts[0].trim();
-                                    if (!childTask) childTask = parts.slice(1).join(' - ').trim();
-                                  }
-                                }
-                                
-                                // Try to find parent from PARENT_CHILD_TASKS
-                                if (!parentTask && childTask) {
-                                  parentTask = findParentForChild(childTask);
-                                }
-                                
-                                // Try to get from linked task
-                                if (!parentTask && inv?.taskId) {
-                                  const linkedTask = (data.tasks || []).find(t => t.id === inv.taskId);
-                                  if (linkedTask) {
-                                    parentTask = linkedTask.parentTask;
-                                    if (!childTask) childTask = linkedTask.childTask;
-                                  }
-                                }
                                 
                                 return {
                                   ...r,
                                   organizationId: organizationId,
                                   orgName: orgName,
                                   clientCode: inv?.clientCode || r.clientCode,
-                                  parentTask: parentTask || 'Other',
-                                  childTask: childTask || inv?.serviceDescription || 'Other',
                                   invoiceNo: inv?.invoiceNo || ''
                                 };
                               });
@@ -17363,11 +17383,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               if (receiptRegisterFilters.toDate) filtered = filtered.filter(r => new Date(r.receiptDate || r.createdAt) <= new Date(receiptRegisterFilters.toDate));
                               if (receiptRegisterFilters.organizationId) filtered = filtered.filter(r => String(r.organizationId) === receiptRegisterFilters.organizationId);
                               if (receiptRegisterFilters.clientName) filtered = filtered.filter(r => (r.clientName || '').toLowerCase().includes(receiptRegisterFilters.clientName.toLowerCase()));
-                              if (receiptRegisterFilters.parentTask) filtered = filtered.filter(r => r.parentTask.toLowerCase() === receiptRegisterFilters.parentTask.toLowerCase());
-                              if (receiptRegisterFilters.childTask) filtered = filtered.filter(r => (r.childTask || '').toLowerCase().includes(receiptRegisterFilters.childTask.toLowerCase()));
                               
                               if (filtered.length === 0) {
-                                return <tr><td colSpan={12} style={{padding: '30px', textAlign: 'center', color: '#64748b', border: '1px solid #e5e7eb'}}>No receipts found</td></tr>;
+                                return <tr><td colSpan={13} style={{padding: '30px', textAlign: 'center', color: '#64748b', border: '1px solid #e5e7eb'}}>No receipts found for {dashboardFY}</td></tr>;
                               }
                               
                               const totalAmount = filtered.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
@@ -17379,7 +17397,16 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 <>
                                   {filtered.sort((a,b) => new Date(b.receiptDate || b.createdAt) - new Date(a.receiptDate || a.createdAt)).map((r, idx) => {
                                     return (
-                                      <tr key={r.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                                      <tr key={r.id} style={{background: idx % 2 === 0 ? '#fff' : '#eff6ff'}}>
+                                        <td style={{padding: '6px', textAlign: 'center', border: '1px solid #e5e7eb'}}>
+                                          <input type="checkbox" checked={selectedReceiptIds.includes(r.id)} onChange={(e) => {
+                                            if (e.target.checked) {
+                                              setSelectedReceiptIds(prev => [...prev, r.id]);
+                                            } else {
+                                              setSelectedReceiptIds(prev => prev.filter(id => id !== r.id));
+                                            }
+                                          }} style={{cursor: 'pointer'}} />
+                                        </td>
                                         <td style={{padding: '6px 10px', border: '1px solid #e5e7eb'}}>{idx + 1}</td>
                                         <td style={{padding: '6px 10px', fontWeight: '500', color: '#3b82f6', border: '1px solid #e5e7eb'}}>{r.receiptNo}</td>
                                         <td style={{padding: '6px 10px', border: '1px solid #e5e7eb'}}>{new Date(r.receiptDate || r.createdAt).toLocaleDateString('en-IN')}</td>
@@ -17394,9 +17421,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                         <td style={{padding: '6px 10px', textAlign: 'center', border: '1px solid #e5e7eb'}}>
                                           <div style={{display: 'flex', gap: '3px', justifyContent: 'center'}}>
                                             <button 
-                                              onClick={() => setViewingDashboardReceipt(r)}
+                                              onClick={() => setViewingReceipt(r)}
                                               style={{padding: '3px 6px', background: '#eff6ff', color: '#2563eb', border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '9px', fontWeight: '500'}}
-                                              title="View"
+                                              title="View Receipt"
                                             >
                                               <Eye size={10} />
                                             </button>
@@ -17429,8 +17456,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                       </tr>
                                     );
                                   })}
-                                  <tr style={{background: '#dcfce7', fontWeight: '700'}}>
-                                    <td colSpan={7} style={{padding: '8px 10px', border: '1px solid #e5e7eb'}}>Total ({filtered.length} receipts)</td>
+                                  <tr style={{background: '#dbeafe', fontWeight: '700'}}>
+                                    <td colSpan={8} style={{padding: '8px 10px', border: '1px solid #e5e7eb'}}>Total ({filtered.length} receipts)</td>
                                     <td style={{padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb'}}>₹{totalAmount.toLocaleString('en-IN')}</td>
                                     <td style={{padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb'}}>₹{totalTDS.toLocaleString('en-IN')}</td>
                                     <td style={{padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb'}}>₹{totalDisc.toLocaleString('en-IN')}</td>
@@ -24588,17 +24615,26 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     
     // Filter DSC records
     const filteredDscRecords = dscRecords.filter(dsc => {
-      // Search filter
-      const searchLower = dscSearch.toLowerCase();
-      const matchesSearch = !dscSearch || 
+      // Search filter - works with 2+ letters
+      const searchLower = dscSearch.toLowerCase().trim();
+      const matchesSearch = searchLower.length < 2 || 
         (dsc.clientName || '').toLowerCase().includes(searchLower) ||
         (dsc.holderName || '').toLowerCase().includes(searchLower) ||
-        (dsc.tokenSerialNo || '').toLowerCase().includes(searchLower);
+        (dsc.tokenSerialNo || '').toLowerCase().includes(searchLower) ||
+        (dsc.issuingAuthority || '').toLowerCase().includes(searchLower);
       
       // Status filter (use effective status)
       const effectiveStatus = getEffectiveStatus(dsc);
-      const matchesStatus = dscStatusFilter === 'all' || 
-        dscStatusFilter === 'Expired' ? effectiveStatus === 'Expired' : dsc.status === dscStatusFilter;
+      let matchesStatus = true;
+      if (dscStatusFilter !== 'all') {
+        if (dscStatusFilter === 'Expired') {
+          matchesStatus = effectiveStatus === 'Expired';
+        } else if (dscStatusFilter === 'Downloaded') {
+          matchesStatus = dsc.status === 'Downloaded' && effectiveStatus !== 'Expired';
+        } else if (dscStatusFilter === 'Pending for Verification') {
+          matchesStatus = dsc.status === 'Pending for Verification' && effectiveStatus !== 'Expired';
+        }
+      }
       
       // Expiry filter
       let matchesExpiry = true;
@@ -24774,9 +24810,11 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           <p style={{ color: '#64748b', fontSize: '14px' }}>Manage Digital Signature Certificates for your clients</p>
         </div>
         
-        {/* Summary Cards */}
+        {/* Summary Cards - Clickable */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-          <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0' }}>
+          <div 
+            onClick={() => { setDscStatusFilter('all'); setDscExpiryFilter('all'); }}
+            style={{ background: dscStatusFilter === 'all' && dscExpiryFilter === 'all' ? '#eff6ff' : '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: dscStatusFilter === 'all' && dscExpiryFilter === 'all' ? '2px solid #3b82f6' : '1px solid #e2e8f0', cursor: 'pointer', transition: 'all 0.2s' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Key size={24} color="#3b82f6" />
@@ -24788,7 +24826,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             </div>
           </div>
           
-          <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0' }}>
+          <div 
+            onClick={() => { setDscStatusFilter('Downloaded'); setDscExpiryFilter('all'); }}
+            style={{ background: dscStatusFilter === 'Downloaded' ? '#dcfce7' : '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: dscStatusFilter === 'Downloaded' ? '2px solid #16a34a' : '1px solid #e2e8f0', cursor: 'pointer', transition: 'all 0.2s' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <CheckCircle size={24} color="#16a34a" />
@@ -24800,7 +24840,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             </div>
           </div>
           
-          <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0' }}>
+          <div 
+            onClick={() => { setDscStatusFilter('all'); setDscExpiryFilter('expiring-soon'); }}
+            style={{ background: dscExpiryFilter === 'expiring-soon' ? '#fef3c7' : '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: dscExpiryFilter === 'expiring-soon' ? '2px solid #d97706' : '1px solid #e2e8f0', cursor: 'pointer', transition: 'all 0.2s' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <AlertCircle size={24} color="#d97706" />
@@ -24812,7 +24854,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             </div>
           </div>
           
-          <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0' }}>
+          <div 
+            onClick={() => { setDscStatusFilter('all'); setDscExpiryFilter('expired'); }}
+            style={{ background: dscExpiryFilter === 'expired' ? '#fee2e2' : '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: dscExpiryFilter === 'expired' ? '2px solid #dc2626' : '1px solid #e2e8f0', cursor: 'pointer', transition: 'all 0.2s' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <XCircle size={24} color="#dc2626" />
@@ -24833,7 +24877,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
               <input
                 type="text"
-                placeholder="Search by client, holder, token..."
+                placeholder="Type 2-3 letters to search client, holder..."
                 value={dscSearch}
                 onChange={(e) => setDscSearch(e.target.value)}
                 style={{
@@ -25537,12 +25581,12 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                     <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px' }}>
-                      <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>PAN Number</div>
-                      <div style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a', fontFamily: 'monospace' }}>{viewingDsc.pan || '-'}</div>
-                    </div>
-                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px' }}>
                       <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>DSC Type</div>
                       <div style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a' }}>{viewingDsc.dscType}</div>
+                    </div>
+                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px' }}>
+                      <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>Validity</div>
+                      <div style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a' }}>{viewingDsc.validity || '2 Years'}</div>
                     </div>
                   </div>
                   
@@ -25603,17 +25647,32 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         borderRadius: '6px',
                         fontSize: '13px',
                         fontWeight: '600',
-                        background: viewingDsc.status === 'Active' ? '#dcfce7' : viewingDsc.status === 'Expired' ? '#fee2e2' : viewingDsc.status === 'Renewed' ? '#dbeafe' : '#f1f5f9',
-                        color: viewingDsc.status === 'Active' ? '#16a34a' : viewingDsc.status === 'Expired' ? '#dc2626' : viewingDsc.status === 'Renewed' ? '#2563eb' : '#64748b'
+                        background: getEffectiveStatus(viewingDsc) === 'Downloaded' ? '#dcfce7' : getEffectiveStatus(viewingDsc) === 'Expired' ? '#fee2e2' : '#fef3c7',
+                        color: getEffectiveStatus(viewingDsc) === 'Downloaded' ? '#16a34a' : getEffectiveStatus(viewingDsc) === 'Expired' ? '#dc2626' : '#d97706'
                       }}>
-                        {viewingDsc.status}
+                        {getEffectiveStatus(viewingDsc)}
                       </span>
                     </div>
                   </div>
                   
-                  <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px' }}>
-                    <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>Physical Location</div>
-                    <div style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a' }}>{viewingDsc.physicalLocation || '-'}</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px' }}>
+                      <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>Location</div>
+                      <span style={{
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        background: (viewingDsc.location || 'In Office') === 'In Office' ? '#dcfce7' : '#fef3c7',
+                        color: (viewingDsc.location || 'In Office') === 'In Office' ? '#16a34a' : '#d97706'
+                      }}>
+                        {viewingDsc.location || 'In Office'}
+                      </span>
+                    </div>
+                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px' }}>
+                      <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>Physical Location</div>
+                      <div style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a' }}>{viewingDsc.physicalLocation || '-'}</div>
+                    </div>
                   </div>
                   
                   {viewingDsc.remarks && (
