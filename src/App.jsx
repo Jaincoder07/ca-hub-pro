@@ -23928,11 +23928,11 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           const entry = r.invoiceEntries?.find(e => e.invoiceId === inv.id);
                           return s + (entry?.amount || 0) + (entry?.tds || 0) + (entry?.discount || 0);
                         }, 0);
-                        return { ...inv, paidAmount: paid, dueAmount: (inv.totalAmount || 0) - paid };
+                        const org = (data.organizations || []).find(o => o.id === inv.organizationId);
+                        return { ...inv, paidAmount: paid, dueAmount: (inv.totalAmount || 0) - paid, organizationName: org?.name || '' };
                       });
                       const client = data.clients.find(c => c.name?.toLowerCase() === clientName.toLowerCase());
                       const groupNo = client?.fileNo?.split('.')[0] || '';
-                      const org = (data.organizations || []).find(o => o.id === clientInvoices[0]?.organizationId);
                       
                       if (clientInvoices.length === 0) return null;
                       
@@ -23944,7 +23944,6 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 <h4 style={{margin: 0, fontSize: '14px', fontWeight: '600'}}>{clientName}</h4>
                                 <div style={{fontSize: '11px', opacity: 0.9, marginTop: '3px'}}>
                                   Group No: <strong>{groupNo || 'N/A'}</strong> | Client Code: <strong>{client?.fileNo || 'N/A'}</strong>
-                                  {org && <span> | Org: {org.name}</span>}
                                 </div>
                               </div>
                               <div style={{textAlign: 'right'}}>
@@ -23957,32 +23956,37 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                               <thead>
                                 <tr style={{background: '#f0fdf4'}}>
-                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #86efac', width: '40px'}}>Sr.</th>
-                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #86efac'}}>Date</th>
-                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #86efac'}}>Bill No</th>
-                                  <th style={{padding: '10px 8px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #86efac'}}>Bill Amt</th>
-                                  <th style={{padding: '10px 8px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #86efac', color: '#dc2626'}}>Due</th>
-                                  <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #86efac', background: '#dcfce7'}}>Receipt Amt</th>
-                                  <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #86efac', background: '#fef3c7'}}>TDS</th>
-                                  <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #86efac', background: '#dbeafe'}}>Discount</th>
-                                  <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #86efac'}}>Mode</th>
+                                  <th style={{padding: '10px 6px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #86efac', width: '35px'}}>Sr.</th>
+                                  <th style={{padding: '10px 6px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #86efac'}}>Bill No</th>
+                                  <th style={{padding: '10px 6px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #86efac'}}>Date</th>
+                                  <th style={{padding: '10px 6px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #86efac'}}>Organization</th>
+                                  <th style={{padding: '10px 6px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #86efac'}}>Description</th>
+                                  <th style={{padding: '10px 6px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #86efac'}}>Bill Amt</th>
+                                  <th style={{padding: '10px 6px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #86efac', color: '#dc2626'}}>Due</th>
+                                  <th style={{padding: '10px 6px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #86efac', background: '#dcfce7'}}>Receipt Amt</th>
+                                  <th style={{padding: '10px 6px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #86efac', background: '#fef3c7'}}>TDS</th>
+                                  <th style={{padding: '10px 6px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #86efac', background: '#dbeafe'}}>Discount</th>
+                                  <th style={{padding: '10px 6px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #86efac'}}>Mode</th>
+                                  <th style={{padding: '10px 6px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #86efac'}}>View</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {clientInvoices.map((inv, idx) => (
                                   <tr key={inv.id} style={{borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#f8fafc'}}>
-                                    <td style={{padding: '8px', fontSize: '11px'}}>{idx + 1}</td>
-                                    <td style={{padding: '8px', fontSize: '11px'}}>{inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-'}</td>
-                                    <td style={{padding: '8px', fontWeight: '500', color: '#10b981', fontSize: '12px'}}>{inv.invoiceNo}</td>
-                                    <td style={{padding: '8px', textAlign: 'right', fontSize: '12px'}}>₹{inv.totalAmount?.toLocaleString('en-IN')}</td>
-                                    <td style={{padding: '8px', textAlign: 'right', fontWeight: '600', color: '#dc2626', fontSize: '12px'}}>₹{inv.dueAmount?.toLocaleString('en-IN')}</td>
+                                    <td style={{padding: '8px 6px', fontSize: '11px'}}>{idx + 1}</td>
+                                    <td style={{padding: '8px 6px', fontWeight: '500', color: '#10b981', fontSize: '12px'}}>{inv.invoiceNo}</td>
+                                    <td style={{padding: '8px 6px', fontSize: '11px'}}>{inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-'}</td>
+                                    <td style={{padding: '8px 6px', fontSize: '11px', color: '#64748b'}}>{inv.organizationName || '-'}</td>
+                                    <td style={{padding: '8px 6px', fontSize: '10px', color: '#64748b', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={inv.serviceDescription || inv.description || ''}>{inv.serviceDescription || inv.description || '-'}</td>
+                                    <td style={{padding: '8px 6px', textAlign: 'right', fontSize: '12px'}}>₹{inv.totalAmount?.toLocaleString('en-IN')}</td>
+                                    <td style={{padding: '8px 6px', textAlign: 'right', fontWeight: '600', color: '#dc2626', fontSize: '12px'}}>₹{inv.dueAmount?.toLocaleString('en-IN')}</td>
                                     <td style={{padding: '6px', background: '#f0fdf4'}}>
                                       <input
                                         type="number"
                                         value={invoiceReceiptAmounts[inv.id]?.receiptAmount || ''}
                                         onChange={(e) => setInvoiceReceiptAmounts(prev => ({...prev, [inv.id]: {...prev[inv.id], receiptAmount: e.target.value}}))}
                                         placeholder="0"
-                                        style={{width: '75px', padding: '6px 8px', border: '2px solid #86efac', borderRadius: '4px', fontSize: '12px', textAlign: 'right', background: '#fff'}}
+                                        style={{width: '70px', padding: '6px 8px', border: '2px solid #86efac', borderRadius: '4px', fontSize: '12px', textAlign: 'right', background: '#fff'}}
                                       />
                                     </td>
                                     <td style={{padding: '6px', background: '#fefce8'}}>
@@ -23991,7 +23995,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                         value={invoiceReceiptAmounts[inv.id]?.tds || ''}
                                         onChange={(e) => setInvoiceReceiptAmounts(prev => ({...prev, [inv.id]: {...prev[inv.id], tds: e.target.value}}))}
                                         placeholder="0"
-                                        style={{width: '65px', padding: '6px 8px', border: '1px solid #fde68a', borderRadius: '4px', fontSize: '12px', textAlign: 'right'}}
+                                        style={{width: '60px', padding: '6px 8px', border: '1px solid #fde68a', borderRadius: '4px', fontSize: '12px', textAlign: 'right'}}
                                       />
                                     </td>
                                     <td style={{padding: '6px', background: '#eff6ff'}}>
@@ -24000,20 +24004,29 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                         value={invoiceReceiptAmounts[inv.id]?.discount || ''}
                                         onChange={(e) => setInvoiceReceiptAmounts(prev => ({...prev, [inv.id]: {...prev[inv.id], discount: e.target.value}}))}
                                         placeholder="0"
-                                        style={{width: '65px', padding: '6px 8px', border: '1px solid #bfdbfe', borderRadius: '4px', fontSize: '12px', textAlign: 'right'}}
+                                        style={{width: '60px', padding: '6px 8px', border: '1px solid #bfdbfe', borderRadius: '4px', fontSize: '12px', textAlign: 'right'}}
                                       />
                                     </td>
                                     <td style={{padding: '4px'}}>
                                       <select
                                         value={invoiceReceiptAmounts[inv.id]?.paymentMode || 'Cash'}
                                         onChange={(e) => setInvoiceReceiptAmounts(prev => ({...prev, [inv.id]: {...prev[inv.id], paymentMode: e.target.value}}))}
-                                        style={{width: '60px', padding: '4px 3px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '10px'}}
+                                        style={{width: '58px', padding: '4px 3px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '10px'}}
                                       >
                                         <option value="Cash">Cash</option>
                                         <option value="Bank">Bank</option>
                                         <option value="UPI">UPI</option>
                                         <option value="Cheque">Cheque</option>
                                       </select>
+                                    </td>
+                                    <td style={{padding: '4px', textAlign: 'center'}}>
+                                      <button
+                                        onClick={() => setViewingInvoice(inv)}
+                                        style={{padding: '4px 8px', background: '#dbeafe', color: '#1d4ed8', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}
+                                        title="View Invoice"
+                                      >
+                                        <Eye size={12} />
+                                      </button>
                                     </td>
                                   </tr>
                                 ))}
@@ -24297,6 +24310,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           return <tr><td colSpan={11} style={{padding: '50px', textAlign: 'center', color: '#64748b'}}>No receipts found</td></tr>;
                         }
                         return receipts.map((r, idx) => {
+                          // Find invoice(s) for this receipt
+                          const invoiceIds = r.invoiceEntries ? r.invoiceEntries.map(e => e.invoiceId) : (r.invoiceId ? [r.invoiceId] : []);
+                          const receiptInvoices = (data.invoices || []).filter(inv => invoiceIds.includes(inv.id));
                           return (
                             <tr key={r.id} style={{borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#f8fafc'}}>
                               <td style={{padding: '10px', fontWeight: '600', color: '#10b981'}}>{r.receiptNo}</td>
@@ -24305,15 +24321,34 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               <td style={{padding: '10px', color: '#4f46e5', fontFamily: 'monospace', fontSize: '11px'}}>{r.clientCode || '-'}</td>
                               <td style={{padding: '10px', fontWeight: '500'}}>{r.clientName}</td>
                               <td style={{padding: '10px', color: '#64748b', fontSize: '11px'}}>{r.organizationName || '-'}</td>
-                              <td style={{padding: '10px', color: '#10b981', fontSize: '11px', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={r.invoiceNo}>{r.invoiceNo}</td>
+                              <td style={{padding: '10px', color: '#10b981', fontSize: '11px', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={r.invoiceNo}>
+                                {receiptInvoices.length > 0 ? (
+                                  <span 
+                                    style={{cursor: 'pointer', textDecoration: 'underline'}}
+                                    onClick={() => setViewingInvoice(receiptInvoices[0])}
+                                    title="Click to view invoice"
+                                  >
+                                    {r.invoiceNo}
+                                  </span>
+                                ) : r.invoiceNo}
+                              </td>
                               <td style={{padding: '10px', textAlign: 'right', fontWeight: '600', color: '#059669'}}>₹{r.amount?.toLocaleString('en-IN')}</td>
                               <td style={{padding: '10px', textAlign: 'right', color: '#64748b', fontSize: '11px'}}>{r.tds > 0 ? `₹${r.tds}` : '-'}</td>
                               <td style={{padding: '10px', textAlign: 'center', fontSize: '11px'}}>{r.paymentMode}</td>
                               <td style={{padding: '8px', textAlign: 'center'}}>
-                                <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
-                                  <button onClick={() => setViewingReceipt(r)} style={{padding: '5px 10px', background: '#dbeafe', color: '#1d4ed8', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px'}}><Eye size={13} /></button>
-                                  <button onClick={() => { setEditingReceipt({...r}); setShowEditReceiptModal(true); }} style={{padding: '5px 10px', background: '#fef3c7', color: '#92400e', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px'}}>Edit</button>
-                                  <button onClick={() => { if (window.confirm('Delete this receipt?')) setData(prev => ({...prev, receipts: prev.receipts.filter(x => x.id !== r.id)})); }} style={{padding: '5px 10px', background: '#fef2f2', color: '#dc2626', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px'}}>Del</button>
+                                <div style={{display: 'flex', gap: '3px', justifyContent: 'center', flexWrap: 'wrap'}}>
+                                  {receiptInvoices.length > 0 && (
+                                    <button 
+                                      onClick={() => setViewingInvoice(receiptInvoices[0])} 
+                                      style={{padding: '4px 6px', background: '#f0fdf4', color: '#059669', border: '1px solid #86efac', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}
+                                      title="View Invoice"
+                                    >
+                                      Inv
+                                    </button>
+                                  )}
+                                  <button onClick={() => setViewingReceipt(r)} style={{padding: '4px 6px', background: '#dbeafe', color: '#1d4ed8', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}} title="View Receipt"><Eye size={12} /></button>
+                                  <button onClick={() => { setEditingReceipt({...r}); setShowEditReceiptModal(true); }} style={{padding: '4px 6px', background: '#fef3c7', color: '#92400e', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}>Edit</button>
+                                  <button onClick={() => { if (window.confirm('Delete this receipt?')) setData(prev => ({...prev, receipts: prev.receipts.filter(x => x.id !== r.id)})); }} style={{padding: '4px 6px', background: '#fef2f2', color: '#dc2626', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}>Del</button>
                                 </div>
                               </td>
                             </tr>
