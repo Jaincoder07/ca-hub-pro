@@ -24838,10 +24838,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     );
                   })()}
 
-                  {/* 1. INVOICES TABLE - Green Pastel */}
+                  {/* 1. INVOICES TABLE - Green */}
                   <div style={{background: '#fff', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: '16px', border: '1px solid #e2e8f0'}}>
-                    <div style={{padding: '12px 16px', background: '#f0fdf4', borderBottom: '1px solid #bbf7d0'}}>
-                      <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                    <div style={{padding: '12px 16px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                      <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px'}}>
                         <FileText size={16} /> Invoices
                       </h3>
                     </div>
@@ -24940,10 +24940,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     </div>
                   </div>
 
-                  {/* 2. RECEIPTS TABLE - Blue Pastel */}
+                  {/* 2. RECEIPTS TABLE - Blue */}
                   <div style={{background: '#fff', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: '16px', border: '1px solid #e2e8f0'}}>
-                    <div style={{padding: '12px 16px', background: '#eff6ff', borderBottom: '1px solid #bfdbfe'}}>
-                      <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                    <div style={{padding: '12px 16px', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'}}>
+                      <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px'}}>
                         <DollarSign size={16} /> Receipts / Payments
                       </h3>
                     </div>
@@ -25073,10 +25073,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     </div>
                   </div>
 
-                  {/* 3. OUTSTANDING INVOICES TABLE - Orange Pastel */}
+                  {/* 3. OUTSTANDING INVOICES TABLE - Orange */}
                   <div style={{background: '#fff', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0'}}>
-                    <div style={{padding: '12px 16px', background: '#fff7ed', borderBottom: '1px solid #fed7aa'}}>
-                      <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#c2410c', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                    <div style={{padding: '12px 16px', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'}}>
+                      <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px'}}>
                         <AlertCircle size={16} /> Outstanding Invoices
                       </h3>
                     </div>
