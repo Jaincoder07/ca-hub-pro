@@ -15433,6 +15433,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const getAllDebtors = () => {
       const invoices = data.invoices || [];
       const receipts = data.receipts || [];
+      const today = new Date();
       
       // Group by client
       const debtorMap = {};
@@ -15443,16 +15444,23 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         
         if (!debtorMap[clientName]) {
           const client = data.clients.find(c => c.name?.toLowerCase() === clientName.toLowerCase());
+          const groupNo = client?.fileNo?.split('.')[0] || '';
           debtorMap[clientName] = {
             clientName,
             clientCode: inv.clientCode || client?.fileNo || '',
+            groupNo: groupNo,
             groupName: inv.clientGroup || client?.groupName || clientName,
             state: client?.state || inv.clientState || '',
             totalInvoiced: 0,
             totalReceived: 0,
             invoiceCount: 0,
             lastInvoiceDate: null,
-            client: client
+            client: client,
+            // Ageing buckets
+            ageing_0_30: 0,
+            ageing_30_90: 0,
+            ageing_90_360: 0,
+            ageing_360_plus: 0
           };
         }
         
@@ -15471,6 +15479,40 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         
         // Include amount + TDS + discount in total received
         debtorMap[clientName].totalReceived += (rec.amount || 0) + (rec.tds || 0) + (rec.discount || 0);
+      });
+      
+      // Calculate ageing for each debtor based on unpaid invoices
+      Object.keys(debtorMap).forEach(clientName => {
+        const clientInvoices = invoices.filter(inv => inv.clientName === clientName);
+        
+        clientInvoices.forEach(inv => {
+          // Calculate how much is paid on this invoice
+          const invReceipts = receipts.filter(r => 
+            r.invoiceId === inv.id || 
+            (r.invoiceEntries && r.invoiceEntries.some(e => e.invoiceId === inv.id))
+          );
+          const paidOnInv = invReceipts.reduce((s, r) => {
+            if (r.invoiceId === inv.id) return s + (r.amount || 0) + (r.tds || 0) + (r.discount || 0);
+            const entry = r.invoiceEntries?.find(e => e.invoiceId === inv.id);
+            return s + (entry?.amount || 0) + (entry?.tds || 0) + (entry?.discount || 0);
+          }, 0);
+          
+          const unpaid = Math.max(0, (inv.totalAmount || 0) - paidOnInv);
+          if (unpaid <= 0) return;
+          
+          const invDate = new Date(inv.invoiceDate);
+          const daysDiff = Math.floor((today - invDate) / (1000 * 60 * 60 * 24));
+          
+          if (daysDiff <= 30) {
+            debtorMap[clientName].ageing_0_30 += unpaid;
+          } else if (daysDiff <= 90) {
+            debtorMap[clientName].ageing_30_90 += unpaid;
+          } else if (daysDiff <= 360) {
+            debtorMap[clientName].ageing_90_360 += unpaid;
+          } else {
+            debtorMap[clientName].ageing_360_plus += unpaid;
+          }
+        });
       });
       
       // Convert to array and calculate balance
@@ -15492,7 +15534,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       }
       if (debtorFilters.groupName) {
         debtors = debtors.filter(d => 
-          (d.groupName || '').toLowerCase().includes(debtorFilters.groupName.toLowerCase())
+          (d.groupNo || '').toLowerCase().includes(debtorFilters.groupName.toLowerCase())
         );
       }
       if (debtorFilters.balanceType === 'pending') {
@@ -15501,8 +15543,13 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         debtors = debtors.filter(d => d.balance <= 0);
       }
       
-      // Sort by balance descending
-      debtors.sort((a, b) => b.balance - a.balance);
+      // Sort by groupNo numerically, then by clientName
+      debtors.sort((a, b) => {
+        const groupA = Number(a.groupNo) || 999;
+        const groupB = Number(b.groupNo) || 999;
+        if (groupA !== groupB) return groupA - groupB;
+        return (a.clientName || '').localeCompare(b.clientName || '');
+      });
       
       return debtors;
     };
@@ -15510,7 +15557,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     // Open debtor ledger screen
     const openDebtorLedger = (debtor) => {
       const client = debtor.client || data.clients.find(c => c.name?.toLowerCase() === debtor.clientName?.toLowerCase());
-      setSelectedDebtor(client || { name: debtor.clientName, fileNo: debtor.clientCode, groupName: debtor.groupName, state: debtor.state });
+      setSelectedDebtor(client || { name: debtor.clientName, fileNo: debtor.clientCode, groupNo: debtor.groupNo, groupName: debtor.groupName, state: debtor.state });
       setDebtorViewMode('ledger');
     };
     
@@ -24424,71 +24471,108 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             {/* Debtors List View */}
             {debtorViewMode === 'list' && (
               <>
-                {/* Summary Cards */}
+                {/* Summary Cards - Dashboard Style */}
                 <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '20px'}}>
-                  <div style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding: '20px', borderRadius: '12px', color: '#fff'}}>
-                    <div style={{fontSize: '12px', opacity: 0.9, marginBottom: '4px'}}>Total Debtors</div>
-                    <div style={{fontSize: '32px', fontWeight: '700'}}>{getAllDebtors().length}</div>
-                  </div>
-                  <div style={{background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', padding: '20px', borderRadius: '12px', color: '#fff'}}>
-                    <div style={{fontSize: '12px', opacity: 0.9, marginBottom: '4px'}}>Total Outstanding</div>
-                    <div style={{fontSize: '32px', fontWeight: '700'}}>
-                      ₹{getAllDebtors().reduce((sum, d) => sum + Math.max(0, d.balance), 0).toLocaleString('en-IN')}
+                  <div className="dashboard-card" style={{background: 'linear-gradient(135deg, #f3e8ff 0%, #faf5ff 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #e9d5ff', transition: 'all 0.3s ease', cursor: 'pointer'}}
+                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(139, 92, 246, 0.25)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                      <div>
+                        <div style={{fontSize: '13px', color: '#9333ea', fontWeight: '600', marginBottom: '4px'}}>Total Debtors</div>
+                        <div style={{fontSize: '28px', fontWeight: '700', color: '#7c3aed'}}>{getAllDebtors().length}</div>
+                      </div>
+                      <div style={{width: '40px', height: '40px', background: '#8b5cf6', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                        <Users size={20} style={{color: '#fff'}} />
+                      </div>
                     </div>
+                    <div style={{fontSize: '11px', color: '#64748b', marginTop: '8px'}}>All clients with invoices</div>
                   </div>
-                  <div style={{background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', padding: '20px', borderRadius: '12px', color: '#fff'}}>
-                    <div style={{fontSize: '12px', opacity: 0.9, marginBottom: '4px'}}>With Pending Balance</div>
-                    <div style={{fontSize: '32px', fontWeight: '700'}}>
-                      {getAllDebtors().filter(d => d.balance > 0).length}
+                  <div className="dashboard-card" style={{background: 'linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #fecaca', transition: 'all 0.3s ease', cursor: 'pointer'}}
+                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(239, 68, 68, 0.25)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                      <div>
+                        <div style={{fontSize: '13px', color: '#dc2626', fontWeight: '600', marginBottom: '4px'}}>Total Outstanding</div>
+                        <div style={{fontSize: '24px', fontWeight: '700', color: '#b91c1c'}}>₹{getAllDebtors().reduce((sum, d) => sum + Math.max(0, d.balance), 0).toLocaleString('en-IN')}</div>
+                      </div>
+                      <div style={{width: '40px', height: '40px', background: '#ef4444', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                        <DollarSign size={20} style={{color: '#fff'}} />
+                      </div>
                     </div>
+                    <div style={{fontSize: '11px', color: '#64748b', marginTop: '8px'}}>Pending collections</div>
                   </div>
-                  <div style={{background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', padding: '20px', borderRadius: '12px', color: '#fff'}}>
-                    <div style={{fontSize: '12px', opacity: 0.9, marginBottom: '4px'}}>Fully Paid</div>
-                    <div style={{fontSize: '32px', fontWeight: '700'}}>
-                      {getAllDebtors().filter(d => d.balance <= 0).length}
+                  <div className="dashboard-card" style={{background: 'linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #fde68a', transition: 'all 0.3s ease', cursor: 'pointer'}}
+                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(245, 158, 11, 0.25)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                      <div>
+                        <div style={{fontSize: '13px', color: '#d97706', fontWeight: '600', marginBottom: '4px'}}>With Pending Balance</div>
+                        <div style={{fontSize: '28px', fontWeight: '700', color: '#b45309'}}>{getAllDebtors().filter(d => d.balance > 0).length}</div>
+                      </div>
+                      <div style={{width: '40px', height: '40px', background: '#f59e0b', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                        <AlertCircle size={20} style={{color: '#fff'}} />
+                      </div>
                     </div>
+                    <div style={{fontSize: '11px', color: '#64748b', marginTop: '8px'}}>Need follow-up</div>
+                  </div>
+                  <div className="dashboard-card" style={{background: 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #bbf7d0', transition: 'all 0.3s ease', cursor: 'pointer'}}
+                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(16, 185, 129, 0.25)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                      <div>
+                        <div style={{fontSize: '13px', color: '#16a34a', fontWeight: '600', marginBottom: '4px'}}>Fully Paid</div>
+                        <div style={{fontSize: '28px', fontWeight: '700', color: '#166534'}}>{getAllDebtors().filter(d => d.balance <= 0).length}</div>
+                      </div>
+                      <div style={{width: '40px', height: '40px', background: '#16a34a', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                        <CheckCircle size={20} style={{color: '#fff'}} />
+                      </div>
+                    </div>
+                    <div style={{fontSize: '11px', color: '#64748b', marginTop: '8px'}}>No pending balance</div>
                   </div>
                 </div>
                 
-                {/* Filters Section */}
-                <div style={{background: '#fff', borderRadius: '12px', padding: '20px', marginBottom: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
-                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', alignItems: 'flex-end'}}>
+                {/* Filters Section - Compact */}
+                <div style={{background: '#fff', borderRadius: '10px', padding: '14px 16px', marginBottom: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0'}}>
+                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', alignItems: 'end'}}>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: '#374151'}}>Client Name</label>
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '5px', color: '#374151'}}>Client Name</label>
                       <input
                         type="text"
                         value={debtorFilters.clientName}
                         onChange={(e) => setDebtorFilters({...debtorFilters, clientName: e.target.value})}
-                        placeholder="Search by name..."
-                        style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'}}
+                        placeholder="Search..."
+                        style={{width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
                       />
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: '#374151'}}>Client Code</label>
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '5px', color: '#374151'}}>Client Code</label>
                       <input
                         type="text"
                         value={debtorFilters.clientCode}
                         onChange={(e) => setDebtorFilters({...debtorFilters, clientCode: e.target.value})}
-                        placeholder="Search by code..."
-                        style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'}}
+                        placeholder="Search..."
+                        style={{width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
                       />
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: '#374151'}}>Group No.</label>
-                      <input
-                        type="text"
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '5px', color: '#374151'}}>Group No.</label>
+                      <select
                         value={debtorFilters.groupName}
                         onChange={(e) => setDebtorFilters({...debtorFilters, groupName: e.target.value})}
-                        placeholder="Search by group..."
-                        style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'}}
-                      />
+                        style={{width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
+                      >
+                        <option value="">All Groups</option>
+                        {[...new Set(getAllDebtors().map(d => d.groupNo).filter(Boolean))].sort((a,b) => Number(a) - Number(b)).map(g => 
+                          <option key={g} value={g}>{g}</option>
+                        )}
+                      </select>
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '6px', color: '#374151'}}>Balance Status</label>
+                      <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '5px', color: '#374151'}}>Balance Status</label>
                       <select
                         value={debtorFilters.balanceType}
                         onChange={(e) => setDebtorFilters({...debtorFilters, balanceType: e.target.value})}
-                        style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'}}
+                        style={{width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
                       >
                         <option value="all">All Debtors</option>
                         <option value="pending">Pending Balance</option>
@@ -24498,111 +24582,92 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     <div>
                       <button
                         onClick={resetDebtorFilters}
-                        style={{
-                          padding: '10px 20px',
-                          background: '#f1f5f9',
-                          color: '#64748b',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          fontWeight: '500',
-                          width: '100%'
-                        }}
+                        style={{width: '100%', padding: '8px 10px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px'}}
                       >
-                        Reset Filters
+                        Reset
                       </button>
                     </div>
                   </div>
                 </div>
                 
-                {/* Debtors Table */}
-                <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
+                {/* Debtors Table - Compact with Ageing */}
+                <div style={{background: '#fff', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0'}}>
                   <div style={{overflowX: 'auto'}}>
-                    <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
+                    <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
                       <thead>
                         <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
-                          <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client Name</th>
-                          <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client Code</th>
-                          <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Group No.</th>
-                          <th style={{padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Invoices</th>
-                          <th style={{padding: '14px 16px', textAlign: 'right', fontWeight: '600', color: '#fff'}}>Total Billed</th>
-                          <th style={{padding: '14px 16px', textAlign: 'right', fontWeight: '600', color: '#fff'}}>Received</th>
-                          <th style={{padding: '14px 16px', textAlign: 'right', fontWeight: '600', color: '#fff'}}>Balance</th>
-                          <th style={{padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Action</th>
+                          <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>S.No</th>
+                          <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '50px'}}>Grp</th>
+                          <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client Code</th>
+                          <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client Name</th>
+                          <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Inv</th>
+                          <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Billed</th>
+                          <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Received</th>
+                          <th style={{padding: '8px 6px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669', background: '#166534', fontSize: '10px'}}>0-30</th>
+                          <th style={{padding: '8px 6px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669', background: '#ca8a04', fontSize: '10px'}}>30-90</th>
+                          <th style={{padding: '8px 6px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669', background: '#ea580c', fontSize: '10px'}}>90-360</th>
+                          <th style={{padding: '8px 6px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669', background: '#dc2626', fontSize: '10px'}}>&gt;360</th>
+                          <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Balance</th>
+                          <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Action</th>
                         </tr>
                       </thead>
                       <tbody>
                         {getAllDebtors().length === 0 ? (
                           <tr>
-                            <td colSpan={8} style={{padding: '60px', textAlign: 'center', color: '#64748b'}}>
-                              <Users size={48} style={{marginBottom: '16px', opacity: 0.5}} />
-                              <div style={{fontSize: '16px', fontWeight: '500'}}>No debtors found</div>
-                              <div style={{fontSize: '13px', marginTop: '8px'}}>Create invoices to see debtors here</div>
+                            <td colSpan={13} style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>
+                              <Users size={36} style={{marginBottom: '12px', opacity: 0.5}} />
+                              <div style={{fontSize: '13px', fontWeight: '500'}}>No debtors found</div>
+                              <div style={{fontSize: '11px', marginTop: '6px'}}>Create invoices to see debtors here</div>
                             </td>
                           </tr>
                         ) : (
                           getAllDebtors().map((debtor, idx) => (
-                            <tr 
-                              key={idx} 
-                              style={{borderBottom: '1px solid #f1f5f9'}}
-                              onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-                              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                            >
-                              <td style={{padding: '14px 16px', fontWeight: '500'}}>{debtor.clientName}</td>
-                              <td style={{padding: '14px 16px', color: '#64748b'}}>{debtor.clientCode || '-'}</td>
-                              <td style={{padding: '14px 16px', color: '#64748b'}}>{debtor.groupName || '-'}</td>
-                              <td style={{padding: '14px 16px', textAlign: 'center'}}>
-                                <span style={{
-                                  padding: '4px 12px',
-                                  background: '#e0f2fe',
-                                  color: '#0369a1',
-                                  borderRadius: '20px',
-                                  fontSize: '12px',
-                                  fontWeight: '600'
-                                }}>
-                                  {debtor.invoiceCount}
+                            <tr key={idx} style={{borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#f8fafc'}}>
+                              <td style={{padding: '8px 10px', border: '1px solid #e2e8f0'}}>{idx + 1}</td>
+                              <td style={{padding: '8px 10px', textAlign: 'center', fontWeight: '700', color: '#7c3aed', border: '1px solid #e2e8f0'}}>{debtor.groupNo || '-'}</td>
+                              <td style={{padding: '8px 10px', color: '#4f46e5', fontFamily: 'monospace', fontSize: '10px', border: '1px solid #e2e8f0'}}>{debtor.clientCode || '-'}</td>
+                              <td style={{padding: '8px 10px', fontWeight: '500', border: '1px solid #e2e8f0'}}>{debtor.clientName}</td>
+                              <td style={{padding: '8px 10px', textAlign: 'center', border: '1px solid #e2e8f0'}}>
+                                <span style={{padding: '2px 8px', background: '#e0f2fe', color: '#0369a1', borderRadius: '10px', fontSize: '10px', fontWeight: '600'}}>{debtor.invoiceCount}</span>
+                              </td>
+                              <td style={{padding: '8px 10px', textAlign: 'right', border: '1px solid #e2e8f0'}}>₹{debtor.totalInvoiced.toLocaleString('en-IN')}</td>
+                              <td style={{padding: '8px 10px', textAlign: 'right', color: '#10b981', border: '1px solid #e2e8f0'}}>₹{debtor.totalReceived.toLocaleString('en-IN')}</td>
+                              <td style={{padding: '8px 6px', textAlign: 'right', fontSize: '10px', border: '1px solid #e2e8f0', background: debtor.ageing_0_30 > 0 ? '#dcfce7' : 'transparent', color: debtor.ageing_0_30 > 0 ? '#166534' : '#94a3b8'}}>{debtor.ageing_0_30 > 0 ? `₹${debtor.ageing_0_30.toLocaleString('en-IN')}` : '-'}</td>
+                              <td style={{padding: '8px 6px', textAlign: 'right', fontSize: '10px', border: '1px solid #e2e8f0', background: debtor.ageing_30_90 > 0 ? '#fef9c3' : 'transparent', color: debtor.ageing_30_90 > 0 ? '#a16207' : '#94a3b8'}}>{debtor.ageing_30_90 > 0 ? `₹${debtor.ageing_30_90.toLocaleString('en-IN')}` : '-'}</td>
+                              <td style={{padding: '8px 6px', textAlign: 'right', fontSize: '10px', border: '1px solid #e2e8f0', background: debtor.ageing_90_360 > 0 ? '#fed7aa' : 'transparent', color: debtor.ageing_90_360 > 0 ? '#c2410c' : '#94a3b8'}}>{debtor.ageing_90_360 > 0 ? `₹${debtor.ageing_90_360.toLocaleString('en-IN')}` : '-'}</td>
+                              <td style={{padding: '8px 6px', textAlign: 'right', fontSize: '10px', border: '1px solid #e2e8f0', background: debtor.ageing_360_plus > 0 ? '#fecaca' : 'transparent', color: debtor.ageing_360_plus > 0 ? '#dc2626' : '#94a3b8', fontWeight: debtor.ageing_360_plus > 0 ? '600' : '400'}}>{debtor.ageing_360_plus > 0 ? `₹${debtor.ageing_360_plus.toLocaleString('en-IN')}` : '-'}</td>
+                              <td style={{padding: '8px 10px', textAlign: 'right', border: '1px solid #e2e8f0'}}>
+                                <span style={{padding: '3px 8px', background: debtor.balance > 0 ? '#fef2f2' : '#f0fdf4', color: debtor.balance > 0 ? '#dc2626' : '#16a34a', borderRadius: '4px', fontWeight: '700', fontSize: '11px'}}>
+                                  ₹{debtor.balance.toLocaleString('en-IN')}
                                 </span>
                               </td>
-                              <td style={{padding: '14px 16px', textAlign: 'right', fontWeight: '500'}}>
-                                ₹{debtor.totalInvoiced.toLocaleString('en-IN', {minimumFractionDigits: 2})}
-                              </td>
-                              <td style={{padding: '14px 16px', textAlign: 'right', color: '#10b981', fontWeight: '500'}}>
-                                ₹{debtor.totalReceived.toLocaleString('en-IN', {minimumFractionDigits: 2})}
-                              </td>
-                              <td style={{padding: '14px 16px', textAlign: 'right'}}>
-                                <span style={{
-                                  padding: '4px 12px',
-                                  background: debtor.balance > 0 ? '#fef2f2' : '#f0fdf4',
-                                  color: debtor.balance > 0 ? '#dc2626' : '#16a34a',
-                                  borderRadius: '6px',
-                                  fontWeight: '700',
-                                  fontSize: '13px'
-                                }}>
-                                  ₹{debtor.balance.toLocaleString('en-IN', {minimumFractionDigits: 2})}
-                                </span>
-                              </td>
-                              <td style={{padding: '14px 16px', textAlign: 'center'}}>
+                              <td style={{padding: '6px 8px', textAlign: 'center', border: '1px solid #e2e8f0'}}>
                                 <button
                                   onClick={() => openDebtorLedger(debtor)}
-                                  style={{
-                                    padding: '8px 16px',
-                                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                                    color: '#fff',
-                                    border: 'none',
-                                    borderRadius: '6px',
-                                    cursor: 'pointer',
-                                    fontSize: '12px',
-                                    fontWeight: '500'
-                                  }}
+                                  style={{padding: '5px 10px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: '500'}}
                                 >
-                                  View Ledger →
+                                  Ledger →
                                 </button>
                               </td>
                             </tr>
                           ))
                         )}
                       </tbody>
+                      {getAllDebtors().length > 0 && (
+                        <tfoot>
+                          <tr style={{background: '#f0fdf4', fontWeight: '700'}}>
+                            <td colSpan={5} style={{padding: '10px', textAlign: 'right', border: '1px solid #e2e8f0'}}>TOTALS:</td>
+                            <td style={{padding: '10px', textAlign: 'right', border: '1px solid #e2e8f0'}}>₹{getAllDebtors().reduce((s,d) => s + d.totalInvoiced, 0).toLocaleString('en-IN')}</td>
+                            <td style={{padding: '10px', textAlign: 'right', color: '#10b981', border: '1px solid #e2e8f0'}}>₹{getAllDebtors().reduce((s,d) => s + d.totalReceived, 0).toLocaleString('en-IN')}</td>
+                            <td style={{padding: '10px', textAlign: 'right', fontSize: '10px', border: '1px solid #e2e8f0', background: '#dcfce7', color: '#166534'}}>₹{getAllDebtors().reduce((s,d) => s + d.ageing_0_30, 0).toLocaleString('en-IN')}</td>
+                            <td style={{padding: '10px', textAlign: 'right', fontSize: '10px', border: '1px solid #e2e8f0', background: '#fef9c3', color: '#a16207'}}>₹{getAllDebtors().reduce((s,d) => s + d.ageing_30_90, 0).toLocaleString('en-IN')}</td>
+                            <td style={{padding: '10px', textAlign: 'right', fontSize: '10px', border: '1px solid #e2e8f0', background: '#fed7aa', color: '#c2410c'}}>₹{getAllDebtors().reduce((s,d) => s + d.ageing_90_360, 0).toLocaleString('en-IN')}</td>
+                            <td style={{padding: '10px', textAlign: 'right', fontSize: '10px', border: '1px solid #e2e8f0', background: '#fecaca', color: '#dc2626'}}>₹{getAllDebtors().reduce((s,d) => s + d.ageing_360_plus, 0).toLocaleString('en-IN')}</td>
+                            <td style={{padding: '10px', textAlign: 'right', color: '#dc2626', border: '1px solid #e2e8f0'}}>₹{getAllDebtors().reduce((s,d) => s + Math.max(0, d.balance), 0).toLocaleString('en-IN')}</td>
+                            <td style={{border: '1px solid #e2e8f0'}}></td>
+                          </tr>
+                        </tfoot>
+                      )}
                     </table>
                   </div>
                 </div>
@@ -24635,7 +24700,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <div style={{flex: 1}}>
                     <h2 style={{margin: 0, fontSize: '24px', fontWeight: '700', color: '#1e293b'}}>{selectedDebtor.name}</h2>
                     <div style={{fontSize: '13px', color: '#64748b', marginTop: '4px'}}>
-                      Code: {selectedDebtor.fileNo || 'N/A'} | Group: {selectedDebtor.groupName || selectedDebtor.name}
+                      Code: {selectedDebtor.fileNo || 'N/A'} | Group No: <strong style={{color: '#7c3aed'}}>{selectedDebtor.groupNo || selectedDebtor.fileNo?.split('.')[0] || 'N/A'}</strong>
                       {selectedDebtor.state && ` | State: ${selectedDebtor.state}`}
                     </div>
                   </div>
