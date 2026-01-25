@@ -16578,26 +16578,69 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       printWindow.document.close();
     };
     
-    // Download multiple invoices
+    // Download multiple invoices - properly formatted
     const downloadMultipleInvoices = (invoices, orgs, clients, asSingle = false) => {
       if (!invoices || invoices.length === 0) return;
       
       if (asSingle) {
-        // For combined PDF, we'll generate all invoices in one window
+        // Build combined HTML with proper formatting
         let combinedHtml = `
           <!DOCTYPE html>
           <html>
           <head>
+            <meta charset="UTF-8">
             <title>Invoices - ${invoices.map(i => i.invoiceNo).join(', ')}</title>
-            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
             <style>
               * { margin: 0; padding: 0; box-sizing: border-box; }
-              body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #fff; }
+              body { font-family: Arial, Helvetica, sans-serif; background: #fff; color: #1f2937; font-size: 12px; }
+              .invoice-wrapper { max-width: 800px; margin: 0 auto; }
+              .invoice-container { border: 2px solid #111827; margin-bottom: 20px; background: #fff; }
+              .header { background: #111827; color: #fff; padding: 20px 25px; }
+              .header-content { display: table; width: 100%; }
+              .header-left { display: table-cell; vertical-align: middle; }
+              .header-right { display: table-cell; text-align: right; vertical-align: middle; }
+              .org-name { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
+              .org-address { font-size: 11px; opacity: 0.9; max-width: 300px; }
+              .invoice-title { font-size: 24px; font-weight: bold; letter-spacing: 2px; }
+              .org-contact { font-size: 11px; opacity: 0.9; margin-top: 5px; }
+              .meta-row { display: table; width: 100%; background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+              .meta-cell { display: table-cell; padding: 12px 15px; border-right: 1px solid #e5e7eb; width: 25%; }
+              .meta-cell:last-child { border-right: none; }
+              .meta-label { font-size: 9px; color: #6b7280; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
+              .meta-value { font-size: 14px; font-weight: 700; color: #111827; margin-top: 2px; }
+              .party-row { display: table; width: 100%; border-bottom: 1px solid #e5e7eb; }
+              .party-cell { display: table-cell; padding: 15px 20px; vertical-align: top; width: 50%; }
+              .party-cell:first-child { border-right: 1px solid #e5e7eb; }
+              .party-label { font-size: 10px; color: #fff; background: #111827; display: inline-block; padding: 2px 8px; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 8px; }
+              .party-name { font-size: 14px; font-weight: 600; color: #1f2937; }
+              .party-detail { font-size: 11px; color: #6b7280; margin-top: 3px; }
+              .items-table { width: 100%; border-collapse: collapse; }
+              .items-header { background: #111827; }
+              .items-header th { padding: 10px 12px; text-align: left; color: #fff; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; border-right: 1px solid rgba(255,255,255,0.2); }
+              .items-header th:last-child { border-right: none; text-align: right; }
+              .items-header th:first-child { text-align: center; width: 40px; }
+              .items-row td { padding: 14px 12px; border-bottom: 1px solid #e5e7eb; }
+              .bottom-row { display: table; width: 100%; border-top: 1px solid #374151; }
+              .bottom-left { display: table-cell; padding: 15px 20px; vertical-align: top; width: 55%; border-right: 1px solid #e5e7eb; }
+              .bottom-right { display: table-cell; padding: 0; vertical-align: top; width: 45%; }
+              .section-label { font-size: 10px; color: #fff; background: #374151; display: inline-block; padding: 2px 8px; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 6px; }
+              .amount-words { font-size: 12px; font-weight: 500; color: #1f2937; font-style: italic; margin-bottom: 12px; }
+              .bank-details { font-size: 11px; color: #4b5563; line-height: 1.6; }
+              .totals-table { width: 100%; border-collapse: collapse; }
+              .totals-table td { padding: 8px 15px; border-bottom: 1px solid #e5e7eb; }
+              .total-row { background: #111827; }
+              .total-row td { color: #fff; font-size: 14px; font-weight: 700; padding: 12px 15px; border: none; }
+              .signature-row { display: table; width: 100%; border-top: 1px solid #e5e7eb; }
+              .signature-cell { display: table-cell; padding: 15px 20px; text-align: right; vertical-align: bottom; }
+              .signature-name { font-size: 12px; font-weight: 600; color: #1f2937; }
+              .signatory { font-size: 11px; color: #6b7280; }
+              .footer { background: #111827; padding: 8px 20px; font-size: 9px; color: #fff; text-align: center; }
               @media print {
-                @page { size: A4 portrait; margin: 10mm; }
+                body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                 .page-break { page-break-after: always; }
+                .invoice-container { border: 2px solid #111827 !important; margin-bottom: 0; }
+                .header, .items-header, .total-row, .party-label, .section-label, .footer { background: #111827 !important; -webkit-print-color-adjust: exact !important; }
               }
-              .invoice-container { background: #fff; border: 2px solid #111827; max-width: 800px; margin: 0 auto 20px; }
             </style>
           </head>
           <body>
@@ -16608,83 +16651,186 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           const client = clients?.find(c => c.id === invoice.clientId) || {};
           
           const gstApplicable = invoice.gstApplicable !== false && currentOrg.gstApplicable === 'yes';
-          const showGst = gstApplicable;
-          const primaryColor = '#111827';
-          const headerGradient = 'linear-gradient(135deg, #111827 0%, #1f2937 50%, #374151 100%)';
+          const invoiceFormat = invoice.invoiceFormat || (gstApplicable ? 'taxInvoice' : 'billOfSupply');
+          const showGst = gstApplicable && invoiceFormat !== 'billOfSupply';
+          
+          let invoiceTitle = 'TAX INVOICE';
+          if (invoiceFormat === 'billOfSupply') invoiceTitle = 'BILL OF SUPPLY';
+          else if (invoiceFormat === 'proformaInvoice') invoiceTitle = 'PROFORMA INVOICE';
           
           const displayOrg = {
-            name: currentOrg.name || invoice.orgName || invoice.organizationName,
-            address: currentOrg.address || invoice.orgAddress,
-            gstin: currentOrg.gstin || invoice.orgGstin,
-            logo: currentOrg.logo || invoice.orgLogo,
-            bankName: currentOrg.bankName,
-            bankAccount: currentOrg.bankAccount,
-            bankIfsc: currentOrg.bankIfsc,
-            signature: currentOrg.signature,
-            signatory: currentOrg.signatory,
+            name: currentOrg.name || invoice.orgName || invoice.organizationName || '',
+            address: currentOrg.address || invoice.orgAddress || '',
+            mobile: currentOrg.mobile || '',
+            gstin: currentOrg.gstin || invoice.orgGstin || '',
+            pan: currentOrg.pan || '',
+            bankName: currentOrg.bankName || '',
+            bankAccount: currentOrg.bankAccount || currentOrg.bankAccountNo || '',
+            bankIfsc: currentOrg.bankIfsc || '',
+            signatory: currentOrg.signatory || '',
           };
           
           const displayClient = {
-            name: invoice.clientName || client.name,
-            address: invoice.clientAddress || client.address,
-            gstin: invoice.clientGstin || client.gstin,
+            name: invoice.clientName || client.name || '',
+            address: invoice.clientAddress || client.address || '',
+            gstin: invoice.clientGstin || client.gstin || '',
+            state: invoice.clientState || client.state || '',
+            code: invoice.clientCode || '',
           };
           
           const invoiceDate = new Date(invoice.invoiceDate).toLocaleDateString('en-IN', {day: '2-digit', month: 'short', year: 'numeric'});
-          const netAmount = (invoice.netAmount || invoice.amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2});
-          const totalAmount = (invoice.totalAmount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2});
+          const netAmount = invoice.netAmount || invoice.amount || 0;
+          const totalAmount = invoice.totalAmount || 0;
           
+          // Build line items
+          let lineItemsHtml = '';
+          if (invoice.lineItems && invoice.lineItems.length > 0) {
+            invoice.lineItems.forEach((item, i) => {
+              lineItemsHtml += `
+                <tr class="items-row" style="background: ${i % 2 === 0 ? '#fff' : '#f9fafb'};">
+                  <td style="text-align: center; color: #6b7280; border-right: 1px solid #e5e7eb;">${i + 1}</td>
+                  <td style="font-weight: 500; color: #1f2937; border-right: 1px solid #e5e7eb;">${item.description || 'Professional Services'}</td>
+                  ${showGst ? `<td style="text-align: center; color: #6b7280; border-right: 1px solid #e5e7eb;">998231</td>` : ''}
+                  ${showGst ? `<td style="text-align: center; color: #6b7280; border-right: 1px solid #e5e7eb;">18%</td>` : ''}
+                  <td style="text-align: right; font-weight: 600; color: #1f2937;">₹${(item.netAmount || item.amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                </tr>
+              `;
+            });
+          } else {
+            lineItemsHtml = `
+              <tr class="items-row">
+                <td style="text-align: center; color: #6b7280; border-right: 1px solid #e5e7eb;">1</td>
+                <td style="font-weight: 500; color: #1f2937; border-right: 1px solid #e5e7eb;">${invoice.serviceDescription || invoice.narration || 'Professional Services'}</td>
+                ${showGst ? `<td style="text-align: center; color: #6b7280; border-right: 1px solid #e5e7eb;">${invoice.sac || '998231'}</td>` : ''}
+                ${showGst ? `<td style="text-align: center; color: #6b7280; border-right: 1px solid #e5e7eb;">18%</td>` : ''}
+                <td style="text-align: right; font-weight: 600; color: #1f2937;">₹${netAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+              </tr>
+            `;
+          }
+          
+          // GST rows
           let gstRowsHtml = '';
           if (showGst) {
-            if (invoice.cgst > 0) gstRowsHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;"><span>CGST @9%:</span><span>₹${(invoice.cgst||0).toLocaleString('en-IN',{minimumFractionDigits:2})}</span></div>`;
-            if (invoice.sgst > 0) gstRowsHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;"><span>SGST @9%:</span><span>₹${(invoice.sgst||0).toLocaleString('en-IN',{minimumFractionDigits:2})}</span></div>`;
-            if (invoice.igst > 0) gstRowsHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;"><span>IGST @18%:</span><span>₹${(invoice.igst||0).toLocaleString('en-IN',{minimumFractionDigits:2})}</span></div>`;
+            if (invoice.cgst > 0) gstRowsHtml += `<tr><td style="color: #6b7280;">CGST @9%</td><td style="text-align: right; font-weight: 600;">₹${(invoice.cgst || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>`;
+            if (invoice.sgst > 0) gstRowsHtml += `<tr><td style="color: #6b7280;">SGST @9%</td><td style="text-align: right; font-weight: 600;">₹${(invoice.sgst || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>`;
+            if (invoice.igst > 0) gstRowsHtml += `<tr><td style="color: #6b7280;">IGST @18%</td><td style="text-align: right; font-weight: 600;">₹${(invoice.igst || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>`;
           }
           
           combinedHtml += `
-            <div class="invoice-container ${idx < invoices.length - 1 ? 'page-break' : ''}">
-              <div style="background:${headerGradient};padding:20px 24px;display:flex;align-items:center;justify-content:space-between;">
-                <div style="display:flex;align-items:center;gap:16px;">
-                  ${displayOrg.logo ? `<img src="${displayOrg.logo}" style="height:50px;object-fit:contain;background:#fff;padding:4px;border-radius:4px;"/>` : ''}
-                  <div>
-                    <h1 style="margin:0;font-size:20px;font-weight:800;color:#fff;">${displayOrg.name}</h1>
-                    <div style="font-size:10px;color:rgba(255,255,255,0.85);margin-top:4px;">${displayOrg.address||''}</div>
+            <div class="invoice-wrapper ${idx < invoices.length - 1 ? 'page-break' : ''}">
+              <div class="invoice-container">
+                <!-- Header -->
+                <div class="header">
+                  <div class="header-content">
+                    <div class="header-left">
+                      <div class="org-name">${displayOrg.name}</div>
+                      <div class="org-address">${displayOrg.address}</div>
+                    </div>
+                    <div class="header-right">
+                      <div class="invoice-title">${invoiceTitle}</div>
+                      ${displayOrg.mobile ? `<div class="org-contact">Tel: ${displayOrg.mobile}</div>` : ''}
+                      ${showGst && displayOrg.gstin ? `<div style="font-size: 11px; margin-top: 3px;">GSTIN: ${displayOrg.gstin}</div>` : ''}
+                    </div>
                   </div>
                 </div>
-                <div style="text-align:right;">
-                  <div style="font-size:18px;font-weight:800;color:#fff;letter-spacing:2px;">TAX INVOICE</div>
-                  ${displayOrg.gstin && showGst ? `<div style="font-size:10px;color:rgba(255,255,255,0.9);margin-top:4px;">GSTIN: ${displayOrg.gstin}</div>` : ''}
+                
+                <!-- Invoice Meta -->
+                <div class="meta-row">
+                  <div class="meta-cell">
+                    <div class="meta-label">Invoice No.</div>
+                    <div class="meta-value">${invoice.invoiceNo}</div>
+                  </div>
+                  <div class="meta-cell">
+                    <div class="meta-label">Date</div>
+                    <div class="meta-value">${invoiceDate}</div>
+                  </div>
+                  <div class="meta-cell">
+                    <div class="meta-label">Place of Supply</div>
+                    <div class="meta-value">${displayClient.state || '-'}</div>
+                  </div>
+                  <div class="meta-cell">
+                    <div class="meta-label">Client Code</div>
+                    <div class="meta-value">${displayClient.code || '-'}</div>
+                  </div>
                 </div>
-              </div>
-              <div style="display:flex;justify-content:space-between;padding:14px 24px;border-bottom:1px solid ${primaryColor};background:#f8fafc;">
-                <div><div style="font-size:10px;color:#64748b;text-transform:uppercase;">Invoice Number</div><div style="font-size:14px;font-weight:700;">${invoice.invoiceNo}</div></div>
-                <div style="text-align:right;"><div style="font-size:10px;color:#64748b;text-transform:uppercase;">Invoice Date</div><div style="font-size:14px;font-weight:700;">${invoiceDate}</div></div>
-              </div>
-              <div style="padding:14px 24px;border-bottom:1px solid ${primaryColor};">
-                <div style="font-size:10px;color:#64748b;text-transform:uppercase;margin-bottom:6px;">Bill To</div>
-                <div style="font-size:14px;font-weight:700;">${displayClient.name}</div>
-                ${displayClient.address ? `<div style="font-size:11px;color:#64748b;margin-top:2px;">${displayClient.address}</div>` : ''}
-              </div>
-              <div style="padding:14px 24px;">
-                <table style="width:100%;border-collapse:collapse;font-size:11px;">
-                  <thead><tr style="background:${primaryColor};"><th style="padding:8px;text-align:left;color:#fff;">Description</th><th style="padding:8px;text-align:right;color:#fff;">Amount</th></tr></thead>
-                  <tbody><tr><td style="padding:10px 8px;border-bottom:1px solid #e5e7eb;">${invoice.serviceDescription||invoice.narration||'Professional Services'}</td><td style="padding:10px 8px;text-align:right;border-bottom:1px solid #e5e7eb;">₹${netAmount}</td></tr></tbody>
+                
+                <!-- Party Details -->
+                <div class="party-row">
+                  <div class="party-cell">
+                    <div class="party-label">FROM</div>
+                    <div class="party-name">${displayOrg.name}</div>
+                    ${showGst && displayOrg.gstin ? `<div class="party-detail">GSTIN: <strong>${displayOrg.gstin}</strong></div>` : ''}
+                    ${displayOrg.pan ? `<div class="party-detail">PAN: <strong>${displayOrg.pan}</strong></div>` : ''}
+                  </div>
+                  <div class="party-cell">
+                    <div class="party-label">BILL TO</div>
+                    <div class="party-name">${displayClient.name}</div>
+                    ${displayClient.address ? `<div class="party-detail">${displayClient.address}</div>` : ''}
+                    ${showGst && displayClient.gstin ? `<div class="party-detail">GSTIN: <strong>${displayClient.gstin}</strong></div>` : ''}
+                  </div>
+                </div>
+                
+                <!-- Items Table -->
+                <table class="items-table">
+                  <thead>
+                    <tr class="items-header">
+                      <th style="text-align: center; width: 40px;">S.No</th>
+                      <th>Description of Services</th>
+                      ${showGst ? '<th style="text-align: center; width: 70px;">SAC</th>' : ''}
+                      ${showGst ? '<th style="text-align: center; width: 50px;">Tax%</th>' : ''}
+                      <th style="text-align: right; width: 120px;">Amount (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${lineItemsHtml}
+                  </tbody>
                 </table>
-              </div>
-              <div style="padding:14px 24px;background:#f8fafc;border-top:1px solid ${primaryColor};">
-                <div style="display:flex;justify-content:flex-end;">
-                  <div style="width:220px;">
-                    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:11px;"><span>Subtotal:</span><span>₹${netAmount}</span></div>
-                    ${gstRowsHtml}
-                    <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:14px;font-weight:700;border-top:2px solid ${primaryColor};margin-top:6px;"><span>Total:</span><span style="color:#10b981;">₹${totalAmount}</span></div>
+                
+                <!-- Bottom Section -->
+                <div class="bottom-row">
+                  <div class="bottom-left">
+                    <div style="margin-bottom: 12px;">
+                      <div class="section-label">AMOUNT IN WORDS</div>
+                      <div class="amount-words">${invoice.amountInWords || 'Rupees ' + numberToWords(Math.round(totalAmount)) + ' Only'}</div>
+                    </div>
+                    <div>
+                      <div class="section-label">BANK DETAILS</div>
+                      <div class="bank-details">
+                        <div>Bank: <strong>${displayOrg.bankName || '-'}</strong></div>
+                        <div>A/C No: <strong>${displayOrg.bankAccount || '-'}</strong></div>
+                        <div>IFSC: <strong>${displayOrg.bankIfsc || '-'}</strong></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="bottom-right">
+                    <table class="totals-table">
+                      <tr>
+                        <td style="color: #6b7280;">Subtotal</td>
+                        <td style="text-align: right; font-weight: 600;">₹${netAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                      </tr>
+                      ${invoice.discount > 0 ? `<tr><td style="color: #6b7280;">Discount</td><td style="text-align: right; font-weight: 600; color: #dc2626;">- ₹${(invoice.discount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>` : ''}
+                      ${gstRowsHtml}
+                      <tr class="total-row">
+                        <td>TOTAL</td>
+                        <td style="text-align: right;">₹${totalAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                      </tr>
+                    </table>
                   </div>
                 </div>
-              </div>
-              <div style="display:flex;justify-content:space-between;padding:14px 24px;border-top:1px solid ${primaryColor};">
-                ${displayOrg.bankName ? `<div style="font-size:10px;"><div style="font-weight:600;margin-bottom:4px;">Bank Details:</div><div>Bank: ${displayOrg.bankName}</div><div>A/C: ${displayOrg.bankAccount||''}</div><div>IFSC: ${displayOrg.bankIfsc||''}</div></div>` : '<div></div>'}
-                <div style="text-align:right;">
-                  ${displayOrg.signature ? `<img src="${displayOrg.signature}" style="height:40px;margin-bottom:4px;"/>` : ''}
-                  <div style="font-size:11px;font-weight:600;">For ${displayOrg.name}</div>
+                
+                <!-- Signature -->
+                <div class="signature-row">
+                  <div class="signature-cell">
+                    <div style="margin-bottom: 30px;"></div>
+                    <div class="signature-name">For ${displayOrg.name}</div>
+                    ${displayOrg.signatory ? `<div class="signatory">${displayOrg.signatory}</div>` : ''}
+                    <div class="signatory">Authorized Signatory</div>
+                  </div>
+                </div>
+                
+                <!-- Footer -->
+                <div class="footer">
+                  Computer generated ${invoiceTitle.toLowerCase()}. ${showGst ? 'Subject to local jurisdiction.' : 'GST Not Applicable.'}
                 </div>
               </div>
             </div>
@@ -16705,7 +16851,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         invoices.forEach((invoice, idx) => {
           setTimeout(() => {
             downloadInvoicePDF(invoice, orgs, clients);
-          }, idx * 1500); // 1.5 second delay between each to allow print dialog
+          }, idx * 1500);
         });
       }
     };
@@ -16714,6 +16860,204 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const formatInvoiceDate = (dateStr) => {
       const date = new Date(dateStr);
       return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    };
+
+    // Generate invoice HTML with inline styles for PDF generation
+    const generateInvoiceHtmlForPdf = (invoice, orgs, clients) => {
+      const currentOrg = orgs?.find(o => o.id === (invoice.orgId || invoice.organizationId)) || {};
+      const client = clients?.find(c => c.id === invoice.clientId) || {};
+      
+      const gstApplicable = invoice.gstApplicable !== false && currentOrg.gstApplicable === 'yes';
+      const invoiceFormat = invoice.invoiceFormat || (gstApplicable ? 'taxInvoice' : 'billOfSupply');
+      const showGst = gstApplicable && invoiceFormat !== 'billOfSupply';
+      
+      let invoiceTitle = 'TAX INVOICE';
+      if (invoiceFormat === 'billOfSupply') invoiceTitle = 'BILL OF SUPPLY';
+      else if (invoiceFormat === 'proformaInvoice') invoiceTitle = 'PROFORMA INVOICE';
+      
+      const primaryColor = '#111827';
+      
+      const displayOrg = {
+        name: currentOrg.name || invoice.orgName || invoice.organizationName || '',
+        address: currentOrg.address || invoice.orgAddress || '',
+        mobile: currentOrg.mobile || currentOrg.mobileNo || '',
+        gstin: currentOrg.gstin || invoice.orgGstin || '',
+        pan: currentOrg.pan || currentOrg.panNo || '',
+        bankName: currentOrg.bankName || '',
+        bankAccount: currentOrg.bankAccount || currentOrg.bankAccountNo || '',
+        bankIfsc: currentOrg.bankIfsc || '',
+        signatory: currentOrg.signatory || currentOrg.authorizedSignatory || '',
+        logo: currentOrg.logo || invoice.orgLogo || '',
+        signature: currentOrg.signature || currentOrg.signatureImage || invoice.orgSignature || '',
+      };
+      
+      const displayClient = {
+        name: invoice.clientName || client.name || '',
+        address: invoice.clientAddress || client.address || '',
+        gstin: invoice.clientGstin || client.gstin || '',
+        state: invoice.clientState || client.state || '',
+        code: invoice.clientCode || '',
+      };
+      
+      const invoiceDate = new Date(invoice.invoiceDate).toLocaleDateString('en-IN', {day: '2-digit', month: 'short', year: 'numeric'});
+      const netAmount = invoice.netAmount || invoice.amount || 0;
+      const totalAmount = invoice.totalAmount || 0;
+      
+      // Build line items
+      let lineItemsHtml = '';
+      if (invoice.lineItems && invoice.lineItems.length > 0) {
+        invoice.lineItems.forEach((item, i) => {
+          lineItemsHtml += `
+            <tr style="background: ${i % 2 === 0 ? '#fff' : '#f9fafb'};">
+              <td style="padding: 12px; text-align: center; border: 1px solid #e5e7eb; color: #6b7280;">${i + 1}</td>
+              <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 500; color: #1f2937;">${item.description || 'Professional Services'}</td>
+              ${showGst ? `<td style="padding: 12px; text-align: center; border: 1px solid #e5e7eb; color: #6b7280;">998231</td>` : ''}
+              ${showGst ? `<td style="padding: 12px; text-align: center; border: 1px solid #e5e7eb; color: #6b7280;">18%</td>` : ''}
+              <td style="padding: 12px; text-align: right; border: 1px solid #e5e7eb; font-weight: 600; color: #1f2937;">₹${(item.netAmount || item.amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+            </tr>
+          `;
+        });
+      } else {
+        const description = invoice.serviceDescription || invoice.narration || 'Professional Services';
+        lineItemsHtml = `
+          <tr>
+            <td style="padding: 12px; text-align: center; border: 1px solid #e5e7eb; color: #6b7280;">1</td>
+            <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: 500; color: #1f2937;">${description}</td>
+            ${showGst ? `<td style="padding: 12px; text-align: center; border: 1px solid #e5e7eb; color: #6b7280;">${invoice.sac || '998231'}</td>` : ''}
+            ${showGst ? `<td style="padding: 12px; text-align: center; border: 1px solid #e5e7eb; color: #6b7280;">18%</td>` : ''}
+            <td style="padding: 12px; text-align: right; border: 1px solid #e5e7eb; font-weight: 600; color: #1f2937;">₹${netAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+          </tr>
+        `;
+      }
+      
+      // Build GST rows
+      let gstRowsHtml = '';
+      if (showGst) {
+        if (invoice.cgst > 0) gstRowsHtml += `<tr><td style="padding: 10px 15px; border: 1px solid #e5e7eb; color: #6b7280;">CGST @9%</td><td style="padding: 10px 15px; text-align: right; border: 1px solid #e5e7eb; font-weight: 600;">₹${(invoice.cgst || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>`;
+        if (invoice.sgst > 0) gstRowsHtml += `<tr><td style="padding: 10px 15px; border: 1px solid #e5e7eb; color: #6b7280;">SGST @9%</td><td style="padding: 10px 15px; text-align: right; border: 1px solid #e5e7eb; font-weight: 600;">₹${(invoice.sgst || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>`;
+        if (invoice.igst > 0) gstRowsHtml += `<tr><td style="padding: 10px 15px; border: 1px solid #e5e7eb; color: #6b7280;">IGST @18%</td><td style="padding: 10px 15px; text-align: right; border: 1px solid #e5e7eb; font-weight: 600;">₹${(invoice.igst || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>`;
+      }
+      
+      return `
+        <div class="invoice-container" style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; border: 2px solid ${primaryColor}; background: #fff;">
+          <!-- Header -->
+          <div style="background: ${primaryColor}; color: #fff; padding: 20px 25px;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="vertical-align: middle; width: 60%;">
+                  ${displayOrg.logo ? `<img src="${displayOrg.logo}" crossorigin="anonymous" style="height: 50px; vertical-align: middle; background: #fff; padding: 4px; border-radius: 4px; margin-right: 15px;" />` : ''}
+                  <span style="display: inline-block; vertical-align: middle;">
+                    <div style="font-size: 20px; font-weight: bold; margin-bottom: 4px;">${displayOrg.name}</div>
+                    <div style="font-size: 11px; opacity: 0.9;">${displayOrg.address}</div>
+                    ${displayOrg.mobile ? `<div style="font-size: 11px; opacity: 0.9; margin-top: 3px;">Tel: ${displayOrg.mobile}</div>` : ''}
+                  </span>
+                </td>
+                <td style="text-align: right; vertical-align: middle;">
+                  <div style="font-size: 22px; font-weight: bold; letter-spacing: 2px; color: #10b981;">${invoiceTitle}</div>
+                  ${showGst && displayOrg.gstin ? `<div style="font-size: 11px; margin-top: 5px;">GSTIN: ${displayOrg.gstin}</div>` : ''}
+                </td>
+              </tr>
+            </table>
+          </div>
+          
+          <!-- Invoice Meta -->
+          <table style="width: 100%; border-collapse: collapse; background: #f9fafb;">
+            <tr>
+              <td style="padding: 12px 15px; border: 1px solid #e5e7eb; width: 25%;">
+                <div style="font-size: 9px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Invoice No.</div>
+                <div style="font-size: 14px; font-weight: 700; color: ${primaryColor}; margin-top: 2px;">${invoice.invoiceNo}</div>
+              </td>
+              <td style="padding: 12px 15px; border: 1px solid #e5e7eb; width: 25%;">
+                <div style="font-size: 9px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Date</div>
+                <div style="font-size: 14px; font-weight: 700; color: ${primaryColor}; margin-top: 2px;">${invoiceDate}</div>
+              </td>
+              <td style="padding: 12px 15px; border: 1px solid #e5e7eb; width: 25%;">
+                <div style="font-size: 9px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Place of Supply</div>
+                <div style="font-size: 14px; font-weight: 700; color: ${primaryColor}; margin-top: 2px;">${displayClient.state || '-'}</div>
+              </td>
+              <td style="padding: 12px 15px; border: 1px solid #e5e7eb; width: 25%;">
+                <div style="font-size: 9px; color: #6b7280; text-transform: uppercase; font-weight: 600;">Client Code</div>
+                <div style="font-size: 14px; font-weight: 700; color: ${primaryColor}; margin-top: 2px;">${displayClient.code || '-'}</div>
+              </td>
+            </tr>
+          </table>
+          
+          <!-- Party Details -->
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 15px 20px; border: 1px solid #e5e7eb; width: 50%; vertical-align: top;">
+                <div style="font-size: 10px; color: #fff; background: ${primaryColor}; display: inline-block; padding: 2px 8px; font-weight: 600; margin-bottom: 8px;">FROM</div>
+                <div style="font-size: 14px; font-weight: 600; color: #1f2937;">${displayOrg.name}</div>
+                ${showGst && displayOrg.gstin ? `<div style="font-size: 11px; color: #4b5563; margin-top: 4px;">GSTIN: <strong>${displayOrg.gstin}</strong></div>` : ''}
+                ${displayOrg.pan ? `<div style="font-size: 11px; color: #4b5563;">PAN: <strong>${displayOrg.pan}</strong></div>` : ''}
+              </td>
+              <td style="padding: 15px 20px; border: 1px solid #e5e7eb; width: 50%; vertical-align: top;">
+                <div style="font-size: 10px; color: #fff; background: ${primaryColor}; display: inline-block; padding: 2px 8px; font-weight: 600; margin-bottom: 8px;">BILL TO</div>
+                <div style="font-size: 14px; font-weight: 600; color: #1f2937;">${displayClient.name}</div>
+                ${displayClient.address ? `<div style="font-size: 11px; color: #6b7280; margin-top: 3px;">${displayClient.address}</div>` : ''}
+                ${showGst && displayClient.gstin ? `<div style="font-size: 11px; color: #4b5563; margin-top: 4px;">GSTIN: <strong>${displayClient.gstin}</strong></div>` : ''}
+              </td>
+            </tr>
+          </table>
+          
+          <!-- Items Table -->
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="background: ${primaryColor};">
+                <th style="padding: 10px 12px; text-align: center; color: #fff; font-weight: 600; font-size: 10px; text-transform: uppercase; border: 1px solid ${primaryColor}; width: 50px;">S.No</th>
+                <th style="padding: 10px 12px; text-align: left; color: #fff; font-weight: 600; font-size: 10px; text-transform: uppercase; border: 1px solid ${primaryColor};">Description of Services</th>
+                ${showGst ? `<th style="padding: 10px 12px; text-align: center; color: #fff; font-weight: 600; font-size: 10px; text-transform: uppercase; border: 1px solid ${primaryColor}; width: 70px;">SAC</th>` : ''}
+                ${showGst ? `<th style="padding: 10px 12px; text-align: center; color: #fff; font-weight: 600; font-size: 10px; text-transform: uppercase; border: 1px solid ${primaryColor}; width: 50px;">Tax%</th>` : ''}
+                <th style="padding: 10px 12px; text-align: right; color: #fff; font-weight: 600; font-size: 10px; text-transform: uppercase; border: 1px solid ${primaryColor}; width: 120px;">Amount (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${lineItemsHtml}
+            </tbody>
+          </table>
+          
+          <!-- Bottom Section -->
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 15px 20px; border: 1px solid #e5e7eb; width: 55%; vertical-align: top;">
+                <div style="margin-bottom: 12px;">
+                  <div style="font-size: 10px; color: #fff; background: #374151; display: inline-block; padding: 2px 8px; font-weight: 600; margin-bottom: 6px;">AMOUNT IN WORDS</div>
+                  <div style="font-size: 12px; font-weight: 500; color: #1f2937; font-style: italic;">Rupees ${numberToWords(Math.round(totalAmount))} Only</div>
+                </div>
+                <div>
+                  <div style="font-size: 10px; color: #fff; background: #374151; display: inline-block; padding: 2px 8px; font-weight: 600; margin-bottom: 6px;">BANK DETAILS</div>
+                  <div style="font-size: 11px; color: #4b5563; line-height: 1.6;">
+                    <div>Bank: <strong>${displayOrg.bankName || '-'}</strong></div>
+                    <div>A/C No: <strong>${displayOrg.bankAccount || '-'}</strong></div>
+                    <div>IFSC: <strong>${displayOrg.bankIfsc || '-'}</strong></div>
+                  </div>
+                </div>
+              </td>
+              <td style="padding: 0; border: 1px solid #e5e7eb; width: 45%; vertical-align: top;">
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Subtotal</td><td style="padding: 10px 15px; text-align: right; border-bottom: 1px solid #e5e7eb; font-weight: 600;">₹${netAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>
+                  ${invoice.discount > 0 ? `<tr><td style="padding: 10px 15px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Discount</td><td style="padding: 10px 15px; text-align: right; border-bottom: 1px solid #e5e7eb; font-weight: 600; color: #dc2626;">- ₹${(invoice.discount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>` : ''}
+                  ${gstRowsHtml}
+                  <tr style="background: ${primaryColor};"><td style="padding: 12px 15px; font-size: 14px; font-weight: 700; color: #fff;">TOTAL</td><td style="padding: 12px 15px; text-align: right; font-size: 14px; font-weight: 700; color: #fff;">₹${totalAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+          
+          <!-- Signature -->
+          <div style="padding: 15px 20px; text-align: right; border: 1px solid #e5e7eb;">
+            ${displayOrg.signature ? `<img src="${displayOrg.signature}" crossorigin="anonymous" style="height: 50px; margin-bottom: 8px;" />` : '<div style="margin-bottom: 40px;"></div>'}
+            <div style="font-size: 12px; font-weight: 600; color: #1f2937;">For ${displayOrg.name}</div>
+            ${displayOrg.signatory ? `<div style="font-size: 11px; color: #6b7280;">${displayOrg.signatory}</div>` : ''}
+            <div style="font-size: 11px; color: #6b7280;">Authorized Signatory</div>
+          </div>
+          
+          <!-- Footer -->
+          <div style="background: ${primaryColor}; padding: 8px 20px; font-size: 9px; color: #fff; text-align: center;">
+            Computer generated ${invoiceTitle.toLowerCase()}. ${showGst ? 'Subject to local jurisdiction.' : 'GST Not Applicable.'}
+          </div>
+        </div>
+      `;
     };
 
     // Download invoices as ZIP with individual PDFs
@@ -16759,138 +17103,64 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       try {
         for (let idx = 0; idx < invoices.length; idx++) {
           const invoice = invoices[idx];
-          const currentOrg = orgs?.find(o => o.id === (invoice.orgId || invoice.organizationId)) || {};
-          const client = clients?.find(c => c.id === invoice.clientId) || {};
           
           // Update progress
           document.getElementById('zip-progress-text').innerText = `${idx + 1} of ${invoices.length} invoices`;
           document.getElementById('zip-progress-bar').style.width = `${((idx + 1) / invoices.length) * 100}%`;
           
-          const gstApplicable = invoice.gstApplicable !== false && currentOrg.gstApplicable === 'yes';
-          const showGst = gstApplicable;
-          const primaryColor = '#111827';
-          const headerGradient = 'linear-gradient(135deg, #111827 0%, #1f2937 50%, #374151 100%)';
+          // Generate HTML
+          const invoiceHtml = generateInvoiceHtmlForPdf(invoice, orgs, clients);
           
-          const displayOrg = {
-            name: currentOrg.name || invoice.orgName || invoice.organizationName || '',
-            address: currentOrg.address || invoice.orgAddress || '',
-            gstin: currentOrg.gstin || invoice.orgGstin || '',
-            logo: currentOrg.logo || invoice.orgLogo || '',
-            bankName: currentOrg.bankName || '',
-            bankAccount: currentOrg.bankAccount || '',
-            bankIfsc: currentOrg.bankIfsc || '',
-            signature: currentOrg.signature || '',
-            signatory: currentOrg.signatory || '',
-          };
-          
-          const displayClient = {
-            name: invoice.clientName || client.name || '',
-            address: invoice.clientAddress || client.address || '',
-            gstin: invoice.clientGstin || client.gstin || '',
-          };
-          
-          const invoiceDate = new Date(invoice.invoiceDate).toLocaleDateString('en-IN', {day: '2-digit', month: 'short', year: 'numeric'});
-          const netAmount = (invoice.netAmount || invoice.amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2});
-          const totalAmount = (invoice.totalAmount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2});
-          
-          let gstRowsHtml = '';
-          if (showGst) {
-            if (invoice.cgst > 0) gstRowsHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;"><span>CGST @9%:</span><span>₹${(invoice.cgst||0).toLocaleString('en-IN',{minimumFractionDigits:2})}</span></div>`;
-            if (invoice.sgst > 0) gstRowsHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;"><span>SGST @9%:</span><span>₹${(invoice.sgst||0).toLocaleString('en-IN',{minimumFractionDigits:2})}</span></div>`;
-            if (invoice.igst > 0) gstRowsHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;"><span>IGST @18%:</span><span>₹${(invoice.igst||0).toLocaleString('en-IN',{minimumFractionDigits:2})}</span></div>`;
-          }
-          
-          const invoiceHtml = `
-            <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:#fff;border:2px solid #111827;max-width:800px;margin:0 auto;">
-              <div style="background:${headerGradient};padding:20px 24px;display:flex;align-items:center;justify-content:space-between;">
-                <div style="display:flex;align-items:center;gap:16px;">
-                  ${displayOrg.logo ? `<img src="${displayOrg.logo}" style="height:50px;object-fit:contain;background:#fff;padding:4px;border-radius:4px;" crossorigin="anonymous"/>` : ''}
-                  <div>
-                    <h1 style="margin:0;font-size:20px;font-weight:800;color:#fff;">${displayOrg.name}</h1>
-                    <div style="font-size:10px;color:rgba(255,255,255,0.85);margin-top:4px;">${displayOrg.address}</div>
-                  </div>
-                </div>
-                <div style="text-align:right;">
-                  <div style="font-size:18px;font-weight:800;color:#fff;letter-spacing:2px;">TAX INVOICE</div>
-                  ${displayOrg.gstin && showGst ? `<div style="font-size:10px;color:rgba(255,255,255,0.9);margin-top:4px;">GSTIN: ${displayOrg.gstin}</div>` : ''}
-                </div>
-              </div>
-              <div style="display:flex;justify-content:space-between;padding:14px 24px;border-bottom:1px solid ${primaryColor};background:#f8fafc;">
-                <div><div style="font-size:10px;color:#64748b;text-transform:uppercase;">Invoice Number</div><div style="font-size:14px;font-weight:700;">${invoice.invoiceNo}</div></div>
-                <div style="text-align:right;"><div style="font-size:10px;color:#64748b;text-transform:uppercase;">Invoice Date</div><div style="font-size:14px;font-weight:700;">${invoiceDate}</div></div>
-              </div>
-              <div style="padding:14px 24px;border-bottom:1px solid ${primaryColor};">
-                <div style="font-size:10px;color:#64748b;text-transform:uppercase;margin-bottom:6px;">Bill To</div>
-                <div style="font-size:14px;font-weight:700;">${displayClient.name}</div>
-                ${displayClient.address ? `<div style="font-size:11px;color:#64748b;margin-top:2px;">${displayClient.address}</div>` : ''}
-                ${displayClient.gstin && showGst ? `<div style="font-size:10px;color:#64748b;margin-top:4px;">GSTIN: ${displayClient.gstin}</div>` : ''}
-              </div>
-              <div style="padding:14px 24px;">
-                <table style="width:100%;border-collapse:collapse;font-size:11px;">
-                  <thead><tr style="background:${primaryColor};"><th style="padding:10px;text-align:left;color:#fff;font-weight:600;">Description</th><th style="padding:10px;text-align:right;color:#fff;font-weight:600;">Amount</th></tr></thead>
-                  <tbody><tr><td style="padding:12px 10px;border-bottom:1px solid #e5e7eb;">${invoice.serviceDescription||invoice.narration||'Professional Services'}</td><td style="padding:12px 10px;text-align:right;border-bottom:1px solid #e5e7eb;">₹${netAmount}</td></tr></tbody>
-                </table>
-              </div>
-              <div style="padding:14px 24px;background:#f8fafc;border-top:1px solid ${primaryColor};">
-                <div style="display:flex;justify-content:flex-end;">
-                  <div style="width:220px;">
-                    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;"><span>Subtotal:</span><span>₹${netAmount}</span></div>
-                    ${gstRowsHtml}
-                    <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:14px;font-weight:700;border-top:2px solid ${primaryColor};margin-top:6px;"><span>Total:</span><span style="color:#10b981;">₹${totalAmount}</span></div>
-                  </div>
-                </div>
-              </div>
-              <div style="display:flex;justify-content:space-between;padding:14px 24px;border-top:1px solid ${primaryColor};">
-                ${displayOrg.bankName ? `<div style="font-size:10px;"><div style="font-weight:600;margin-bottom:4px;">Bank Details:</div><div>Bank: ${displayOrg.bankName}</div><div>A/C: ${displayOrg.bankAccount}</div><div>IFSC: ${displayOrg.bankIfsc}</div></div>` : '<div></div>'}
-                <div style="text-align:right;">
-                  ${displayOrg.signature ? `<img src="${displayOrg.signature}" style="height:40px;margin-bottom:4px;" crossorigin="anonymous"/>` : ''}
-                  <div style="font-size:11px;font-weight:600;">For ${displayOrg.name}</div>
-                  ${displayOrg.signatory ? `<div style="font-size:10px;color:#64748b;">${displayOrg.signatory}</div>` : ''}
-                </div>
-              </div>
-            </div>
-          `;
-          
-          // Create temporary container for PDF generation
+          // Create temporary container
           const container = document.createElement('div');
           container.innerHTML = invoiceHtml;
           container.style.position = 'absolute';
           container.style.left = '-9999px';
           container.style.width = '800px';
+          container.style.background = '#fff';
           document.body.appendChild(container);
           
-          // Generate PDF using html2pdf
+          // Wait for render
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          // Generate PDF
           const opt = {
-            margin: 10,
+            margin: [10, 10, 10, 10],
             filename: `${invoice.invoiceNo}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, logging: false },
+            html2canvas: { 
+              scale: 2, 
+              useCORS: true, 
+              logging: false,
+              backgroundColor: '#ffffff'
+            },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
           };
           
-          const pdfBlob = await window.html2pdf().set(opt).from(container).outputPdf('blob');
+          const pdfBlob = await window.html2pdf().set(opt).from(container.querySelector('.invoice-container') || container).outputPdf('blob');
           
           // Add to ZIP
-          const fileName = `${invoice.invoiceNo.replace(/[^a-zA-Z0-9]/g, '_')}_${displayClient.name.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20)}.pdf`;
+          const clientName = (invoice.clientName || 'Client').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
+          const fileName = `${invoice.invoiceNo.replace(/[^a-zA-Z0-9]/g, '_')}_${clientName}.pdf`;
           invoiceFolder.file(fileName, pdfBlob);
           
           // Clean up
           document.body.removeChild(container);
           
-          // Small delay to prevent browser freeze
-          await new Promise(resolve => setTimeout(resolve, 100));
+          // Small delay
+          await new Promise(resolve => setTimeout(resolve, 50));
         }
         
-        // Generate ZIP and download
+        // Generate ZIP
         document.getElementById('zip-progress-text').innerText = 'Creating ZIP file...';
         const zipBlob = await zip.generateAsync({ type: 'blob' });
         
+        // Download
         const downloadLink = document.createElement('a');
         downloadLink.href = URL.createObjectURL(zipBlob);
         downloadLink.download = `${batchName}_${new Date().toISOString().split('T')[0]}.zip`;
         downloadLink.click();
         
-        // Clean up
         URL.revokeObjectURL(downloadLink.href);
         document.body.removeChild(progressDiv);
         
@@ -16898,7 +17168,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       } catch (error) {
         console.error('Error generating ZIP:', error);
         document.body.removeChild(progressDiv);
-        alert('Error generating ZIP. Please try downloading individually.');
+        alert('Error generating ZIP: ' + error.message + '\n\nPlease try the Print All option instead.');
       }
     };
 
@@ -18982,9 +19252,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 onClick={() => {
                                   const filtered = (data.tasks || []).filter(t => {
                                     if (t.billed) return false;
+                                    if (t.markedFree) return false;
                                     if (billingSearchFilters.groupName && !t.groupName?.toLowerCase().includes(billingSearchFilters.groupName.toLowerCase())) return false;
-                                    if (billingSearchFilters.clientName && !t.client?.toLowerCase().includes(billingSearchFilters.clientName.toLowerCase())) return false;
-                                    if (billingSearchFilters.clientCode && !t.clientCode?.toLowerCase().includes(billingSearchFilters.clientCode.toLowerCase())) return false;
+                                    if (billingSearchFilters.clientName && !t.clientName?.toLowerCase().includes(billingSearchFilters.clientName.toLowerCase())) return false;
+                                    if (billingSearchFilters.clientCode && !t.fileNo?.toLowerCase().includes(billingSearchFilters.clientCode.toLowerCase())) return false;
                                     if (billingSearchFilters.parentTask && t.parentTask !== billingSearchFilters.parentTask) return false;
                                     if (billingSearchFilters.childTask && t.childTask !== billingSearchFilters.childTask) return false;
                                     if (billingSearchFilters.financialYear && t.financialYear !== billingSearchFilters.financialYear) return false;
@@ -19040,8 +19311,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                     {searchedTasks.slice(0, 20).map((task, idx) => (
                                       <tr key={task.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4', borderBottom: '1px solid #e2e8f0'}}>
                                         <td style={{padding: '10px'}}>
-                                          <div style={{fontWeight: '600', color: '#065f46'}}>{task.client}</div>
-                                          <div style={{fontSize: '11px', color: '#64748b'}}>{task.clientCode} • {task.groupName}</div>
+                                          <div style={{fontWeight: '600', color: '#065f46'}}>{task.clientName}</div>
+                                          <div style={{fontSize: '11px', color: '#64748b'}}>{task.fileNo} • {task.groupName}</div>
                                         </td>
                                         <td style={{padding: '10px'}}>
                                           <div>{task.childTask || task.parentTask}</div>
@@ -19068,6 +19339,249 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 </table>
                               </div>
                             )}
+                          </div>
+                        )}
+
+                        {/* Billing Form for Selected Task */}
+                        {selectedBillingTask && (
+                          <div style={{background: '#fff', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.12)', border: '2px solid #10b981'}}>
+                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px'}}>
+                              <div>
+                                <h3 style={{margin: '0 0 8px 0', fontSize: '18px', fontWeight: '700', color: '#065f46', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                                  📄 Generate Invoice
+                                </h3>
+                                <div style={{fontSize: '14px', color: '#1e293b'}}>
+                                  <strong>{selectedBillingTask.clientName}</strong> • {selectedBillingTask.fileNo}
+                                </div>
+                                <div style={{fontSize: '13px', color: '#64748b', marginTop: '4px'}}>
+                                  {selectedBillingTask.parentTask} → {selectedBillingTask.childTask} • {selectedBillingTask.financialYear} {selectedBillingTask.subPeriod || selectedBillingTask.period}
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => setSelectedBillingTask(null)}
+                                style={{padding: '6px 12px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px'}}
+                              >
+                                ✕ Cancel
+                              </button>
+                            </div>
+
+                            <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px'}}>
+                              <div>
+                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Organization <span style={{color: '#dc2626'}}>*</span></label>
+                                <select
+                                  value={billingDetails.organizationId}
+                                  onChange={(e) => setBillingDetails({...billingDetails, organizationId: e.target.value})}
+                                  style={{width: '100%', padding: '10px 12px', border: '2px solid #d1fae5', borderRadius: '8px', fontSize: '13px', background: '#f0fdf4'}}
+                                >
+                                  <option value="">Select Organization</option>
+                                  {(data.organizations || []).map(org => (
+                                    <option key={org.id} value={org.id}>{org.name}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Invoice Date <span style={{color: '#dc2626'}}>*</span></label>
+                                <input
+                                  type="date"
+                                  value={billingDetails.billDate}
+                                  onChange={(e) => setBillingDetails({...billingDetails, billDate: e.target.value})}
+                                  style={{width: '100%', padding: '10px 12px', border: '2px solid #d1fae5', borderRadius: '8px', fontSize: '13px', background: '#f0fdf4'}}
+                                />
+                              </div>
+                              <div>
+                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Place of Supply</label>
+                                <select
+                                  value={billingDetails.placeOfSupply}
+                                  onChange={(e) => setBillingDetails({...billingDetails, placeOfSupply: e.target.value})}
+                                  style={{width: '100%', padding: '10px 12px', border: '2px solid #d1fae5', borderRadius: '8px', fontSize: '13px', background: '#f0fdf4'}}
+                                >
+                                  <option value="">Select State</option>
+                                  {INDIAN_STATES.map(state => (
+                                    <option key={state} value={state}>{state}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+
+                            <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px'}}>
+                              <div>
+                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Amount <span style={{color: '#dc2626'}}>*</span></label>
+                                <input
+                                  type="number"
+                                  value={billingDetails.amount}
+                                  onChange={(e) => {
+                                    const amt = e.target.value;
+                                    const disc = parseFloat(billingDetails.discount) || 0;
+                                    setBillingDetails({...billingDetails, amount: amt, netAmount: (parseFloat(amt) || 0) - disc});
+                                  }}
+                                  placeholder="Enter amount"
+                                  style={{width: '100%', padding: '10px 12px', border: '2px solid #d1fae5', borderRadius: '8px', fontSize: '13px', background: '#f0fdf4'}}
+                                />
+                              </div>
+                              <div>
+                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Discount</label>
+                                <input
+                                  type="number"
+                                  value={billingDetails.discount}
+                                  onChange={(e) => {
+                                    const disc = e.target.value;
+                                    const amt = parseFloat(billingDetails.amount) || 0;
+                                    setBillingDetails({...billingDetails, discount: disc, netAmount: amt - (parseFloat(disc) || 0)});
+                                  }}
+                                  placeholder="0"
+                                  style={{width: '100%', padding: '10px 12px', border: '2px solid #d1fae5', borderRadius: '8px', fontSize: '13px', background: '#f0fdf4'}}
+                                />
+                              </div>
+                              <div>
+                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Net Amount</label>
+                                <input
+                                  type="text"
+                                  value={`₹ ${(billingDetails.netAmount || 0).toLocaleString('en-IN')}`}
+                                  readOnly
+                                  style={{width: '100%', padding: '10px 12px', border: '2px solid #d1fae5', borderRadius: '8px', fontSize: '13px', background: '#dcfce7', fontWeight: '600', color: '#065f46'}}
+                                />
+                              </div>
+                            </div>
+
+                            <div style={{marginBottom: '20px'}}>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Narration / Description</label>
+                              <textarea
+                                value={billingDetails.narration}
+                                onChange={(e) => setBillingDetails({...billingDetails, narration: e.target.value})}
+                                placeholder={`Professional Fees for ${selectedBillingTask.childTask || selectedBillingTask.parentTask}`}
+                                rows={2}
+                                style={{width: '100%', padding: '10px 12px', border: '2px solid #d1fae5', borderRadius: '8px', fontSize: '13px', background: '#f0fdf4', resize: 'vertical'}}
+                              />
+                            </div>
+
+                            <div style={{display: 'flex', justifyContent: 'flex-end', gap: '12px'}}>
+                              <button
+                                onClick={() => setSelectedBillingTask(null)}
+                                style={{padding: '12px 24px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600'}}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={() => {
+                                  // Validate
+                                  if (!billingDetails.organizationId) {
+                                    alert('Please select an organization');
+                                    return;
+                                  }
+                                  if (!billingDetails.amount || parseFloat(billingDetails.amount) <= 0) {
+                                    alert('Please enter a valid amount');
+                                    return;
+                                  }
+
+                                  const task = selectedBillingTask;
+                                  const client = (data.clients || []).find(c => c.name === task.clientName || c.id === task.clientId);
+                                  const org = (data.organizations || []).find(o => o.id === billingDetails.organizationId);
+
+                                  if (!org) {
+                                    alert('Organization not found');
+                                    return;
+                                  }
+
+                                  // Calculate amounts and GST
+                                  const netAmount = parseFloat(billingDetails.netAmount) || parseFloat(billingDetails.amount) - (parseFloat(billingDetails.discount) || 0);
+                                  const supplierState = (org.state || '').toLowerCase();
+                                  const receiverState = (billingDetails.placeOfSupply || client?.state || '').toLowerCase();
+                                  const isInterState = supplierState && receiverState && supplierState !== receiverState;
+                                  const gstApplicable = org.gstApplicable === 'yes';
+
+                                  let cgst = 0, sgst = 0, igst = 0;
+                                  if (gstApplicable && netAmount > 0) {
+                                    if (isInterState) {
+                                      igst = Math.round(netAmount * 0.18 * 100) / 100;
+                                    } else {
+                                      cgst = Math.round(netAmount * 0.09 * 100) / 100;
+                                      sgst = Math.round(netAmount * 0.09 * 100) / 100;
+                                    }
+                                  }
+                                  const totalAmount = netAmount + cgst + sgst + igst;
+
+                                  // Generate invoice number
+                                  const currentNo = org.invoiceCurrentNo || org.invoiceStartNo || 1;
+                                  const invoiceNo = `${org.invoicePrefix || 'INV'}${String(currentNo).padStart(org.invoiceDigits || 4, '0')}${org.invoiceSuffix || ''}`;
+
+                                  const newInvoice = {
+                                    id: Date.now().toString(),
+                                    invoiceNo,
+                                    invoiceCurrentNo: currentNo,
+                                    invoiceDate: billingDetails.billDate,
+                                    taskId: task.id,
+                                    clientId: client?.id,
+                                    organizationId: org.id,
+                                    orgId: org.id,
+                                    invoiceFormat: gstApplicable ? 'taxInvoice' : 'billOfSupply',
+                                    gstApplicable,
+                                    orgName: org.name,
+                                    orgAddress: org.address,
+                                    orgState: org.state,
+                                    orgGstin: org.gstin,
+                                    orgPan: org.panNo,
+                                    orgBankName: org.bankName,
+                                    orgBankAccount: org.bankAccountNo,
+                                    orgBankIfsc: org.bankIfsc,
+                                    orgSignatory: org.authorizedSignatory,
+                                    clientName: client?.name || task.clientName,
+                                    clientAddress: client?.address || '',
+                                    clientState: client?.state || billingDetails.placeOfSupply || '',
+                                    clientGstin: client?.gstin || '',
+                                    clientCode: client?.fileNo || task.fileNo,
+                                    serviceDescription: billingDetails.narration || `Professional Fees for ${task.childTask || task.parentTask}`,
+                                    narration: billingDetails.narration || `Professional Fees for ${task.childTask || task.parentTask}`,
+                                    placeOfSupply: billingDetails.placeOfSupply || client?.state,
+                                    amount: parseFloat(billingDetails.amount),
+                                    discount: parseFloat(billingDetails.discount) || 0,
+                                    netAmount,
+                                    cgst,
+                                    sgst,
+                                    igst,
+                                    totalAmount,
+                                    taskType: task.childTask,
+                                    parentTask: task.parentTask,
+                                    financialYear: task.financialYear,
+                                    period: task.subPeriod || task.period,
+                                    createdAt: new Date().toISOString(),
+                                    status: 'Generated'
+                                  };
+
+                                  // Save invoice and update task
+                                  setData(prev => ({
+                                    ...prev,
+                                    invoices: [...(prev.invoices || []), newInvoice],
+                                    organizations: prev.organizations.map(o =>
+                                      o.id === org.id ? {...o, invoiceCurrentNo: currentNo + 1} : o
+                                    ),
+                                    tasks: prev.tasks.map(t =>
+                                      t.id === task.id ? {...t, billed: true, invoiceId: newInvoice.id} : t
+                                    )
+                                  }));
+
+                                  // Show preview popup
+                                  setGeneratedInvoicesList([newInvoice]);
+                                  setShowGeneratedInvoicesPreview(true);
+
+                                  // Reset form
+                                  setSelectedBillingTask(null);
+                                  setBillingDetails({
+                                    billDate: new Date().toISOString().split('T')[0],
+                                    organizationId: '',
+                                    amount: '',
+                                    discount: '',
+                                    netAmount: '',
+                                    placeOfSupply: '',
+                                    narration: '',
+                                    remark: ''
+                                  });
+                                  setSearchedTasks(prev => prev.filter(t => t.id !== task.id));
+                                }}
+                                style={{padding: '12px 32px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '700', boxShadow: '0 4px 12px rgba(16,185,129,0.4)'}}
+                              >
+                                ✓ Generate Invoice
+                              </button>
+                            </div>
                           </div>
                         )}
                       </>
