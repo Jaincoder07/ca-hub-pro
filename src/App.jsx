@@ -18446,15 +18446,41 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               const discount = parseFloat(withoutTaskForm.discount) || 0;
                               const net = amount - discount;
                               const org = (data.organizations || []).find(o => o.id === withoutTaskForm.organizationId);
+                              const client = (data.clients || []).find(c => c.id === withoutTaskForm.clientId);
                               const gstApplicable = org?.gstApplicable === 'yes';
-                              const gst = gstApplicable ? net * 0.18 : 0;
+                              
+                              // Proper GST calculation based on state
+                              let cgst = 0, sgst = 0, igst = 0;
+                              const orgState = (org?.state || '').toLowerCase().trim();
+                              const clientState = (client?.state || '').toLowerCase().trim();
+                              
+                              if (gstApplicable && net > 0) {
+                                if (orgState && clientState && orgState === clientState) {
+                                  cgst = Math.round(net * 0.09 * 100) / 100;
+                                  sgst = Math.round(net * 0.09 * 100) / 100;
+                                } else {
+                                  igst = Math.round(net * 0.18 * 100) / 100;
+                                }
+                              }
+                              const gst = cgst + sgst + igst;
                               const total = net + gst;
                               
                               return (
-                                <div style={{display: 'flex', gap: '24px', fontSize: '13px'}}>
+                                <div style={{display: 'flex', gap: '20px', fontSize: '13px', flexWrap: 'wrap', alignItems: 'center'}}>
                                   <div><span style={{color: '#64748b'}}>Net Amount:</span> <strong style={{color: '#065f46'}}>₹{net.toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong></div>
-                                  {gstApplicable && <div><span style={{color: '#64748b'}}>GST (18%):</span> <strong style={{color: '#065f46'}}>₹{gst.toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong></div>}
-                                  <div><span style={{color: '#64748b'}}>Total:</span> <strong style={{color: '#10b981', fontSize: '16px'}}>₹{total.toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong></div>
+                                  {gstApplicable && cgst > 0 && (
+                                    <>
+                                      <div><span style={{color: '#64748b'}}>CGST @9%:</span> <strong style={{color: '#059669'}}>₹{cgst.toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong></div>
+                                      <div><span style={{color: '#64748b'}}>SGST @9%:</span> <strong style={{color: '#059669'}}>₹{sgst.toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong></div>
+                                    </>
+                                  )}
+                                  {gstApplicable && igst > 0 && (
+                                    <div><span style={{color: '#64748b'}}>IGST @18%:</span> <strong style={{color: '#059669'}}>₹{igst.toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong></div>
+                                  )}
+                                  {!gstApplicable && org && (
+                                    <div><span style={{color: '#d97706', fontSize: '11px'}}>GST Not Applicable</span></div>
+                                  )}
+                                  <div style={{paddingLeft: '12px', borderLeft: '2px solid #86efac'}}><span style={{color: '#64748b'}}>Total:</span> <strong style={{color: '#10b981', fontSize: '16px'}}>₹{total.toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong></div>
                                 </div>
                               );
                             })()}
@@ -18477,11 +18503,29 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 }
                                 
                                 const org = (data.organizations || []).find(o => o.id === withoutTaskForm.organizationId);
+                                const client = (data.clients || []).find(c => c.id === withoutTaskForm.clientId);
                                 const amount = parseFloat(withoutTaskForm.amount) || 0;
                                 const discount = parseFloat(withoutTaskForm.discount) || 0;
                                 const net = amount - discount;
                                 const gstApplicable = org?.gstApplicable === 'yes';
-                                const gst = gstApplicable ? net * 0.18 : 0;
+                                
+                                // Proper CGST/SGST/IGST calculation based on state
+                                let cgst = 0, sgst = 0, igst = 0, gst = 0;
+                                if (gstApplicable && net > 0) {
+                                  const orgState = (org?.state || '').toLowerCase().trim();
+                                  const clientState = (client?.state || '').toLowerCase().trim();
+                                  
+                                  if (orgState && clientState && orgState === clientState) {
+                                    // Same state - CGST + SGST
+                                    cgst = Math.round(net * 0.09 * 100) / 100;
+                                    sgst = Math.round(net * 0.09 * 100) / 100;
+                                    gst = cgst + sgst;
+                                  } else {
+                                    // Different state or state not set - IGST
+                                    igst = Math.round(net * 0.18 * 100) / 100;
+                                    gst = igst;
+                                  }
+                                }
                                 const total = net + gst;
                                 
                                 // Generate invoice number
@@ -18489,23 +18533,37 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 const nextNum = lastInv ? (parseInt(lastInv.invoiceNo?.replace(/\D/g, '') || '0') + 1) : 1;
                                 const invoiceNo = `${org?.prefix || 'INV'}-${String(nextNum).padStart(4, '0')}`;
                                 
+                                // Determine financial year based on invoice date
+                                const invDate = new Date(withoutTaskForm.invoiceDate);
+                                const invMonth = invDate.getMonth();
+                                const invYear = invDate.getFullYear();
+                                const fyStartYear = invMonth >= 3 ? invYear : invYear - 1;
+                                const financialYear = `FY ${fyStartYear}-${String(fyStartYear + 1).slice(2)}`;
+                                
                                 const newInvoice = {
                                   id: generateId(),
                                   invoiceNo,
                                   organizationId: withoutTaskForm.organizationId,
                                   organizationName: org?.name,
+                                  orgName: org?.name,
                                   clientId: withoutTaskForm.clientId,
                                   clientName: withoutTaskForm.clientName,
                                   clientCode: withoutTaskForm.clientCode,
                                   groupName: withoutTaskForm.groupName,
                                   invoiceDate: withoutTaskForm.invoiceDate,
                                   narration: withoutTaskForm.narration,
+                                  serviceDescription: withoutTaskForm.narration,
                                   amount: amount,
                                   discount: discount,
                                   netAmount: net,
+                                  cgst: cgst,
+                                  sgst: sgst,
+                                  igst: igst,
                                   gstAmount: gst,
+                                  taxAmount: gst,
                                   totalAmount: total,
                                   remark: withoutTaskForm.remark,
+                                  financialYear: financialYear,
                                   taskId: null,
                                   isWithoutTask: true,
                                   createdAt: new Date().toISOString(),
@@ -18515,7 +18573,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 
                                 setData(prev => ({...prev, invoices: [...(prev.invoices || []), newInvoice]}));
                                 
-                                alert(`Invoice ${invoiceNo} created successfully for ₹${total.toLocaleString('en-IN', {minimumFractionDigits: 2})}`);
+                                // Show success and offer to view
+                                if (window.confirm(`Invoice ${invoiceNo} created successfully!\n\nAmount: ₹${net.toLocaleString('en-IN')}\nGST: ₹${gst.toLocaleString('en-IN')}\nTotal: ₹${total.toLocaleString('en-IN')}\n\nWould you like to view the invoice?`)) {
+                                  setViewingInvoice(newInvoice);
+                                }
                                 
                                 setWithoutTaskForm({
                                   clientId: '', clientName: '', clientCode: '', groupName: '', organizationId: '',
@@ -19429,7 +19490,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           fontWeight: '600'
                         }}
                       >
-                        📋 Bulk Invoices Log ({bulkBatches.length})
+                        📋 Bulk Task Log ({bulkBatches.length})
                       </button>
                     </div>
 
@@ -19946,182 +20007,219 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       </div>
                     )}
 
-                    {/* Step 4: View Batches */}
+                    {/* Step 4: View Batches - Bulk Task Log */}
                     {bulkTaskStep === 'batches' && (
                       <div>
                         {/* Header */}
-                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', padding: '16px 20px', background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '12px', border: '1px solid #86efac'}}>
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', padding: '20px 24px', background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '16px', border: '2px solid #86efac'}}>
                           <div>
-                            <h4 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: '#065f46', display: 'flex', alignItems: 'center', gap: '10px'}}>
-                              📋 Bulk Invoices Log
+                            <h4 style={{margin: 0, fontSize: '20px', fontWeight: '700', color: '#065f46', display: 'flex', alignItems: 'center', gap: '12px'}}>
+                              📋 Bulk Task Log
                             </h4>
-                            <p style={{margin: '4px 0 0', fontSize: '13px', color: '#047857'}}>Date-wise and organization-wise bulk invoice records</p>
+                            <p style={{margin: '6px 0 0', fontSize: '13px', color: '#047857'}}>View all bulk invoice batches with date, batch ID, organizations, and invoice counts</p>
                           </div>
                           <button
                             onClick={() => setBulkTaskStep('filter')}
-                            style={{padding: '12px 24px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', boxShadow: '0 2px 8px rgba(16,185,129,0.3)'}}
+                            style={{padding: '14px 28px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', boxShadow: '0 4px 12px rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', gap: '8px'}}
                           >
-                            + Create New Bulk Invoice
+                            <Plus size={18} /> Create New Bulk Invoice
                           </button>
                         </div>
 
                         {bulkBatches.length === 0 ? (
-                          <div style={{textAlign: 'center', padding: '60px 20px', background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0'}}>
-                            <div style={{fontSize: '64px', marginBottom: '16px'}}>📋</div>
-                            <div style={{fontSize: '18px', fontWeight: '600', color: '#065f46', marginBottom: '8px'}}>No Bulk Invoices Yet</div>
-                            <div style={{fontSize: '14px', color: '#64748b', marginBottom: '20px'}}>Create your first bulk invoice batch using the button above</div>
+                          <div style={{textAlign: 'center', padding: '80px 20px', background: '#fff', borderRadius: '20px', border: '2px dashed #86efac'}}>
+                            <div style={{fontSize: '72px', marginBottom: '20px'}}>📋</div>
+                            <div style={{fontSize: '20px', fontWeight: '700', color: '#065f46', marginBottom: '10px'}}>No Bulk Invoices Yet</div>
+                            <div style={{fontSize: '14px', color: '#64748b', marginBottom: '24px'}}>Create your first bulk invoice batch to see it here</div>
+                            <button
+                              onClick={() => setBulkTaskStep('filter')}
+                              style={{padding: '12px 24px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600'}}
+                            >
+                              + Create First Batch
+                            </button>
                           </div>
                         ) : (
                           <>
                             {/* View Mode Toggle */}
                             {!viewingBulkBatch ? (
                               <>
-                                {/* Group batches by date */}
-                                {(() => {
-                                  const groupedByDate = {};
-                                  bulkBatches.forEach(batch => {
-                                    const dateKey = batch.invoiceDate || new Date(batch.createdAt).toISOString().split('T')[0];
-                                    if (!groupedByDate[dateKey]) groupedByDate[dateKey] = [];
-                                    groupedByDate[dateKey].push(batch);
-                                  });
-                                  
-                                  return Object.keys(groupedByDate).sort((a, b) => new Date(b) - new Date(a)).map(date => (
-                                    <div key={date} style={{marginBottom: '24px'}}>
-                                      {/* Date Header */}
-                                      <div style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', padding: '12px 20px', borderRadius: '10px 10px 0 0', display: 'flex', alignItems: 'center', gap: '10px'}}>
-                                        <span style={{fontSize: '20px'}}>📅</span>
-                                        <span style={{color: '#fff', fontWeight: '600', fontSize: '14px'}}>{new Date(date).toLocaleDateString('en-IN', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}</span>
-                                        <span style={{background: 'rgba(255,255,255,0.2)', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', color: '#fff', marginLeft: 'auto'}}>{groupedByDate[date].length} batch(es)</span>
-                                      </div>
-                                      
-                                      {/* Batches Table */}
-                                      <div style={{background: '#fff', border: '1px solid #e2e8f0', borderTop: 'none', borderRadius: '0 0 10px 10px', overflow: 'hidden'}}>
-                                        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
-                                          <thead>
-                                            <tr style={{background: '#f8fafc'}}>
-                                              <th style={{padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5'}}>Organization</th>
-                                              <th style={{padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5'}}>Task Type</th>
-                                              <th style={{padding: '12px 16px', textAlign: 'center', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5'}}>No. of Invoices</th>
-                                              <th style={{padding: '12px 16px', textAlign: 'right', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5'}}>Total Amount</th>
-                                              <th style={{padding: '12px 16px', textAlign: 'center', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5'}}>Actions</th>
-                                            </tr>
-                                          </thead>
-                                          <tbody>
-                                            {groupedByDate[date].map((batch, idx) => {
-                                              // Get organization name from batch invoices
-                                              const batchInvoices = (data.invoices || []).filter(inv => batch.invoiceIds?.includes(inv.id));
-                                              const orgNames = [...new Set(batchInvoices.map(inv => inv.organizationName || 'N/A'))];
-                                              
-                                              return (
-                                                <tr key={batch.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4', borderBottom: '1px solid #e2e8f0'}}>
-                                                  <td style={{padding: '14px 16px'}}>
-                                                    <div style={{fontWeight: '600', color: '#1e293b'}}>{orgNames.join(', ') || 'Multiple'}</div>
-                                                    <div style={{fontSize: '11px', color: '#64748b', marginTop: '2px'}}>Batch: {batch.id?.substring(0, 8)}...</div>
-                                                  </td>
-                                                  <td style={{padding: '14px 16px'}}>
-                                                    <div style={{fontWeight: '500'}}>{batch.taskType || batch.parentTask}</div>
-                                                    <div style={{fontSize: '11px', color: '#64748b'}}>{batch.parentTask}</div>
-                                                  </td>
-                                                  <td style={{padding: '14px 16px', textAlign: 'center'}}>
-                                                    <button
-                                                      onClick={() => setViewingBulkBatch(batch)}
-                                                      style={{
-                                                        background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                                                        color: '#fff',
-                                                        border: 'none',
-                                                        borderRadius: '20px',
-                                                        padding: '6px 16px',
-                                                        fontSize: '13px',
-                                                        fontWeight: '700',
-                                                        cursor: 'pointer',
-                                                        boxShadow: '0 2px 4px rgba(59,130,246,0.3)'
-                                                      }}
-                                                    >
-                                                      {batch.invoiceCount || batchInvoices.length} invoices
-                                                    </button>
-                                                  </td>
-                                                  <td style={{padding: '14px 16px', textAlign: 'right'}}>
-                                                    <span style={{fontWeight: '700', color: '#10b981', fontSize: '14px'}}>₹{(batch.totalAmount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
-                                                  </td>
-                                                  <td style={{padding: '14px 16px', textAlign: 'center'}}>
-                                                    <div style={{display: 'flex', gap: '8px', justifyContent: 'center'}}>
-                                                      <button
-                                                        onClick={() => setViewingBulkBatch(batch)}
-                                                        style={{padding: '6px 12px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '600'}}
-                                                      >
-                                                        👁️ View
-                                                      </button>
-                                                      <button
-                                                        onClick={() => {
-                                                          if (!window.confirm(`Delete this batch of ${batch.invoiceCount} invoices? This cannot be undone.`)) return;
-                                                          const hasPayments = batch.invoiceIds?.some(invId => (data.receipts || []).some(r => String(r.invoiceId) === String(invId)));
-                                                          if (hasPayments) { alert('Cannot delete. Some invoices have payments.'); return; }
-                                                          setData(prev => ({
-                                                            ...prev,
-                                                            invoices: (prev.invoices || []).filter(inv => !batch.invoiceIds?.includes(inv.id)),
-                                                            tasks: (prev.tasks || []).map(t => batch.invoiceIds?.includes(t.invoiceId) ? {...t, billed: false, invoiceId: null} : t)
-                                                          }));
-                                                          setBulkBatches(prev => prev.filter(b => b.id !== batch.id));
-                                                          alert('Batch deleted!');
-                                                        }}
-                                                        style={{padding: '6px 12px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '600'}}
-                                                      >
-                                                        🗑️ Delete
-                                                      </button>
-                                                    </div>
-                                                  </td>
-                                                </tr>
-                                              );
-                                            })}
-                                          </tbody>
-                                        </table>
-                                      </div>
-                                    </div>
-                                  ));
-                                })()}
+                                {/* Main Batch Log Table */}
+                                <div style={{background: '#fff', borderRadius: '16px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 2px 12px rgba(0,0,0,0.06)'}}>
+                                  <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
+                                    <thead>
+                                      <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                                        <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Batch ID</th>
+                                        <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Date</th>
+                                        <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Task Type</th>
+                                        <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Organizations</th>
+                                        <th style={{padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>No. of Invoices</th>
+                                        <th style={{padding: '14px 16px', textAlign: 'right', fontWeight: '600', color: '#fff'}}>Total Amount</th>
+                                        <th style={{padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Actions</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {bulkBatches.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map((batch, idx) => {
+                                        // Get invoices for this batch
+                                        const batchInvoices = (data.invoices || []).filter(inv => batch.invoiceIds?.includes(inv.id));
+                                        
+                                        // Get organization breakdown
+                                        const orgBreakdown = {};
+                                        batchInvoices.forEach(inv => {
+                                          const orgName = inv.organizationName || inv.orgName || 'Unknown';
+                                          if (!orgBreakdown[orgName]) orgBreakdown[orgName] = { count: 0, amount: 0 };
+                                          orgBreakdown[orgName].count++;
+                                          orgBreakdown[orgName].amount += (inv.totalAmount || 0);
+                                        });
+                                        
+                                        const batchDate = batch.invoiceDate || new Date(batch.createdAt).toISOString().split('T')[0];
+                                        
+                                        return (
+                                          <tr key={batch.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4', borderBottom: '1px solid #e2e8f0'}}>
+                                            <td style={{padding: '16px'}}>
+                                              <div style={{fontFamily: 'monospace', fontSize: '12px', background: '#f1f5f9', padding: '6px 10px', borderRadius: '6px', display: 'inline-block', color: '#475569', fontWeight: '600'}}>
+                                                {batch.id?.substring(0, 12).toUpperCase()}
+                                              </div>
+                                            </td>
+                                            <td style={{padding: '16px'}}>
+                                              <div style={{fontWeight: '600', color: '#1e293b'}}>{new Date(batchDate).toLocaleDateString('en-IN', {day: '2-digit', month: 'short', year: 'numeric'})}</div>
+                                              <div style={{fontSize: '11px', color: '#64748b'}}>{new Date(batch.createdAt).toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'})}</div>
+                                            </td>
+                                            <td style={{padding: '16px'}}>
+                                              <div style={{fontWeight: '600', color: '#065f46'}}>{batch.taskType || batch.childTask || '-'}</div>
+                                              <div style={{fontSize: '11px', color: '#64748b'}}>{batch.parentTask || ''}</div>
+                                            </td>
+                                            <td style={{padding: '16px'}}>
+                                              <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
+                                                {Object.keys(orgBreakdown).slice(0, 3).map((orgName, i) => (
+                                                  <div key={i} style={{display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px'}}>
+                                                    <span style={{background: '#dcfce7', color: '#065f46', padding: '2px 8px', borderRadius: '12px', fontWeight: '500'}}>{orgBreakdown[orgName].count}</span>
+                                                    <span style={{color: '#374151'}}>{orgName.length > 20 ? orgName.substring(0, 20) + '...' : orgName}</span>
+                                                  </div>
+                                                ))}
+                                                {Object.keys(orgBreakdown).length > 3 && (
+                                                  <div style={{fontSize: '11px', color: '#64748b'}}>+{Object.keys(orgBreakdown).length - 3} more org(s)</div>
+                                                )}
+                                              </div>
+                                            </td>
+                                            <td style={{padding: '16px', textAlign: 'center'}}>
+                                              <button
+                                                onClick={() => setViewingBulkBatch(batch)}
+                                                style={{
+                                                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                                                  color: '#fff',
+                                                  border: 'none',
+                                                  borderRadius: '20px',
+                                                  padding: '8px 18px',
+                                                  fontSize: '14px',
+                                                  fontWeight: '700',
+                                                  cursor: 'pointer',
+                                                  boxShadow: '0 2px 6px rgba(59,130,246,0.3)'
+                                                }}
+                                              >
+                                                {batch.invoiceCount || batchInvoices.length} invoices
+                                              </button>
+                                            </td>
+                                            <td style={{padding: '16px', textAlign: 'right'}}>
+                                              <span style={{fontWeight: '700', color: '#10b981', fontSize: '15px'}}>₹{(batch.totalAmount || batchInvoices.reduce((s, i) => s + (i.totalAmount || 0), 0)).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                                            </td>
+                                            <td style={{padding: '16px', textAlign: 'center'}}>
+                                              <div style={{display: 'flex', gap: '8px', justifyContent: 'center'}}>
+                                                <button
+                                                  onClick={() => setViewingBulkBatch(batch)}
+                                                  style={{padding: '8px 14px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px'}}
+                                                >
+                                                  <Eye size={14} /> View
+                                                </button>
+                                                <button
+                                                  onClick={() => {
+                                                    if (!window.confirm(`Delete this batch of ${batch.invoiceCount || batchInvoices.length} invoices? This cannot be undone.`)) return;
+                                                    const batchInvs = (data.invoices || []).filter(inv => batch.invoiceIds?.includes(inv.id));
+                                                    const hasPayments = batchInvs.some(inv => (data.receipts || []).some(r => String(r.invoiceId) === String(inv.id)));
+                                                    if (hasPayments) { alert('Cannot delete. Some invoices have payments recorded.'); return; }
+                                                    setData(prev => ({
+                                                      ...prev,
+                                                      invoices: (prev.invoices || []).filter(inv => !batch.invoiceIds?.includes(inv.id)),
+                                                      tasks: (prev.tasks || []).map(t => batch.invoiceIds?.includes(t.invoiceId) ? {...t, billed: false, invoiceId: null} : t)
+                                                    }));
+                                                    setBulkBatches(prev => prev.filter(b => b.id !== batch.id));
+                                                    alert('Batch deleted successfully!');
+                                                  }}
+                                                  style={{padding: '8px 14px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px'}}
+                                                >
+                                                  <Trash2 size={14} /> Delete
+                                                </button>
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
+                                </div>
+                                
+                                {/* Summary Footer */}
+                                <div style={{marginTop: '20px', padding: '16px 24px', background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '12px', border: '1px solid #86efac', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                                  <div style={{fontSize: '14px', color: '#065f46'}}>
+                                    <strong>Total Batches:</strong> {bulkBatches.length}
+                                  </div>
+                                  <div style={{fontSize: '14px', color: '#065f46'}}>
+                                    <strong>Total Invoices:</strong> {bulkBatches.reduce((s, b) => s + (b.invoiceCount || (data.invoices || []).filter(inv => b.invoiceIds?.includes(inv.id)).length), 0)}
+                                  </div>
+                                  <div style={{fontSize: '18px', fontWeight: '700', color: '#10b981'}}>
+                                    Grand Total: ₹{bulkBatches.reduce((s, b) => s + (b.totalAmount || 0), 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                                  </div>
+                                </div>
                               </>
                             ) : (
                               /* Viewing Batch Detail */
-                              <div style={{background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden'}}>
+                              <div style={{background: '#fff', borderRadius: '20px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.08)'}}>
                                 {/* Detail Header */}
-                                <div style={{background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', padding: '20px 24px', color: '#fff'}}>
-                                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                                <div style={{background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', padding: '24px 28px', color: '#fff'}}>
+                                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                                     <div>
-                                      <h4 style={{margin: 0, fontSize: '18px', fontWeight: '700'}}>Batch Invoice Details</h4>
-                                      <div style={{fontSize: '13px', opacity: 0.9, marginTop: '4px'}}>
-                                        {viewingBulkBatch.taskType} • {new Date(viewingBulkBatch.invoiceDate || viewingBulkBatch.createdAt).toLocaleDateString('en-IN')}
+                                      <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px'}}>
+                                        <h4 style={{margin: 0, fontSize: '20px', fontWeight: '700'}}>📋 Batch Invoice Details</h4>
+                                        <span style={{background: 'rgba(255,255,255,0.2)', padding: '4px 12px', borderRadius: '6px', fontSize: '11px', fontFamily: 'monospace', fontWeight: '600'}}>
+                                          ID: {viewingBulkBatch.id?.substring(0, 12).toUpperCase()}
+                                        </span>
+                                      </div>
+                                      <div style={{display: 'flex', gap: '16px', fontSize: '13px', opacity: 0.9'}}>
+                                        <span>📅 {new Date(viewingBulkBatch.invoiceDate || viewingBulkBatch.createdAt).toLocaleDateString('en-IN', {weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'})}</span>
+                                        <span>📝 {viewingBulkBatch.taskType || viewingBulkBatch.childTask || 'Various Tasks'}</span>
+                                        <span>🏢 {viewingBulkBatch.parentTask || ''}</span>
                                       </div>
                                     </div>
-                                    <div style={{display: 'flex', gap: '12px'}}>
+                                    <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
                                       <button
                                         onClick={() => {
                                           const batchInvoices = (data.invoices || []).filter(inv => viewingBulkBatch.invoiceIds?.includes(inv.id));
                                           // Generate CSV for download
-                                          const csv = 'S.No,Invoice No,Client,Amount,GST,Total\n' + 
-                                            batchInvoices.map((inv, i) => `${i+1},${inv.invoiceNo},${inv.clientName},${inv.netAmount || 0},${inv.gstAmount || 0},${inv.totalAmount || 0}`).join('\n');
+                                          const csv = 'S.No,Invoice No,Client,Client Code,Organization,Amount,CGST,SGST,IGST,Total\n' + 
+                                            batchInvoices.map((inv, i) => `${i+1},"${inv.invoiceNo}","${inv.clientName}","${inv.clientCode || ''}","${inv.organizationName || ''}",${inv.netAmount || 0},${inv.cgst || 0},${inv.sgst || 0},${inv.igst || 0},${inv.totalAmount || 0}`).join('\n');
                                           const blob = new Blob([csv], {type: 'text/csv'});
                                           const a = document.createElement('a');
                                           a.href = URL.createObjectURL(blob);
-                                          a.download = `bulk-invoices-${viewingBulkBatch.invoiceDate || 'batch'}.csv`;
+                                          a.download = `batch-${viewingBulkBatch.id?.substring(0, 8)}-invoices.csv`;
                                           a.click();
                                         }}
-                                        style={{padding: '8px 16px', background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600'}}
+                                        style={{padding: '10px 18px', background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'}}
                                       >
-                                        📥 Export CSV
+                                        <Download size={14} /> Export CSV
                                       </button>
                                       <button
                                         onClick={() => {
-                                          alert('PDF ZIP download feature - In production, this would generate PDFs for all invoices and download as a ZIP file.');
+                                          const batchInvoices = (data.invoices || []).filter(inv => viewingBulkBatch.invoiceIds?.includes(inv.id));
+                                          alert(`📦 Download All PDFs (ZIP)\n\nThis would download ${batchInvoices.length} invoices as individual PDFs in a ZIP file.\n\nBatch ID: ${viewingBulkBatch.id?.substring(0, 12).toUpperCase()}\nTotal Amount: ₹${(viewingBulkBatch.totalAmount || 0).toLocaleString('en-IN')}\n\n(In production, this would generate actual PDF files)`);
                                         }}
-                                        style={{padding: '8px 16px', background: '#fff', color: '#2563eb', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '700'}}
+                                        style={{padding: '10px 18px', background: '#fff', color: '#2563eb', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 6px rgba(0,0,0,0.1)'}}
                                       >
                                         📦 Download All PDFs (ZIP)
                                       </button>
                                       <button
                                         onClick={() => setViewingBulkBatch(null)}
-                                        style={{padding: '8px 16px', background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600'}}
+                                        style={{padding: '10px 18px', background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'}}
                                       >
-                                        ← Back to Log
+                                        <ChevronLeft size={14} /> Back to Log
                                       </button>
                                     </div>
                                   </div>
