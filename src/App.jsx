@@ -24840,24 +24840,24 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
 
                   {/* 1. INVOICES TABLE - Green */}
                   <div style={{background: '#fff', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: '16px', border: '1px solid #e2e8f0'}}>
-                    <div style={{padding: '12px 16px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
-                      <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                        <FileText size={16} /> Invoices
+                    <div style={{padding: '14px 18px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                      <h3 style={{margin: 0, fontSize: '15px', fontWeight: '600', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <FileText size={18} /> Invoices
                       </h3>
                     </div>
                     <div style={{overflowX: 'auto'}}>
-                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                         <thead>
-                          <tr style={{background: '#f0fdf4'}}>
-                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#166534', borderBottom: '1px solid #bbf7d0'}}>Date</th>
-                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#166534', borderBottom: '1px solid #bbf7d0'}}>Invoice No</th>
-                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#166534', borderBottom: '1px solid #bbf7d0'}}>Organization</th>
-                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#166534', borderBottom: '1px solid #bbf7d0'}}>Description</th>
-                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#166534', borderBottom: '1px solid #bbf7d0'}}>Period</th>
-                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#166534', borderBottom: '1px solid #bbf7d0'}}>FY</th>
-                            <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#166534', borderBottom: '1px solid #bbf7d0'}}>Amount</th>
-                            <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#166534', borderBottom: '1px solid #bbf7d0'}}>Status</th>
-                            <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#166534', borderBottom: '1px solid #bbf7d0'}}>Action</th>
+                          <tr style={{background: 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)'}}>
+                            <th style={{padding: '12px 14px', textAlign: 'left', fontWeight: '600', color: '#166534', borderBottom: '2px solid #86efac'}}>Date</th>
+                            <th style={{padding: '12px 14px', textAlign: 'left', fontWeight: '600', color: '#166534', borderBottom: '2px solid #86efac'}}>Invoice No</th>
+                            <th style={{padding: '12px 14px', textAlign: 'left', fontWeight: '600', color: '#166534', borderBottom: '2px solid #86efac'}}>Organization</th>
+                            <th style={{padding: '12px 14px', textAlign: 'left', fontWeight: '600', color: '#166534', borderBottom: '2px solid #86efac'}}>Description</th>
+                            <th style={{padding: '12px 14px', textAlign: 'left', fontWeight: '600', color: '#166534', borderBottom: '2px solid #86efac'}}>Period</th>
+                            <th style={{padding: '12px 14px', textAlign: 'left', fontWeight: '600', color: '#166534', borderBottom: '2px solid #86efac'}}>FY</th>
+                            <th style={{padding: '12px 14px', textAlign: 'right', fontWeight: '600', color: '#166534', borderBottom: '2px solid #86efac'}}>Amount</th>
+                            <th style={{padding: '12px 14px', textAlign: 'center', fontWeight: '600', color: '#166534', borderBottom: '2px solid #86efac'}}>Status</th>
+                            <th style={{padding: '12px 14px', textAlign: 'center', fontWeight: '600', color: '#166534', borderBottom: '2px solid #86efac'}}>Action</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -24884,7 +24884,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             clientInvoices = clientInvoices.sort((a, b) => new Date(a.invoiceDate) - new Date(b.invoiceDate));
                             
                             if (clientInvoices.length === 0) {
-                              return <tr><td colSpan={9} style={{padding: '25px', textAlign: 'center', color: '#64748b'}}>No invoices found</td></tr>;
+                              return <tr><td colSpan={9} style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>No invoices found</td></tr>;
                             }
                             
                             return clientInvoices.map((inv, idx) => {
@@ -24898,19 +24898,19 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               const status = balanceDue <= 0.01 ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending';
                               
                               return (
-                                <tr key={inv.id} style={{borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#fafafa'}}>
-                                  <td style={{padding: '8px 10px', color: '#64748b'}}>{inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-'}</td>
-                                  <td style={{padding: '8px 10px', fontWeight: '600', color: '#16a34a'}}>{inv.invoiceNo}</td>
-                                  <td style={{padding: '8px 10px', color: '#64748b', fontSize: '10px'}}>{org?.name || '-'}</td>
-                                  <td style={{padding: '8px 10px', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{inv.serviceDescription || '-'}</td>
-                                  <td style={{padding: '8px 10px', color: '#64748b', fontSize: '10px'}}>{inv.subPeriod || inv.period || '-'}</td>
-                                  <td style={{padding: '8px 10px', color: '#64748b', fontSize: '10px'}}>{inv.financialYear || '-'}</td>
-                                  <td style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600'}}>₹{(inv.totalAmount || 0).toLocaleString('en-IN')}</td>
-                                  <td style={{padding: '8px 10px', textAlign: 'center'}}>
-                                    <span style={{padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: '600', background: status === 'Paid' ? '#dcfce7' : status === 'Partial' ? '#fef3c7' : '#fef2f2', color: status === 'Paid' ? '#166534' : status === 'Partial' ? '#92400e' : '#991b1b'}}>{status}</span>
+                                <tr key={inv.id} style={{borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? '#fff' : '#f8fafc'}}>
+                                  <td style={{padding: '12px 14px', color: '#374151'}}>{inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-'}</td>
+                                  <td style={{padding: '12px 14px', fontWeight: '600', color: '#1e293b'}}>{inv.invoiceNo}</td>
+                                  <td style={{padding: '12px 14px', color: '#374151', fontSize: '11px'}}>{org?.name || '-'}</td>
+                                  <td style={{padding: '12px 14px', color: '#374151', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{inv.serviceDescription || '-'}</td>
+                                  <td style={{padding: '12px 14px', color: '#374151', fontSize: '11px'}}>{inv.subPeriod || inv.period || '-'}</td>
+                                  <td style={{padding: '12px 14px', color: '#374151', fontSize: '11px'}}>{inv.financialYear || '-'}</td>
+                                  <td style={{padding: '12px 14px', textAlign: 'right', fontWeight: '600', color: '#1e293b'}}>₹{(inv.totalAmount || 0).toLocaleString('en-IN')}</td>
+                                  <td style={{padding: '12px 14px', textAlign: 'center'}}>
+                                    <span style={{padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', background: status === 'Paid' ? '#dcfce7' : status === 'Partial' ? '#fef3c7' : '#fef2f2', color: status === 'Paid' ? '#166534' : status === 'Partial' ? '#92400e' : '#991b1b'}}>{status}</span>
                                   </td>
-                                  <td style={{padding: '6px 8px', textAlign: 'center'}}>
-                                    <button onClick={() => setInvoicePreviewModal(inv)} style={{padding: '4px 8px', background: '#dcfce7', color: '#166534', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}><Eye size={12} /></button>
+                                  <td style={{padding: '10px 12px', textAlign: 'center'}}>
+                                    <button onClick={() => setInvoicePreviewModal(inv)} style={{padding: '6px 12px', background: '#dcfce7', color: '#166534', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px'}}><Eye size={14} /></button>
                                   </td>
                                 </tr>
                               );
@@ -24919,8 +24919,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         </tbody>
                         <tfoot>
                           <tr style={{background: '#f0fdf4'}}>
-                            <td colSpan={6} style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#166534'}}>Total Invoices:</td>
-                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#166534'}}>
+                            <td colSpan={6} style={{padding: '12px 14px', fontWeight: '700', textAlign: 'right', color: '#166534'}}>Total Invoices:</td>
+                            <td style={{padding: '12px 14px', fontWeight: '700', textAlign: 'right', color: '#166534', fontSize: '13px'}}>
                               ₹{(() => {
                                 const fyFilter = ledgerFY && ledgerFY !== 'all';
                                 let clientInvoices = (data.invoices || []).filter(inv => inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
@@ -24942,25 +24942,25 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
 
                   {/* 2. RECEIPTS TABLE - Blue */}
                   <div style={{background: '#fff', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: '16px', border: '1px solid #e2e8f0'}}>
-                    <div style={{padding: '12px 16px', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'}}>
-                      <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                        <DollarSign size={16} /> Receipts / Payments
+                    <div style={{padding: '14px 18px', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'}}>
+                      <h3 style={{margin: 0, fontSize: '15px', fontWeight: '600', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <DollarSign size={18} /> Receipts / Payments
                       </h3>
                     </div>
                     <div style={{overflowX: 'auto'}}>
-                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                         <thead>
-                          <tr style={{background: '#eff6ff'}}>
-                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#1d4ed8', borderBottom: '1px solid #bfdbfe'}}>Date</th>
-                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#1d4ed8', borderBottom: '1px solid #bfdbfe'}}>Receipt No</th>
-                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#1d4ed8', borderBottom: '1px solid #bfdbfe'}}>Against Invoice</th>
-                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#1d4ed8', borderBottom: '1px solid #bfdbfe'}}>Mode</th>
-                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#1d4ed8', borderBottom: '1px solid #bfdbfe'}}>Narration</th>
-                            <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#1d4ed8', borderBottom: '1px solid #bfdbfe'}}>Amount</th>
-                            <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#1d4ed8', borderBottom: '1px solid #bfdbfe'}}>TDS</th>
-                            <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#1d4ed8', borderBottom: '1px solid #bfdbfe'}}>Discount</th>
-                            <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#1d4ed8', borderBottom: '1px solid #bfdbfe'}}>Total</th>
-                            <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#1d4ed8', borderBottom: '1px solid #bfdbfe'}}>Action</th>
+                          <tr style={{background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)'}}>
+                            <th style={{padding: '12px 14px', textAlign: 'left', fontWeight: '600', color: '#1e40af', borderBottom: '2px solid #93c5fd'}}>Date</th>
+                            <th style={{padding: '12px 14px', textAlign: 'left', fontWeight: '600', color: '#1e40af', borderBottom: '2px solid #93c5fd'}}>Receipt No</th>
+                            <th style={{padding: '12px 14px', textAlign: 'left', fontWeight: '600', color: '#1e40af', borderBottom: '2px solid #93c5fd'}}>Against Invoice</th>
+                            <th style={{padding: '12px 14px', textAlign: 'left', fontWeight: '600', color: '#1e40af', borderBottom: '2px solid #93c5fd'}}>Mode</th>
+                            <th style={{padding: '12px 14px', textAlign: 'left', fontWeight: '600', color: '#1e40af', borderBottom: '2px solid #93c5fd'}}>Narration</th>
+                            <th style={{padding: '12px 14px', textAlign: 'right', fontWeight: '600', color: '#1e40af', borderBottom: '2px solid #93c5fd'}}>Amount</th>
+                            <th style={{padding: '12px 14px', textAlign: 'right', fontWeight: '600', color: '#1e40af', borderBottom: '2px solid #93c5fd'}}>TDS</th>
+                            <th style={{padding: '12px 14px', textAlign: 'right', fontWeight: '600', color: '#1e40af', borderBottom: '2px solid #93c5fd'}}>Discount</th>
+                            <th style={{padding: '12px 14px', textAlign: 'right', fontWeight: '600', color: '#1e40af', borderBottom: '2px solid #93c5fd'}}>Total</th>
+                            <th style={{padding: '12px 14px', textAlign: 'center', fontWeight: '600', color: '#1e40af', borderBottom: '2px solid #93c5fd'}}>Action</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -24987,24 +24987,24 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             clientReceipts = clientReceipts.sort((a, b) => new Date(a.receiptDate) - new Date(b.receiptDate));
                             
                             if (clientReceipts.length === 0) {
-                              return <tr><td colSpan={10} style={{padding: '25px', textAlign: 'center', color: '#64748b'}}>No receipts found</td></tr>;
+                              return <tr><td colSpan={10} style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>No receipts found</td></tr>;
                             }
                             
                             return clientReceipts.map((r, idx) => {
                               const totalReceived = (r.amount || 0) + (r.tds || 0) + (r.discount || 0);
                               return (
-                                <tr key={r.id} style={{borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#fafafa'}}>
-                                  <td style={{padding: '8px 10px', color: '#64748b'}}>{r.receiptDate ? new Date(r.receiptDate).toLocaleDateString('en-IN') : '-'}</td>
-                                  <td style={{padding: '8px 10px', fontWeight: '600', color: '#2563eb'}}>{r.receiptNo}</td>
-                                  <td style={{padding: '8px 10px', color: '#16a34a', fontSize: '10px'}}>{r.invoiceNo || '-'}</td>
-                                  <td style={{padding: '8px 10px', fontSize: '10px'}}>{r.paymentMode || '-'}</td>
-                                  <td style={{padding: '8px 10px', color: '#64748b', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '10px'}}>{r.narration || '-'}</td>
-                                  <td style={{padding: '8px 10px', textAlign: 'right', fontWeight: '500'}}>₹{(r.amount || 0).toLocaleString('en-IN')}</td>
-                                  <td style={{padding: '8px 10px', textAlign: 'right', color: '#f59e0b', fontSize: '10px'}}>{r.tds > 0 ? `₹${r.tds.toLocaleString('en-IN')}` : '-'}</td>
-                                  <td style={{padding: '8px 10px', textAlign: 'right', color: '#8b5cf6', fontSize: '10px'}}>{r.discount > 0 ? `₹${r.discount.toLocaleString('en-IN')}` : '-'}</td>
-                                  <td style={{padding: '8px 10px', textAlign: 'right', fontWeight: '700', color: '#2563eb'}}>₹{totalReceived.toLocaleString('en-IN')}</td>
-                                  <td style={{padding: '6px 8px', textAlign: 'center'}}>
-                                    <button onClick={() => setViewingReceipt(r)} style={{padding: '4px 8px', background: '#dbeafe', color: '#1d4ed8', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}><Eye size={12} /></button>
+                                <tr key={r.id} style={{borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? '#fff' : '#f8fafc'}}>
+                                  <td style={{padding: '12px 14px', color: '#374151'}}>{r.receiptDate ? new Date(r.receiptDate).toLocaleDateString('en-IN') : '-'}</td>
+                                  <td style={{padding: '12px 14px', fontWeight: '600', color: '#1e293b'}}>{r.receiptNo}</td>
+                                  <td style={{padding: '12px 14px', color: '#374151', fontSize: '11px'}}>{r.invoiceNo || '-'}</td>
+                                  <td style={{padding: '12px 14px', color: '#374151', fontSize: '11px'}}>{r.paymentMode || '-'}</td>
+                                  <td style={{padding: '12px 14px', color: '#374151', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '11px'}}>{r.narration || '-'}</td>
+                                  <td style={{padding: '12px 14px', textAlign: 'right', fontWeight: '500', color: '#1e293b'}}>₹{(r.amount || 0).toLocaleString('en-IN')}</td>
+                                  <td style={{padding: '12px 14px', textAlign: 'right', color: '#374151', fontSize: '11px'}}>{r.tds > 0 ? `₹${r.tds.toLocaleString('en-IN')}` : '-'}</td>
+                                  <td style={{padding: '12px 14px', textAlign: 'right', color: '#374151', fontSize: '11px'}}>{r.discount > 0 ? `₹${r.discount.toLocaleString('en-IN')}` : '-'}</td>
+                                  <td style={{padding: '12px 14px', textAlign: 'right', fontWeight: '700', color: '#1e293b'}}>₹{totalReceived.toLocaleString('en-IN')}</td>
+                                  <td style={{padding: '10px 12px', textAlign: 'center'}}>
+                                    <button onClick={() => setViewingReceipt(r)} style={{padding: '6px 12px', background: '#dbeafe', color: '#1d4ed8', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px'}}><Eye size={14} /></button>
                                   </td>
                                 </tr>
                               );
@@ -25013,8 +25013,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         </tbody>
                         <tfoot>
                           <tr style={{background: '#eff6ff'}}>
-                            <td colSpan={5} style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#1d4ed8'}}>Total Received:</td>
-                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#1d4ed8'}}>
+                            <td colSpan={5} style={{padding: '12px 14px', fontWeight: '700', textAlign: 'right', color: '#1d4ed8'}}>Total Received:</td>
+                            <td style={{padding: '12px 14px', fontWeight: '700', textAlign: 'right', color: '#1d4ed8'}}>
                               ₹{(() => {
                                 const fyFilter = ledgerFY && ledgerFY !== 'all';
                                 let clientReceipts = (data.receipts || []).filter(r => r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
@@ -25027,7 +25027,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 return clientReceipts.reduce((sum, r) => sum + (r.amount || 0), 0).toLocaleString('en-IN');
                               })()}
                             </td>
-                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#f59e0b'}}>
+                            <td style={{padding: '12px 14px', fontWeight: '700', textAlign: 'right', color: '#f59e0b'}}>
                               ₹{(() => {
                                 const fyFilter = ledgerFY && ledgerFY !== 'all';
                                 let clientReceipts = (data.receipts || []).filter(r => r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
@@ -25040,7 +25040,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 return clientReceipts.reduce((sum, r) => sum + (r.tds || 0), 0).toLocaleString('en-IN');
                               })()}
                             </td>
-                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#8b5cf6'}}>
+                            <td style={{padding: '12px 14px', fontWeight: '700', textAlign: 'right', color: '#8b5cf6'}}>
                               ₹{(() => {
                                 const fyFilter = ledgerFY && ledgerFY !== 'all';
                                 let clientReceipts = (data.receipts || []).filter(r => r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
@@ -25053,7 +25053,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 return clientReceipts.reduce((sum, r) => sum + (r.discount || 0), 0).toLocaleString('en-IN');
                               })()}
                             </td>
-                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#1d4ed8', fontSize: '12px'}}>
+                            <td style={{padding: '12px 14px', fontWeight: '700', textAlign: 'right', color: '#1d4ed8', fontSize: '13px'}}>
                               ₹{(() => {
                                 const fyFilter = ledgerFY && ledgerFY !== 'all';
                                 let clientReceipts = (data.receipts || []).filter(r => r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
@@ -25075,24 +25075,24 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
 
                   {/* 3. OUTSTANDING INVOICES TABLE - Orange */}
                   <div style={{background: '#fff', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0'}}>
-                    <div style={{padding: '12px 16px', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'}}>
-                      <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                        <AlertCircle size={16} /> Outstanding Invoices
+                    <div style={{padding: '14px 18px', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'}}>
+                      <h3 style={{margin: 0, fontSize: '15px', fontWeight: '600', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <AlertCircle size={18} /> Outstanding Invoices
                       </h3>
                     </div>
                     <div style={{overflowX: 'auto'}}>
-                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                         <thead>
-                          <tr style={{background: '#fff7ed'}}>
-                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#c2410c', borderBottom: '1px solid #fed7aa'}}>Date</th>
-                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#c2410c', borderBottom: '1px solid #fed7aa'}}>Invoice No</th>
-                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#c2410c', borderBottom: '1px solid #fed7aa'}}>Organization</th>
-                            <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#c2410c', borderBottom: '1px solid #fed7aa'}}>Description</th>
-                            <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#c2410c', borderBottom: '1px solid #fed7aa'}}>Invoice Amt</th>
-                            <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#c2410c', borderBottom: '1px solid #fed7aa'}}>Received</th>
-                            <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#c2410c', borderBottom: '1px solid #fed7aa'}}>Balance Due</th>
-                            <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#c2410c', borderBottom: '1px solid #fed7aa'}}>Days</th>
-                            <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#c2410c', borderBottom: '1px solid #fed7aa'}}>Action</th>
+                          <tr style={{background: 'linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%)'}}>
+                            <th style={{padding: '12px 14px', textAlign: 'left', fontWeight: '600', color: '#9a3412', borderBottom: '2px solid #fdba74'}}>Date</th>
+                            <th style={{padding: '12px 14px', textAlign: 'left', fontWeight: '600', color: '#9a3412', borderBottom: '2px solid #fdba74'}}>Invoice No</th>
+                            <th style={{padding: '12px 14px', textAlign: 'left', fontWeight: '600', color: '#9a3412', borderBottom: '2px solid #fdba74'}}>Organization</th>
+                            <th style={{padding: '12px 14px', textAlign: 'left', fontWeight: '600', color: '#9a3412', borderBottom: '2px solid #fdba74'}}>Description</th>
+                            <th style={{padding: '12px 14px', textAlign: 'right', fontWeight: '600', color: '#9a3412', borderBottom: '2px solid #fdba74'}}>Invoice Amt</th>
+                            <th style={{padding: '12px 14px', textAlign: 'right', fontWeight: '600', color: '#9a3412', borderBottom: '2px solid #fdba74'}}>Received</th>
+                            <th style={{padding: '12px 14px', textAlign: 'right', fontWeight: '600', color: '#9a3412', borderBottom: '2px solid #fdba74'}}>Balance Due</th>
+                            <th style={{padding: '12px 14px', textAlign: 'center', fontWeight: '600', color: '#9a3412', borderBottom: '2px solid #fdba74'}}>Days</th>
+                            <th style={{padding: '12px 14px', textAlign: 'center', fontWeight: '600', color: '#9a3412', borderBottom: '2px solid #fdba74'}}>Action</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -25132,23 +25132,23 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             }).filter(inv => inv.balanceDue > 0.01).sort((a, b) => new Date(a.invoiceDate) - new Date(b.invoiceDate));
                             
                             if (outstandingInvoices.length === 0) {
-                              return <tr><td colSpan={9} style={{padding: '25px', textAlign: 'center', color: '#16a34a', fontWeight: '600'}}>✓ All invoices are fully paid!</td></tr>;
+                              return <tr><td colSpan={9} style={{padding: '40px', textAlign: 'center', color: '#16a34a', fontWeight: '600'}}>✓ All invoices are fully paid!</td></tr>;
                             }
                             
                             return outstandingInvoices.map((inv, idx) => (
-                              <tr key={inv.id} style={{borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#fffbeb'}}>
-                                <td style={{padding: '8px 10px', color: '#64748b'}}>{inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-'}</td>
-                                <td style={{padding: '8px 10px', fontWeight: '600', color: '#ea580c'}}>{inv.invoiceNo}</td>
-                                <td style={{padding: '8px 10px', color: '#64748b', fontSize: '10px'}}>{inv.orgName}</td>
-                                <td style={{padding: '8px 10px', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{inv.serviceDescription || '-'}</td>
-                                <td style={{padding: '8px 10px', textAlign: 'right'}}>₹{(inv.totalAmount || 0).toLocaleString('en-IN')}</td>
-                                <td style={{padding: '8px 10px', textAlign: 'right', color: '#16a34a'}}>₹{(inv.paidAmount || 0).toLocaleString('en-IN')}</td>
-                                <td style={{padding: '8px 10px', textAlign: 'right', fontWeight: '700', color: '#ea580c'}}>₹{(inv.balanceDue || 0).toLocaleString('en-IN')}</td>
-                                <td style={{padding: '8px 10px', textAlign: 'center'}}>
-                                  <span style={{padding: '2px 6px', borderRadius: '8px', fontSize: '10px', fontWeight: '600', background: inv.daysDiff > 360 ? '#fecaca' : inv.daysDiff > 90 ? '#fed7aa' : inv.daysDiff > 30 ? '#fef9c3' : '#dcfce7', color: inv.daysDiff > 360 ? '#dc2626' : inv.daysDiff > 90 ? '#c2410c' : inv.daysDiff > 30 ? '#a16207' : '#166534'}}>{inv.daysDiff}</span>
+                              <tr key={inv.id} style={{borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? '#fff' : '#fffbeb'}}>
+                                <td style={{padding: '12px 14px', color: '#374151'}}>{inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-'}</td>
+                                <td style={{padding: '12px 14px', fontWeight: '600', color: '#1e293b'}}>{inv.invoiceNo}</td>
+                                <td style={{padding: '12px 14px', color: '#374151', fontSize: '11px'}}>{inv.orgName}</td>
+                                <td style={{padding: '12px 14px', color: '#374151', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{inv.serviceDescription || '-'}</td>
+                                <td style={{padding: '12px 14px', textAlign: 'right', color: '#1e293b'}}>₹{(inv.totalAmount || 0).toLocaleString('en-IN')}</td>
+                                <td style={{padding: '12px 14px', textAlign: 'right', color: '#374151'}}>₹{(inv.paidAmount || 0).toLocaleString('en-IN')}</td>
+                                <td style={{padding: '12px 14px', textAlign: 'right', fontWeight: '700', color: '#ea580c'}}>₹{(inv.balanceDue || 0).toLocaleString('en-IN')}</td>
+                                <td style={{padding: '12px 14px', textAlign: 'center'}}>
+                                  <span style={{padding: '4px 10px', borderRadius: '10px', fontSize: '11px', fontWeight: '600', background: inv.daysDiff > 360 ? '#fecaca' : inv.daysDiff > 90 ? '#fed7aa' : inv.daysDiff > 30 ? '#fef9c3' : '#dcfce7', color: inv.daysDiff > 360 ? '#dc2626' : inv.daysDiff > 90 ? '#c2410c' : inv.daysDiff > 30 ? '#a16207' : '#166534'}}>{inv.daysDiff}</span>
                                 </td>
-                                <td style={{padding: '6px 8px', textAlign: 'center'}}>
-                                  <button onClick={() => setInvoicePreviewModal(inv)} style={{padding: '4px 8px', background: '#ffedd5', color: '#c2410c', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}><Eye size={12} /></button>
+                                <td style={{padding: '10px 12px', textAlign: 'center'}}>
+                                  <button onClick={() => setInvoicePreviewModal(inv)} style={{padding: '6px 12px', background: '#ffedd5', color: '#c2410c', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px'}}><Eye size={14} /></button>
                                 </td>
                               </tr>
                             ));
@@ -25156,8 +25156,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         </tbody>
                         <tfoot>
                           <tr style={{background: '#fff7ed'}}>
-                            <td colSpan={4} style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#c2410c'}}>Total Outstanding:</td>
-                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#c2410c'}}>
+                            <td colSpan={4} style={{padding: '12px 14px', fontWeight: '700', textAlign: 'right', color: '#c2410c'}}>Total Outstanding:</td>
+                            <td style={{padding: '12px 14px', fontWeight: '700', textAlign: 'right', color: '#c2410c'}}>
                               ₹{(() => {
                                 const fyFilter = ledgerFY && ledgerFY !== 'all';
                                 let clientInvoices = (data.invoices || []).filter(inv => inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
@@ -25178,7 +25178,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 return outstandingInvoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0).toLocaleString('en-IN');
                               })()}
                             </td>
-                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#16a34a'}}>
+                            <td style={{padding: '12px 14px', fontWeight: '700', textAlign: 'right', color: '#16a34a'}}>
                               ₹{(() => {
                                 const fyFilter = ledgerFY && ledgerFY !== 'all';
                                 let clientInvoices = (data.invoices || []).filter(inv => inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
@@ -25200,7 +25200,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 }, 0).toLocaleString('en-IN');
                               })()}
                             </td>
-                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#ea580c', fontSize: '12px'}}>
+                            <td style={{padding: '12px 14px', fontWeight: '700', textAlign: 'right', color: '#ea580c', fontSize: '13px'}}>
                               ₹{(() => {
                                 const fyFilter = ledgerFY && ledgerFY !== 'all';
                                 let clientInvoices = (data.invoices || []).filter(inv => inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
