@@ -18528,7 +18528,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   {[
                     { id: 'single', label: '📝 Single Task', icon: '📝' },
                     { id: 'multiple', label: '📋 Multiple Task', icon: '📋' },
-                    { id: 'bulk', label: '📦 Bulk Task', icon: '📦' }
+                    { id: 'bulk', label: '📦 Bulk Invoice Log', icon: '📦' }
                   ].map((mode, idx) => (
                     <button
                       key={mode.id}
@@ -18686,7 +18686,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                     <div
                                       key={client.id}
                                       onClick={() => {
-                                        setBillingSearchFilters({...billingSearchFilters, clientName: client.name, clientCode: client.fileNo || ''});
+                                        setBillingSearchFilters({...billingSearchFilters, clientName: client.name, clientCode: client.fileNo || '', groupName: client.groupName || ''});
                                         setShowClientNameSuggestions(false);
                                       }}
                                       style={{padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '13px'}}
@@ -18694,7 +18694,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                       onMouseLeave={(e) => e.target.style.background = 'transparent'}
                                     >
                                       <div style={{fontWeight: '600', color: '#065f46'}}>{client.name}</div>
-                                      <div style={{fontSize: '11px', color: '#64748b'}}>{client.fileNo}</div>
+                                      <div style={{fontSize: '11px', color: '#64748b'}}>{client.fileNo} {client.groupName ? `• ${client.groupName}` : ''}</div>
                                     </div>
                                   ))}
                                 </div>
@@ -19248,176 +19248,268 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 {/* Multiple Task Mode */}
                 {billingMode === 'multiple' && (
                   <div>
-                    {/* Step 1: Client Selection & Invoice Type */}
-                    {!multipleTaskClient && (
+                    {/* Step 1: Group Selection */}
+                    {!multipleTaskFilters.groupName && !multipleTaskClient && (
                       <div style={{background: '#fff', padding: '28px', borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', border: '1px solid #e2e8f0'}}>
-                        {/* Header with Green Gradient */}
                         <div style={{marginBottom: '24px', paddingBottom: '16px', borderBottom: '2px solid #d1fae5'}}>
                           <h3 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: '#065f46', display: 'flex', alignItems: 'center', gap: '10px'}}>
-                            <Users size={22} style={{color: '#10b981'}} /> Multiple Task Billing - Select Client
+                            <Users size={22} style={{color: '#10b981'}} /> Multiple Task Billing - Select Group
                           </h3>
-                          <p style={{margin: '8px 0 0', fontSize: '13px', color: '#64748b'}}>Select a client to view and invoice multiple tasks at once</p>
+                          <p style={{margin: '8px 0 0', fontSize: '13px', color: '#64748b'}}>Select a group to view all clients and their unbilled tasks</p>
                         </div>
                         
-                        {/* Client Selection in Green Theme Box */}
                         <div style={{background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #86efac'}}>
-                          <h4 style={{margin: '0 0 16px 0', fontSize: '14px', fontWeight: '600', color: '#065f46'}}>📋 Client Selection</h4>
-                          <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px'}}>
-                            {/* Client Name - Typeahead */}
-                            <div style={{position: 'relative'}}>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Client Name <span style={{color: '#dc2626'}}>*</span></label>
-                              <input
-                                type="text"
-                                value={multipleTaskFilters.clientName}
-                                onChange={(e) => {
-                                  setMultipleTaskFilters({...multipleTaskFilters, clientName: e.target.value});
-                                  setShowClientSuggestions(e.target.value.length >= 2);
-                                }}
-                                onFocus={() => setShowClientSuggestions(multipleTaskFilters.clientName.length >= 2)}
-                                placeholder="Type 2-3 letters..."
-                                style={{width: '100%', padding: '10px 12px', border: '2px solid #86efac', borderRadius: '8px', fontSize: '13px', background: '#fff'}}
-                              />
-                              {showClientSuggestions && multipleTaskFilters.clientName.length >= 2 && (
-                                <div style={{position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '2px solid #10b981', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 100, maxHeight: '200px', overflow: 'auto'}}>
-                                  {(data.clients || []).filter(c => c.name?.toLowerCase().includes(multipleTaskFilters.clientName.toLowerCase())).slice(0, 10).map(client => (
-                                    <div
-                                      key={client.id}
-                                      onClick={() => {
-                                        setMultipleTaskFilters({
-                                          ...multipleTaskFilters,
-                                          clientName: client.name,
-                                          clientCode: client.fileNo || '',
-                                          groupName: client.groupName || ''
-                                        });
-                                        setShowClientSuggestions(false);
-                                      }}
-                                      style={{padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '13px'}}
-                                      onMouseEnter={(e) => e.target.style.background = '#f0fdf4'}
-                                      onMouseLeave={(e) => e.target.style.background = 'transparent'}
-                                    >
-                                      <div style={{fontWeight: '600', color: '#065f46'}}>{client.name}</div>
-                                      <div style={{fontSize: '11px', color: '#64748b'}}>{client.fileNo} • {client.groupName}</div>
-                                    </div>
-                                  ))}
-                                  {(data.clients || []).filter(c => c.name?.toLowerCase().includes(multipleTaskFilters.clientName.toLowerCase())).length === 0 && (
-                                    <div style={{padding: '12px', color: '#64748b', textAlign: 'center', fontSize: '12px'}}>No clients found</div>
-                                  )}
-                                </div>
-                              )}
+                          <h4 style={{margin: '0 0 16px 0', fontSize: '14px', fontWeight: '600', color: '#065f46'}}>📋 Select Group No.</h4>
+                          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', alignItems: 'end'}}>
+                            <div>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Group No. <span style={{color: '#dc2626'}}>*</span></label>
+                              <select
+                                value={multipleTaskFilters.groupName}
+                                onChange={(e) => setMultipleTaskFilters({...multipleTaskFilters, groupName: e.target.value, clientName: '', clientCode: ''})}
+                                style={{width: '100%', padding: '12px', border: '2px solid #86efac', borderRadius: '8px', fontSize: '14px', background: '#fff', fontWeight: '600'}}
+                              >
+                                <option value="">-- Select Group --</option>
+                                {[...new Set((data.clients || []).map(c => c.groupName).filter(Boolean))].sort().map(g => {
+                                  const clientCount = (data.clients || []).filter(c => c.groupName === g).length;
+                                  return <option key={g} value={g}>{g} ({clientCount} clients)</option>;
+                                })}
+                              </select>
                             </div>
-                            
-                            {/* Client Code - Typeahead */}
-                            <div style={{position: 'relative'}}>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Client Code</label>
-                              <input
-                                type="text"
-                                value={multipleTaskFilters.clientCode}
-                                onChange={(e) => {
-                                  setMultipleTaskFilters({...multipleTaskFilters, clientCode: e.target.value});
-                                  setShowCodeSuggestions(e.target.value.length >= 1);
-                                }}
-                                onFocus={() => setShowCodeSuggestions(multipleTaskFilters.clientCode.length >= 1)}
-                                placeholder="Type code..."
-                                style={{width: '100%', padding: '10px 12px', border: '2px solid #86efac', borderRadius: '8px', fontSize: '13px', background: '#fff'}}
-                              />
-                              {showCodeSuggestions && multipleTaskFilters.clientCode.length >= 1 && (
-                                <div style={{position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '2px solid #10b981', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 100, maxHeight: '200px', overflow: 'auto'}}>
-                                  {(data.clients || []).filter(c => c.fileNo?.toLowerCase().includes(multipleTaskFilters.clientCode.toLowerCase())).slice(0, 10).map(client => (
-                                    <div
-                                      key={client.id}
-                                      onClick={() => {
-                                        setMultipleTaskFilters({
-                                          ...multipleTaskFilters,
-                                          clientName: client.name,
-                                          clientCode: client.fileNo || '',
-                                          groupName: client.groupName || ''
-                                        });
-                                        setShowCodeSuggestions(false);
-                                      }}
-                                    style={{padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '13px'}}
-                                    onMouseEnter={(e) => e.target.style.background = '#f0fdf4'}
-                                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
-                                  >
-                                    <div style={{fontWeight: '600', color: '#065f46'}}>{client.fileNo}</div>
-                                    <div style={{fontSize: '11px', color: '#64748b'}}>{client.name}</div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+                            <div>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Invoice Type</label>
+                              <select
+                                value={multipleTaskFilters.invoiceType}
+                                onChange={(e) => setMultipleTaskFilters({...multipleTaskFilters, invoiceType: e.target.value})}
+                                style={{width: '100%', padding: '12px', border: '2px solid #86efac', borderRadius: '8px', fontSize: '14px', background: '#fff'}}
+                              >
+                                <option value="taskWise">Task Wise (Separate invoice per task)</option>
+                                <option value="combined">Combined (All tasks in one invoice per client)</option>
+                              </select>
+                            </div>
                           </div>
-                          
-                          {/* Group No. */}
-                          <div>
-                            <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Group No.</label>
-                            <select
-                              value={multipleTaskFilters.groupName}
-                              onChange={(e) => setMultipleTaskFilters({...multipleTaskFilters, groupName: e.target.value})}
-                              style={{width: '100%', padding: '10px 12px', border: '2px solid #86efac', borderRadius: '8px', fontSize: '13px', background: '#fff'}}
-                            >
-                              <option value="">Select Group</option>
-                              {[...new Set((data.clients || []).map(c => c.groupName).filter(Boolean))].map(g => (
-                                <option key={g} value={g}>{g}</option>
-                              ))}
-                            </select>
-                          </div>
-                          
-                          {/* Invoice Type */}
-                          <div>
-                            <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Invoice Type <span style={{color: '#dc2626'}}>*</span></label>
-                            <select
-                              value={multipleTaskFilters.invoiceType}
-                              onChange={(e) => setMultipleTaskFilters({...multipleTaskFilters, invoiceType: e.target.value})}
-                              style={{width: '100%', padding: '10px 12px', border: '2px solid #86efac', borderRadius: '8px', fontSize: '13px', fontWeight: '600', background: '#fff'}}
-                            >
-                              <option value="taskWise">Task Wise</option>
-                              <option value="combined">Combined Task</option>
-                            </select>
-                          </div>
-                        </div>
                         </div>
                         
-                        {/* Action Buttons */}
-                        <div style={{display: 'flex', gap: '12px', marginTop: '4px'}}>
+                        <div style={{display: 'flex', gap: '12px'}}>
                           <button
                             onClick={() => {
-                              const client = (data.clients || []).find(c => 
-                                c.name?.toLowerCase() === multipleTaskFilters.clientName.toLowerCase() ||
-                                c.fileNo === multipleTaskFilters.clientCode
-                              );
-                              if (client) {
-                                setMultipleTaskClient(client);
-                                setMultipleTaskSelectedTasks([]);
-                                setMultipleTaskLineItems([]);
-                              } else {
-                                alert('Please select a valid client');
+                              if (!multipleTaskFilters.groupName) {
+                                alert('Please select a group');
+                                return;
                               }
+                              // Set a dummy client to trigger step 2
+                              setMultipleTaskClient({ groupMode: true, groupName: multipleTaskFilters.groupName });
+                              setMultipleTaskSelectedTasks([]);
+                              setMultipleTaskLineItems([]);
                             }}
-                            disabled={!multipleTaskFilters.clientName}
+                            disabled={!multipleTaskFilters.groupName}
                             style={{
-                              padding: '12px 28px',
-                              background: multipleTaskFilters.clientName ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#e2e8f0',
-                              color: multipleTaskFilters.clientName ? '#fff' : '#94a3b8',
+                              padding: '14px 32px',
+                              background: multipleTaskFilters.groupName ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#e2e8f0',
+                              color: multipleTaskFilters.groupName ? '#fff' : '#94a3b8',
                               border: 'none',
                               borderRadius: '8px',
-                              cursor: multipleTaskFilters.clientName ? 'pointer' : 'not-allowed',
+                              cursor: multipleTaskFilters.groupName ? 'pointer' : 'not-allowed',
                               fontSize: '14px',
                               fontWeight: '700',
-                              boxShadow: multipleTaskFilters.clientName ? '0 2px 8px rgba(16,185,129,0.3)' : 'none'
+                              boxShadow: multipleTaskFilters.groupName ? '0 2px 8px rgba(16,185,129,0.3)' : 'none'
                             }}
                           >
-                            🔍 Search Tasks →
-                          </button>
-                          <button
-                            onClick={() => setMultipleTaskFilters({clientName: '', clientCode: '', groupName: '', invoiceType: 'taskWise'})}
-                            style={{padding: '12px 24px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '500'}}
-                          >
-                            Reset
+                            🔍 View Clients & Tasks →
                           </button>
                         </div>
                       </div>
                     )}
                     
-                    {/* Step 2: Task Selection */}
+                    {/* Step 2: Task Selection - Grouped by Client */}
+                    {multipleTaskClient?.groupMode && multipleTaskFilters.groupName && multipleTaskLineItems.length === 0 && (
+                      <div style={{background: '#fff', padding: '24px', borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', border: '1px solid #e2e8f0'}}>
+                        {/* Header */}
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+                          <div>
+                            <h3 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: '#065f46'}}>
+                              Group: {multipleTaskFilters.groupName}
+                            </h3>
+                            <p style={{margin: '4px 0 0', fontSize: '13px', color: '#64748b'}}>
+                              Select tasks to invoice - grouped by Client Name & Code
+                            </p>
+                          </div>
+                          <div style={{display: 'flex', gap: '10px'}}>
+                            <button
+                              onClick={() => {
+                                setMultipleTaskClient(null);
+                                setMultipleTaskFilters({...multipleTaskFilters, groupName: ''});
+                              }}
+                              style={{padding: '10px 20px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '500'}}
+                            >
+                              ← Back to Group Selection
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (multipleTaskSelectedTasks.length === 0) {
+                                  alert('Please select at least one task');
+                                  return;
+                                }
+                                // Prepare line items grouped by client
+                                const lineItems = multipleTaskSelectedTasks.map(task => ({
+                                  taskId: task.id,
+                                  clientId: task.clientId,
+                                  clientName: task.clientName,
+                                  clientCode: task.fileNo,
+                                  description: `${task.parentTask} - ${task.childTask}`,
+                                  amount: parseFloat(task.agreedFees) || 0,
+                                  financialYear: task.financialYear,
+                                  period: task.period,
+                                  subPeriod: task.subPeriod
+                                }));
+                                setMultipleTaskLineItems(lineItems);
+                              }}
+                              disabled={multipleTaskSelectedTasks.length === 0}
+                              style={{
+                                padding: '10px 24px',
+                                background: multipleTaskSelectedTasks.length > 0 ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#e2e8f0',
+                                color: multipleTaskSelectedTasks.length > 0 ? '#fff' : '#94a3b8',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: multipleTaskSelectedTasks.length > 0 ? 'pointer' : 'not-allowed',
+                                fontSize: '13px',
+                                fontWeight: '700'
+                              }}
+                            >
+                              Proceed with {multipleTaskSelectedTasks.length} Tasks →
+                            </button>
+                          </div>
+                        </div>
+                        
+                        {/* Tasks grouped by Client */}
+                        {(() => {
+                          const groupClients = (data.clients || []).filter(c => c.groupName === multipleTaskFilters.groupName);
+                          const clientTasks = {};
+                          
+                          groupClients.forEach(client => {
+                            const tasks = (data.tasks || []).filter(t => 
+                              (t.clientName === client.name || t.clientId === client.id || t.fileNo === client.fileNo) && 
+                              !t.billed
+                            );
+                            if (tasks.length > 0) {
+                              const key = `${client.name}|${client.fileNo}`;
+                              clientTasks[key] = { client, tasks };
+                            }
+                          });
+                          
+                          if (Object.keys(clientTasks).length === 0) {
+                            return (
+                              <div style={{textAlign: 'center', padding: '60px 20px', background: '#f8fafc', borderRadius: '12px', border: '2px dashed #e2e8f0'}}>
+                                <div style={{fontSize: '48px', marginBottom: '16px'}}>📋</div>
+                                <div style={{fontSize: '16px', fontWeight: '600', color: '#64748b', marginBottom: '8px'}}>No Unbilled Tasks</div>
+                                <div style={{fontSize: '13px', color: '#94a3b8'}}>All tasks for clients in this group have been billed</div>
+                              </div>
+                            );
+                          }
+                          
+                          return Object.entries(clientTasks).map(([key, { client, tasks }]) => (
+                            <div key={key} style={{marginBottom: '16px', background: '#f8fafc', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e2e8f0'}}>
+                              {/* Client Header */}
+                              <div style={{padding: '14px 20px', background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderBottom: '1px solid #86efac', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                                <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                                  <input
+                                    type="checkbox"
+                                    checked={tasks.every(t => multipleTaskSelectedTasks.some(st => st.id === t.id))}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setMultipleTaskSelectedTasks(prev => [...prev.filter(t => !tasks.some(ct => ct.id === t.id)), ...tasks]);
+                                      } else {
+                                        setMultipleTaskSelectedTasks(prev => prev.filter(t => !tasks.some(ct => ct.id === t.id)));
+                                      }
+                                    }}
+                                    style={{width: '18px', height: '18px', cursor: 'pointer'}}
+                                  />
+                                  <div>
+                                    <div style={{fontWeight: '700', fontSize: '14px', color: '#065f46'}}>{client.name}</div>
+                                    <div style={{fontSize: '12px', color: '#047857'}}>Code: {client.fileNo}</div>
+                                  </div>
+                                </div>
+                                <span style={{background: '#10b981', color: '#fff', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600'}}>
+                                  {tasks.length} unbilled task{tasks.length > 1 ? 's' : ''}
+                                </span>
+                              </div>
+                              
+                              {/* Tasks Table */}
+                              <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+                                <thead>
+                                  <tr style={{background: '#f1f5f9'}}>
+                                    <th style={{padding: '10px 12px', textAlign: 'center', width: '40px'}}></th>
+                                    <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#475569'}}>Task Type</th>
+                                    <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#475569'}}>Financial Year</th>
+                                    <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#475569'}}>Period</th>
+                                    <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#475569'}}>Status</th>
+                                    <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#475569'}}>Agreed Fees</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {tasks.map((task, i) => (
+                                    <tr key={task.id} style={{borderBottom: '1px solid #e2e8f0', background: multipleTaskSelectedTasks.some(t => t.id === task.id) ? '#f0fdf4' : (i % 2 === 0 ? '#fff' : '#fafafa')}}>
+                                      <td style={{padding: '10px 12px', textAlign: 'center'}}>
+                                        <input
+                                          type="checkbox"
+                                          checked={multipleTaskSelectedTasks.some(t => t.id === task.id)}
+                                          onChange={(e) => {
+                                            if (e.target.checked) {
+                                              setMultipleTaskSelectedTasks(prev => [...prev, task]);
+                                            } else {
+                                              setMultipleTaskSelectedTasks(prev => prev.filter(t => t.id !== task.id));
+                                            }
+                                          }}
+                                          style={{cursor: 'pointer'}}
+                                        />
+                                      </td>
+                                      <td style={{padding: '10px 12px'}}>
+                                        <div style={{fontWeight: '600', color: '#1e293b'}}>{task.childTask}</div>
+                                        <div style={{fontSize: '11px', color: '#64748b'}}>{task.parentTask}</div>
+                                      </td>
+                                      <td style={{padding: '10px 12px'}}>{task.financialYear || '-'}</td>
+                                      <td style={{padding: '10px 12px'}}>{task.period || '-'} {task.subPeriod ? `(${task.subPeriod})` : ''}</td>
+                                      <td style={{padding: '10px 12px'}}>
+                                        <span style={{
+                                          padding: '3px 8px',
+                                          borderRadius: '12px',
+                                          fontSize: '10px',
+                                          fontWeight: '600',
+                                          background: task.status === 'Completed' ? '#dcfce7' : task.status === 'In Progress' ? '#fef3c7' : '#fee2e2',
+                                          color: task.status === 'Completed' ? '#166534' : task.status === 'In Progress' ? '#92400e' : '#991b1b'
+                                        }}>
+                                          {task.status}
+                                        </span>
+                                      </td>
+                                      <td style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#10b981'}}>
+                                        ₹{(parseFloat(task.agreedFees) || 0).toLocaleString('en-IN')}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ));
+                        })()}
+                        
+                        {/* Summary Bar */}
+                        {multipleTaskSelectedTasks.length > 0 && (
+                          <div style={{position: 'sticky', bottom: 0, background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', padding: '16px 24px', borderRadius: '12px', marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#fff'}}>
+                            <div>
+                              <span style={{fontSize: '14px', fontWeight: '600'}}>{multipleTaskSelectedTasks.length} tasks selected</span>
+                              <span style={{fontSize: '13px', marginLeft: '16px', opacity: 0.9}}>
+                                from {[...new Set(multipleTaskSelectedTasks.map(t => t.clientName))].length} client(s)
+                              </span>
+                            </div>
+                            <div style={{fontSize: '18px', fontWeight: '700'}}>
+                              Total: ₹{multipleTaskSelectedTasks.reduce((sum, t) => sum + (parseFloat(t.agreedFees) || 0), 0).toLocaleString('en-IN')}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Single Client Mode (backward compatibility) */}
+                    {multipleTaskClient && !multipleTaskClient.groupMode && multipleTaskLineItems.length === 0 && (
                     {multipleTaskClient && multipleTaskSelectedTasks.length === 0 && (
                       <div style={{background: '#fff', padding: '28px', borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', border: '1px solid #e2e8f0'}}>
                         {/* Client Info Header - Green Theme */}
@@ -20108,843 +20200,232 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   </div>
                 )}
 
-                {/* Bulk Task Mode */}
+                {/* Bulk Invoice Log Mode */}
                 {billingMode === 'bulk' && (
                   <div style={{background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
-                    {/* Tab Navigation for Bulk */}
-                    <div style={{display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '2px solid #e2e8f0', paddingBottom: '12px'}}>
-                      <button
-                        onClick={() => setBulkTaskStep('filter')}
-                        style={{
-                          padding: '10px 20px',
-                          background: bulkTaskStep === 'filter' || bulkTaskStep === 'select' || bulkTaskStep === 'billing' ? '#10b981' : '#f1f5f9',
-                          color: bulkTaskStep === 'filter' || bulkTaskStep === 'select' || bulkTaskStep === 'billing' ? '#fff' : '#64748b',
-                          border: 'none',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          fontWeight: '600'
-                        }}
-                      >
-                        📝 Create Bulk Invoice
-                      </button>
-                      <button
-                        onClick={() => setBulkTaskStep('batches')}
-                        style={{
-                          padding: '10px 20px',
-                          background: bulkTaskStep === 'batches' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#f1f5f9',
-                          color: bulkTaskStep === 'batches' ? '#fff' : '#64748b',
-                          border: 'none',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          fontWeight: '600'
-                        }}
-                      >
-                        📋 Bulk Task Log ({bulkBatches.length})
-                      </button>
+                    {/* Header */}
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', padding: '20px 24px', background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '16px', border: '2px solid #86efac'}}>
+                      <div>
+                        <h4 style={{margin: 0, fontSize: '20px', fontWeight: '700', color: '#065f46', display: 'flex', alignItems: 'center', gap: '12px'}}>
+                          📋 Bulk Invoice Log
+                        </h4>
+                        <p style={{margin: '6px 0 0', fontSize: '13px', color: '#047857'}}>View all bulk invoice batches created from the Billing module</p>
+                      </div>
                     </div>
 
-                    {/* Step 1: Filter Tasks */}
-                    {bulkTaskStep === 'filter' && (
-                      <div>
-                        <div style={{background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)', padding: '20px', borderRadius: '10px', marginBottom: '20px'}}>
-                          <h4 style={{margin: '0 0 16px 0', fontSize: '14px', fontWeight: '600', color: '#065f46'}}>Search By:</h4>
-                          <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px'}}>
-                            <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Category (Parent Task) *</label>
-                              <select
-                                value={bulkTaskFilters.parentTask}
-                                onChange={(e) => setBulkTaskFilters({...bulkTaskFilters, parentTask: e.target.value, childTask: ''})}
-                                style={{width: '100%', padding: '10px', border: '1px solid #6ee7b7', borderRadius: '6px', fontSize: '13px', background: '#fff'}}
-                              >
-                                <option value="">Select Category</option>
-                                {[...new Set((data.tasks || []).map(t => t.parentTask).filter(Boolean))].sort().map(pt => (
-                                  <option key={pt} value={pt}>{pt}</option>
-                                ))}
-                              </select>
-                            </div>
-                            <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Task Type (Child Task) *</label>
-                              <select
-                                value={bulkTaskFilters.childTask}
-                                onChange={(e) => setBulkTaskFilters({...bulkTaskFilters, childTask: e.target.value})}
-                                style={{width: '100%', padding: '10px', border: '1px solid #6ee7b7', borderRadius: '6px', fontSize: '13px', background: '#fff'}}
-                              >
-                                <option value="">Select Task Type</option>
-                                {[...new Set((data.tasks || [])
-                                  .filter(t => !bulkTaskFilters.parentTask || t.parentTask === bulkTaskFilters.parentTask)
-                                  .map(t => t.childTask).filter(Boolean))].sort().map(ct => (
-                                  <option key={ct} value={ct}>{ct}</option>
-                                ))}
-                              </select>
-                            </div>
-                            <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Group No.</label>
-                              <input
-                                type="text"
-                                value={bulkTaskFilters.groupName}
-                                onChange={(e) => setBulkTaskFilters({...bulkTaskFilters, groupName: e.target.value})}
-                                placeholder="Enter Group No."
-                                style={{width: '100%', padding: '10px', border: '1px solid #6ee7b7', borderRadius: '6px', fontSize: '13px'}}
-                              />
-                            </div>
-                            <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Status *</label>
-                              <select
-                                value={bulkTaskFilters.status}
-                                onChange={(e) => setBulkTaskFilters({...bulkTaskFilters, status: e.target.value})}
-                                style={{width: '100%', padding: '10px', border: '1px solid #6ee7b7', borderRadius: '6px', fontSize: '13px', background: '#fff'}}
-                              >
-                                <option value="">All Status</option>
-                                <option value="Completed">Completed</option>
-                                <option value="In Progress">In Progress</option>
-                                <option value="Pending">Pending</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Financial Year</label>
-                              <select
-                                value={bulkTaskFilters.financialYear}
-                                onChange={(e) => setBulkTaskFilters({...bulkTaskFilters, financialYear: e.target.value})}
-                                style={{width: '100%', padding: '10px', border: '1px solid #6ee7b7', borderRadius: '6px', fontSize: '13px', background: '#fff'}}
-                              >
-                                <option value="">All Years</option>
-                                {['FY 2025-26', 'FY 2024-25', 'FY 2023-24', 'FY 2022-23'].map(fy => (
-                                  <option key={fy} value={fy}>{fy}</option>
-                                ))}
-                              </select>
-                            </div>
-                            <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Period</label>
-                              <select
-                                value={bulkTaskFilters.period}
-                                onChange={(e) => setBulkTaskFilters({...bulkTaskFilters, period: e.target.value})}
-                                style={{width: '100%', padding: '10px', border: '1px solid #6ee7b7', borderRadius: '6px', fontSize: '13px', background: '#fff'}}
-                              >
-                                <option value="">All Periods</option>
-                                {['Monthly', 'Quarterly', 'Half Yearly', 'Yearly', 'One Time', 'As & when required'].map(p => (
-                                  <option key={p} value={p}>{p}</option>
-                                ))}
-                              </select>
-                            </div>
-                          </div>
-                          <div style={{display: 'flex', justifyContent: 'flex-end', marginTop: '16px'}}>
-                            <button
-                              onClick={() => {
-                                if (!bulkTaskFilters.parentTask || !bulkTaskFilters.childTask) {
-                                  alert('Please select Category and Task Type');
-                                  return;
-                                }
-                                // Filter tasks
-                                const filtered = (data.tasks || []).filter(t => {
-                                  if (t.billed) return false;
-                                  if (bulkTaskFilters.parentTask && t.parentTask !== bulkTaskFilters.parentTask) return false;
-                                  if (bulkTaskFilters.childTask && t.childTask !== bulkTaskFilters.childTask) return false;
-                                  if (bulkTaskFilters.status && t.status !== bulkTaskFilters.status) return false;
-                                  if (bulkTaskFilters.financialYear && t.financialYear !== bulkTaskFilters.financialYear) return false;
-                                  if (bulkTaskFilters.period && t.period !== bulkTaskFilters.period) return false;
-                                  if (bulkTaskFilters.groupName && !t.groupName?.toLowerCase().includes(bulkTaskFilters.groupName.toLowerCase())) return false;
-                                  return true;
-                                });
-                                setBulkFilteredTasks(filtered);
-                                setBulkOriginalTasks(filtered);
-                                setBulkSelectedTaskIds([]);
-                                setBulkSearchTerm('');
-                                setBulkTaskStep('select');
-                              }}
-                              style={{padding: '10px 24px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600'}}
-                            >
-                              Search
-                            </button>
-                          </div>
-                        </div>
+                    {bulkBatches.length === 0 ? (
+                      <div style={{textAlign: 'center', padding: '80px 20px', background: '#fff', borderRadius: '20px', border: '2px dashed #86efac'}}>
+                        <div style={{fontSize: '72px', marginBottom: '20px'}}>📋</div>
+                        <div style={{fontSize: '20px', fontWeight: '700', color: '#065f46', marginBottom: '10px'}}>No Bulk Invoices Yet</div>
+                        <div style={{fontSize: '14px', color: '#64748b'}}>Bulk invoices created from the Billing module will appear here</div>
                       </div>
-                    )}
-
-                    {/* Step 2: Select Tasks */}
-                    {bulkTaskStep === 'select' && (
-                      <div>
-                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
-                          <div>
-                            <span style={{fontSize: '14px', fontWeight: '600'}}>Found {bulkFilteredTasks.length} Tasks</span>
-                            <span style={{fontSize: '12px', color: '#64748b', marginLeft: '12px'}}>
-                              {bulkTaskFilters.parentTask} → {bulkTaskFilters.childTask}
-                            </span>
-                          </div>
-                          <div style={{display: 'flex', gap: '8px'}}>
-                            <button
-                              onClick={() => setBulkTaskStep('filter')}
-                              style={{padding: '8px 16px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px'}}
-                            >
-                              ← Back to Filter
-                            </button>
-                            <button
-                              onClick={() => {
-                                if (bulkSelectedTaskIds.length === 0) {
-                                  alert('Please select at least one task');
-                                  return;
-                                }
-                                // Prepare billing data
-                                const selectedTasks = bulkOriginalTasks.filter(t => bulkSelectedTaskIds.includes(t.id));
-                                const billingData = selectedTasks.map(task => {
-                                  const client = (data.clients || []).find(c => c.name === task.clientName || c.fileNo === task.fileNo);
-                                  return {
-                                    taskId: task.id,
-                                    selected: true,
-                                    clientCode: task.fileNo || client?.fileNo || '',
-                                    clientName: task.clientName || client?.name || '',
-                                    groupName: task.groupName || client?.groupName || '',
-                                    parentTask: task.parentTask || '',
-                                    taskType: task.childTask || '',
-                                    financialYear: task.financialYear || '',
-                                    period: task.period || '',
-                                    subPeriod: task.subPeriod || '',
-                                    taskDescription: task.taskDescription || task.childTask || '',
-                                    organizationId: '',
-                                    billableCosting: task.billableCosting || '0.00',
-                                    agreedFees: parseFloat(task.agreedFees) || getClientAgreedFee(task.clientId, task.parentTask || task.taskType, task.childTask || task.subTask) || task.fees || 0,
-                                    billNo: '',
-                                    amount: parseFloat(task.agreedFees) || getClientAgreedFee(task.clientId, task.parentTask || task.taskType, task.childTask || task.subTask) || task.fees || 0,
-                                    discount: '0',
-                                    narration: `${task.parentTask} - ${task.childTask}`,
-                                    remark: ''
-                                  };
-                                });
-                                setBulkBillingData(billingData);
-                                setBulkTaskStep('billing');
-                              }}
-                              disabled={bulkSelectedTaskIds.length === 0}
-                              style={{
-                                padding: '8px 20px',
-                                background: bulkSelectedTaskIds.length > 0 ? '#10b981' : '#e2e8f0',
-                                color: bulkSelectedTaskIds.length > 0 ? '#fff' : '#94a3b8',
-                                border: 'none',
-                                borderRadius: '6px',
-                                cursor: bulkSelectedTaskIds.length > 0 ? 'pointer' : 'not-allowed',
-                                fontSize: '12px',
-                                fontWeight: '600'
-                              }}
-                            >
-                              Proceed with {bulkSelectedTaskIds.length} Tasks →
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Search Box */}
-                        <div style={{marginBottom: '16px'}}>
-                          <input
-                            type="text"
-                            placeholder="🔍 Search here.."
-                            value={bulkSearchTerm}
-                            onChange={(e) => {
-                              const search = e.target.value;
-                              setBulkSearchTerm(search);
-                              if (!search.trim()) {
-                                setBulkFilteredTasks(bulkOriginalTasks);
-                              } else {
-                                const searchLower = search.toLowerCase();
-                                setBulkFilteredTasks(bulkOriginalTasks.filter(t => 
-                                  t.clientName?.toLowerCase().includes(searchLower) ||
-                                  t.fileNo?.toLowerCase().includes(searchLower) ||
-                                  t.subPeriod?.toLowerCase().includes(searchLower)
-                                ));
-                              }
-                            }}
-                            style={{width: '300px', padding: '10px 16px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px'}}
-                          />
-                        </div>
-
-                        {/* Tasks Table */}
-                        <div style={{border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden'}}>
-                          <div style={{maxHeight: '400px', overflowY: 'auto'}}>
-                            <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
-                              <thead style={{background: '#f8fafc', position: 'sticky', top: 0}}>
-                                <tr>
-                                  <th style={{padding: '12px 8px', textAlign: 'center', borderBottom: '2px solid #10b981', width: '40px'}}>
-                                    <input
-                                      type="checkbox"
-                                      checked={bulkSelectedTaskIds.length === bulkFilteredTasks.length && bulkFilteredTasks.length > 0}
-                                      onChange={(e) => {
-                                        if (e.target.checked) {
-                                          setBulkSelectedTaskIds(bulkFilteredTasks.map(t => t.id));
-                                        } else {
-                                          setBulkSelectedTaskIds([]);
-                                        }
-                                      }}
-                                    />
-                                  </th>
-                                  <th style={{padding: '12px 8px', textAlign: 'left', borderBottom: '2px solid #10b981'}}>S.No</th>
-                                  <th style={{padding: '12px 8px', textAlign: 'left', borderBottom: '2px solid #10b981'}}>Client Code</th>
-                                  <th style={{padding: '12px 8px', textAlign: 'left', borderBottom: '2px solid #10b981'}}>Client Name</th>
-                                  <th style={{padding: '12px 8px', textAlign: 'left', borderBottom: '2px solid #10b981'}}>Task Type</th>
-                                  <th style={{padding: '12px 8px', textAlign: 'left', borderBottom: '2px solid #10b981'}}>Financial Year</th>
-                                  <th style={{padding: '12px 8px', textAlign: 'left', borderBottom: '2px solid #10b981'}}>Period</th>
-                                  <th style={{padding: '12px 8px', textAlign: 'left', borderBottom: '2px solid #10b981'}}>Sub Period</th>
-                                  <th style={{padding: '12px 8px', textAlign: 'left', borderBottom: '2px solid #10b981'}}>Task Description</th>
+                    ) : (
+                      <>
+                        {!viewingBulkBatch ? (
+                          <div style={{background: '#fff', borderRadius: '16px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 2px 12px rgba(0,0,0,0.06)'}}>
+                            <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
+                              <thead>
+                                <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                                  <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Batch ID</th>
+                                  <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Date</th>
+                                  <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Task Type</th>
+                                  <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Organizations</th>
+                                  <th style={{padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>No. of Invoices</th>
+                                  <th style={{padding: '14px 16px', textAlign: 'right', fontWeight: '600', color: '#fff'}}>Total Amount</th>
+                                  <th style={{padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Actions</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {bulkFilteredTasks.length === 0 ? (
-                                  <tr>
-                                    <td colSpan={9} style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>
-                                      No tasks found matching the criteria
-                                    </td>
-                                  </tr>
-                                ) : (
-                                  bulkFilteredTasks.map((task, idx) => (
-                                    <tr 
-                                      key={task.id}
-                                      style={{
-                                        background: bulkSelectedTaskIds.includes(task.id) ? '#f0fdf4' : (idx % 2 === 0 ? '#fff' : '#fafafa'),
-                                        borderLeft: bulkSelectedTaskIds.includes(task.id) ? '3px solid #10b981' : '3px solid transparent'
-                                      }}
-                                    >
-                                      <td style={{padding: '10px 8px', textAlign: 'center', borderBottom: '1px solid #f1f5f9'}}>
-                                        <input
-                                          type="checkbox"
-                                          checked={bulkSelectedTaskIds.includes(task.id)}
-                                          onChange={(e) => {
-                                            if (e.target.checked) {
-                                              setBulkSelectedTaskIds([...bulkSelectedTaskIds, task.id]);
-                                            } else {
-                                              setBulkSelectedTaskIds(bulkSelectedTaskIds.filter(id => id !== task.id));
-                                            }
-                                          }}
-                                        />
-                                      </td>
-                                      <td style={{padding: '10px 8px', borderBottom: '1px solid #f1f5f9'}}>{idx + 1}</td>
-                                      <td style={{padding: '10px 8px', borderBottom: '1px solid #f1f5f9', fontWeight: '500'}}>{task.fileNo || '-'}</td>
-                                      <td style={{padding: '10px 8px', borderBottom: '1px solid #f1f5f9'}}>{task.clientName || '-'}</td>
-                                      <td style={{padding: '10px 8px', borderBottom: '1px solid #f1f5f9'}}>{task.childTask || '-'}</td>
-                                      <td style={{padding: '10px 8px', borderBottom: '1px solid #f1f5f9'}}>{task.financialYear || '-'}</td>
-                                      <td style={{padding: '10px 8px', borderBottom: '1px solid #f1f5f9'}}>{task.period || '-'}</td>
-                                      <td style={{padding: '10px 8px', borderBottom: '1px solid #f1f5f9'}}>{task.subPeriod || '-'}</td>
-                                      <td style={{padding: '10px 8px', borderBottom: '1px solid #f1f5f9'}}>{task.taskDescription || task.childTask || '-'}</td>
-                                    </tr>
-                                  ))
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Step 3: Billing Sheet */}
-                    {bulkTaskStep === 'billing' && (
-                      <div>
-                        {/* Action Buttons Row - MOST IMPORTANT */}
-                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '16px', background: '#f0fdf4', borderRadius: '8px', border: '2px solid #10b981'}}>
-                          <div style={{display: 'flex', gap: '12px', alignItems: 'center'}}>
-                            <label style={{fontSize: '13px', fontWeight: '600'}}>Invoice Date:</label>
-                            <input
-                              type="date"
-                              value={bulkInvoiceDate}
-                              onChange={(e) => setBulkInvoiceDate(e.target.value)}
-                              style={{padding: '8px 12px', border: '1px solid #10b981', borderRadius: '6px', fontSize: '13px'}}
-                            />
-                          </div>
-                          <div style={{display: 'flex', gap: '12px'}}>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const csv = 'S.No,Client,Amount\n' + bulkBillingData.map((b,i) => `${i+1},${b.clientName},${b.amount}`).join('\n');
-                                const blob = new Blob([csv], {type: 'text/csv'});
-                                const a = document.createElement('a');
-                                a.href = URL.createObjectURL(blob);
-                                a.download = 'bulk-bills.csv';
-                                a.click();
-                              }}
-                              style={{padding: '12px 20px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '700'}}
-                            >
-                              📥 Export Excel
-                            </button>
-                            <button
-                              type="button"
-                              onClick={handleBulkPostBill}
-                              style={{padding: '12px 24px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '700', boxShadow: '0 2px 8px rgba(16,185,129,0.4)'}}
-                            >
-                              ✓ POST BILL
-                            </button>
-                          </div>
-                        </div>
-                        
-                        {/* Apply Organization Row */}
-                        <div style={{display: 'flex', gap: '16px', marginBottom: '20px'}}>
-                          <div style={{flex: 1, padding: '12px', background: '#ecfdf5', borderRadius: '8px', border: '1px solid #6ee7b7'}}>
-                            <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '8px', color: '#065f46'}}>Apply Organisation to All Bills:</label>
-                            <div style={{display: 'flex', gap: '8px'}}>
-                              <select
-                                id="bulkOrgSelect"
-                                style={{flex: 1, padding: '8px', border: '1px solid #6ee7b7', borderRadius: '6px', fontSize: '12px'}}
-                              >
-                                <option value="">Select Organisation</option>
-                                {(data.organizations || []).map(o => (
-                                  <option key={o.id} value={o.id}>{o.name}</option>
-                                ))}
-                              </select>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const orgId = document.getElementById('bulkOrgSelect')?.value;
-                                  if (!orgId) { alert('Select organisation first'); return; }
-                                  setBulkBillingData(prev => prev.map(b => ({...b, organizationId: orgId})));
-                                  alert('Applied!');
-                                }}
-                                style={{padding: '8px 16px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600'}}
-                              >
-                                Apply to All
-                              </button>
-                            </div>
-                          </div>
-                          <div style={{padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0'}}>
-                            <div style={{fontSize: '11px', fontWeight: '600', color: '#065f46', marginBottom: '6px'}}>Last Bill Numbers</div>
-                            {(data.organizations || []).map(org => {
-                              const last = (data.invoices || []).filter(i => i.organizationId === org.id).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
-                              return <div key={org.id} style={{fontSize: '10px'}}>{org.name}: <strong>{last?.invoiceNo || 'N/A'}</strong></div>;
-                            })}
-                          </div>
-                        </div>
-                        
-                        {/* Back Button */}
-                        <div style={{marginBottom: '12px'}}>
-                          <button
-                            onClick={() => setBulkTaskStep('select')}
-                            style={{padding: '8px 16px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px'}}
-                          >
-                            ← Back to Task Selection
-                          </button>
-                        </div>
-
-                        {/* Billing Table */}
-                        <div style={{border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden'}}>
-                          <div style={{overflowX: 'auto'}}>
-                            <table style={{width: '100%', minWidth: '1400px', borderCollapse: 'collapse', fontSize: '11px'}}>
-                              <thead style={{background: '#f8fafc'}}>
-                                <tr>
-                                  <th style={{padding: '10px 6px', textAlign: 'center', borderBottom: '2px solid #10b981', width: '30px'}}>
-                                    <input
-                                      type="checkbox"
-                                      checked={bulkBillingData.every(b => b.selected)}
-                                      onChange={(e) => {
-                                        setBulkBillingData(prev => prev.map(b => ({...b, selected: e.target.checked})));
-                                      }}
-                                    />
-                                  </th>
-                                  <th style={{padding: '10px 6px', textAlign: 'left', borderBottom: '2px solid #10b981', width: '40px'}}>S.No</th>
-                                  <th style={{padding: '10px 6px', textAlign: 'left', borderBottom: '2px solid #10b981'}}>Client Code</th>
-                                  <th style={{padding: '10px 6px', textAlign: 'left', borderBottom: '2px solid #10b981'}}>Client Name</th>
-                                  <th style={{padding: '10px 6px', textAlign: 'left', borderBottom: '2px solid #10b981'}}>Task Type</th>
-                                  <th style={{padding: '10px 6px', textAlign: 'left', borderBottom: '2px solid #10b981'}}>Fin. Year</th>
-                                  <th style={{padding: '10px 6px', textAlign: 'left', borderBottom: '2px solid #10b981'}}>Period</th>
-                                  <th style={{padding: '10px 6px', textAlign: 'left', borderBottom: '2px solid #10b981'}}>Sub Period</th>
-                                  <th style={{padding: '10px 6px', textAlign: 'left', borderBottom: '2px solid #10b981', width: '140px'}}>Organisation *</th>
-                                  <th style={{padding: '10px 6px', textAlign: 'right', borderBottom: '2px solid #10b981', width: '80px'}}>Amount *</th>
-                                  <th style={{padding: '10px 6px', textAlign: 'right', borderBottom: '2px solid #10b981', width: '70px'}}>Discount</th>
-                                  <th style={{padding: '10px 6px', textAlign: 'right', borderBottom: '2px solid #10b981'}}>Net Amount</th>
-                                  <th style={{padding: '10px 6px', textAlign: 'right', borderBottom: '2px solid #10b981'}}>With Tax</th>
-                                  <th style={{padding: '10px 6px', textAlign: 'left', borderBottom: '2px solid #10b981', width: '120px'}}>Narration *</th>
-                                  <th style={{padding: '10px 6px', textAlign: 'left', borderBottom: '2px solid #10b981', width: '100px'}}>Remark</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {bulkBillingData.map((bill, idx) => {
-                                  const net = (parseFloat(bill.amount) || 0) - (parseFloat(bill.discount) || 0);
-                                  const org = (data.organizations || []).find(o => o.id === bill.organizationId);
-                                  const client = (data.clients || []).find(c => c.name === bill.clientName);
-                                  const gstApplicable = org?.gstApplicable === 'yes';
-                                  let withTax = net;
-                                  if (gstApplicable && net > 0) {
-                                    withTax = net * 1.18;
-                                  }
+                                {bulkBatches.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map((batch, idx) => {
+                                  const batchInvoices = (data.invoices || []).filter(inv => batch.invoiceIds?.includes(inv.id));
+                                  const orgBreakdown = {};
+                                  batchInvoices.forEach(inv => {
+                                    const orgName = inv.organizationName || inv.orgName || 'Unknown';
+                                    if (!orgBreakdown[orgName]) orgBreakdown[orgName] = { count: 0, amount: 0 };
+                                    orgBreakdown[orgName].count++;
+                                    orgBreakdown[orgName].amount += (inv.totalAmount || 0);
+                                  });
+                                  const batchDate = batch.invoiceDate || new Date(batch.createdAt).toISOString().split('T')[0];
                                   
                                   return (
-                                    <tr key={bill.taskId} style={{background: bill.selected ? '#f0fdf4' : (idx % 2 === 0 ? '#fff' : '#fafafa')}}>
-                                      <td style={{padding: '8px 6px', textAlign: 'center', borderBottom: '1px solid #f1f5f9'}}>
-                                        <input
-                                          type="checkbox"
-                                          checked={bill.selected}
-                                          onChange={(e) => {
-                                            setBulkBillingData(prev => prev.map((b, i) => i === idx ? {...b, selected: e.target.checked} : b));
-                                          }}
-                                        />
+                                    <tr key={batch.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4', borderBottom: '1px solid #e2e8f0'}}>
+                                      <td style={{padding: '16px'}}>
+                                        <div style={{fontFamily: 'monospace', fontSize: '12px', background: '#f1f5f9', padding: '6px 10px', borderRadius: '6px', display: 'inline-block', color: '#475569', fontWeight: '600'}}>
+                                          {batch.id?.substring(0, 12).toUpperCase()}
+                                        </div>
                                       </td>
-                                      <td style={{padding: '8px 6px', borderBottom: '1px solid #f1f5f9'}}>{idx + 1}</td>
-                                      <td style={{padding: '8px 6px', borderBottom: '1px solid #f1f5f9', fontWeight: '500'}}>{bill.clientCode}</td>
-                                      <td style={{padding: '8px 6px', borderBottom: '1px solid #f1f5f9'}}>{bill.clientName}</td>
-                                      <td style={{padding: '8px 6px', borderBottom: '1px solid #f1f5f9'}}>{bill.taskType}</td>
-                                      <td style={{padding: '8px 6px', borderBottom: '1px solid #f1f5f9'}}>{bill.financialYear}</td>
-                                      <td style={{padding: '8px 6px', borderBottom: '1px solid #f1f5f9'}}>{bill.period}</td>
-                                      <td style={{padding: '8px 6px', borderBottom: '1px solid #f1f5f9'}}>{bill.subPeriod}</td>
-                                      <td style={{padding: '8px 6px', borderBottom: '1px solid #f1f5f9'}}>
-                                        <select
-                                          value={bill.organizationId}
-                                          onChange={(e) => {
-                                            setBulkBillingData(prev => prev.map((b, i) => i === idx ? {...b, organizationId: e.target.value} : b));
-                                          }}
-                                          style={{width: '100%', padding: '4px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '10px'}}
-                                        >
-                                          <option value="">Select</option>
-                                          {(data.organizations || []).map(o => (
-                                            <option key={o.id} value={o.id}>{o.name}</option>
+                                      <td style={{padding: '16px'}}>
+                                        <div style={{fontWeight: '600', color: '#1e293b'}}>{new Date(batchDate).toLocaleDateString('en-IN', {day: '2-digit', month: 'short', year: 'numeric'})}</div>
+                                        <div style={{fontSize: '11px', color: '#64748b'}}>{new Date(batch.createdAt).toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'})}</div>
+                                      </td>
+                                      <td style={{padding: '16px'}}>
+                                        <div style={{fontWeight: '600', color: '#065f46'}}>{batch.taskType || batch.childTask || '-'}</div>
+                                        <div style={{fontSize: '11px', color: '#64748b'}}>{batch.parentTask || ''}</div>
+                                      </td>
+                                      <td style={{padding: '16px'}}>
+                                        <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
+                                          {Object.keys(orgBreakdown).slice(0, 3).map((orgName, i) => (
+                                            <div key={i} style={{display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px'}}>
+                                              <span style={{background: '#dcfce7', color: '#065f46', padding: '2px 8px', borderRadius: '12px', fontWeight: '500'}}>{orgBreakdown[orgName].count}</span>
+                                              <span style={{color: '#374151'}}>{orgName.length > 20 ? orgName.substring(0, 20) + '...' : orgName}</span>
+                                            </div>
                                           ))}
-                                        </select>
+                                          {Object.keys(orgBreakdown).length > 3 && (
+                                            <div style={{fontSize: '11px', color: '#64748b'}}>+{Object.keys(orgBreakdown).length - 3} more org(s)</div>
+                                          )}
+                                        </div>
                                       </td>
-                                      <td style={{padding: '8px 6px', borderBottom: '1px solid #f1f5f9'}}>
-                                        <input
-                                          type="number"
-                                          value={bill.amount}
-                                          onChange={(e) => {
-                                            setBulkBillingData(prev => prev.map((b, i) => i === idx ? {...b, amount: e.target.value} : b));
-                                          }}
-                                          style={{width: '100%', padding: '4px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '11px', textAlign: 'right'}}
-                                        />
+                                      <td style={{padding: '16px', textAlign: 'center'}}>
+                                        <button
+                                          onClick={() => setViewingBulkBatch(batch)}
+                                          style={{background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', color: '#fff', border: 'none', borderRadius: '20px', padding: '8px 18px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 2px 6px rgba(59,130,246,0.3)'}}
+                                        >
+                                          {batch.invoiceCount || batchInvoices.length} invoices
+                                        </button>
                                       </td>
-                                      <td style={{padding: '8px 6px', borderBottom: '1px solid #f1f5f9'}}>
-                                        <input
-                                          type="number"
-                                          value={bill.discount}
-                                          onChange={(e) => {
-                                            setBulkBillingData(prev => prev.map((b, i) => i === idx ? {...b, discount: e.target.value} : b));
-                                          }}
-                                          style={{width: '100%', padding: '4px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '11px', textAlign: 'right'}}
-                                        />
+                                      <td style={{padding: '16px', textAlign: 'right'}}>
+                                        <span style={{fontWeight: '700', color: '#10b981', fontSize: '15px'}}>₹{(batch.totalAmount || batchInvoices.reduce((s, i) => s + (i.totalAmount || 0), 0)).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
                                       </td>
-                                      <td style={{padding: '8px 6px', borderBottom: '1px solid #f1f5f9', textAlign: 'right', fontWeight: '500'}}>{net.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                                      <td style={{padding: '8px 6px', borderBottom: '1px solid #f1f5f9', textAlign: 'right', fontWeight: '600', color: '#10b981'}}>{withTax.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                                      <td style={{padding: '8px 6px', borderBottom: '1px solid #f1f5f9'}}>
-                                        <input
-                                          type="text"
-                                          value={bill.narration}
-                                          onChange={(e) => {
-                                            setBulkBillingData(prev => prev.map((b, i) => i === idx ? {...b, narration: e.target.value} : b));
-                                          }}
-                                          style={{width: '100%', padding: '4px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '10px'}}
-                                        />
-                                      </td>
-                                      <td style={{padding: '8px 6px', borderBottom: '1px solid #f1f5f9'}}>
-                                        <input
-                                          type="text"
-                                          value={bill.remark}
-                                          onChange={(e) => {
-                                            setBulkBillingData(prev => prev.map((b, i) => i === idx ? {...b, remark: e.target.value} : b));
-                                          }}
-                                          style={{width: '100%', padding: '4px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '10px'}}
-                                        />
+                                      <td style={{padding: '16px', textAlign: 'center'}}>
+                                        <div style={{display: 'flex', gap: '8px', justifyContent: 'center'}}>
+                                          <button onClick={() => setViewingBulkBatch(batch)} style={{padding: '8px 14px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px'}}>
+                                            <Eye size={14} /> View
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              if (!window.confirm(`Delete this batch of ${batch.invoiceCount || batchInvoices.length} invoices? This cannot be undone.`)) return;
+                                              const batchInvs = (data.invoices || []).filter(inv => batch.invoiceIds?.includes(inv.id));
+                                              const hasPayments = batchInvs.some(inv => (data.receipts || []).some(r => String(r.invoiceId) === String(inv.id)));
+                                              if (hasPayments) { alert('Cannot delete. Some invoices have payments recorded.'); return; }
+                                              setData(prev => ({
+                                                ...prev,
+                                                invoices: (prev.invoices || []).filter(inv => !batch.invoiceIds?.includes(inv.id)),
+                                                tasks: (prev.tasks || []).map(t => batch.invoiceIds?.includes(t.invoiceId) ? {...t, billed: false, invoiceId: null} : t)
+                                              }));
+                                              setBulkBatches(prev => prev.filter(b => b.id !== batch.id));
+                                              alert('Batch deleted successfully!');
+                                            }}
+                                            style={{padding: '8px 14px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px'}}
+                                          >
+                                            <Trash2 size={14} /> Delete
+                                          </button>
+                                        </div>
                                       </td>
                                     </tr>
                                   );
                                 })}
                               </tbody>
-                              <tfoot style={{background: '#f0fdf4'}}>
-                                <tr>
-                                  <td colSpan={10} style={{padding: '12px 8px', textAlign: 'right', fontWeight: '700'}}>Totals:</td>
-                                  <td style={{padding: '12px 8px', textAlign: 'right', fontWeight: '700'}}>
-                                    ₹{bulkBillingData.filter(b => b.selected).reduce((sum, b) => sum + (parseFloat(b.amount) || 0), 0).toLocaleString('en-IN')}
-                                  </td>
-                                  <td style={{padding: '12px 8px', textAlign: 'right', fontWeight: '700'}}>
-                                    ₹{bulkBillingData.filter(b => b.selected).reduce((sum, b) => sum + (parseFloat(b.discount) || 0), 0).toLocaleString('en-IN')}
-                                  </td>
-                                  <td style={{padding: '12px 8px', textAlign: 'right', fontWeight: '700'}}>
-                                    ₹{bulkBillingData.filter(b => b.selected).reduce((sum, b) => sum + ((parseFloat(b.amount) || 0) - (parseFloat(b.discount) || 0)), 0).toLocaleString('en-IN')}
-                                  </td>
-                                  <td colSpan={3}></td>
-                                </tr>
-                              </tfoot>
                             </table>
                           </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Step 4: View Batches - Bulk Task Log */}
-                    {bulkTaskStep === 'batches' && (
-                      <div>
-                        {/* Header */}
-                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', padding: '20px 24px', background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '16px', border: '2px solid #86efac'}}>
-                          <div>
-                            <h4 style={{margin: 0, fontSize: '20px', fontWeight: '700', color: '#065f46', display: 'flex', alignItems: 'center', gap: '12px'}}>
-                              📋 Bulk Task Log
-                            </h4>
-                            <p style={{margin: '6px 0 0', fontSize: '13px', color: '#047857'}}>View all bulk invoice batches with date, batch ID, organizations, and invoice counts</p>
-                          </div>
-                          <button
-                            onClick={() => setBulkTaskStep('filter')}
-                            style={{padding: '14px 28px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', boxShadow: '0 4px 12px rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', gap: '8px'}}
-                          >
-                            <Plus size={18} /> Create New Bulk Invoice
-                          </button>
-                        </div>
-
-                        {bulkBatches.length === 0 ? (
-                          <div style={{textAlign: 'center', padding: '80px 20px', background: '#fff', borderRadius: '20px', border: '2px dashed #86efac'}}>
-                            <div style={{fontSize: '72px', marginBottom: '20px'}}>📋</div>
-                            <div style={{fontSize: '20px', fontWeight: '700', color: '#065f46', marginBottom: '10px'}}>No Bulk Invoices Yet</div>
-                            <div style={{fontSize: '14px', color: '#64748b', marginBottom: '24px'}}>Create your first bulk invoice batch to see it here</div>
-                            <button
-                              onClick={() => setBulkTaskStep('filter')}
-                              style={{padding: '12px 24px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600'}}
-                            >
-                              + Create First Batch
-                            </button>
-                          </div>
                         ) : (
-                          <>
-                            {/* View Mode Toggle */}
-                            {!viewingBulkBatch ? (
-                              <>
-                                {/* Main Batch Log Table */}
-                                <div style={{background: '#fff', borderRadius: '16px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 2px 12px rgba(0,0,0,0.06)'}}>
-                                  <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
+                          <div>
+                            {/* Back Button */}
+                            <button onClick={() => setViewingBulkBatch(null)} style={{marginBottom: '20px', padding: '10px 20px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                              ← Back to Batch List
+                            </button>
+                            
+                            {/* Batch Header */}
+                            <div style={{background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', padding: '20px', borderRadius: '16px', marginBottom: '20px', border: '2px solid #86efac'}}>
+                              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                                <div>
+                                  <h4 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: '#065f46'}}>
+                                    Batch: {viewingBulkBatch.id?.substring(0, 12).toUpperCase()}
+                                  </h4>
+                                  <p style={{margin: '4px 0 0', fontSize: '13px', color: '#047857'}}>
+                                    {viewingBulkBatch.taskType || viewingBulkBatch.childTask} • {new Date(viewingBulkBatch.invoiceDate || viewingBulkBatch.createdAt).toLocaleDateString('en-IN', {day: '2-digit', month: 'short', year: 'numeric'})}
+                                  </p>
+                                </div>
+                                <div style={{display: 'flex', gap: '12px'}}>
+                                  <button
+                                    onClick={() => {
+                                      const batchInvoices = (data.invoices || []).filter(inv => viewingBulkBatch.invoiceIds?.includes(inv.id));
+                                      const csv = 'Invoice No,Client,Amount,GST,Total\n' + batchInvoices.map(inv => 
+                                        `${inv.invoiceNo},${inv.clientName},${inv.netAmount || inv.amount},${(inv.cgst || 0) + (inv.sgst || 0) + (inv.igst || 0)},${inv.totalAmount}`
+                                      ).join('\n');
+                                      const blob = new Blob([csv], {type: 'text/csv'});
+                                      const a = document.createElement('a');
+                                      a.href = URL.createObjectURL(blob);
+                                      a.download = `batch-${viewingBulkBatch.id?.substring(0, 8)}.csv`;
+                                      a.click();
+                                    }}
+                                    style={{padding: '10px 20px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'}}
+                                  >
+                                    <Download size={14} /> Export CSV
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      const batchInvoices = (data.invoices || []).filter(inv => viewingBulkBatch.invoiceIds?.includes(inv.id));
+                                      downloadMultipleInvoices(batchInvoices, data.organizations, data.clients, true);
+                                    }}
+                                    style={{padding: '10px 20px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'}}
+                                  >
+                                    <Download size={14} /> Download All PDFs
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Invoices grouped by organization */}
+                            {(() => {
+                              const batchInvoices = (data.invoices || []).filter(inv => viewingBulkBatch.invoiceIds?.includes(inv.id));
+                              const byOrg = {};
+                              batchInvoices.forEach(inv => {
+                                const orgName = inv.organizationName || inv.orgName || 'Unknown';
+                                if (!byOrg[orgName]) byOrg[orgName] = [];
+                                byOrg[orgName].push(inv);
+                              });
+                              
+                              return Object.entries(byOrg).map(([orgName, invoices]) => (
+                                <div key={orgName} style={{marginBottom: '20px', background: '#fff', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e2e8f0'}}>
+                                  <div style={{padding: '14px 20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                                    <h5 style={{margin: 0, fontSize: '15px', fontWeight: '600', color: '#1e293b'}}>{orgName}</h5>
+                                    <span style={{background: '#dcfce7', color: '#065f46', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600'}}>
+                                      {invoices.length} invoices • ₹{invoices.reduce((s, i) => s + (i.totalAmount || 0), 0).toLocaleString('en-IN')}
+                                    </span>
+                                  </div>
+                                  <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                                     <thead>
-                                      <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
-                                        <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Batch ID</th>
-                                        <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Date</th>
-                                        <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Task Type</th>
-                                        <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Organizations</th>
-                                        <th style={{padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>No. of Invoices</th>
-                                        <th style={{padding: '14px 16px', textAlign: 'right', fontWeight: '600', color: '#fff'}}>Total Amount</th>
-                                        <th style={{padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Actions</th>
+                                      <tr style={{background: '#f1f5f9'}}>
+                                        <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#475569'}}>Invoice No</th>
+                                        <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#475569'}}>Client</th>
+                                        <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#475569'}}>Task</th>
+                                        <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#475569'}}>Amount</th>
+                                        <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#475569'}}>GST</th>
+                                        <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#475569'}}>Total</th>
                                       </tr>
                                     </thead>
                                     <tbody>
-                                      {bulkBatches.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map((batch, idx) => {
-                                        // Get invoices for this batch
-                                        const batchInvoices = (data.invoices || []).filter(inv => batch.invoiceIds?.includes(inv.id));
-                                        
-                                        // Get organization breakdown
-                                        const orgBreakdown = {};
-                                        batchInvoices.forEach(inv => {
-                                          const orgName = inv.organizationName || inv.orgName || 'Unknown';
-                                          if (!orgBreakdown[orgName]) orgBreakdown[orgName] = { count: 0, amount: 0 };
-                                          orgBreakdown[orgName].count++;
-                                          orgBreakdown[orgName].amount += (inv.totalAmount || 0);
-                                        });
-                                        
-                                        const batchDate = batch.invoiceDate || new Date(batch.createdAt).toISOString().split('T')[0];
-                                        
-                                        return (
-                                          <tr key={batch.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4', borderBottom: '1px solid #e2e8f0'}}>
-                                            <td style={{padding: '16px'}}>
-                                              <div style={{fontFamily: 'monospace', fontSize: '12px', background: '#f1f5f9', padding: '6px 10px', borderRadius: '6px', display: 'inline-block', color: '#475569', fontWeight: '600'}}>
-                                                {batch.id?.substring(0, 12).toUpperCase()}
-                                              </div>
-                                            </td>
-                                            <td style={{padding: '16px'}}>
-                                              <div style={{fontWeight: '600', color: '#1e293b'}}>{new Date(batchDate).toLocaleDateString('en-IN', {day: '2-digit', month: 'short', year: 'numeric'})}</div>
-                                              <div style={{fontSize: '11px', color: '#64748b'}}>{new Date(batch.createdAt).toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'})}</div>
-                                            </td>
-                                            <td style={{padding: '16px'}}>
-                                              <div style={{fontWeight: '600', color: '#065f46'}}>{batch.taskType || batch.childTask || '-'}</div>
-                                              <div style={{fontSize: '11px', color: '#64748b'}}>{batch.parentTask || ''}</div>
-                                            </td>
-                                            <td style={{padding: '16px'}}>
-                                              <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
-                                                {Object.keys(orgBreakdown).slice(0, 3).map((orgName, i) => (
-                                                  <div key={i} style={{display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px'}}>
-                                                    <span style={{background: '#dcfce7', color: '#065f46', padding: '2px 8px', borderRadius: '12px', fontWeight: '500'}}>{orgBreakdown[orgName].count}</span>
-                                                    <span style={{color: '#374151'}}>{orgName.length > 20 ? orgName.substring(0, 20) + '...' : orgName}</span>
-                                                  </div>
-                                                ))}
-                                                {Object.keys(orgBreakdown).length > 3 && (
-                                                  <div style={{fontSize: '11px', color: '#64748b'}}>+{Object.keys(orgBreakdown).length - 3} more org(s)</div>
-                                                )}
-                                              </div>
-                                            </td>
-                                            <td style={{padding: '16px', textAlign: 'center'}}>
-                                              <button
-                                                onClick={() => setViewingBulkBatch(batch)}
-                                                style={{
-                                                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                                                  color: '#fff',
-                                                  border: 'none',
-                                                  borderRadius: '20px',
-                                                  padding: '8px 18px',
-                                                  fontSize: '14px',
-                                                  fontWeight: '700',
-                                                  cursor: 'pointer',
-                                                  boxShadow: '0 2px 6px rgba(59,130,246,0.3)'
-                                                }}
-                                              >
-                                                {batch.invoiceCount || batchInvoices.length} invoices
-                                              </button>
-                                            </td>
-                                            <td style={{padding: '16px', textAlign: 'right'}}>
-                                              <span style={{fontWeight: '700', color: '#10b981', fontSize: '15px'}}>₹{(batch.totalAmount || batchInvoices.reduce((s, i) => s + (i.totalAmount || 0), 0)).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
-                                            </td>
-                                            <td style={{padding: '16px', textAlign: 'center'}}>
-                                              <div style={{display: 'flex', gap: '8px', justifyContent: 'center'}}>
-                                                <button
-                                                  onClick={() => setViewingBulkBatch(batch)}
-                                                  style={{padding: '8px 14px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px'}}
-                                                >
-                                                  <Eye size={14} /> View
-                                                </button>
-                                                <button
-                                                  onClick={() => {
-                                                    if (!window.confirm(`Delete this batch of ${batch.invoiceCount || batchInvoices.length} invoices? This cannot be undone.`)) return;
-                                                    const batchInvs = (data.invoices || []).filter(inv => batch.invoiceIds?.includes(inv.id));
-                                                    const hasPayments = batchInvs.some(inv => (data.receipts || []).some(r => String(r.invoiceId) === String(inv.id)));
-                                                    if (hasPayments) { alert('Cannot delete. Some invoices have payments recorded.'); return; }
-                                                    setData(prev => ({
-                                                      ...prev,
-                                                      invoices: (prev.invoices || []).filter(inv => !batch.invoiceIds?.includes(inv.id)),
-                                                      tasks: (prev.tasks || []).map(t => batch.invoiceIds?.includes(t.invoiceId) ? {...t, billed: false, invoiceId: null} : t)
-                                                    }));
-                                                    setBulkBatches(prev => prev.filter(b => b.id !== batch.id));
-                                                    alert('Batch deleted successfully!');
-                                                  }}
-                                                  style={{padding: '8px 14px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px'}}
-                                                >
-                                                  <Trash2 size={14} /> Delete
-                                                </button>
-                                              </div>
-                                            </td>
-                                          </tr>
-                                        );
-                                      })}
+                                      {invoices.map((inv, i) => (
+                                        <tr key={inv.id} style={{borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? '#fff' : '#fafafa'}}>
+                                          <td style={{padding: '10px 12px', fontWeight: '600', color: '#10b981'}}>{inv.invoiceNo}</td>
+                                          <td style={{padding: '10px 12px'}}>{inv.clientName}</td>
+                                          <td style={{padding: '10px 12px', color: '#64748b'}}>{inv.narration || inv.serviceDescription || '-'}</td>
+                                          <td style={{padding: '10px 12px', textAlign: 'right'}}>₹{(inv.netAmount || inv.amount || 0).toLocaleString('en-IN')}</td>
+                                          <td style={{padding: '10px 12px', textAlign: 'right'}}>₹{((inv.cgst || 0) + (inv.sgst || 0) + (inv.igst || 0)).toLocaleString('en-IN')}</td>
+                                          <td style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#10b981'}}>₹{(inv.totalAmount || 0).toLocaleString('en-IN')}</td>
+                                        </tr>
+                                      ))}
                                     </tbody>
                                   </table>
                                 </div>
-                                
-                                {/* Summary Footer */}
-                                <div style={{marginTop: '20px', padding: '16px 24px', background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '12px', border: '1px solid #86efac', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                                  <div style={{fontSize: '14px', color: '#065f46'}}>
-                                    <strong>Total Batches:</strong> {bulkBatches.length}
-                                  </div>
-                                  <div style={{fontSize: '14px', color: '#065f46'}}>
-                                    <strong>Total Invoices:</strong> {bulkBatches.reduce((s, b) => s + (b.invoiceCount || (data.invoices || []).filter(inv => b.invoiceIds?.includes(inv.id)).length), 0)}
-                                  </div>
-                                  <div style={{fontSize: '18px', fontWeight: '700', color: '#10b981'}}>
-                                    Grand Total: ₹{bulkBatches.reduce((s, b) => s + (b.totalAmount || 0), 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
-                                  </div>
-                                </div>
-                              </>
-                            ) : (
-                              /* Viewing Batch Detail */
-                              <div style={{background: '#fff', borderRadius: '20px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.08)'}}>
-                                {/* Detail Header */}
-                                <div style={{background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', padding: '24px 28px', color: '#fff'}}>
-                                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
-                                    <div>
-                                      <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px'}}>
-                                        <h4 style={{margin: 0, fontSize: '20px', fontWeight: '700'}}>📋 Batch Invoice Details</h4>
-                                        <span style={{background: 'rgba(255,255,255,0.2)', padding: '4px 12px', borderRadius: '6px', fontSize: '11px', fontFamily: 'monospace', fontWeight: '600'}}>
-                                          ID: {viewingBulkBatch.id?.substring(0, 12).toUpperCase()}
-                                        </span>
-                                      </div>
-                                      <div style={{display: 'flex', gap: '16px', fontSize: '13px', opacity: 0.9}}>
-                                        <span>📅 {new Date(viewingBulkBatch.invoiceDate || viewingBulkBatch.createdAt).toLocaleDateString('en-IN', {weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'})}</span>
-                                        <span>📝 {viewingBulkBatch.taskType || viewingBulkBatch.childTask || 'Various Tasks'}</span>
-                                        <span>🏢 {viewingBulkBatch.parentTask || ''}</span>
-                                      </div>
-                                    </div>
-                                    <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
-                                      <button
-                                        onClick={() => {
-                                          const batchInvoices = (data.invoices || []).filter(inv => viewingBulkBatch.invoiceIds?.includes(inv.id));
-                                          // Generate CSV for download
-                                          const csv = 'S.No,Invoice No,Client,Client Code,Organization,Amount,CGST,SGST,IGST,Total\n' + 
-                                            batchInvoices.map((inv, i) => `${i+1},"${inv.invoiceNo}","${inv.clientName}","${inv.clientCode || ''}","${inv.organizationName || ''}",${inv.netAmount || 0},${inv.cgst || 0},${inv.sgst || 0},${inv.igst || 0},${inv.totalAmount || 0}`).join('\n');
-                                          const blob = new Blob([csv], {type: 'text/csv'});
-                                          const a = document.createElement('a');
-                                          a.href = URL.createObjectURL(blob);
-                                          a.download = `batch-${viewingBulkBatch.id?.substring(0, 8)}-invoices.csv`;
-                                          a.click();
-                                        }}
-                                        style={{padding: '10px 18px', background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'}}
-                                      >
-                                        <Download size={14} /> Export CSV
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          const batchInvoices = (data.invoices || []).filter(inv => viewingBulkBatch.invoiceIds?.includes(inv.id));
-                                          alert(`📦 Download All PDFs (ZIP)\n\nThis would download ${batchInvoices.length} invoices as individual PDFs in a ZIP file.\n\nBatch ID: ${viewingBulkBatch.id?.substring(0, 12).toUpperCase()}\nTotal Amount: ₹${(viewingBulkBatch.totalAmount || 0).toLocaleString('en-IN')}\n\n(In production, this would generate actual PDF files)`);
-                                        }}
-                                        style={{padding: '10px 18px', background: '#fff', color: '#2563eb', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 6px rgba(0,0,0,0.1)'}}
-                                      >
-                                        📦 Download All PDFs (ZIP)
-                                      </button>
-                                      <button
-                                        onClick={() => setViewingBulkBatch(null)}
-                                        style={{padding: '10px 18px', background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'}}
-                                      >
-                                        <ChevronLeft size={14} /> Back to Log
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                {/* Invoice List Table */}
-                                <div style={{padding: '20px'}}>
-                                  {(() => {
-                                    const batchInvoices = (data.invoices || []).filter(inv => viewingBulkBatch.invoiceIds?.includes(inv.id));
-                                    
-                                    // Group by organization
-                                    const groupedByOrg = {};
-                                    batchInvoices.forEach(inv => {
-                                      const orgKey = inv.organizationName || 'Unknown';
-                                      if (!groupedByOrg[orgKey]) groupedByOrg[orgKey] = [];
-                                      groupedByOrg[orgKey].push(inv);
-                                    });
-                                    
-                                    return Object.keys(groupedByOrg).map(orgName => (
-                                      <div key={orgName} style={{marginBottom: '24px'}}>
-                                        <div style={{background: '#f0fdf4', padding: '10px 16px', borderRadius: '8px 8px 0 0', border: '1px solid #86efac', borderBottom: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                                          <span style={{fontWeight: '600', color: '#065f46'}}>🏢 {orgName}</span>
-                                          <span style={{fontSize: '12px', color: '#047857'}}>{groupedByOrg[orgName].length} invoice(s) • ₹{groupedByOrg[orgName].reduce((s, i) => s + (i.totalAmount || 0), 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
-                                        </div>
-                                        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px', border: '1px solid #e2e8f0', borderTop: 'none'}}>
-                                          <thead>
-                                            <tr style={{background: '#f8fafc'}}>
-                                              <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>S.No</th>
-                                              <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Invoice No.</th>
-                                              <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Client</th>
-                                              <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Amount</th>
-                                              <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>GST</th>
-                                              <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Total</th>
-                                            </tr>
-                                          </thead>
-                                          <tbody>
-                                            {groupedByOrg[orgName].map((inv, idx) => (
-                                              <tr key={inv.id} style={{background: idx % 2 === 0 ? '#fff' : '#fafafa'}}>
-                                                <td style={{padding: '10px 12px', borderBottom: '1px solid #f1f5f9'}}>{idx + 1}</td>
-                                                <td style={{padding: '10px 12px', borderBottom: '1px solid #f1f5f9', fontWeight: '600', color: '#2563eb'}}>{inv.invoiceNo}</td>
-                                                <td style={{padding: '10px 12px', borderBottom: '1px solid #f1f5f9'}}>
-                                                  <div>{inv.clientName}</div>
-                                                  <div style={{fontSize: '10px', color: '#64748b'}}>{inv.clientCode}</div>
-                                                </td>
-                                                <td style={{padding: '10px 12px', borderBottom: '1px solid #f1f5f9', textAlign: 'right'}}>₹{(inv.netAmount || 0).toLocaleString('en-IN')}</td>
-                                                <td style={{padding: '10px 12px', borderBottom: '1px solid #f1f5f9', textAlign: 'right'}}>₹{(inv.gstAmount || 0).toLocaleString('en-IN')}</td>
-                                                <td style={{padding: '10px 12px', borderBottom: '1px solid #f1f5f9', textAlign: 'right', fontWeight: '600', color: '#10b981'}}>₹{(inv.totalAmount || 0).toLocaleString('en-IN')}</td>
-                                              </tr>
-                                            ))}
-                                          </tbody>
-                                        </table>
-                                      </div>
-                                    ));
-                                  })()}
-                                  
-                                  {/* Summary */}
-                                  <div style={{background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', padding: '16px 20px', borderRadius: '10px', marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #86efac'}}>
-                                    <div style={{fontSize: '14px', color: '#065f46'}}>
-                                      <strong>Total Invoices:</strong> {viewingBulkBatch.invoiceCount || (data.invoices || []).filter(inv => viewingBulkBatch.invoiceIds?.includes(inv.id)).length}
-                                    </div>
-                                    <div style={{fontSize: '18px', fontWeight: '700', color: '#10b981'}}>
-                                      Grand Total: ₹{(viewingBulkBatch.totalAmount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
-                                    </div>
-                                  </div>
-                                </div>
+                              ));
+                            })()}
+                            
+                            {/* Summary */}
+                            <div style={{background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', padding: '16px 20px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #86efac'}}>
+                              <div style={{fontSize: '14px', color: '#065f46'}}>
+                                <strong>Total Invoices:</strong> {viewingBulkBatch.invoiceCount || (data.invoices || []).filter(inv => viewingBulkBatch.invoiceIds?.includes(inv.id)).length}
                               </div>
-                            )}
-                          </>
+                              <div style={{fontSize: '18px', fontWeight: '700', color: '#10b981'}}>
+                                Grand Total: ₹{(viewingBulkBatch.totalAmount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                              </div>
+                            </div>
+                          </div>
                         )}
-                      </div>
+                      </>
                     )}
                   </div>
                 )}
-                
                 {/* Invoice Preview Modal - Multiple Formats */}
                 {showInvoicePreview && generatedInvoice && (
                   <div style={{
