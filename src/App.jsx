@@ -14803,6 +14803,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const [multipleTaskOrgId, setMultipleTaskOrgId] = useState('');
     const [multipleTaskInvoiceDate, setMultipleTaskInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
     const [multipleTaskInvoiceNo, setMultipleTaskInvoiceNo] = useState('');
+    const [multipleTaskClientBilling, setMultipleTaskClientBilling] = useState([]); // Client-wise billing data
+    const [multipleTaskBillingStep, setMultipleTaskBillingStep] = useState('select'); // 'select' or 'billing'
     const [showClientSuggestions, setShowClientSuggestions] = useState(false);
     const [showCodeSuggestions, setShowCodeSuggestions] = useState(false);
     const [showMultipleTaskGroupSuggestions, setShowMultipleTaskGroupSuggestions] = useState(false);
@@ -19351,7 +19353,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     )}
                     
                     {/* Step 2: Task Selection - Grouped by Client */}
-                    {multipleTaskClient?.groupMode && multipleTaskFilters.groupName && multipleTaskLineItems.length === 0 && (
+                    {multipleTaskClient?.groupMode && multipleTaskFilters.groupName && multipleTaskBillingStep === 'select' && (
                       <div style={{background: '#fff', padding: '24px', borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', border: '1px solid #e2e8f0'}}>
                         {/* Header */}
                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
@@ -19379,19 +19381,54 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                   alert('Please select at least one task');
                                   return;
                                 }
-                                // Prepare line items grouped by client
-                                const lineItems = multipleTaskSelectedTasks.map(task => ({
-                                  taskId: task.id,
-                                  clientId: task.clientId,
-                                  clientName: task.clientName,
-                                  clientCode: task.fileNo,
-                                  description: `${task.parentTask} - ${task.childTask}`,
-                                  amount: parseFloat(task.agreedFees) || 0,
-                                  financialYear: task.financialYear,
-                                  period: task.period,
-                                  subPeriod: task.subPeriod
+                                // Group selected tasks by client
+                                const clientGroups = {};
+                                multipleTaskSelectedTasks.forEach(task => {
+                                  const clientKey = task.clientName || task.clientId;
+                                  if (!clientGroups[clientKey]) {
+                                    const client = (data.clients || []).find(c => c.name === task.clientName || c.id === task.clientId);
+                                    clientGroups[clientKey] = {
+                                      clientId: client?.id || task.clientId,
+                                      clientName: task.clientName,
+                                      clientCode: task.fileNo || client?.fileNo || '',
+                                      clientAddress: client?.address || '',
+                                      clientGstin: client?.gstin || '',
+                                      clientState: client?.state || '',
+                                      organizationId: '',
+                                      tasks: []
+                                    };
+                                  }
+                                  // For Task Wise mode - each task has individual billing
+                                  const taskItem = {
+                                    taskId: task.id,
+                                    parentTask: task.parentTask || '',
+                                    taskType: task.childTask || '',
+                                    taskDescription: task.taskDescription || task.childTask || '',
+                                    financialYear: task.financialYear || '',
+                                    period: task.period || '',
+                                    subPeriod: task.subPeriod || '',
+                                    agreedFees: parseFloat(task.agreedFees) || 0,
+                                    amount: parseFloat(task.agreedFees) || 0,
+                                    discount: 0,
+                                    narration: `${task.parentTask || ''} - ${task.childTask || ''}`.trim().replace(/^- /, ''),
+                                    sacCode: '998231',
+                                    remark: ''
+                                  };
+                                  clientGroups[clientKey].tasks.push(taskItem);
+                                });
+                                
+                                // Convert to array and set billing data
+                                const billingData = Object.values(clientGroups).map(client => ({
+                                  ...client,
+                                  // For Combined mode - calculate combined totals
+                                  combinedAmount: client.tasks.reduce((sum, t) => sum + t.amount, 0),
+                                  combinedDiscount: 0,
+                                  combinedNarration: client.tasks.map(t => t.narration).join('; '),
+                                  extraNarrations: [] // For adding extra items in combined mode
                                 }));
-                                setMultipleTaskLineItems(lineItems);
+                                
+                                setMultipleTaskClientBilling(billingData);
+                                setMultipleTaskBillingStep('billing');
                               }}
                               disabled={multipleTaskSelectedTasks.length === 0}
                               style={{
@@ -19708,521 +19745,533 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       </div>
                     )}
                     
-                    {/* Step 3: Invoice Details Entry */}
-                    {multipleTaskClient && multipleTaskSelectedTasks.length > 0 && (
-                      <div style={{background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
+                    {/* Step 3: Client-Wise Billing Screen */}
+                    {multipleTaskBillingStep === 'billing' && multipleTaskClientBilling.length > 0 && (
+                      <div style={{background: '#fff', padding: '24px', borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', border: '1px solid #e2e8f0'}}>
                         {/* Header */}
-                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '16px', borderBottom: '2px solid #e2e8f0'}}>
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '16px', borderBottom: '2px solid #10b981'}}>
                           <div>
-                            <h3 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: '#1e293b'}}>
-                              {multipleTaskFilters.invoiceType === 'taskWise' ? 'Task Wise Invoice' : 'Combined Task Invoice'}
+                            <h3 style={{margin: 0, fontSize: '20px', fontWeight: '700', color: '#065f46'}}>
+                              {multipleTaskFilters.invoiceType === 'taskWise' ? '📋 Task Wise Invoices' : '📦 Combined Invoices'}
                             </h3>
-                            <div style={{fontSize: '13px', color: '#64748b', marginTop: '4px'}}>
-                              Client: <strong>{multipleTaskClient.name}</strong> | {multipleTaskSelectedTasks.length} task(s) selected
+                            <div style={{fontSize: '13px', color: '#64748b', marginTop: '6px'}}>
+                              Group: <strong style={{color: '#10b981'}}>{multipleTaskFilters.groupName}</strong> | 
+                              {' '}{multipleTaskClientBilling.length} client(s) | 
+                              {' '}{multipleTaskSelectedTasks.length} task(s) selected
                             </div>
                           </div>
                           <button
-                            onClick={() => { setMultipleTaskSelectedTasks([]); setMultipleTaskLineItems([]); setMultipleTaskTempSelected([]); }}
-                            style={{padding: '8px 16px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px'}}
+                            onClick={() => {
+                              setMultipleTaskBillingStep('select');
+                              setMultipleTaskClientBilling([]);
+                            }}
+                            style={{padding: '10px 20px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '500'}}
                           >
-                            ← Back to Tasks
+                            ← Back to Task Selection
                           </button>
                         </div>
                         
-                        {/* Invoice Details: Organization, Date, Invoice No */}
-                        <div style={{marginBottom: '24px', padding: '20px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0'}}>
-                          <h4 style={{margin: '0 0 16px 0', fontSize: '14px', fontWeight: '600', color: '#475569'}}>Invoice Details</h4>
-                          <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px'}}>
-                            <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '8px', color: '#475569'}}>Billing Organization *</label>
-                              <select
-                                value={multipleTaskOrgId}
-                                onChange={(e) => {
-                                  const orgId = e.target.value;
-                                  setMultipleTaskOrgId(orgId);
-                                  // Auto-generate invoice number
-                                  if (orgId) {
-                                    const org = (data.organizations || []).find(o => o.id === orgId);
-                                    if (org) {
-                                      const existingInvoices = (data.invoices || []).filter(inv => inv.organizationId === org.id);
-                                      const nextNum = existingInvoices.length + 1;
-                                      const invoiceNo = `${org.invoicePrefix || 'INV'}${String(nextNum).padStart(org.invoiceDigits || 4, '0')}${org.invoiceSuffix || ''}`;
-                                      setMultipleTaskInvoiceNo(invoiceNo);
-                                    }
-                                  } else {
-                                    setMultipleTaskInvoiceNo('');
-                                  }
-                                }}
-                                style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px'}}
-                              >
-                                <option value="">Select Organization</option>
-                                {(data.organizations || []).map(org => (
-                                  <option key={org.id} value={org.id}>{org.name}</option>
-                                ))}
-                              </select>
+                        {/* Global Settings */}
+                        <div style={{marginBottom: '24px', padding: '20px', background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '12px', border: '1px solid #86efac'}}>
+                          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px'}}>
+                            <div style={{display: 'flex', alignItems: 'center', gap: '16px', flex: 1}}>
+                              <div style={{minWidth: '200px'}}>
+                                <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Organisation (Apply to All)</label>
+                                <select
+                                  value={multipleTaskOrgId}
+                                  onChange={(e) => {
+                                    const orgId = e.target.value;
+                                    setMultipleTaskOrgId(orgId);
+                                    // Apply to all clients
+                                    setMultipleTaskClientBilling(prev => prev.map(c => ({...c, organizationId: orgId})));
+                                  }}
+                                  style={{width: '100%', padding: '10px 12px', border: '2px solid #86efac', borderRadius: '8px', fontSize: '13px', background: '#fff'}}
+                                >
+                                  <option value="">Select Organisation</option>
+                                  {(data.organizations || []).map(org => (
+                                    <option key={org.id} value={org.id}>{org.name}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div style={{minWidth: '150px'}}>
+                                <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Invoice Date</label>
+                                <input
+                                  type="date"
+                                  value={multipleTaskInvoiceDate}
+                                  onChange={(e) => setMultipleTaskInvoiceDate(e.target.value)}
+                                  style={{width: '100%', padding: '10px 12px', border: '2px solid #86efac', borderRadius: '8px', fontSize: '13px', background: '#fff'}}
+                                />
+                              </div>
                             </div>
-                            <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '8px', color: '#475569'}}>Bill Date *</label>
-                              <input
-                                type="date"
-                                value={multipleTaskInvoiceDate}
-                                onChange={(e) => setMultipleTaskInvoiceDate(e.target.value)}
-                                style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px'}}
-                              />
-                            </div>
-                            <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '8px', color: '#475569'}}>Invoice No. (Auto-generated)</label>
-                              <input
-                                type="text"
-                                value={multipleTaskInvoiceNo}
-                                readOnly
-                                placeholder="Select organization first"
-                                style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px', background: '#f1f5f9', fontWeight: '600', color: multipleTaskInvoiceNo ? '#10b981' : '#94a3b8'}}
-                              />
+                            <div style={{display: 'flex', alignItems: 'center', gap: '12px', background: '#fff', padding: '12px 20px', borderRadius: '8px'}}>
+                              <div style={{fontSize: '12px', color: '#64748b'}}>Total Invoices:</div>
+                              <div style={{fontSize: '24px', fontWeight: '700', color: '#10b981'}}>{multipleTaskClientBilling.length}</div>
                             </div>
                           </div>
                         </div>
                         
-                        {/* TASK WISE: Individual task entries */}
-                        {multipleTaskFilters.invoiceType === 'taskWise' && (
-                          <div>
-                            {multipleTaskLineItems.map((item, idx) => (
-                              <div key={idx} style={{background: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '16px', border: '1px solid #e2e8f0'}}>
-                                <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px'}}>
-                                  <span style={{background: '#10b981', color: '#fff', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '700'}}>{idx + 1}</span>
-                                  <span style={{background: '#fef3c7', color: '#92400e', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600'}}>{item.taskType} - {item.period}</span>
-                                </div>
-                                
-                                <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 2fr', gap: '12px', alignItems: 'end'}}>
-                                  <div>
-                                    <label style={{display: 'block', fontSize: '11px', fontWeight: '500', marginBottom: '4px', color: '#64748b'}}>Narration</label>
-                                    <input
-                                      type="text"
-                                      value={item.narration}
-                                      onChange={(e) => {
-                                        const updated = [...multipleTaskLineItems];
-                                        updated[idx].narration = e.target.value;
-                                        setMultipleTaskLineItems(updated);
-                                      }}
-                                      style={{width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
-                                    />
-                                  </div>
-                                  <div>
-                                    <label style={{display: 'block', fontSize: '11px', fontWeight: '500', marginBottom: '4px', color: '#64748b'}}>SAC Code</label>
-                                    <select
-                                      value={item.sacCode}
-                                      onChange={(e) => {
-                                        const updated = [...multipleTaskLineItems];
-                                        updated[idx].sacCode = e.target.value;
-                                        setMultipleTaskLineItems(updated);
-                                      }}
-                                      style={{width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
-                                    >
-                                      <option value="">Select</option>
-                                      <option value="998231">998231</option>
-                                      <option value="998232">998232</option>
-                                      <option value="998311">998311</option>
-                                    </select>
-                                  </div>
-                                  <div>
-                                    <label style={{display: 'block', fontSize: '11px', fontWeight: '500', marginBottom: '4px', color: '#64748b'}}>Amount</label>
-                                    <input
-                                      type="number"
-                                      value={item.amount}
-                                      onChange={(e) => {
-                                        const updated = [...multipleTaskLineItems];
-                                        updated[idx].amount = parseFloat(e.target.value) || 0;
-                                        updated[idx].netAmount = updated[idx].amount - updated[idx].discount;
-                                        setMultipleTaskLineItems(updated);
-                                      }}
-                                      style={{width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', textAlign: 'right'}}
-                                    />
-                                  </div>
-                                  <div>
-                                    <label style={{display: 'block', fontSize: '11px', fontWeight: '500', marginBottom: '4px', color: '#64748b'}}>Discount</label>
-                                    <input
-                                      type="number"
-                                      value={item.discount}
-                                      onChange={(e) => {
-                                        const updated = [...multipleTaskLineItems];
-                                        updated[idx].discount = parseFloat(e.target.value) || 0;
-                                        updated[idx].netAmount = updated[idx].amount - updated[idx].discount;
-                                        setMultipleTaskLineItems(updated);
-                                      }}
-                                      style={{width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', textAlign: 'right'}}
-                                    />
-                                  </div>
-                                  <div>
-                                    <label style={{display: 'block', fontSize: '11px', fontWeight: '500', marginBottom: '4px', color: '#64748b'}}>Net Amount</label>
-                                    <div style={{padding: '8px 10px', background: '#dcfce7', borderRadius: '6px', fontSize: '12px', fontWeight: '600', color: '#166534', textAlign: 'right'}}>
-                                      ₹{(item.netAmount || 0).toLocaleString('en-IN')}
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <label style={{display: 'block', fontSize: '11px', fontWeight: '500', marginBottom: '4px', color: '#64748b'}}>Remark</label>
-                                    <input
-                                      type="text"
-                                      value={item.remark}
-                                      onChange={(e) => {
-                                        const updated = [...multipleTaskLineItems];
-                                        updated[idx].remark = e.target.value;
-                                        setMultipleTaskLineItems(updated);
-                                      }}
-                                      placeholder="Optional"
-                                      style={{width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        
-                        {/* COMBINED: Single entry with add more narrations */}
-                        {multipleTaskFilters.invoiceType === 'combined' && multipleTaskLineItems[0] && (
-                          <div style={{background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0'}}>
-                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
-                              <h4 style={{margin: 0, fontSize: '14px', fontWeight: '600'}}>Invoice Line Items</h4>
-                              <button
-                                onClick={() => {
-                                  const updated = [...multipleTaskLineItems];
-                                  updated[0].narrations.push({text: '', amount: 0, discount: 0});
-                                  setMultipleTaskLineItems(updated);
-                                }}
-                                style={{padding: '6px 14px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500'}}
-                              >
-                                + Add More Narration
-                              </button>
-                            </div>
+                        {/* Client-wise billing cards */}
+                        <div style={{display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '500px', overflowY: 'auto', paddingRight: '8px'}}>
+                          {multipleTaskClientBilling.map((clientData, clientIdx) => {
+                            const org = (data.organizations || []).find(o => String(o.id) === String(clientData.organizationId));
                             
-                            {multipleTaskLineItems[0].narrations.map((narr, nIdx) => (
-                              <div key={nIdx} style={{display: 'grid', gridTemplateColumns: '40px 2fr 1fr 1fr 1fr 1fr 2fr 40px', gap: '10px', alignItems: 'end', marginBottom: '12px', padding: '12px', background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0'}}>
-                                <div style={{textAlign: 'center', fontWeight: '600', color: '#64748b', paddingBottom: '8px'}}>{nIdx + 1}.</div>
-                                <div>
-                                  <label style={{display: 'block', fontSize: '11px', fontWeight: '500', marginBottom: '4px', color: '#64748b'}}>Narration</label>
-                                  <input
-                                    type="text"
-                                    value={narr.text}
-                                    onChange={(e) => {
-                                      const updated = [...multipleTaskLineItems];
-                                      updated[0].narrations[nIdx].text = e.target.value;
-                                      setMultipleTaskLineItems(updated);
-                                    }}
-                                    placeholder="Description"
-                                    style={{width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
-                                  />
-                                </div>
-                                <div>
-                                  <label style={{display: 'block', fontSize: '11px', fontWeight: '500', marginBottom: '4px', color: '#64748b'}}>SAC Code</label>
-                                  <select
-                                    value={multipleTaskLineItems[0].sacCode}
-                                    onChange={(e) => {
-                                      const updated = [...multipleTaskLineItems];
-                                      updated[0].sacCode = e.target.value;
-                                      setMultipleTaskLineItems(updated);
-                                    }}
-                                    style={{width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
-                                  >
-                                    <option value="">Select</option>
-                                    <option value="998231">998231</option>
-                                    <option value="998232">998232</option>
-                                    <option value="998311">998311</option>
-                                  </select>
-                                </div>
-                                <div>
-                                  <label style={{display: 'block', fontSize: '11px', fontWeight: '500', marginBottom: '4px', color: '#64748b'}}>Amount</label>
-                                  <input
-                                    type="number"
-                                    value={narr.amount}
-                                    onChange={(e) => {
-                                      const updated = [...multipleTaskLineItems];
-                                      updated[0].narrations[nIdx].amount = parseFloat(e.target.value) || 0;
-                                      updated[0].totalAmount = updated[0].narrations.reduce((s, n) => s + n.amount, 0);
-                                      updated[0].totalDiscount = updated[0].narrations.reduce((s, n) => s + n.discount, 0);
-                                      updated[0].netAmount = updated[0].totalAmount - updated[0].totalDiscount;
-                                      setMultipleTaskLineItems(updated);
-                                    }}
-                                    style={{width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', textAlign: 'right'}}
-                                  />
-                                </div>
-                                <div>
-                                  <label style={{display: 'block', fontSize: '11px', fontWeight: '500', marginBottom: '4px', color: '#64748b'}}>Discount</label>
-                                  <input
-                                    type="number"
-                                    value={narr.discount}
-                                    onChange={(e) => {
-                                      const updated = [...multipleTaskLineItems];
-                                      updated[0].narrations[nIdx].discount = parseFloat(e.target.value) || 0;
-                                      updated[0].totalAmount = updated[0].narrations.reduce((s, n) => s + n.amount, 0);
-                                      updated[0].totalDiscount = updated[0].narrations.reduce((s, n) => s + n.discount, 0);
-                                      updated[0].netAmount = updated[0].totalAmount - updated[0].totalDiscount;
-                                      setMultipleTaskLineItems(updated);
-                                    }}
-                                    style={{width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', textAlign: 'right'}}
-                                  />
-                                </div>
-                                <div>
-                                  <label style={{display: 'block', fontSize: '11px', fontWeight: '500', marginBottom: '4px', color: '#64748b'}}>Net Amount</label>
-                                  <div style={{padding: '8px 10px', background: '#dcfce7', borderRadius: '6px', fontSize: '12px', fontWeight: '600', color: '#166534', textAlign: 'right'}}>
-                                    ₹{((narr.amount || 0) - (narr.discount || 0)).toLocaleString('en-IN')}
-                                  </div>
-                                </div>
-                                <div>
-                                  <label style={{display: 'block', fontSize: '11px', fontWeight: '500', marginBottom: '4px', color: '#64748b'}}>Remark</label>
-                                  <input
-                                    type="text"
-                                    value={multipleTaskLineItems[0].remark}
-                                    onChange={(e) => {
-                                      const updated = [...multipleTaskLineItems];
-                                      updated[0].remark = e.target.value;
-                                      setMultipleTaskLineItems(updated);
-                                    }}
-                                    placeholder="Optional"
-                                    style={{width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
-                                  />
-                                </div>
-                                <div style={{textAlign: 'center'}}>
-                                  {nIdx > 0 && (
-                                    <button
-                                      onClick={() => {
-                                        const updated = [...multipleTaskLineItems];
-                                        updated[0].narrations.splice(nIdx, 1);
-                                        updated[0].totalAmount = updated[0].narrations.reduce((s, n) => s + n.amount, 0);
-                                        updated[0].totalDiscount = updated[0].narrations.reduce((s, n) => s + n.discount, 0);
-                                        updated[0].netAmount = updated[0].totalAmount - updated[0].totalDiscount;
-                                        setMultipleTaskLineItems(updated);
-                                      }}
-                                      style={{padding: '6px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '4px', cursor: 'pointer'}}
-                                    >
-                                      ✕
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        
-                        {/* Totals with GST Breakdown */}
-                        <div style={{marginTop: '20px', padding: '20px', background: 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '8px', border: '1px solid #bbf7d0'}}>
-                          {(() => {
-                            const subtotal = multipleTaskFilters.invoiceType === 'taskWise' 
-                              ? multipleTaskLineItems.reduce((s, i) => s + (i.netAmount || 0), 0)
-                              : (multipleTaskLineItems[0]?.netAmount || 0);
+                            // Calculate totals for this client
+                            let clientTotal = 0;
+                            let clientGst = 0;
                             
-                            const selectedOrg = (data.organizations || []).find(o => o.id === multipleTaskOrgId);
-                            const gstApplicable = selectedOrg?.gstApplicable === 'yes';
-                            const orgState = selectedOrg?.state || '';
-                            const clientState = multipleTaskClient?.state || '';
-                            
-                            // Same logic as invoice generation
-                            let cgst = 0, sgst = 0, igst = 0;
-                            if (gstApplicable && subtotal > 0) {
-                              if (orgState && clientState && orgState.toLowerCase() === clientState.toLowerCase()) {
-                                // Same state - CGST + SGST
-                                cgst = Math.round(subtotal * 0.09 * 100) / 100;
-                                sgst = Math.round(subtotal * 0.09 * 100) / 100;
-                              } else {
-                                // Different state or state not set - IGST
-                                igst = Math.round(subtotal * 0.18 * 100) / 100;
-                              }
+                            if (multipleTaskFilters.invoiceType === 'taskWise') {
+                              clientData.tasks.forEach(task => {
+                                const net = (parseFloat(task.amount) || 0) - (parseFloat(task.discount) || 0);
+                                clientTotal += net;
+                              });
+                            } else {
+                              // Combined mode
+                              clientTotal = (parseFloat(clientData.combinedAmount) || 0) - (parseFloat(clientData.combinedDiscount) || 0);
+                              // Add extra narrations
+                              (clientData.extraNarrations || []).forEach(extra => {
+                                clientTotal += (parseFloat(extra.amount) || 0) - (parseFloat(extra.discount) || 0);
+                              });
                             }
-                            const grandTotal = subtotal + cgst + sgst + igst;
+                            
+                            if (org?.gstApplicable === 'yes' && clientTotal > 0) {
+                              clientGst = Math.round(clientTotal * 0.18 * 100) / 100;
+                            }
+                            const clientGrandTotal = clientTotal + clientGst;
                             
                             return (
-                              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
-                                <div style={{flex: 1}}>
-                                  <div style={{display: 'grid', gridTemplateColumns: '150px auto', gap: '8px', fontSize: '13px', color: '#166534'}}>
-                                    <div style={{color: '#64748b'}}>Subtotal:</div>
-                                    <div style={{fontWeight: '500'}}>₹{subtotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>
-                                    
-                                    {gstApplicable && cgst > 0 && (
-                                      <>
-                                        <div style={{color: '#64748b'}}>CGST @9%:</div>
-                                        <div style={{fontWeight: '500'}}>₹{cgst.toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>
-                                        <div style={{color: '#64748b'}}>SGST @9%:</div>
-                                        <div style={{fontWeight: '500'}}>₹{sgst.toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>
-                                      </>
-                                    )}
-                                    {gstApplicable && igst > 0 && (
-                                      <>
-                                        <div style={{color: '#64748b'}}>IGST @18%:</div>
-                                        <div style={{fontWeight: '500'}}>₹{igst.toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>
-                                      </>
-                                    )}
-                                    {!gstApplicable && selectedOrg && (
-                                      <>
-                                        <div style={{color: '#64748b'}}>GST:</div>
-                                        <div style={{fontWeight: '500', color: '#d97706'}}>Not Applicable</div>
-                                      </>
-                                    )}
-                                    {selectedOrg && (
-                                      <>
-                                        <div style={{color: '#94a3b8', fontSize: '11px'}}>Org State:</div>
-                                        <div style={{color: '#94a3b8', fontSize: '11px'}}>{orgState || 'Not Set'}</div>
-                                        <div style={{color: '#94a3b8', fontSize: '11px'}}>Client State:</div>
-                                        <div style={{color: '#94a3b8', fontSize: '11px'}}>{clientState || 'Not Set'}</div>
-                                      </>
-                                    )}
+                              <div key={clientIdx} style={{background: '#fff', borderRadius: '12px', border: '2px solid #e2e8f0', overflow: 'hidden'}}>
+                                {/* Client Header */}
+                                <div style={{background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                                  <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                                    <div style={{background: '#10b981', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '14px'}}>
+                                      {clientIdx + 1}
+                                    </div>
+                                    <div>
+                                      <div style={{fontWeight: '700', fontSize: '16px', color: '#fff'}}>{clientData.clientName}</div>
+                                      <div style={{fontSize: '12px', color: '#94a3b8'}}>Code: {clientData.clientCode} | {clientData.tasks.length} task(s)</div>
+                                    </div>
                                   </div>
-                                  <div style={{marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #bbf7d0'}}>
-                                    <div style={{fontSize: '12px', color: '#16a34a'}}>Grand Total</div>
-                                    <div style={{fontSize: '28px', fontWeight: '700', color: '#166534'}}>₹{grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>
+                                  <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
+                                    <div style={{textAlign: 'right'}}>
+                                      <div style={{fontSize: '11px', color: '#94a3b8'}}>Invoice Total</div>
+                                      <div style={{fontSize: '18px', fontWeight: '700', color: '#10b981'}}>₹{clientGrandTotal.toLocaleString('en-IN')}</div>
+                                    </div>
+                                    <select
+                                      value={clientData.organizationId}
+                                      onChange={(e) => {
+                                        const updated = [...multipleTaskClientBilling];
+                                        updated[clientIdx].organizationId = e.target.value;
+                                        setMultipleTaskClientBilling(updated);
+                                      }}
+                                      style={{padding: '8px 12px', border: 'none', borderRadius: '6px', fontSize: '12px', background: '#f1f5f9', minWidth: '150px'}}
+                                    >
+                                      <option value="">Select Org</option>
+                                      {(data.organizations || []).map(o => (
+                                        <option key={o.id} value={o.id}>{o.name}</option>
+                                      ))}
+                                    </select>
                                   </div>
                                 </div>
-                                <div style={{display: 'flex', gap: '12px'}}>
-                                  <button
-                                    onClick={() => { setMultipleTaskSelectedTasks([]); setMultipleTaskLineItems([]); }}
-                                    style={{padding: '10px 20px', background: '#fff', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', fontSize: '13px'}}
-                                  >
-                                    Cancel
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      // Validate
-                                      if (!multipleTaskOrgId) {
-                                        alert('Please select an organization');
-                                        return;
-                                      }
-                                      if (!multipleTaskInvoiceNo) {
-                                        alert('Invoice number not generated. Please select an organization.');
-                                        return;
-                                      }
-                                      if (!multipleTaskInvoiceDate) {
-                                        alert('Please select a bill date');
-                                        return;
-                                      }
-                                      
-                                      const org = (data.organizations || []).find(o => o.id === multipleTaskOrgId);
-                                      if (!org) {
-                                        alert('Invalid organization');
-                                        return;
-                                      }
+                                
+                                {/* Task Wise Mode - Show each task */}
+                                {multipleTaskFilters.invoiceType === 'taskWise' && (
+                                  <div style={{padding: '16px'}}>
+                                    <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+                                      <thead>
+                                        <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                                          <th style={{padding: '10px 8px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>Task</th>
+                                          <th style={{padding: '10px 8px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>Narration</th>
+                                          <th style={{padding: '10px 8px', textAlign: 'right', color: '#fff', fontWeight: '600'}}>Agreed</th>
+                                          <th style={{padding: '10px 8px', textAlign: 'right', color: '#fff', fontWeight: '600'}}>Amount</th>
+                                          <th style={{padding: '10px 8px', textAlign: 'right', color: '#fff', fontWeight: '600'}}>Disc</th>
+                                          <th style={{padding: '10px 8px', textAlign: 'right', color: '#fff', fontWeight: '600'}}>Net</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {clientData.tasks.map((task, taskIdx) => {
+                                          const taskNet = (parseFloat(task.amount) || 0) - (parseFloat(task.discount) || 0);
+                                          return (
+                                            <tr key={taskIdx} style={{borderBottom: '1px solid #f1f5f9'}}>
+                                              <td style={{padding: '10px 8px'}}>
+                                                <div style={{fontWeight: '500'}}>{task.taskType}</div>
+                                                <div style={{fontSize: '10px', color: '#64748b'}}>{task.period} {task.subPeriod}</div>
+                                              </td>
+                                              <td style={{padding: '10px 8px'}}>
+                                                <input
+                                                  type="text"
+                                                  value={task.narration}
+                                                  onChange={(e) => {
+                                                    const updated = [...multipleTaskClientBilling];
+                                                    updated[clientIdx].tasks[taskIdx].narration = e.target.value;
+                                                    setMultipleTaskClientBilling(updated);
+                                                  }}
+                                                  style={{width: '100%', padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '11px'}}
+                                                />
+                                              </td>
+                                              <td style={{padding: '10px 8px', textAlign: 'right', color: '#64748b'}}>₹{(task.agreedFees || 0).toLocaleString('en-IN')}</td>
+                                              <td style={{padding: '10px 8px', textAlign: 'right'}}>
+                                                <input
+                                                  type="number"
+                                                  value={task.amount}
+                                                  onChange={(e) => {
+                                                    const updated = [...multipleTaskClientBilling];
+                                                    updated[clientIdx].tasks[taskIdx].amount = parseFloat(e.target.value) || 0;
+                                                    setMultipleTaskClientBilling(updated);
+                                                  }}
+                                                  style={{width: '70px', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'right', fontSize: '11px'}}
+                                                />
+                                              </td>
+                                              <td style={{padding: '10px 8px', textAlign: 'right'}}>
+                                                <input
+                                                  type="number"
+                                                  value={task.discount}
+                                                  onChange={(e) => {
+                                                    const updated = [...multipleTaskClientBilling];
+                                                    updated[clientIdx].tasks[taskIdx].discount = parseFloat(e.target.value) || 0;
+                                                    setMultipleTaskClientBilling(updated);
+                                                  }}
+                                                  style={{width: '60px', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'right', fontSize: '11px'}}
+                                                />
+                                              </td>
+                                              <td style={{padding: '10px 8px', textAlign: 'right', fontWeight: '600', color: '#10b981'}}>₹{taskNet.toLocaleString('en-IN')}</td>
+                                            </tr>
+                                          );
+                                        })}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
+                                
+                                {/* Combined Mode - Show combined total with extra narrations */}
+                                {multipleTaskFilters.invoiceType === 'combined' && (
+                                  <div style={{padding: '16px'}}>
+                                    {/* Combined Tasks Summary */}
+                                    <div style={{background: '#f8fafc', padding: '12px 16px', borderRadius: '8px', marginBottom: '12px'}}>
+                                      <div style={{fontSize: '11px', color: '#64748b', marginBottom: '8px'}}>Combined Tasks: {clientData.tasks.map(t => t.taskType).join(', ')}</div>
+                                      <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '12px', alignItems: 'end'}}>
+                                        <div>
+                                          <label style={{display: 'block', fontSize: '10px', fontWeight: '500', marginBottom: '4px', color: '#64748b'}}>Narration</label>
+                                          <input
+                                            type="text"
+                                            value={clientData.combinedNarration}
+                                            onChange={(e) => {
+                                              const updated = [...multipleTaskClientBilling];
+                                              updated[clientIdx].combinedNarration = e.target.value;
+                                              setMultipleTaskClientBilling(updated);
+                                            }}
+                                            style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
+                                          />
+                                        </div>
+                                        <div>
+                                          <label style={{display: 'block', fontSize: '10px', fontWeight: '500', marginBottom: '4px', color: '#64748b'}}>Amount</label>
+                                          <input
+                                            type="number"
+                                            value={clientData.combinedAmount}
+                                            onChange={(e) => {
+                                              const updated = [...multipleTaskClientBilling];
+                                              updated[clientIdx].combinedAmount = parseFloat(e.target.value) || 0;
+                                              setMultipleTaskClientBilling(updated);
+                                            }}
+                                            style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', textAlign: 'right'}}
+                                          />
+                                        </div>
+                                        <div>
+                                          <label style={{display: 'block', fontSize: '10px', fontWeight: '500', marginBottom: '4px', color: '#64748b'}}>Discount</label>
+                                          <input
+                                            type="number"
+                                            value={clientData.combinedDiscount}
+                                            onChange={(e) => {
+                                              const updated = [...multipleTaskClientBilling];
+                                              updated[clientIdx].combinedDiscount = parseFloat(e.target.value) || 0;
+                                              setMultipleTaskClientBilling(updated);
+                                            }}
+                                            style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', textAlign: 'right'}}
+                                          />
+                                        </div>
+                                        <div style={{padding: '8px', background: '#dcfce7', borderRadius: '6px', textAlign: 'right', fontWeight: '600', color: '#166534'}}>
+                                          ₹{((clientData.combinedAmount || 0) - (clientData.combinedDiscount || 0)).toLocaleString('en-IN')}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    
+                                    {/* Extra Narrations */}
+                                    {(clientData.extraNarrations || []).map((extra, extraIdx) => (
+                                      <div key={extraIdx} style={{display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 40px', gap: '12px', alignItems: 'end', marginBottom: '8px'}}>
+                                        <input
+                                          type="text"
+                                          value={extra.narration || ''}
+                                          onChange={(e) => {
+                                            const updated = [...multipleTaskClientBilling];
+                                            updated[clientIdx].extraNarrations[extraIdx].narration = e.target.value;
+                                            setMultipleTaskClientBilling(updated);
+                                          }}
+                                          placeholder="Extra narration"
+                                          style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
+                                        />
+                                        <input
+                                          type="number"
+                                          value={extra.amount || 0}
+                                          onChange={(e) => {
+                                            const updated = [...multipleTaskClientBilling];
+                                            updated[clientIdx].extraNarrations[extraIdx].amount = parseFloat(e.target.value) || 0;
+                                            setMultipleTaskClientBilling(updated);
+                                          }}
+                                          placeholder="Amount"
+                                          style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', textAlign: 'right'}}
+                                        />
+                                        <input
+                                          type="number"
+                                          value={extra.discount || 0}
+                                          onChange={(e) => {
+                                            const updated = [...multipleTaskClientBilling];
+                                            updated[clientIdx].extraNarrations[extraIdx].discount = parseFloat(e.target.value) || 0;
+                                            setMultipleTaskClientBilling(updated);
+                                          }}
+                                          placeholder="Discount"
+                                          style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', textAlign: 'right'}}
+                                        />
+                                        <div style={{padding: '8px', background: '#f1f5f9', borderRadius: '6px', textAlign: 'right', fontWeight: '500', fontSize: '12px'}}>
+                                          ₹{((extra.amount || 0) - (extra.discount || 0)).toLocaleString('en-IN')}
+                                        </div>
+                                        <button
+                                          onClick={() => {
+                                            const updated = [...multipleTaskClientBilling];
+                                            updated[clientIdx].extraNarrations.splice(extraIdx, 1);
+                                            setMultipleTaskClientBilling(updated);
+                                          }}
+                                          style={{padding: '8px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px'}}
+                                        >
+                                          ✕
+                                        </button>
+                                      </div>
+                                    ))}
+                                    
+                                    <button
+                                      onClick={() => {
+                                        const updated = [...multipleTaskClientBilling];
+                                        updated[clientIdx].extraNarrations = [...(updated[clientIdx].extraNarrations || []), {narration: '', amount: 0, discount: 0}];
+                                        setMultipleTaskClientBilling(updated);
+                                      }}
+                                      style={{padding: '8px 16px', background: '#f1f5f9', color: '#64748b', border: '1px dashed #94a3b8', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', marginTop: '8px'}}
+                                    >
+                                      + Add Extra Narration
+                                    </button>
+                                  </div>
+                                )}
+                                
+                                {/* Client Invoice Summary */}
+                                <div style={{background: '#f8fafc', padding: '12px 20px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '24px'}}>
+                                  <div style={{textAlign: 'right'}}>
+                                    <div style={{fontSize: '10px', color: '#64748b'}}>Subtotal</div>
+                                    <div style={{fontWeight: '600'}}>₹{clientTotal.toLocaleString('en-IN')}</div>
+                                  </div>
+                                  <div style={{textAlign: 'right'}}>
+                                    <div style={{fontSize: '10px', color: '#64748b'}}>GST (18%)</div>
+                                    <div style={{fontWeight: '600', color: org?.gstApplicable === 'yes' ? '#1e293b' : '#94a3b8'}}>{org?.gstApplicable === 'yes' ? `₹${clientGst.toLocaleString('en-IN')}` : 'N/A'}</div>
+                                  </div>
+                                  <div style={{textAlign: 'right', background: '#10b981', padding: '8px 16px', borderRadius: '8px', marginLeft: '8px'}}>
+                                    <div style={{fontSize: '10px', color: 'rgba(255,255,255,0.8)'}}>Total</div>
+                                    <div style={{fontWeight: '700', fontSize: '16px', color: '#fff'}}>₹{clientGrandTotal.toLocaleString('en-IN')}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        
+                        {/* Grand Total and Generate Button */}
+                        <div style={{marginTop: '24px', padding: '20px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                          <div>
+                            <div style={{fontSize: '14px', color: 'rgba(255,255,255,0.8)'}}>Grand Total ({multipleTaskClientBilling.length} invoices)</div>
+                            <div style={{fontSize: '28px', fontWeight: '700', color: '#fff'}}>
+                              ₹{multipleTaskClientBilling.reduce((sum, client) => {
+                                const org = (data.organizations || []).find(o => String(o.id) === String(client.organizationId));
+                                let clientTotal = 0;
+                                if (multipleTaskFilters.invoiceType === 'taskWise') {
+                                  client.tasks.forEach(task => {
+                                    clientTotal += (parseFloat(task.amount) || 0) - (parseFloat(task.discount) || 0);
+                                  });
+                                } else {
+                                  clientTotal = (parseFloat(client.combinedAmount) || 0) - (parseFloat(client.combinedDiscount) || 0);
+                                  (client.extraNarrations || []).forEach(extra => {
+                                    clientTotal += (parseFloat(extra.amount) || 0) - (parseFloat(extra.discount) || 0);
+                                  });
+                                }
+                                const gst = org?.gstApplicable === 'yes' && clientTotal > 0 ? Math.round(clientTotal * 0.18 * 100) / 100 : 0;
+                                return sum + clientTotal + gst;
+                              }, 0).toLocaleString('en-IN')}
+                            </div>
+                          </div>
+                          <div style={{display: 'flex', gap: '12px'}}>
+                            <button
+                              onClick={() => {
+                                setMultipleTaskBillingStep('select');
+                                setMultipleTaskClientBilling([]);
+                              }}
+                              style={{padding: '12px 24px', background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '500'}}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => {
+                                // Validate
+                                const missingOrg = multipleTaskClientBilling.filter(c => !c.organizationId);
+                                if (missingOrg.length > 0) {
+                                  alert(`Please select organization for ${missingOrg.length} client(s): ${missingOrg.map(c => c.clientName).join(', ')}`);
+                                  return;
+                                }
+                                
+                                if (!multipleTaskInvoiceDate) {
+                                  alert('Please select invoice date');
+                                  return;
+                                }
+                                
+                                // Generate invoices - one per client
+                                const newInvoices = [];
+                                const taskUpdates = {};
+                                const counters = {};
+                                
+                                multipleTaskClientBilling.forEach((clientData, clientIdx) => {
+                                  const org = (data.organizations || []).find(o => String(o.id) === String(clientData.organizationId));
+                                  if (!org) return;
+                                  
+                                  // Get next invoice number for this org
+                                  if (!counters[org.id]) {
+                                    const lastInv = (data.invoices || [])
+                                      .filter(i => String(i.organizationId) === String(org.id))
+                                      .sort((a, b) => (b.invoiceCurrentNo || 0) - (a.invoiceCurrentNo || 0))[0];
+                                    counters[org.id] = (lastInv?.invoiceCurrentNo || org.invoiceStartNo || 0) + 1;
+                                  }
+                                  const invoiceCurrentNo = counters[org.id]++;
+                                  const invoiceNo = `${org.invoicePrefix || 'INV'}${String(invoiceCurrentNo).padStart(org.invoiceDigits || 4, '0')}${org.invoiceSuffix || ''}`;
                                   
                                   // Calculate totals
-                                  let totalAmount = 0;
+                                  let netAmount = 0;
                                   let lineItems = [];
+                                  const taskIds = clientData.tasks.map(t => t.taskId);
                                   
                                   if (multipleTaskFilters.invoiceType === 'taskWise') {
-                                    lineItems = multipleTaskLineItems.map(item => ({
-                                      description: item.narration,
-                                      sacCode: item.sacCode,
-                                      amount: item.amount,
-                                      discount: item.discount,
-                                      netAmount: item.netAmount,
-                                      remark: item.remark,
-                                      taskId: item.taskId
-                                    }));
-                                    totalAmount = multipleTaskLineItems.reduce((s, i) => s + (i.netAmount || 0), 0);
+                                    clientData.tasks.forEach(task => {
+                                      const taskNet = (parseFloat(task.amount) || 0) - (parseFloat(task.discount) || 0);
+                                      netAmount += taskNet;
+                                      lineItems.push({
+                                        description: task.narration,
+                                        amount: parseFloat(task.amount) || 0,
+                                        discount: parseFloat(task.discount) || 0,
+                                        netAmount: taskNet,
+                                        taskId: task.taskId
+                                      });
+                                    });
                                   } else {
-                                    lineItems = multipleTaskLineItems[0].narrations.map(n => ({
-                                      description: n.text,
-                                      sacCode: multipleTaskLineItems[0].sacCode,
-                                      amount: n.amount,
-                                      discount: n.discount,
-                                      netAmount: n.amount - n.discount,
-                                      remark: multipleTaskLineItems[0].remark,
-                                      taskIds: multipleTaskLineItems[0].taskIds
-                                    }));
-                                    totalAmount = multipleTaskLineItems[0].netAmount;
+                                    // Combined mode
+                                    const combinedNet = (parseFloat(clientData.combinedAmount) || 0) - (parseFloat(clientData.combinedDiscount) || 0);
+                                    netAmount = combinedNet;
+                                    lineItems.push({
+                                      description: clientData.combinedNarration,
+                                      amount: parseFloat(clientData.combinedAmount) || 0,
+                                      discount: parseFloat(clientData.combinedDiscount) || 0,
+                                      netAmount: combinedNet,
+                                      taskIds: taskIds
+                                    });
+                                    // Add extra narrations
+                                    (clientData.extraNarrations || []).forEach(extra => {
+                                      const extraNet = (parseFloat(extra.amount) || 0) - (parseFloat(extra.discount) || 0);
+                                      netAmount += extraNet;
+                                      lineItems.push({
+                                        description: extra.narration,
+                                        amount: parseFloat(extra.amount) || 0,
+                                        discount: parseFloat(extra.discount) || 0,
+                                        netAmount: extraNet
+                                      });
+                                    });
                                   }
                                   
-                                  // Calculate GST based on organization settings
+                                  // Calculate GST
                                   let cgst = 0, sgst = 0, igst = 0;
                                   const gstApplicable = org.gstApplicable === 'yes';
-                                  
-                                  if (gstApplicable) {
-                                    const orgState = org.state || '';
-                                    const clientState = multipleTaskClient.state || '';
-                                    
-                                    if (orgState && clientState && orgState.toLowerCase() === clientState.toLowerCase()) {
-                                      // Same state - CGST + SGST
-                                      cgst = Math.round(totalAmount * 0.09 * 100) / 100;
-                                      sgst = Math.round(totalAmount * 0.09 * 100) / 100;
+                                  if (gstApplicable && netAmount > 0) {
+                                    const orgState = (org.state || '').toLowerCase();
+                                    const clientState = (clientData.clientState || '').toLowerCase();
+                                    if (orgState && clientState && orgState === clientState) {
+                                      cgst = Math.round(netAmount * 0.09 * 100) / 100;
+                                      sgst = Math.round(netAmount * 0.09 * 100) / 100;
                                     } else {
-                                      // Different state - IGST
-                                      igst = Math.round(totalAmount * 0.18 * 100) / 100;
+                                      igst = Math.round(netAmount * 0.18 * 100) / 100;
                                     }
                                   }
+                                  const totalAmount = netAmount + cgst + sgst + igst;
                                   
-                                  const grandTotal = totalAmount + cgst + sgst + igst;
-                                  
-                                  // Create invoice using pre-generated invoice number and date
                                   const newInvoice = {
-                                    id: Date.now().toString(),
-                                    invoiceNo: multipleTaskInvoiceNo,
+                                    id: Date.now().toString() + '-' + clientIdx,
+                                    invoiceNo,
+                                    invoiceCurrentNo,
                                     invoiceDate: multipleTaskInvoiceDate,
                                     organizationId: org.id,
                                     orgName: org.name,
+                                    organizationName: org.name,
                                     orgAddress: org.address,
                                     orgGstin: org.gstin,
-                                    orgPan: org.panNo,
-                                    orgEmail: org.emailId,
-                                    orgMobile: org.mobileNo,
-                                    orgLogo: org.logo,
                                     orgState: org.state,
                                     orgBankName: org.bankName,
                                     orgBankAccount: org.bankAccountNo,
                                     orgBankIfsc: org.bankIfsc,
-                                    orgBankBranch: org.bankBranch,
-                                    orgSignatory: org.authorizedSignatory,
+                                    orgLogo: org.logo,
                                     orgSignature: org.signatureImage,
-                                    gstApplicable: gstApplicable,
-                                    clientName: multipleTaskClient.name,
-                                    clientCode: multipleTaskClient.fileNo,
-                                    clientGroup: multipleTaskClient.groupName,
-                                    clientAddress: multipleTaskClient.address,
-                                    clientGstin: multipleTaskClient.gstin,
-                                    clientState: multipleTaskClient.state,
-                                    financialYear: multipleTaskSelectedTasks[0]?.financialYear || 'FY 2024-25',
-                                    parentTask: multipleTaskSelectedTasks[0]?.parentTask || '',
-                                    taskType: multipleTaskSelectedTasks[0]?.childTask || '',
+                                    orgSignatory: org.authorizedSignatory,
+                                    clientId: clientData.clientId,
+                                    clientName: clientData.clientName,
+                                    clientCode: clientData.clientCode,
+                                    clientAddress: clientData.clientAddress,
+                                    clientGstin: clientData.clientGstin,
+                                    clientState: clientData.clientState,
+                                    gstApplicable,
                                     lineItems,
-                                    netAmount: totalAmount,
+                                    netAmount,
                                     cgst,
                                     sgst,
                                     igst,
-                                    totalAmount: grandTotal,
+                                    totalAmount,
                                     serviceDescription: lineItems.map(l => l.description).join('; '),
+                                    narration: lineItems.map(l => l.description).join('; '),
                                     invoiceType: multipleTaskFilters.invoiceType,
-                                    taskIds: multipleTaskSelectedTasks.map(t => t.id),
+                                    taskIds,
+                                    groupNo: multipleTaskFilters.groupName,
                                     createdAt: new Date().toISOString()
                                   };
                                   
-                                  // Save invoice and mark tasks as billed
-                                  const taskIdsToMark = multipleTaskSelectedTasks.map(t => t.id);
-                                  setData(prev => ({
-                                    ...prev,
-                                    invoices: [...(prev.invoices || []), newInvoice],
-                                    tasks: (prev.tasks || []).map(t => 
-                                      taskIdsToMark.includes(t.id) 
-                                        ? { ...t, billed: true, invoiceId: newInvoice.id }
-                                        : t
-                                    )
-                                  }));
-                                  
-                                  // Show preview
-                                  setGeneratedInvoice(newInvoice);
-                                  setShowInvoicePreview(true);
-                                  
-                                  // Reset
-                                  setMultipleTaskClient(null);
-                                  setMultipleTaskSelectedTasks([]);
-                                  setMultipleTaskLineItems([]);
-                                  setMultipleTaskTempSelected([]);
-                                  setMultipleTaskOrgId('');
-                                  setMultipleTaskInvoiceDate(new Date().toISOString().split('T')[0]);
-                                  setMultipleTaskInvoiceNo('');
-                                  setMultipleTaskFilters({clientName: '', clientCode: '', groupName: '', invoiceType: 'taskWise'});
-                                }}
-                                style={{padding: '10px 24px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600'}}
-                              >
-                                ✓ Generate Invoice
-                              </button>
-                            </div>
+                                  newInvoices.push(newInvoice);
+                                  taskIds.forEach(tid => { taskUpdates[tid] = newInvoice.id; });
+                                });
+                                
+                                if (newInvoices.length === 0) {
+                                  alert('No invoices to generate');
+                                  return;
+                                }
+                                
+                                // Save to data
+                                setData(prev => ({
+                                  ...prev,
+                                  invoices: [...(prev.invoices || []), ...newInvoices],
+                                  tasks: (prev.tasks || []).map(t => 
+                                    taskUpdates[t.id] ? { ...t, billed: true, invoiceId: taskUpdates[t.id] } : t
+                                  )
+                                }));
+                                
+                                alert(`SUCCESS! Generated ${newInvoices.length} invoice(s).\n\nTotal Amount: ₹${newInvoices.reduce((s, i) => s + i.totalAmount, 0).toLocaleString('en-IN')}`);
+                                
+                                // Reset
+                                setMultipleTaskClient(null);
+                                setMultipleTaskSelectedTasks([]);
+                                setMultipleTaskClientBilling([]);
+                                setMultipleTaskBillingStep('select');
+                                setMultipleTaskOrgId('');
+                                setMultipleTaskFilters({clientName: '', clientCode: '', groupName: '', invoiceType: 'taskWise'});
+                              }}
+                              style={{padding: '12px 32px', background: '#fff', color: '#10b981', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '700', boxShadow: '0 4px 12px rgba(0,0,0,0.15)'}}
+                            >
+                              ✓ Generate {multipleTaskClientBilling.length} Invoice(s)
+                            </button>
                           </div>
-                            );
-                          })()}
                         </div>
                       </div>
                     )}
