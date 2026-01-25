@@ -19406,86 +19406,88 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           
                           return (
                             <div>
-                              {/* Select All */}
-                              <div style={{marginBottom: '16px', padding: '12px 16px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-                                <label style={{display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer'}}>
-                                  <input
-                                    type="checkbox"
-                                    checked={allSelected}
-                                    onChange={(e) => {
-                                      if (e.target.checked) {
-                                        setMultipleTaskSelectedClients(clientsWithTasks.map(c => c.client));
-                                      } else {
-                                        setMultipleTaskSelectedClients([]);
-                                      }
-                                    }}
-                                    style={{width: '18px', height: '18px', cursor: 'pointer'}}
-                                  />
-                                  <span style={{fontWeight: '600', color: '#065f46'}}>Select All Clients ({clientsWithTasks.length})</span>
-                                </label>
-                                <span style={{fontSize: '12px', color: '#64748b'}}>
-                                  {multipleTaskSelectedClients.length} of {clientsWithTasks.length} selected
-                                </span>
-                              </div>
-                              
-                              {/* Client Cards */}
-                              <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px'}}>
-                                {clientsWithTasks.map(({ client, openTasks, completedTasks, totalTasks }) => {
-                                  const isSelected = multipleTaskSelectedClients.some(sc => sc.id === client.id);
-                                  return (
-                                    <div
-                                      key={client.id}
-                                      onClick={() => {
-                                        if (isSelected) {
-                                          setMultipleTaskSelectedClients(prev => prev.filter(c => c.id !== client.id));
-                                        } else {
-                                          setMultipleTaskSelectedClients(prev => [...prev, client]);
-                                        }
-                                      }}
-                                      style={{
-                                        padding: '16px',
-                                        background: isSelected ? '#f0fdf4' : '#fff',
-                                        border: isSelected ? '2px solid #10b981' : '1px solid #e2e8f0',
-                                        borderRadius: '12px',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s ease',
-                                        boxShadow: isSelected ? '0 4px 12px rgba(16,185,129,0.15)' : 'none'
-                                      }}
-                                    >
-                                      <div style={{display: 'flex', alignItems: 'flex-start', gap: '12px'}}>
+                              {/* Client Table */}
+                              <div style={{border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden'}}>
+                                <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
+                                  <thead>
+                                    <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                                      <th style={{padding: '14px 12px', textAlign: 'center', width: '50px'}}>
                                         <input
                                           type="checkbox"
-                                          checked={isSelected}
-                                          onChange={() => {}}
-                                          style={{width: '18px', height: '18px', marginTop: '2px', cursor: 'pointer'}}
+                                          checked={allSelected}
+                                          onChange={(e) => {
+                                            if (e.target.checked) {
+                                              setMultipleTaskSelectedClients(clientsWithTasks.map(c => c.client));
+                                            } else {
+                                              setMultipleTaskSelectedClients([]);
+                                            }
+                                          }}
+                                          style={{width: '18px', height: '18px', cursor: 'pointer'}}
                                         />
-                                        <div style={{flex: 1}}>
-                                          <div style={{fontWeight: '700', fontSize: '15px', color: '#1e293b', marginBottom: '4px'}}>{client.name}</div>
-                                          <div style={{fontSize: '12px', color: '#64748b', marginBottom: '12px'}}>Code: {client.fileNo}</div>
-                                          <div style={{display: 'flex', gap: '12px'}}>
-                                            <div style={{padding: '6px 12px', background: '#dcfce7', borderRadius: '6px', fontSize: '11px'}}>
-                                              <span style={{color: '#166534', fontWeight: '600'}}>{completedTasks}</span>
-                                              <span style={{color: '#065f46', marginLeft: '4px'}}>Completed</span>
-                                            </div>
-                                            <div style={{padding: '6px 12px', background: '#fef3c7', borderRadius: '6px', fontSize: '11px'}}>
-                                              <span style={{color: '#92400e', fontWeight: '600'}}>{openTasks}</span>
-                                              <span style={{color: '#78350f', marginLeft: '4px'}}>Open</span>
-                                            </div>
-                                            <div style={{padding: '6px 12px', background: '#e0f2fe', borderRadius: '6px', fontSize: '11px'}}>
-                                              <span style={{color: '#0369a1', fontWeight: '600'}}>{totalTasks}</span>
-                                              <span style={{color: '#075985', marginLeft: '4px'}}>Total</span>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
+                                      </th>
+                                      <th style={{padding: '14px 12px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>Client Name</th>
+                                      <th style={{padding: '14px 12px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>Client Code</th>
+                                      <th style={{padding: '14px 12px', textAlign: 'center', color: '#fff', fontWeight: '600'}}>Completed</th>
+                                      <th style={{padding: '14px 12px', textAlign: 'center', color: '#fff', fontWeight: '600'}}>Open</th>
+                                      <th style={{padding: '14px 12px', textAlign: 'center', color: '#fff', fontWeight: '600'}}>Total Tasks</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {clientsWithTasks.map(({ client, openTasks, completedTasks, totalTasks }, idx) => {
+                                      const isSelected = multipleTaskSelectedClients.some(sc => sc.id === client.id);
+                                      return (
+                                        <tr 
+                                          key={client.id}
+                                          onClick={() => {
+                                            if (isSelected) {
+                                              setMultipleTaskSelectedClients(prev => prev.filter(c => c.id !== client.id));
+                                            } else {
+                                              setMultipleTaskSelectedClients(prev => [...prev, client]);
+                                            }
+                                          }}
+                                          style={{
+                                            borderBottom: '1px solid #e2e8f0', 
+                                            background: isSelected ? '#f0fdf4' : (idx % 2 === 0 ? '#fff' : '#f8fafc'),
+                                            cursor: 'pointer',
+                                            transition: 'background 0.15s ease'
+                                          }}
+                                          onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = '#f0fdf4'; }}
+                                          onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = idx % 2 === 0 ? '#fff' : '#f8fafc'; }}
+                                        >
+                                          <td style={{padding: '12px', textAlign: 'center'}}>
+                                            <input
+                                              type="checkbox"
+                                              checked={isSelected}
+                                              onChange={() => {}}
+                                              style={{width: '16px', height: '16px', cursor: 'pointer'}}
+                                            />
+                                          </td>
+                                          <td style={{padding: '12px', fontWeight: '600', color: '#1e293b'}}>{client.name}</td>
+                                          <td style={{padding: '12px', color: '#64748b'}}>{client.fileNo}</td>
+                                          <td style={{padding: '12px', textAlign: 'center'}}>
+                                            <span style={{padding: '4px 12px', background: '#dcfce7', color: '#166534', borderRadius: '12px', fontWeight: '600', fontSize: '12px'}}>{completedTasks}</span>
+                                          </td>
+                                          <td style={{padding: '12px', textAlign: 'center'}}>
+                                            <span style={{padding: '4px 12px', background: '#fef3c7', color: '#92400e', borderRadius: '12px', fontWeight: '600', fontSize: '12px'}}>{openTasks}</span>
+                                          </td>
+                                          <td style={{padding: '12px', textAlign: 'center'}}>
+                                            <span style={{padding: '4px 12px', background: '#e0f2fe', color: '#0369a1', borderRadius: '12px', fontWeight: '600', fontSize: '12px'}}>{totalTasks}</span>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                              
+                              {/* Selection Summary */}
+                              <div style={{marginTop: '12px', fontSize: '12px', color: '#64748b', textAlign: 'right'}}>
+                                {multipleTaskSelectedClients.length} of {clientsWithTasks.length} clients selected
                               </div>
                               
                               {/* Proceed Button */}
                               {multipleTaskSelectedClients.length > 0 && (
-                                <div style={{position: 'sticky', bottom: 0, background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', padding: '16px 24px', borderRadius: '12px', marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#fff', boxShadow: '0 -4px 20px rgba(16,185,129,0.3)'}}>
+                                <div style={{position: 'sticky', bottom: 0, background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', padding: '16px 24px', borderRadius: '12px', marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#fff', boxShadow: '0 -4px 20px rgba(16,185,129,0.3)'}}>
                                   <div>
                                     <span style={{fontSize: '15px', fontWeight: '600'}}>{multipleTaskSelectedClients.length} client(s) selected</span>
                                     <span style={{fontSize: '13px', marginLeft: '16px', opacity: 0.9}}>
