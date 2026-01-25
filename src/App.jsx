@@ -15045,6 +15045,11 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const [showInvoicePreview, setShowInvoicePreview] = useState(false);
     const [editingInvoice, setEditingInvoice] = useState(null);
     
+    // Generated Invoices Preview Popup State
+    const [showGeneratedInvoicesPreview, setShowGeneratedInvoicesPreview] = useState(false);
+    const [generatedInvoicesList, setGeneratedInvoicesList] = useState([]);
+    const [editingGeneratedInvoice, setEditingGeneratedInvoice] = useState(null);
+    
     const [orgForm, setOrgForm] = useState({
       name: '',
       website: '',
@@ -19411,10 +19416,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 
                                 setData(prev => ({...prev, invoices: [...(prev.invoices || []), newInvoice]}));
                                 
-                                // Show success and offer to view
-                                if (window.confirm(`Invoice ${invoiceNo} created successfully!\n\nAmount: ₹${net.toLocaleString('en-IN')}\nGST: ₹${gst.toLocaleString('en-IN')}\nTotal: ₹${total.toLocaleString('en-IN')}\n\nWould you like to view the invoice?`)) {
-                                  setViewingInvoice(newInvoice);
-                                }
+                                // Show generated invoices preview
+                                setGeneratedInvoicesList([newInvoice]);
+                                setShowGeneratedInvoicesPreview(true);
                                 
                                 setWithoutTaskForm({
                                   clientId: '', clientName: '', clientCode: '', groupName: '', organizationId: '',
@@ -20451,7 +20455,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                           )
                                         }));
                                         
-                                        alert(`✅ SUCCESS!\n\nGenerated ${newInvoices.length} invoice(s)\nTotal: ₹${newInvoices.reduce((s, i) => s + i.totalAmount, 0).toLocaleString('en-IN')}`);
+                                        // Show generated invoices preview popup
+                                        setGeneratedInvoicesList(newInvoices);
+                                        setShowGeneratedInvoicesPreview(true);
                                         
                                         // Reset all states
                                         setMultipleTaskClient(null);
@@ -21747,6 +21753,339 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             </div>
                           );
                         })()}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Generated Invoices Preview Popup */}
+                {showGeneratedInvoicesPreview && generatedInvoicesList.length > 0 && (
+                  <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0,0,0,0.7)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 3000,
+                    padding: '20px'
+                  }}>
+                    <div style={{
+                      background: '#fff',
+                      borderRadius: '16px',
+                      width: '100%',
+                      maxWidth: '1100px',
+                      maxHeight: '90vh',
+                      overflow: 'hidden',
+                      boxShadow: '0 25px 80px rgba(0,0,0,0.4)'
+                    }}>
+                      {/* Header */}
+                      <div style={{
+                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                        padding: '20px 28px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <div>
+                          <h2 style={{margin: 0, color: '#fff', fontSize: '20px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '12px'}}>
+                            <CheckCircle size={24} />
+                            Invoices Generated Successfully!
+                          </h2>
+                          <p style={{margin: '6px 0 0', color: 'rgba(255,255,255,0.9)', fontSize: '14px'}}>
+                            {generatedInvoicesList.length} invoice(s) • Total: ₹{generatedInvoicesList.reduce((s, i) => s + (i.totalAmount || 0), 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setShowGeneratedInvoicesPreview(false);
+                            setGeneratedInvoicesList([]);
+                            setEditingGeneratedInvoice(null);
+                          }}
+                          style={{background: 'rgba(255,255,255,0.2)', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 20px', cursor: 'pointer', fontSize: '14px', fontWeight: '600'}}
+                        >
+                          ✕ Close
+                        </button>
+                      </div>
+
+                      {/* Actions Bar */}
+                      <div style={{padding: '16px 28px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: '12px', alignItems: 'center'}}>
+                        <button
+                          onClick={() => {
+                            downloadInvoicesAsZip(generatedInvoicesList, data.organizations, data.clients, `Invoices_${new Date().toISOString().split('T')[0]}`);
+                          }}
+                          style={{padding: '10px 20px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 2px 8px rgba(16,185,129,0.3)'}}
+                        >
+                          <Download size={16} /> Download All as ZIP
+                        </button>
+                        <button
+                          onClick={() => {
+                            downloadMultipleInvoices(generatedInvoicesList, data.organizations, data.clients, true);
+                          }}
+                          style={{padding: '10px 20px', background: '#6366f1', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}
+                        >
+                          <Eye size={16} /> Print All
+                        </button>
+                        <div style={{flex: 1}} />
+                        <span style={{fontSize: '13px', color: '#64748b'}}>
+                          Click on an invoice to view, edit, or delete
+                        </span>
+                      </div>
+
+                      {/* Invoice List */}
+                      <div style={{maxHeight: 'calc(90vh - 200px)', overflowY: 'auto', padding: '20px 28px'}}>
+                        {editingGeneratedInvoice ? (
+                          /* Edit Invoice Form */
+                          <div style={{background: '#fff', border: '2px solid #10b981', borderRadius: '12px', padding: '24px'}}>
+                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+                              <h3 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: '#1e293b'}}>
+                                Edit Invoice: {editingGeneratedInvoice.invoiceNo}
+                              </h3>
+                              <button
+                                onClick={() => setEditingGeneratedInvoice(null)}
+                                style={{padding: '8px 16px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px'}}
+                              >
+                                ← Back to List
+                              </button>
+                            </div>
+                            <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px'}}>
+                              <div>
+                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#64748b'}}>Invoice No</label>
+                                <input
+                                  type="text"
+                                  value={editingGeneratedInvoice.invoiceNo}
+                                  onChange={(e) => setEditingGeneratedInvoice(p => ({...p, invoiceNo: e.target.value}))}
+                                  style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px'}}
+                                />
+                              </div>
+                              <div>
+                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#64748b'}}>Invoice Date</label>
+                                <input
+                                  type="date"
+                                  value={editingGeneratedInvoice.invoiceDate}
+                                  onChange={(e) => setEditingGeneratedInvoice(p => ({...p, invoiceDate: e.target.value}))}
+                                  style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px'}}
+                                />
+                              </div>
+                              <div>
+                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#64748b'}}>Client Name</label>
+                                <input
+                                  type="text"
+                                  value={editingGeneratedInvoice.clientName}
+                                  readOnly
+                                  style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px', background: '#f8fafc'}}
+                                />
+                              </div>
+                              <div>
+                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#64748b'}}>Net Amount</label>
+                                <input
+                                  type="number"
+                                  value={editingGeneratedInvoice.netAmount}
+                                  onChange={(e) => {
+                                    const net = parseFloat(e.target.value) || 0;
+                                    const org = (data.organizations || []).find(o => String(o.id) === String(editingGeneratedInvoice.organizationId));
+                                    let cgst = 0, sgst = 0, igst = 0;
+                                    if (org?.gstApplicable === 'yes' && net > 0) {
+                                      const orgState = (org.state || '').toLowerCase();
+                                      const clientState = (editingGeneratedInvoice.clientState || '').toLowerCase();
+                                      if (orgState && clientState && orgState === clientState) {
+                                        cgst = Math.round(net * 0.09 * 100) / 100;
+                                        sgst = Math.round(net * 0.09 * 100) / 100;
+                                      } else {
+                                        igst = Math.round(net * 0.18 * 100) / 100;
+                                      }
+                                    }
+                                    setEditingGeneratedInvoice(p => ({
+                                      ...p, 
+                                      netAmount: net,
+                                      cgst, sgst, igst,
+                                      totalAmount: net + cgst + sgst + igst
+                                    }));
+                                  }}
+                                  style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px'}}
+                                />
+                              </div>
+                              <div>
+                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#64748b'}}>GST</label>
+                                <input
+                                  type="text"
+                                  value={`₹${((editingGeneratedInvoice.cgst || 0) + (editingGeneratedInvoice.sgst || 0) + (editingGeneratedInvoice.igst || 0)).toLocaleString('en-IN')}`}
+                                  readOnly
+                                  style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px', background: '#f8fafc'}}
+                                />
+                              </div>
+                              <div>
+                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#64748b'}}>Total Amount</label>
+                                <input
+                                  type="text"
+                                  value={`₹${(editingGeneratedInvoice.totalAmount || 0).toLocaleString('en-IN')}`}
+                                  readOnly
+                                  style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px', background: '#f0fdf4', fontWeight: '700', color: '#10b981'}}
+                                />
+                              </div>
+                              <div style={{gridColumn: 'span 3'}}>
+                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#64748b'}}>Narration / Description</label>
+                                <textarea
+                                  value={editingGeneratedInvoice.narration || editingGeneratedInvoice.serviceDescription || ''}
+                                  onChange={(e) => setEditingGeneratedInvoice(p => ({...p, narration: e.target.value, serviceDescription: e.target.value}))}
+                                  rows={3}
+                                  style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px', resize: 'vertical'}}
+                                />
+                              </div>
+                            </div>
+                            <div style={{display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end'}}>
+                              <button
+                                onClick={() => setEditingGeneratedInvoice(null)}
+                                style={{padding: '10px 24px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600'}}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={() => {
+                                  // Update in data.invoices
+                                  setData(prev => ({
+                                    ...prev,
+                                    invoices: (prev.invoices || []).map(inv => 
+                                      inv.id === editingGeneratedInvoice.id ? editingGeneratedInvoice : inv
+                                    )
+                                  }));
+                                  // Update in local list
+                                  setGeneratedInvoicesList(prev => 
+                                    prev.map(inv => inv.id === editingGeneratedInvoice.id ? editingGeneratedInvoice : inv)
+                                  );
+                                  setEditingGeneratedInvoice(null);
+                                  alert('Invoice updated successfully!');
+                                }}
+                                style={{padding: '10px 24px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600'}}
+                              >
+                                Save Changes
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          /* Invoice Cards */
+                          <div style={{display: 'grid', gap: '16px'}}>
+                            {generatedInvoicesList.map((invoice, idx) => {
+                              const org = (data.organizations || []).find(o => String(o.id) === String(invoice.organizationId));
+                              return (
+                                <div 
+                                  key={invoice.id}
+                                  style={{
+                                    background: '#fff',
+                                    border: '1px solid #e2e8f0',
+                                    borderRadius: '12px',
+                                    overflow: 'hidden',
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                                    transition: 'all 0.2s ease'
+                                  }}
+                                >
+                                  <div style={{display: 'flex', alignItems: 'stretch'}}>
+                                    {/* Invoice Details */}
+                                    <div style={{flex: 1, padding: '20px', display: 'flex', gap: '24px', alignItems: 'center'}}>
+                                      <div style={{width: '50px', height: '50px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: '700', fontSize: '18px'}}>
+                                        {idx + 1}
+                                      </div>
+                                      <div style={{flex: 1}}>
+                                        <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px'}}>
+                                          <span style={{fontWeight: '700', fontSize: '16px', color: '#10b981'}}>{invoice.invoiceNo}</span>
+                                          <span style={{padding: '4px 10px', background: '#f0fdf4', color: '#065f46', borderRadius: '6px', fontSize: '11px', fontWeight: '600'}}>
+                                            {new Date(invoice.invoiceDate).toLocaleDateString('en-IN', {day: '2-digit', month: 'short', year: 'numeric'})}
+                                          </span>
+                                        </div>
+                                        <div style={{fontSize: '14px', color: '#1e293b', fontWeight: '600', marginBottom: '4px'}}>{invoice.clientName}</div>
+                                        <div style={{fontSize: '12px', color: '#64748b'}}>{org?.name || invoice.orgName}</div>
+                                      </div>
+                                      <div style={{textAlign: 'right'}}>
+                                        <div style={{fontSize: '12px', color: '#64748b', marginBottom: '4px'}}>Net: ₹{(invoice.netAmount || 0).toLocaleString('en-IN')}</div>
+                                        <div style={{fontSize: '11px', color: '#94a3b8', marginBottom: '4px'}}>GST: ₹{((invoice.cgst || 0) + (invoice.sgst || 0) + (invoice.igst || 0)).toLocaleString('en-IN')}</div>
+                                        <div style={{fontSize: '18px', fontWeight: '700', color: '#10b981'}}>₹{(invoice.totalAmount || 0).toLocaleString('en-IN')}</div>
+                                      </div>
+                                    </div>
+                                    
+                                    {/* Action Buttons */}
+                                    <div style={{display: 'flex', borderLeft: '1px solid #e2e8f0'}}>
+                                      <button
+                                        onClick={() => {
+                                          setGeneratedInvoice(invoice);
+                                          setShowInvoicePreview(true);
+                                        }}
+                                        title="View Invoice"
+                                        style={{padding: '20px', background: '#eff6ff', color: '#3b82f6', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', minWidth: '70px'}}
+                                      >
+                                        <Eye size={20} />
+                                        <span style={{fontSize: '10px', fontWeight: '600'}}>View</span>
+                                      </button>
+                                      <button
+                                        onClick={() => downloadInvoicePDF(invoice, data.organizations, data.clients)}
+                                        title="Download PDF"
+                                        style={{padding: '20px', background: '#f0fdf4', color: '#10b981', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', minWidth: '70px'}}
+                                      >
+                                        <Download size={20} />
+                                        <span style={{fontSize: '10px', fontWeight: '600'}}>Download</span>
+                                      </button>
+                                      <button
+                                        onClick={() => setEditingGeneratedInvoice({...invoice})}
+                                        title="Edit Invoice"
+                                        style={{padding: '20px', background: '#fef3c7', color: '#d97706', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', minWidth: '70px'}}
+                                      >
+                                        <Edit size={20} />
+                                        <span style={{fontSize: '10px', fontWeight: '600'}}>Edit</span>
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          if (!window.confirm(`Delete invoice ${invoice.invoiceNo}?\n\nThis will unbill the associated tasks.`)) return;
+                                          // Remove from data.invoices and unbill tasks
+                                          setData(prev => ({
+                                            ...prev,
+                                            invoices: (prev.invoices || []).filter(i => i.id !== invoice.id),
+                                            tasks: (prev.tasks || []).map(t => 
+                                              (invoice.taskIds && invoice.taskIds.includes(t.id)) || t.invoiceId === invoice.id
+                                                ? { ...t, billed: false, invoiceId: null }
+                                                : t
+                                            )
+                                          }));
+                                          // Remove from local list
+                                          setGeneratedInvoicesList(prev => prev.filter(i => i.id !== invoice.id));
+                                        }}
+                                        title="Delete Invoice"
+                                        style={{padding: '20px', background: '#fef2f2', color: '#ef4444', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', minWidth: '70px'}}
+                                      >
+                                        <Trash2 size={20} />
+                                        <span style={{fontSize: '10px', fontWeight: '600'}}>Delete</span>
+                                      </button>
+                                    </div>
+                                  </div>
+                                  {/* Narration */}
+                                  {(invoice.narration || invoice.serviceDescription) && (
+                                    <div style={{padding: '12px 20px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', fontSize: '12px', color: '#64748b'}}>
+                                      <span style={{fontWeight: '600', color: '#475569'}}>Description:</span> {invoice.narration || invoice.serviceDescription}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Footer */}
+                      <div style={{padding: '16px 28px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                        <div style={{fontSize: '13px', color: '#64748b'}}>
+                          Total: <span style={{fontWeight: '700', color: '#10b981', fontSize: '16px'}}>₹{generatedInvoicesList.reduce((s, i) => s + (i.totalAmount || 0), 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setShowGeneratedInvoicesPreview(false);
+                            setGeneratedInvoicesList([]);
+                            setEditingGeneratedInvoice(null);
+                          }}
+                          style={{padding: '12px 28px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '700', boxShadow: '0 4px 12px rgba(16,185,129,0.3)'}}
+                        >
+                          Done
+                        </button>
                       </div>
                     </div>
                   </div>
