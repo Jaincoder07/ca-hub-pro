@@ -958,6 +958,8 @@ const PracticeManagementApp = () => {
   const [showTaskManageModal, setShowTaskManageModal] = useState(false);
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [appViewInvoice, setAppViewInvoice] = useState(null);
+  const [appViewReceipt, setAppViewReceipt] = useState(null);
   const [activeTab, setActiveTab] = useState('milestones');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedParentTask, setSelectedParentTask] = useState('');
@@ -10346,9 +10348,6 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       snapshotDate: new Date().toISOString().split('T')[0]
     });
     const [showFilters, setShowFilters] = useState(true);
-    const [reportViewTask, setReportViewTask] = useState(null);
-    const [reportViewInvoice, setReportViewInvoice] = useState(null);
-    const [reportViewReceipt, setReportViewReceipt] = useState(null);
     
     // Get current date info
     const today = new Date();
@@ -10704,7 +10703,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.parentTask || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.childTask || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
-                                      <button onClick={() => setReportViewTask(task)} style={{padding: '4px', background: 'transparent', color: '#10b981', border: 'none', cursor: 'pointer'}}><Eye size={16} /></button>
+                                      <button onClick={() => { setSelectedTask(task); setShowTaskManageModal(true); }} style={{padding: '4px', background: 'transparent', color: '#10b981', border: 'none', cursor: 'pointer'}}><Eye size={16} /></button>
                                     </td>
                                   </tr>
                                 );
@@ -10789,7 +10788,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.parentTask || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.childTask || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
-                                      <button onClick={() => setReportViewTask(task)} style={{padding: '4px', background: 'transparent', color: '#10b981', border: 'none', cursor: 'pointer'}}><Eye size={16} /></button>
+                                      <button onClick={() => { setSelectedTask(task); setShowTaskManageModal(true); }} style={{padding: '4px', background: 'transparent', color: '#10b981', border: 'none', cursor: 'pointer'}}><Eye size={16} /></button>
                                     </td>
                                   </tr>
                                 );
@@ -10860,7 +10859,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{org?.name || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'right', fontWeight: '600', color: '#166534'}}>₹{(parseFloat(inv.totalAmount) || 0).toLocaleString('en-IN')}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
-                                      <button onClick={() => setReportViewInvoice(inv)} style={{padding: '4px', background: 'transparent', color: '#10b981', border: 'none', cursor: 'pointer'}}><Eye size={16} /></button>
+                                      <button onClick={() => setAppViewInvoice(inv)} style={{padding: '4px', background: 'transparent', color: '#10b981', border: 'none', cursor: 'pointer'}}><Eye size={16} /></button>
                                     </td>
                                   </tr>
                                 );
@@ -10903,7 +10902,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                     <td style={{padding: '8px', border: '1px solid #fde68a', color: '#374151'}}>{r.mode || r.paymentMode || 'Bank'}</td>
                                     <td style={{padding: '8px', border: '1px solid #fde68a', textAlign: 'right', fontWeight: '600', color: '#b45309'}}>₹{(parseFloat(r.amount) || 0).toLocaleString('en-IN')}</td>
                                     <td style={{padding: '8px', border: '1px solid #fde68a', textAlign: 'center'}}>
-                                      <button onClick={() => setReportViewReceipt(r)} style={{padding: '4px', background: 'transparent', color: '#f59e0b', border: 'none', cursor: 'pointer'}}><Eye size={16} /></button>
+                                      <button onClick={() => setAppViewReceipt(r)} style={{padding: '4px', background: 'transparent', color: '#f59e0b', border: 'none', cursor: 'pointer'}}><Eye size={16} /></button>
                                     </td>
                                   </tr>
                                 );
@@ -12448,89 +12447,6 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 })()}
               </>
             )}
-          </div>
-        )}
-        
-        {/* Task View Modal for Reports */}
-        {reportViewTask && (
-          <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999}}>
-            <div style={{background: '#fff', borderRadius: '12px', width: '600px', maxHeight: '80vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'}}>
-              <div style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', padding: '20px', borderRadius: '12px 12px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                <h3 style={{margin: 0, color: '#fff', fontSize: '18px', fontWeight: '600'}}>Task Details</h3>
-                <button onClick={() => setReportViewTask(null)} style={{background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer', color: '#fff'}}><X size={20} /></button>
-              </div>
-              <div style={{padding: '24px'}}>
-                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
-                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Client</div><div style={{fontSize: '14px', fontWeight: '600', color: '#10b981'}}>{reportViewTask.clientName || reportViewTask.client || '-'}</div></div>
-                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Client Code</div><div style={{fontSize: '14px', fontWeight: '500'}}>{data.clients.find(c => c.id === reportViewTask.clientId || c.name === reportViewTask.clientName)?.fileNo || '-'}</div></div>
-                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Parent Task</div><div style={{fontSize: '14px', fontWeight: '500'}}>{reportViewTask.parentTask || '-'}</div></div>
-                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Child Task</div><div style={{fontSize: '14px', fontWeight: '500'}}>{reportViewTask.childTask || '-'}</div></div>
-                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Period</div><div style={{fontSize: '14px', fontWeight: '500'}}>{reportViewTask.period || '-'}</div></div>
-                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Sub-Period</div><div style={{fontSize: '14px', fontWeight: '500'}}>{reportViewTask.subPeriod || '-'}</div></div>
-                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Assigned To</div><div style={{fontSize: '14px', fontWeight: '500'}}>{reportViewTask.primaryAssignedUser || reportViewTask.assignedTo || '-'}</div></div>
-                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Status</div><div style={{fontSize: '14px', fontWeight: '600', color: reportViewTask.status === 'Completed' || reportViewTask.completedCheck ? '#10b981' : '#f59e0b'}}>{reportViewTask.status === 'Completed' || reportViewTask.completedCheck ? 'Completed' : reportViewTask.status || 'Open'}</div></div>
-                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Due Date</div><div style={{fontSize: '14px', fontWeight: '500'}}>{reportViewTask.dueDate || '-'}</div></div>
-                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Priority</div><div style={{fontSize: '14px', fontWeight: '500'}}>{reportViewTask.priority || 'Normal'}</div></div>
-                </div>
-                {reportViewTask.remarks && <div style={{marginTop: '16px', padding: '12px', background: '#f8fafc', borderRadius: '8px'}}><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Remarks</div><div style={{fontSize: '13px'}}>{reportViewTask.remarks}</div></div>}
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* Invoice View Modal for Reports */}
-        {reportViewInvoice && (
-          <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999}}>
-            <div style={{background: '#fff', borderRadius: '12px', width: '600px', maxHeight: '80vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'}}>
-              <div style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', padding: '20px', borderRadius: '12px 12px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                <h3 style={{margin: 0, color: '#fff', fontSize: '18px', fontWeight: '600'}}>Invoice Details</h3>
-                <button onClick={() => setReportViewInvoice(null)} style={{background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer', color: '#fff'}}><X size={20} /></button>
-              </div>
-              <div style={{padding: '24px'}}>
-                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
-                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Invoice No.</div><div style={{fontSize: '16px', fontWeight: '700', color: '#10b981'}}>{reportViewInvoice.invoiceNo || '-'}</div></div>
-                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Date</div><div style={{fontSize: '14px', fontWeight: '500'}}>{reportViewInvoice.date || '-'}</div></div>
-                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Client</div><div style={{fontSize: '14px', fontWeight: '600'}}>{reportViewInvoice.clientName || '-'}</div></div>
-                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Client Code</div><div style={{fontSize: '14px', fontWeight: '500'}}>{data.clients.find(c => c.id === reportViewInvoice.clientId || c.name === reportViewInvoice.clientName)?.fileNo || '-'}</div></div>
-                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Organization</div><div style={{fontSize: '14px', fontWeight: '500'}}>{(data.organizations || []).find(o => o.id === reportViewInvoice.organizationId)?.name || '-'}</div></div>
-                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Period</div><div style={{fontSize: '14px', fontWeight: '500'}}>{reportViewInvoice.period || '-'}</div></div>
-                </div>
-                <div style={{marginTop: '20px', padding: '16px', background: 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '8px', border: '1px solid #bbf7d0'}}>
-                  <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', textAlign: 'center'}}>
-                    <div><div style={{fontSize: '11px', color: '#64748b'}}>Base Amount</div><div style={{fontSize: '16px', fontWeight: '600', color: '#166534'}}>₹{(parseFloat(reportViewInvoice.amount) || 0).toLocaleString('en-IN')}</div></div>
-                    <div><div style={{fontSize: '11px', color: '#64748b'}}>GST</div><div style={{fontSize: '16px', fontWeight: '600', color: '#166534'}}>₹{(parseFloat(reportViewInvoice.gstAmount) || 0).toLocaleString('en-IN')}</div></div>
-                    <div><div style={{fontSize: '11px', color: '#64748b'}}>Total</div><div style={{fontSize: '18px', fontWeight: '700', color: '#166534'}}>₹{(parseFloat(reportViewInvoice.totalAmount) || 0).toLocaleString('en-IN')}</div></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* Receipt View Modal for Reports */}
-        {reportViewReceipt && (
-          <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999}}>
-            <div style={{background: '#fff', borderRadius: '12px', width: '600px', maxHeight: '80vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'}}>
-              <div style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', padding: '20px', borderRadius: '12px 12px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                <h3 style={{margin: 0, color: '#fff', fontSize: '18px', fontWeight: '600'}}>Receipt Details</h3>
-                <button onClick={() => setReportViewReceipt(null)} style={{background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer', color: '#fff'}}><X size={20} /></button>
-              </div>
-              <div style={{padding: '24px'}}>
-                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
-                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Receipt No.</div><div style={{fontSize: '16px', fontWeight: '700', color: '#b45309'}}>{reportViewReceipt.receiptNo || '-'}</div></div>
-                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Date</div><div style={{fontSize: '14px', fontWeight: '500'}}>{reportViewReceipt.date || '-'}</div></div>
-                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Client</div><div style={{fontSize: '14px', fontWeight: '600'}}>{reportViewReceipt.clientName || '-'}</div></div>
-                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Client Code</div><div style={{fontSize: '14px', fontWeight: '500'}}>{data.clients.find(c => c.id === reportViewReceipt.clientId || c.name === reportViewReceipt.clientName)?.fileNo || '-'}</div></div>
-                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Payment Mode</div><div style={{fontSize: '14px', fontWeight: '500'}}>{reportViewReceipt.mode || reportViewReceipt.paymentMode || 'Bank'}</div></div>
-                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Reference</div><div style={{fontSize: '14px', fontWeight: '500'}}>{reportViewReceipt.reference || reportViewReceipt.chequeNo || '-'}</div></div>
-                </div>
-                <div style={{marginTop: '20px', padding: '16px', background: 'linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%)', borderRadius: '8px', border: '1px solid #fde68a', textAlign: 'center'}}>
-                  <div style={{fontSize: '11px', color: '#92400e', marginBottom: '4px'}}>Amount Received</div>
-                  <div style={{fontSize: '24px', fontWeight: '700', color: '#b45309'}}>₹{(parseFloat(reportViewReceipt.amount) || 0).toLocaleString('en-IN')}</div>
-                </div>
-                {reportViewReceipt.narration && <div style={{marginTop: '16px', padding: '12px', background: '#f8fafc', borderRadius: '8px'}}><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Narration</div><div style={{fontSize: '13px'}}>{reportViewReceipt.narration}</div></div>}
-              </div>
-            </div>
           </div>
         )}
       </div>
@@ -32599,6 +32515,356 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           </div>
         </div>
       )}
+
+      {/* App-Level Invoice Preview Modal (for Reports) */}
+      {appViewInvoice && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.6)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '850px',
+            maxHeight: '95vh',
+            overflow: 'auto',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+          }}>
+            {/* Action Buttons */}
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              padding: '12px 16px',
+              background: '#fff',
+              borderBottom: '1px solid #e2e8f0',
+              position: 'sticky',
+              top: 0,
+              zIndex: 10,
+              alignItems: 'center'
+            }}>
+              <div style={{color: '#1e293b', fontSize: '14px', fontWeight: '600'}}>
+                Invoice Preview: <span style={{color: '#10b981'}}>{appViewInvoice.invoiceNo}</span>
+              </div>
+              <div style={{flex: 1}} />
+              <button
+                onClick={() => {
+                  const printContent = document.getElementById('app-invoice-print-area');
+                  if (printContent) {
+                    const printWindow = window.open('', '_blank');
+                    printWindow.document.write('<html><head><title>Invoice ' + appViewInvoice.invoiceNo + '</title>');
+                    printWindow.document.write('<style>@media print { body { margin: 0; } }</style>');
+                    printWindow.document.write('</head><body>');
+                    printWindow.document.write(printContent.innerHTML);
+                    printWindow.document.write('</body></html>');
+                    printWindow.document.close();
+                    printWindow.print();
+                  }
+                }}
+                style={{padding: '8px 16px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500'}}
+              >
+                🖨️ Print
+              </button>
+              <button
+                onClick={() => setAppViewInvoice(null)}
+                style={{padding: '8px 16px', background: '#64748b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500'}}
+              >
+                ✕ Close
+              </button>
+            </div>
+            
+            {/* Invoice Template */}
+            <div id="app-invoice-print-area" style={{padding: '20px'}}>
+              {(() => {
+                const currentOrg = data.organizations?.find(o => o.id === (appViewInvoice.orgId || appViewInvoice.organizationId)) || {};
+                const client = data.clients?.find(c => c.id === appViewInvoice.clientId) || {};
+                
+                const gstApplicable = appViewInvoice.gstApplicable !== false && currentOrg.gstApplicable === 'yes';
+                const invoiceFormat = appViewInvoice.invoiceFormat || (gstApplicable ? 'taxInvoice' : 'billOfSupply');
+                const isDarkTheme = invoiceFormat === 'billOfSupply';
+                
+                const primaryColor = isDarkTheme ? '#374151' : '#111827';
+                const headerGradient = isDarkTheme 
+                  ? 'linear-gradient(135deg, #374151 0%, #4b5563 50%, #6b7280 100%)'
+                  : 'linear-gradient(135deg, #111827 0%, #1f2937 50%, #374151 100%)';
+                
+                let invoiceTitle = 'TAX INVOICE';
+                if (invoiceFormat === 'billOfSupply') invoiceTitle = 'BILL OF SUPPLY';
+                else if (invoiceFormat === 'proformaInvoice') invoiceTitle = 'PROFORMA INVOICE';
+                
+                const showGst = gstApplicable && invoiceFormat !== 'billOfSupply';
+                
+                const displayOrg = {
+                  name: currentOrg.name || appViewInvoice.orgName || appViewInvoice.organizationName,
+                  address: currentOrg.address || appViewInvoice.orgAddress,
+                  mobile: currentOrg.mobile || appViewInvoice.orgMobile,
+                  email: currentOrg.email || appViewInvoice.orgEmail,
+                  gstin: currentOrg.gstin || appViewInvoice.orgGstin,
+                  pan: currentOrg.pan || appViewInvoice.orgPan,
+                  logo: currentOrg.logo || appViewInvoice.orgLogo,
+                  signature: currentOrg.signature || appViewInvoice.orgSignature,
+                  signatory: currentOrg.signatory || appViewInvoice.orgSignatory,
+                  bankName: currentOrg.bankName,
+                  accountNo: currentOrg.accountNo,
+                  ifsc: currentOrg.ifsc,
+                  branch: currentOrg.branch
+                };
+                
+                return (
+                  <div style={{background: '#fff', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', overflow: 'hidden', maxWidth: '800px', margin: '0 auto', border: '1px solid #e2e8f0'}}>
+                    {/* Header */}
+                    <div style={{background: headerGradient, padding: '24px 30px', color: '#fff'}}>
+                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
+                          {displayOrg.logo && <img src={displayOrg.logo} alt="Logo" style={{height: '60px', borderRadius: '8px', background: '#fff', padding: '4px'}} />}
+                          <div>
+                            <div style={{fontSize: '22px', fontWeight: '700', letterSpacing: '0.5px'}}>{displayOrg.name || 'Organization Name'}</div>
+                            <div style={{fontSize: '12px', opacity: 0.9, marginTop: '4px'}}>{displayOrg.address || 'Address not provided'}</div>
+                            {displayOrg.mobile && <div style={{fontSize: '11px', opacity: 0.8, marginTop: '2px'}}>📞 {displayOrg.mobile} {displayOrg.email && `| ✉️ ${displayOrg.email}`}</div>}
+                          </div>
+                        </div>
+                        <div style={{textAlign: 'right'}}>
+                          <div style={{fontSize: '12px', fontWeight: '600', letterSpacing: '3px', marginBottom: '4px', opacity: 0.7}}>{invoiceTitle}</div>
+                          <div style={{fontSize: '24px', fontWeight: '800', letterSpacing: '1px'}}>#{appViewInvoice.invoiceNo}</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Info Row */}
+                    <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px', padding: '20px 30px', borderBottom: '1px solid #e5e7eb', background: '#fafafa'}}>
+                      <div>
+                        <div style={{fontSize: '10px', color: '#6b7280', fontWeight: '600', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px'}}>Bill To</div>
+                        <div style={{fontSize: '15px', fontWeight: '700', color: primaryColor, marginBottom: '4px'}}>{appViewInvoice.clientName || 'Client Name'}</div>
+                        <div style={{fontSize: '11px', color: '#6b7280'}}>{client?.address || 'Client address'}</div>
+                        {showGst && client?.gstin && <div style={{fontSize: '11px', color: '#6b7280', marginTop: '2px'}}>GSTIN: {client.gstin}</div>}
+                      </div>
+                      <div style={{textAlign: 'right'}}>
+                        <div style={{marginBottom: '8px'}}>
+                          <div style={{fontSize: '10px', color: '#6b7280', fontWeight: '600'}}>Invoice Date</div>
+                          <div style={{fontSize: '13px', fontWeight: '600', color: primaryColor}}>{appViewInvoice.date || new Date().toLocaleDateString()}</div>
+                        </div>
+                        {showGst && displayOrg.gstin && (
+                          <div>
+                            <div style={{fontSize: '10px', color: '#6b7280', fontWeight: '600'}}>GSTIN</div>
+                            <div style={{fontSize: '12px', fontWeight: '600', color: primaryColor}}>{displayOrg.gstin}</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Items Table */}
+                    <div style={{padding: '20px 30px'}}>
+                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+                        <thead>
+                          <tr style={{background: isDarkTheme ? '#4b5563' : '#1f2937'}}>
+                            <th style={{padding: '10px 12px', textAlign: 'left', color: '#fff', fontWeight: '600', width: '50px'}}>#</th>
+                            <th style={{padding: '10px 12px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>Description</th>
+                            <th style={{padding: '10px 12px', textAlign: 'right', color: '#fff', fontWeight: '600', width: '120px'}}>Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(appViewInvoice.tasks || []).map((task, idx) => (
+                            <tr key={idx} style={{borderBottom: '1px solid #e5e7eb'}}>
+                              <td style={{padding: '10px 12px', color: '#6b7280'}}>{idx + 1}</td>
+                              <td style={{padding: '10px 12px'}}>
+                                <div style={{fontWeight: '500', color: primaryColor}}>{task.childTask || task.parentTask || task.description}</div>
+                                {task.period && <div style={{fontSize: '10px', color: '#6b7280', marginTop: '2px'}}>Period: {task.period}</div>}
+                              </td>
+                              <td style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600'}}>₹{(task.amount || 0).toLocaleString('en-IN')}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    {/* Totals */}
+                    <div style={{padding: '0 30px 20px', display: 'flex', justifyContent: 'flex-end'}}>
+                      <div style={{width: '280px', background: '#f9fafb', borderRadius: '8px', padding: '16px', border: '1px solid #e5e7eb'}}>
+                        <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px'}}>
+                          <span style={{color: '#6b7280'}}>Subtotal</span>
+                          <span style={{fontWeight: '500'}}>₹{(appViewInvoice.amount || 0).toLocaleString('en-IN')}</span>
+                        </div>
+                        {showGst && (
+                          <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px'}}>
+                            <span style={{color: '#6b7280'}}>GST (18%)</span>
+                            <span style={{fontWeight: '500'}}>₹{(appViewInvoice.gstAmount || 0).toLocaleString('en-IN')}</span>
+                          </div>
+                        )}
+                        <div style={{display: 'flex', justifyContent: 'space-between', paddingTop: '10px', borderTop: '2px solid ' + primaryColor, marginTop: '8px'}}>
+                          <span style={{fontWeight: '700', color: primaryColor}}>Total</span>
+                          <span style={{fontWeight: '700', fontSize: '16px', color: primaryColor}}>₹{(appViewInvoice.totalAmount || 0).toLocaleString('en-IN')}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Bank Details & Signature */}
+                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', padding: '20px 30px', borderTop: '1px solid #e5e7eb', background: '#fafafa'}}>
+                      {displayOrg.bankName && (
+                        <div>
+                          <div style={{fontSize: '10px', color: '#6b7280', fontWeight: '600', marginBottom: '8px', textTransform: 'uppercase'}}>Bank Details</div>
+                          <div style={{fontSize: '11px', color: '#374151'}}>
+                            <div><strong>Bank:</strong> {displayOrg.bankName}</div>
+                            <div><strong>A/C No:</strong> {displayOrg.accountNo}</div>
+                            <div><strong>IFSC:</strong> {displayOrg.ifsc}</div>
+                            {displayOrg.branch && <div><strong>Branch:</strong> {displayOrg.branch}</div>}
+                          </div>
+                        </div>
+                      )}
+                      <div style={{textAlign: 'right'}}>
+                        <div style={{fontSize: '10px', color: '#6b7280', fontWeight: '600', marginBottom: '8px', textTransform: 'uppercase'}}>Authorized Signatory</div>
+                        {displayOrg.signature && <img src={displayOrg.signature} alt="Signature" style={{height: '40px', marginBottom: '4px'}} />}
+                        <div style={{fontSize: '12px', fontWeight: '600', color: primaryColor}}>{displayOrg.signatory || displayOrg.name}</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* App-Level Receipt View Modal (for Reports) */}
+      {appViewReceipt && (() => {
+        const client = data.clients.find(c => c.name?.toLowerCase() === appViewReceipt.clientName?.toLowerCase());
+        const groupNo = client?.fileNo?.split('.')[0] || appViewReceipt.groupNo || '';
+        const org = (data.organizations || []).find(o => o.id === appViewReceipt.organizationId);
+        return (
+          <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, overflow: 'auto', padding: '20px'}}>
+            <div style={{maxWidth: '650px', margin: '0 auto'}}>
+              {/* Compact Action Bar - Blue Theme */}
+              <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', padding: '10px 16px', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', borderRadius: '8px'}}>
+                <button onClick={() => setAppViewReceipt(null)} style={{padding: '6px 12px', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', color: '#fff'}}>✕ Close</button>
+                <div style={{flex: 1, color: '#fff'}}>
+                  <span style={{fontSize: '12px', opacity: 0.8}}>Receipt</span>
+                  <span style={{fontSize: '16px', fontWeight: '700', marginLeft: '6px'}}>{appViewReceipt.receiptNo}</span>
+                </div>
+                <button onClick={() => window.print()} style={{padding: '6px 14px', background: '#fff', color: '#3b82f6', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600'}}>🖨️ Print</button>
+              </div>
+
+              {/* Compact Receipt Card - Blue Theme */}
+              <div style={{background: '#fff', borderRadius: '10px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', overflow: 'hidden', border: '1px solid #e2e8f0'}}>
+                {/* Header Row - Compact */}
+                <div style={{background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', padding: '16px 20px', color: '#fff'}}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                    <div>
+                      <div style={{fontSize: '18px', fontWeight: '700', letterSpacing: '0.5px'}}>RECEIPT</div>
+                      {org && <div style={{fontSize: '11px', opacity: 0.9, marginTop: '2px'}}>{org.name}</div>}
+                    </div>
+                    <div style={{textAlign: 'right'}}>
+                      <div style={{fontSize: '10px', opacity: 0.8}}>Receipt No.</div>
+                      <div style={{fontSize: '16px', fontWeight: '700'}}>{appViewReceipt.receiptNo}</div>
+                      <div style={{fontSize: '11px', marginTop: '2px'}}>{appViewReceipt.receiptDate ? new Date(appViewReceipt.receiptDate).toLocaleDateString('en-IN') : '-'}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Client & Invoice Info - Two Column Compact */}
+                <div style={{padding: '14px 20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc'}}>
+                  <div>
+                    <div style={{fontSize: '10px', color: '#64748b', fontWeight: '600', marginBottom: '4px'}}>RECEIVED FROM</div>
+                    <div style={{fontSize: '14px', fontWeight: '600', color: '#1e293b'}}>{appViewReceipt.clientName}</div>
+                    <div style={{fontSize: '11px', color: '#64748b', marginTop: '2px'}}>
+                      Group No: <strong style={{color: '#7c3aed'}}>{groupNo || '-'}</strong> | Code: <strong style={{color: '#4f46e5'}}>{client?.fileNo || appViewReceipt.clientCode || '-'}</strong>
+                    </div>
+                  </div>
+                  <div style={{textAlign: 'right'}}>
+                    <div style={{fontSize: '10px', color: '#64748b', fontWeight: '600', marginBottom: '4px'}}>AGAINST INVOICE(S)</div>
+                    <div style={{fontSize: '13px', fontWeight: '600', color: '#3b82f6'}}>{appViewReceipt.invoiceNo}</div>
+                    <div style={{fontSize: '11px', color: '#64748b', marginTop: '2px'}}>Invoice Amt: ₹{(appViewReceipt.invoiceAmount || 0).toLocaleString('en-IN')}</div>
+                  </div>
+                </div>
+
+                {/* Invoice Entries Table - If multiple invoices */}
+                {appViewReceipt.invoiceEntries && appViewReceipt.invoiceEntries.length > 1 && (
+                  <div style={{padding: '12px 20px', borderBottom: '1px solid #e2e8f0'}}>
+                    <div style={{fontSize: '10px', color: '#64748b', fontWeight: '600', marginBottom: '8px'}}>INVOICE BREAKDOWN</div>
+                    <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                      <thead>
+                        <tr style={{background: '#f1f5f9'}}>
+                          <th style={{padding: '6px 8px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Invoice No</th>
+                          <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Inv. Amt</th>
+                          <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Receipt</th>
+                          <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>TDS</th>
+                          <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Discount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {appViewReceipt.invoiceEntries.map((entry, idx) => (
+                          <tr key={idx} style={{borderBottom: '1px solid #f1f5f9'}}>
+                            <td style={{padding: '6px 8px', color: '#3b82f6', fontWeight: '500'}}>{entry.invoiceNo}</td>
+                            <td style={{padding: '6px 8px', textAlign: 'right'}}>₹{(entry.invoiceAmount || 0).toLocaleString('en-IN')}</td>
+                            <td style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#059669'}}>₹{(entry.amount || 0).toLocaleString('en-IN')}</td>
+                            <td style={{padding: '6px 8px', textAlign: 'right', color: '#f59e0b'}}>{entry.tds > 0 ? `₹${entry.tds}` : '-'}</td>
+                            <td style={{padding: '6px 8px', textAlign: 'right', color: '#3b82f6'}}>{entry.discount > 0 ? `₹${entry.discount}` : '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Payment Summary - Compact Table */}
+                <div style={{padding: '14px 20px'}}>
+                  <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+                    <tbody>
+                      <tr style={{borderBottom: '1px solid #f1f5f9'}}>
+                        <td style={{padding: '8px 0', color: '#64748b'}}>Payment Mode</td>
+                        <td style={{padding: '8px 0', textAlign: 'right', fontWeight: '500'}}>{appViewReceipt.paymentMode || 'Cash'}</td>
+                      </tr>
+                      <tr style={{borderBottom: '1px solid #f1f5f9'}}>
+                        <td style={{padding: '8px 0', color: '#64748b'}}>Amount Received</td>
+                        <td style={{padding: '8px 0', textAlign: 'right', fontWeight: '700', color: '#059669', fontSize: '14px'}}>₹{(appViewReceipt.amount || 0).toLocaleString('en-IN')}</td>
+                      </tr>
+                      {appViewReceipt.tds > 0 && (
+                        <tr style={{borderBottom: '1px solid #f1f5f9'}}>
+                          <td style={{padding: '8px 0', color: '#64748b'}}>TDS Deducted</td>
+                          <td style={{padding: '8px 0', textAlign: 'right', fontWeight: '600', color: '#f59e0b'}}>₹{(appViewReceipt.tds || 0).toLocaleString('en-IN')}</td>
+                        </tr>
+                      )}
+                      {appViewReceipt.discount > 0 && (
+                        <tr style={{borderBottom: '1px solid #f1f5f9'}}>
+                          <td style={{padding: '8px 0', color: '#64748b'}}>Discount</td>
+                          <td style={{padding: '8px 0', textAlign: 'right', fontWeight: '600', color: '#3b82f6'}}>₹{(appViewReceipt.discount || 0).toLocaleString('en-IN')}</td>
+                        </tr>
+                      )}
+                      <tr style={{background: '#eff6ff'}}>
+                        <td style={{padding: '10px 8px', fontWeight: '700', color: '#1e40af'}}>Total Settlement</td>
+                        <td style={{padding: '10px 8px', textAlign: 'right', fontWeight: '700', color: '#1d4ed8', fontSize: '16px'}}>₹{((appViewReceipt.amount || 0) + (appViewReceipt.tds || 0) + (appViewReceipt.discount || 0)).toLocaleString('en-IN')}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Narration - Compact */}
+                {appViewReceipt.narration && (
+                  <div style={{padding: '0 20px 14px 20px'}}>
+                    <div style={{padding: '10px 12px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0'}}>
+                      <span style={{fontSize: '10px', color: '#64748b', fontWeight: '600'}}>NARRATION: </span>
+                      <span style={{fontSize: '11px', color: '#475569'}}>{appViewReceipt.narration}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Footer - Compact */}
+                <div style={{background: '#f8fafc', padding: '10px 20px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                  <div style={{fontSize: '10px', color: '#94a3b8'}}>Computer generated receipt</div>
+                  <div style={{fontSize: '10px', color: '#64748b', fontWeight: '500'}}>Thank you for your payment!</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
