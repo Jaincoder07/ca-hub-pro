@@ -10346,6 +10346,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       snapshotDate: new Date().toISOString().split('T')[0]
     });
     const [showFilters, setShowFilters] = useState(true);
+    const [reportViewTask, setReportViewTask] = useState(null);
+    const [reportViewInvoice, setReportViewInvoice] = useState(null);
+    const [reportViewReceipt, setReportViewReceipt] = useState(null);
     
     // Get current date info
     const today = new Date();
@@ -10701,7 +10704,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.parentTask || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.childTask || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
-                                      <button onClick={() => setSelectedTask(task)} style={{padding: '4px 8px', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}><Eye size={12} /></button>
+                                      <button onClick={() => setReportViewTask(task)} style={{padding: '4px', background: 'transparent', color: '#10b981', border: 'none', cursor: 'pointer'}}><Eye size={16} /></button>
                                     </td>
                                   </tr>
                                 );
@@ -10786,7 +10789,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.parentTask || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.childTask || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
-                                      <button onClick={() => setSelectedTask(task)} style={{padding: '4px 8px', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}><Eye size={12} /></button>
+                                      <button onClick={() => setReportViewTask(task)} style={{padding: '4px', background: 'transparent', color: '#10b981', border: 'none', cursor: 'pointer'}}><Eye size={16} /></button>
                                     </td>
                                   </tr>
                                 );
@@ -10857,12 +10860,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{org?.name || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'right', fontWeight: '600', color: '#166534'}}>₹{(parseFloat(inv.totalAmount) || 0).toLocaleString('en-IN')}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
-                                      <button 
-                                        onClick={() => { setGeneratedInvoice(inv); setShowInvoicePreview(true); }}
-                                        style={{padding: '4px 8px', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}
-                                      >
-                                        <Eye size={12} />
-                                      </button>
+                                      <button onClick={() => setReportViewInvoice(inv)} style={{padding: '4px', background: 'transparent', color: '#10b981', border: 'none', cursor: 'pointer'}}><Eye size={16} /></button>
                                     </td>
                                   </tr>
                                 );
@@ -10905,12 +10903,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                     <td style={{padding: '8px', border: '1px solid #fde68a', color: '#374151'}}>{r.mode || r.paymentMode || 'Bank'}</td>
                                     <td style={{padding: '8px', border: '1px solid #fde68a', textAlign: 'right', fontWeight: '600', color: '#b45309'}}>₹{(parseFloat(r.amount) || 0).toLocaleString('en-IN')}</td>
                                     <td style={{padding: '8px', border: '1px solid #fde68a', textAlign: 'center'}}>
-                                      <button 
-                                        onClick={() => { setViewingReceipt(r); setShowReceiptViewModal(true); }}
-                                        style={{padding: '4px 8px', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}
-                                      >
-                                        <Eye size={12} />
-                                      </button>
+                                      <button onClick={() => setReportViewReceipt(r)} style={{padding: '4px', background: 'transparent', color: '#f59e0b', border: 'none', cursor: 'pointer'}}><Eye size={16} /></button>
                                     </td>
                                   </tr>
                                 );
@@ -12455,6 +12448,89 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 })()}
               </>
             )}
+          </div>
+        )}
+        
+        {/* Task View Modal for Reports */}
+        {reportViewTask && (
+          <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999}}>
+            <div style={{background: '#fff', borderRadius: '12px', width: '600px', maxHeight: '80vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'}}>
+              <div style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', padding: '20px', borderRadius: '12px 12px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <h3 style={{margin: 0, color: '#fff', fontSize: '18px', fontWeight: '600'}}>Task Details</h3>
+                <button onClick={() => setReportViewTask(null)} style={{background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer', color: '#fff'}}><X size={20} /></button>
+              </div>
+              <div style={{padding: '24px'}}>
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Client</div><div style={{fontSize: '14px', fontWeight: '600', color: '#10b981'}}>{reportViewTask.clientName || reportViewTask.client || '-'}</div></div>
+                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Client Code</div><div style={{fontSize: '14px', fontWeight: '500'}}>{data.clients.find(c => c.id === reportViewTask.clientId || c.name === reportViewTask.clientName)?.fileNo || '-'}</div></div>
+                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Parent Task</div><div style={{fontSize: '14px', fontWeight: '500'}}>{reportViewTask.parentTask || '-'}</div></div>
+                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Child Task</div><div style={{fontSize: '14px', fontWeight: '500'}}>{reportViewTask.childTask || '-'}</div></div>
+                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Period</div><div style={{fontSize: '14px', fontWeight: '500'}}>{reportViewTask.period || '-'}</div></div>
+                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Sub-Period</div><div style={{fontSize: '14px', fontWeight: '500'}}>{reportViewTask.subPeriod || '-'}</div></div>
+                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Assigned To</div><div style={{fontSize: '14px', fontWeight: '500'}}>{reportViewTask.primaryAssignedUser || reportViewTask.assignedTo || '-'}</div></div>
+                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Status</div><div style={{fontSize: '14px', fontWeight: '600', color: reportViewTask.status === 'Completed' || reportViewTask.completedCheck ? '#10b981' : '#f59e0b'}}>{reportViewTask.status === 'Completed' || reportViewTask.completedCheck ? 'Completed' : reportViewTask.status || 'Open'}</div></div>
+                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Due Date</div><div style={{fontSize: '14px', fontWeight: '500'}}>{reportViewTask.dueDate || '-'}</div></div>
+                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Priority</div><div style={{fontSize: '14px', fontWeight: '500'}}>{reportViewTask.priority || 'Normal'}</div></div>
+                </div>
+                {reportViewTask.remarks && <div style={{marginTop: '16px', padding: '12px', background: '#f8fafc', borderRadius: '8px'}}><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Remarks</div><div style={{fontSize: '13px'}}>{reportViewTask.remarks}</div></div>}
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Invoice View Modal for Reports */}
+        {reportViewInvoice && (
+          <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999}}>
+            <div style={{background: '#fff', borderRadius: '12px', width: '600px', maxHeight: '80vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'}}>
+              <div style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', padding: '20px', borderRadius: '12px 12px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <h3 style={{margin: 0, color: '#fff', fontSize: '18px', fontWeight: '600'}}>Invoice Details</h3>
+                <button onClick={() => setReportViewInvoice(null)} style={{background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer', color: '#fff'}}><X size={20} /></button>
+              </div>
+              <div style={{padding: '24px'}}>
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Invoice No.</div><div style={{fontSize: '16px', fontWeight: '700', color: '#10b981'}}>{reportViewInvoice.invoiceNo || '-'}</div></div>
+                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Date</div><div style={{fontSize: '14px', fontWeight: '500'}}>{reportViewInvoice.date || '-'}</div></div>
+                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Client</div><div style={{fontSize: '14px', fontWeight: '600'}}>{reportViewInvoice.clientName || '-'}</div></div>
+                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Client Code</div><div style={{fontSize: '14px', fontWeight: '500'}}>{data.clients.find(c => c.id === reportViewInvoice.clientId || c.name === reportViewInvoice.clientName)?.fileNo || '-'}</div></div>
+                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Organization</div><div style={{fontSize: '14px', fontWeight: '500'}}>{(data.organizations || []).find(o => o.id === reportViewInvoice.organizationId)?.name || '-'}</div></div>
+                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Period</div><div style={{fontSize: '14px', fontWeight: '500'}}>{reportViewInvoice.period || '-'}</div></div>
+                </div>
+                <div style={{marginTop: '20px', padding: '16px', background: 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '8px', border: '1px solid #bbf7d0'}}>
+                  <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', textAlign: 'center'}}>
+                    <div><div style={{fontSize: '11px', color: '#64748b'}}>Base Amount</div><div style={{fontSize: '16px', fontWeight: '600', color: '#166534'}}>₹{(parseFloat(reportViewInvoice.amount) || 0).toLocaleString('en-IN')}</div></div>
+                    <div><div style={{fontSize: '11px', color: '#64748b'}}>GST</div><div style={{fontSize: '16px', fontWeight: '600', color: '#166534'}}>₹{(parseFloat(reportViewInvoice.gstAmount) || 0).toLocaleString('en-IN')}</div></div>
+                    <div><div style={{fontSize: '11px', color: '#64748b'}}>Total</div><div style={{fontSize: '18px', fontWeight: '700', color: '#166534'}}>₹{(parseFloat(reportViewInvoice.totalAmount) || 0).toLocaleString('en-IN')}</div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Receipt View Modal for Reports */}
+        {reportViewReceipt && (
+          <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999}}>
+            <div style={{background: '#fff', borderRadius: '12px', width: '600px', maxHeight: '80vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'}}>
+              <div style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', padding: '20px', borderRadius: '12px 12px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <h3 style={{margin: 0, color: '#fff', fontSize: '18px', fontWeight: '600'}}>Receipt Details</h3>
+                <button onClick={() => setReportViewReceipt(null)} style={{background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer', color: '#fff'}}><X size={20} /></button>
+              </div>
+              <div style={{padding: '24px'}}>
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Receipt No.</div><div style={{fontSize: '16px', fontWeight: '700', color: '#b45309'}}>{reportViewReceipt.receiptNo || '-'}</div></div>
+                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Date</div><div style={{fontSize: '14px', fontWeight: '500'}}>{reportViewReceipt.date || '-'}</div></div>
+                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Client</div><div style={{fontSize: '14px', fontWeight: '600'}}>{reportViewReceipt.clientName || '-'}</div></div>
+                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Client Code</div><div style={{fontSize: '14px', fontWeight: '500'}}>{data.clients.find(c => c.id === reportViewReceipt.clientId || c.name === reportViewReceipt.clientName)?.fileNo || '-'}</div></div>
+                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Payment Mode</div><div style={{fontSize: '14px', fontWeight: '500'}}>{reportViewReceipt.mode || reportViewReceipt.paymentMode || 'Bank'}</div></div>
+                  <div><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Reference</div><div style={{fontSize: '14px', fontWeight: '500'}}>{reportViewReceipt.reference || reportViewReceipt.chequeNo || '-'}</div></div>
+                </div>
+                <div style={{marginTop: '20px', padding: '16px', background: 'linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%)', borderRadius: '8px', border: '1px solid #fde68a', textAlign: 'center'}}>
+                  <div style={{fontSize: '11px', color: '#92400e', marginBottom: '4px'}}>Amount Received</div>
+                  <div style={{fontSize: '24px', fontWeight: '700', color: '#b45309'}}>₹{(parseFloat(reportViewReceipt.amount) || 0).toLocaleString('en-IN')}</div>
+                </div>
+                {reportViewReceipt.narration && <div style={{marginTop: '16px', padding: '12px', background: '#f8fafc', borderRadius: '8px'}}><div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>Narration</div><div style={{fontSize: '13px'}}>{reportViewReceipt.narration}</div></div>}
+              </div>
+            </div>
           </div>
         )}
       </div>
