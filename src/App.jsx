@@ -10561,11 +10561,6 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     // =====================
     return (
       <div style={{padding: '24px', background: '#f0fdf4', minHeight: '100vh'}}>
-        {/* Header */}
-        <div style={{marginBottom: '24px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '12px', padding: '24px', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'}}>
-          <h1 style={{margin: 0, fontSize: '26px', fontWeight: '700', color: '#fff', display: 'flex', alignItems: 'center', gap: '12px'}}><BarChart3 size={28} /> Reports & Analytics</h1>
-          <p style={{margin: '8px 0 0', color: '#bbf7d0', fontSize: '14px'}}>Comprehensive business intelligence and reporting</p>
-        </div>
         
         {/* Report Tabs */}
         <div style={{display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap', background: '#fff', padding: '14px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #bbf7d0'}}>
@@ -11564,7 +11559,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   </div>
                 </div>
                 
-                {/* Staff Summary Cards */}
+                {/* Task Table - Same style as Task Report */}
                 {(() => {
                   let staffTasks = allTasks.filter(t => t.primaryAssignedUser === reportFilters.staff || t.assignedTo === reportFilters.staff);
                   if (reportFilters.parentTask) staffTasks = staffTasks.filter(t => t.parentTask === reportFilters.parentTask);
@@ -11575,41 +11570,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   if (reportFilters.status === 'Open') staffTasks = staffTasks.filter(t => t.status !== 'Completed' && !t.completedCheck && t.status !== 'In Progress');
                   if (reportFilters.status === 'In Progress') staffTasks = staffTasks.filter(t => t.status === 'In Progress');
                   
-                  const completed = staffTasks.filter(t => t.status === 'Completed' || t.completedCheck).length;
-                  const pending = staffTasks.filter(t => t.status !== 'Completed' && !t.completedCheck).length;
-                  const inProgress = staffTasks.filter(t => t.status === 'In Progress').length;
-                  const overdue = staffTasks.filter(t => {
-                    if (t.status === 'Completed' || t.completedCheck || !t.dueDate) return false;
-                    return new Date(t.dueDate.split('-').reverse().join('-')) < today;
-                  }).length;
-                  
                   return (
-                    <>
-                      <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '20px'}}>
-                        <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: '2px solid #3b82f6'}}>
-                          <div style={{fontSize: '28px', fontWeight: '700', color: '#3b82f6'}}>{staffTasks.length}</div>
-                          <div style={{fontSize: '12px', color: '#64748b'}}>Total Tasks</div>
-                        </div>
-                        <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: '1px solid #e2e8f0'}}>
-                          <div style={{fontSize: '28px', fontWeight: '700', color: '#10b981'}}>{completed}</div>
-                          <div style={{fontSize: '12px', color: '#64748b'}}>Completed</div>
-                        </div>
-                        <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: '1px solid #e2e8f0'}}>
-                          <div style={{fontSize: '28px', fontWeight: '700', color: '#f59e0b'}}>{inProgress}</div>
-                          <div style={{fontSize: '12px', color: '#64748b'}}>In Progress</div>
-                        </div>
-                        <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: '1px solid #e2e8f0'}}>
-                          <div style={{fontSize: '28px', fontWeight: '700', color: '#64748b'}}>{pending - inProgress}</div>
-                          <div style={{fontSize: '12px', color: '#64748b'}}>Open</div>
-                        </div>
-                        <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: overdue > 0 ? '2px solid #ef4444' : '1px solid #e2e8f0'}}>
-                          <div style={{fontSize: '28px', fontWeight: '700', color: overdue > 0 ? '#ef4444' : '#94a3b8'}}>{overdue}</div>
-                          <div style={{fontSize: '12px', color: '#64748b'}}>Overdue</div>
-                        </div>
-                      </div>
-                      
-                      {/* Task Table - Same style as Task Report */}
-                      <div style={{background: '#fff', borderRadius: '10px', border: '1px solid #10b981', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
+                <div style={{background: '#fff', borderRadius: '10px', border: '1px solid #10b981', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
                         <div style={{maxHeight: '500px', overflowY: 'auto', overflowX: 'auto'}}>
                           <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: '1350px'}}>
                             <thead style={{position: 'sticky', top: 0}}>
@@ -11660,7 +11622,6 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         </div>
                         {staffTasks.length === 0 && <div style={{padding: '40px', textAlign: 'center', color: '#94a3b8'}}>No tasks found matching the filters</div>}
                       </div>
-                    </>
                   );
                 })()}
               </>
@@ -12342,34 +12303,6 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         </div>
                       </div>
                       
-                      {/* Client Summary Cards */}
-                      <div style={{display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px', marginBottom: '20px'}}>
-                        <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: '2px solid #3b82f6'}}>
-                          <div style={{fontSize: '28px', fontWeight: '700', color: '#3b82f6'}}>{clientTasks.length}</div>
-                          <div style={{fontSize: '12px', color: '#64748b'}}>Total Tasks</div>
-                        </div>
-                        <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: '1px solid #e2e8f0'}}>
-                          <div style={{fontSize: '28px', fontWeight: '700', color: '#10b981'}}>{completed}</div>
-                          <div style={{fontSize: '12px', color: '#64748b'}}>Completed</div>
-                        </div>
-                        <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: '1px solid #e2e8f0'}}>
-                          <div style={{fontSize: '28px', fontWeight: '700', color: '#f59e0b'}}>{pending}</div>
-                          <div style={{fontSize: '12px', color: '#64748b'}}>Pending</div>
-                        </div>
-                        <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: overdue > 0 ? '2px solid #ef4444' : '1px solid #e2e8f0'}}>
-                          <div style={{fontSize: '28px', fontWeight: '700', color: overdue > 0 ? '#ef4444' : '#94a3b8'}}>{overdue}</div>
-                          <div style={{fontSize: '12px', color: '#64748b'}}>Overdue</div>
-                        </div>
-                        <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: '1px solid #e2e8f0'}}>
-                          <div style={{fontSize: '20px', fontWeight: '700', color: '#3b82f6'}}>₹{totalBilled.toLocaleString('en-IN')}</div>
-                          <div style={{fontSize: '12px', color: '#64748b'}}>Billed</div>
-                        </div>
-                        <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: totalBilled - totalReceived > 0 ? '2px solid #ef4444' : '1px solid #e2e8f0'}}>
-                          <div style={{fontSize: '20px', fontWeight: '700', color: totalBilled - totalReceived > 0 ? '#ef4444' : '#10b981'}}>₹{(totalBilled - totalReceived).toLocaleString('en-IN')}</div>
-                          <div style={{fontSize: '12px', color: '#64748b'}}>Outstanding</div>
-                        </div>
-                      </div>
-                      
                       {/* Tasks Table - Green Theme like main table */}
                       <div style={{background: '#fff', borderRadius: '10px', border: '1px solid #10b981', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
                         <div style={{padding: '16px 20px', borderBottom: '1px solid #10b981', background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}}>
@@ -12445,48 +12378,46 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         {/* ==================== RM REPORT ==================== */}
         {activeReportTab === 'rmReport' && (
           <div>
-            {/* Filters & Header */}
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', marginBottom: '20px', border: '1px solid #e2e8f0'}}>
+            {/* Filters & Header - Green Theme */}
+            <div style={{background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '12px', padding: '20px', marginBottom: '20px', border: '1px solid #10b981'}}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
                 <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
                   {reportFilters.selectedRM && (
-                    <button onClick={() => setReportFilters({...reportFilters, selectedRM: '', rmDetailView: ''})} style={{padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px'}}>← Back to All RMs</button>
+                    <button onClick={() => setReportFilters({...reportFilters, selectedRM: '', rmDetailView: ''})} style={{padding: '8px 16px', background: '#fff', border: '1px solid #10b981', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', color: '#166534', fontWeight: '500'}}>← Back to All RMs</button>
                   )}
-                  <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600'}}>📈 {reportFilters.selectedRM || 'Reporting Manager Performance'}</h3>
+                  <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#166534'}}>📈 {reportFilters.selectedRM || 'Reporting Manager Performance'}</h3>
                 </div>
                 <button onClick={() => {
                   const rmData = data.staff.filter(s => s.role === 'Reporting Manager').map(rm => {
-                    const teamMembers = data.staff.filter(s => s.reportingManager === rm.id || s.reportingManager === rm.name);
-                    const teamTasks = allTasks.filter(t => teamMembers.some(m => t.primaryAssignedUser === m.name || t.assignedTo === m.name) || t.taskManager === rm.name);
-                    const teamClients = [...new Set(teamTasks.map(t => t.clientName || t.client))].filter(Boolean);
-                    const teamInvoices = (data.invoices || []).filter(inv => teamClients.includes(inv.clientName));
-                    const teamReceipts = (data.receipts || []).filter(r => teamClients.includes(r.clientName));
+                    const rmTasks = allTasks.filter(t => t.taskManager === rm.name);
+                    const rmClients = [...new Set(rmTasks.map(t => t.clientName || t.client))].filter(Boolean);
+                    const rmInvoices = (data.invoices || []).filter(inv => rmTasks.some(t => inv.taskIds?.includes(t.id)) || rmClients.includes(inv.clientName));
+                    const rmReceipts = (data.receipts || []).filter(r => rmClients.includes(r.clientName));
                     return {
                       rmName: rm.name,
-                      teamSize: teamMembers.length,
-                      clientsMapped: teamClients.length,
-                      totalTasks: teamTasks.length,
-                      completedTasks: teamTasks.filter(t => t.status === 'Completed' || t.completedCheck).length,
-                      pendingTasks: teamTasks.filter(t => t.status !== 'Completed' && !t.completedCheck).length,
-                      totalBilling: teamInvoices.reduce((sum, inv) => sum + (parseFloat(inv.totalAmount) || 0), 0),
-                      totalCollection: teamReceipts.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0)
+                      clientsMapped: rmClients.length,
+                      totalTasks: rmTasks.length,
+                      completedTasks: rmTasks.filter(t => t.status === 'Completed' || t.completedCheck).length,
+                      pendingTasks: rmTasks.filter(t => t.status !== 'Completed' && !t.completedCheck).length,
+                      totalBilling: rmInvoices.reduce((sum, inv) => sum + (parseFloat(inv.totalAmount) || 0), 0),
+                      totalCollection: rmReceipts.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0)
                     };
                   });
-                  exportToCSV(rmData, 'rm_report', ['rmName', 'teamSize', 'clientsMapped', 'totalTasks', 'completedTasks', 'pendingTasks', 'totalBilling', 'totalCollection']);
-                }} style={{padding: '6px 12px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px'}}>📥 Export CSV</button>
+                  exportToCSV(rmData, 'rm_report', ['rmName', 'clientsMapped', 'totalTasks', 'completedTasks', 'pendingTasks', 'totalBilling', 'totalCollection']);
+                }} style={{padding: '8px 14px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'}}><Download size={14} /> Export CSV</button>
               </div>
               {!reportFilters.selectedRM && (
                 <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px'}}>
                   <div>
-                    <label style={{fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px'}}>Reporting Manager</label>
-                    <select value={reportFilters.reportingManager} onChange={(e) => setReportFilters({...reportFilters, reportingManager: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}>
+                    <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Reporting Manager</label>
+                    <select value={reportFilters.reportingManager} onChange={(e) => setReportFilters({...reportFilters, reportingManager: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
                       <option value="">All Reporting Managers</option>
                       {reportingManagers.map(rm => <option key={rm} value={rm}>{rm}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label style={{fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px'}}>Financial Year</label>
-                    <select value={reportFilters.financialYear} onChange={(e) => setReportFilters({...reportFilters, financialYear: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}>
+                    <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Financial Year</label>
+                    <select value={reportFilters.financialYear} onChange={(e) => setReportFilters({...reportFilters, financialYear: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
                       <option value="">All FY</option>
                       {uniqueFYs.map(fy => <option key={fy} value={fy}>{fy}</option>)}
                     </select>
@@ -12499,74 +12430,72 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             {!reportFilters.selectedRM && (
               <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px'}}>
                 {data.staff.filter(s => s.role === 'Reporting Manager' && (!reportFilters.reportingManager || s.name === reportFilters.reportingManager)).map(rm => {
-                  const teamMembers = data.staff.filter(s => s.reportingManager === rm.id || s.reportingManager === rm.name || (s.role === 'Seniors' || s.role === 'Articles'));
-                  let teamTasks = allTasks.filter(t => 
-                    teamMembers.some(m => t.primaryAssignedUser === m.name || t.assignedTo === m.name) || 
-                    t.taskManager === rm.name
-                  );
-                  if (reportFilters.financialYear) teamTasks = teamTasks.filter(t => t.financialYear === reportFilters.financialYear);
+                  // Get tasks where this RM is the taskManager
+                  let rmTasks = allTasks.filter(t => t.taskManager === rm.name);
+                  if (reportFilters.financialYear) rmTasks = rmTasks.filter(t => t.financialYear === reportFilters.financialYear);
                   
-                  const teamClients = [...new Set(teamTasks.map(t => t.clientName || t.client))].filter(Boolean);
-                  const completed = teamTasks.filter(t => t.status === 'Completed' || t.completedCheck).length;
-                  const pending = teamTasks.filter(t => t.status !== 'Completed' && !t.completedCheck).length;
-                  const overdue = teamTasks.filter(t => {
+                  const rmClients = [...new Set(rmTasks.map(t => t.clientName || t.client))].filter(Boolean);
+                  const completed = rmTasks.filter(t => t.status === 'Completed' || t.completedCheck).length;
+                  const pending = rmTasks.filter(t => t.status !== 'Completed' && !t.completedCheck).length;
+                  const overdue = rmTasks.filter(t => {
                     if (t.status === 'Completed' || t.completedCheck || !t.dueDate) return false;
                     return new Date(t.dueDate.split('-').reverse().join('-')) < today;
                   }).length;
                   
-                  const teamInvoices = (data.invoices || []).filter(inv => teamClients.includes(inv.clientName));
-                  const teamReceipts = (data.receipts || []).filter(r => teamClients.includes(r.clientName));
-                  const totalBilling = teamInvoices.reduce((sum, inv) => sum + (parseFloat(inv.totalAmount) || 0), 0);
-                  const totalCollection = teamReceipts.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
+                  // Get invoices for tasks managed by this RM
+                  const rmInvoices = (data.invoices || []).filter(inv => rmTasks.some(t => inv.taskIds?.includes(t.id)) || rmClients.includes(inv.clientName));
+                  const rmReceipts = (data.receipts || []).filter(r => rmClients.includes(r.clientName));
+                  const totalBilling = rmInvoices.reduce((sum, inv) => sum + (parseFloat(inv.totalAmount) || 0), 0);
+                  const totalCollection = rmReceipts.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
                   
                   return (
-                    <div key={rm.id} style={{background: '#fff', borderRadius: '12px', padding: '24px', border: '1px solid #e2e8f0'}}>
+                    <div key={rm.id} style={{background: '#fff', borderRadius: '12px', padding: '24px', border: '1px solid #10b981'}}>
                       {/* RM Header - Clickable */}
-                      <div onClick={() => setReportFilters({...reportFilters, selectedRM: rm.name, rmDetailView: 'clients'})} style={{display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer'}}>
-                        <div style={{width: '56px', height: '56px', borderRadius: '50%', background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: '600'}}>{rm.name.charAt(0)}</div>
+                      <div onClick={() => setReportFilters({...reportFilters, selectedRM: rm.name, rmDetailView: 'clients'})} style={{display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid #dcfce7', cursor: 'pointer'}}>
+                        <div style={{width: '56px', height: '56px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: '600'}}>{rm.name.charAt(0)}</div>
                         <div style={{flex: 1}}>
-                          <div style={{fontWeight: '600', fontSize: '16px'}}>{rm.name}</div>
+                          <div style={{fontWeight: '600', fontSize: '16px', color: '#166534'}}>{rm.name}</div>
                           <div style={{fontSize: '12px', color: '#64748b'}}>Click to view details</div>
                         </div>
                         <div style={{textAlign: 'right'}}>
-                          <div style={{fontSize: '11px', color: '#64748b'}}>Team Size</div>
-                          <div style={{fontSize: '20px', fontWeight: '700', color: '#3b82f6'}}>{teamMembers.length}</div>
+                          <div style={{fontSize: '11px', color: '#64748b'}}>Total Tasks</div>
+                          <div style={{fontSize: '20px', fontWeight: '700', color: '#10b981'}}>{rmTasks.length}</div>
                         </div>
                       </div>
                       
                       {/* Clickable KPI Grid */}
                       <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px'}}>
-                        <div onClick={() => setReportFilters({...reportFilters, selectedRM: rm.name, rmDetailView: 'clients'})} style={{textAlign: 'center', padding: '12px', background: '#eff6ff', borderRadius: '10px', cursor: 'pointer', transition: 'transform 0.1s', border: '2px solid transparent'}} onMouseEnter={(e) => e.currentTarget.style.border = '2px solid #3b82f6'} onMouseLeave={(e) => e.currentTarget.style.border = '2px solid transparent'}>
-                          <div style={{fontSize: '22px', fontWeight: '700', color: '#3b82f6'}}>{teamClients.length}</div>
+                        <div onClick={() => setReportFilters({...reportFilters, selectedRM: rm.name, rmDetailView: 'clients'})} style={{textAlign: 'center', padding: '12px', background: '#f0fdf4', borderRadius: '10px', cursor: 'pointer', transition: 'transform 0.1s', border: '2px solid transparent'}} onMouseEnter={(e) => e.currentTarget.style.border = '2px solid #10b981'} onMouseLeave={(e) => e.currentTarget.style.border = '2px solid transparent'}>
+                          <div style={{fontSize: '22px', fontWeight: '700', color: '#166534'}}>{rmClients.length}</div>
                           <div style={{fontSize: '10px', color: '#64748b'}}>Clients</div>
                         </div>
-                        <div onClick={() => setReportFilters({...reportFilters, selectedRM: rm.name, rmDetailView: 'completed'})} style={{textAlign: 'center', padding: '12px', background: '#f0fdf4', borderRadius: '10px', cursor: 'pointer', transition: 'transform 0.1s', border: '2px solid transparent'}} onMouseEnter={(e) => e.currentTarget.style.border = '2px solid #10b981'} onMouseLeave={(e) => e.currentTarget.style.border = '2px solid transparent'}>
-                          <div style={{fontSize: '22px', fontWeight: '700', color: '#10b981'}}>{completed}</div>
+                        <div onClick={() => setReportFilters({...reportFilters, selectedRM: rm.name, rmDetailView: 'completed'})} style={{textAlign: 'center', padding: '12px', background: '#dcfce7', borderRadius: '10px', cursor: 'pointer', transition: 'transform 0.1s', border: '2px solid transparent'}} onMouseEnter={(e) => e.currentTarget.style.border = '2px solid #10b981'} onMouseLeave={(e) => e.currentTarget.style.border = '2px solid transparent'}>
+                          <div style={{fontSize: '22px', fontWeight: '700', color: '#166534'}}>{completed}</div>
                           <div style={{fontSize: '10px', color: '#64748b'}}>Completed</div>
                         </div>
-                        <div onClick={() => setReportFilters({...reportFilters, selectedRM: rm.name, rmDetailView: 'pending'})} style={{textAlign: 'center', padding: '12px', background: '#fffbeb', borderRadius: '10px', cursor: 'pointer', transition: 'transform 0.1s', border: '2px solid transparent'}} onMouseEnter={(e) => e.currentTarget.style.border = '2px solid #f59e0b'} onMouseLeave={(e) => e.currentTarget.style.border = '2px solid transparent'}>
-                          <div style={{fontSize: '22px', fontWeight: '700', color: '#f59e0b'}}>{pending}</div>
+                        <div onClick={() => setReportFilters({...reportFilters, selectedRM: rm.name, rmDetailView: 'pending'})} style={{textAlign: 'center', padding: '12px', background: '#fef3c7', borderRadius: '10px', cursor: 'pointer', transition: 'transform 0.1s', border: '2px solid transparent'}} onMouseEnter={(e) => e.currentTarget.style.border = '2px solid #f59e0b'} onMouseLeave={(e) => e.currentTarget.style.border = '2px solid transparent'}>
+                          <div style={{fontSize: '22px', fontWeight: '700', color: '#92400e'}}>{pending}</div>
                           <div style={{fontSize: '10px', color: '#64748b'}}>Pending</div>
                         </div>
-                        <div onClick={() => setReportFilters({...reportFilters, selectedRM: rm.name, rmDetailView: 'overdue'})} style={{textAlign: 'center', padding: '12px', background: overdue > 0 ? '#fef2f2' : '#f8fafc', borderRadius: '10px', cursor: 'pointer', transition: 'transform 0.1s', border: '2px solid transparent'}} onMouseEnter={(e) => e.currentTarget.style.border = '2px solid #ef4444'} onMouseLeave={(e) => e.currentTarget.style.border = '2px solid transparent'}>
-                          <div style={{fontSize: '22px', fontWeight: '700', color: overdue > 0 ? '#ef4444' : '#94a3b8'}}>{overdue}</div>
+                        <div onClick={() => setReportFilters({...reportFilters, selectedRM: rm.name, rmDetailView: 'overdue'})} style={{textAlign: 'center', padding: '12px', background: overdue > 0 ? '#fee2e2' : '#f8fafc', borderRadius: '10px', cursor: 'pointer', transition: 'transform 0.1s', border: '2px solid transparent'}} onMouseEnter={(e) => e.currentTarget.style.border = '2px solid #ef4444'} onMouseLeave={(e) => e.currentTarget.style.border = '2px solid transparent'}>
+                          <div style={{fontSize: '22px', fontWeight: '700', color: overdue > 0 ? '#dc2626' : '#94a3b8'}}>{overdue}</div>
                           <div style={{fontSize: '10px', color: '#64748b'}}>Overdue</div>
                         </div>
                       </div>
                       
                       {/* Clickable Billing Stats */}
                       <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px'}}>
-                        <div onClick={() => setReportFilters({...reportFilters, selectedRM: rm.name, rmDetailView: 'billing'})} style={{padding: '12px', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer', border: '2px solid transparent'}} onMouseEnter={(e) => e.currentTarget.style.border = '2px solid #3b82f6'} onMouseLeave={(e) => e.currentTarget.style.border = '2px solid transparent'}>
+                        <div onClick={() => setReportFilters({...reportFilters, selectedRM: rm.name, rmDetailView: 'billing'})} style={{padding: '12px', background: '#f0fdf4', borderRadius: '8px', cursor: 'pointer', border: '2px solid transparent'}} onMouseEnter={(e) => e.currentTarget.style.border = '2px solid #10b981'} onMouseLeave={(e) => e.currentTarget.style.border = '2px solid transparent'}>
                           <div style={{fontSize: '10px', color: '#64748b', marginBottom: '4px'}}>Total Billing</div>
-                          <div style={{fontSize: '16px', fontWeight: '600', color: '#3b82f6'}}>₹{totalBilling.toLocaleString('en-IN')}</div>
+                          <div style={{fontSize: '16px', fontWeight: '600', color: '#166534'}}>₹{totalBilling.toLocaleString('en-IN')}</div>
                         </div>
-                        <div onClick={() => setReportFilters({...reportFilters, selectedRM: rm.name, rmDetailView: 'collection'})} style={{padding: '12px', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer', border: '2px solid transparent'}} onMouseEnter={(e) => e.currentTarget.style.border = '2px solid #10b981'} onMouseLeave={(e) => e.currentTarget.style.border = '2px solid transparent'}>
+                        <div onClick={() => setReportFilters({...reportFilters, selectedRM: rm.name, rmDetailView: 'collection'})} style={{padding: '12px', background: '#f0fdf4', borderRadius: '8px', cursor: 'pointer', border: '2px solid transparent'}} onMouseEnter={(e) => e.currentTarget.style.border = '2px solid #10b981'} onMouseLeave={(e) => e.currentTarget.style.border = '2px solid transparent'}>
                           <div style={{fontSize: '10px', color: '#64748b', marginBottom: '4px'}}>Collection</div>
-                          <div style={{fontSize: '16px', fontWeight: '600', color: '#10b981'}}>₹{totalCollection.toLocaleString('en-IN')}</div>
+                          <div style={{fontSize: '16px', fontWeight: '600', color: '#166534'}}>₹{totalCollection.toLocaleString('en-IN')}</div>
                         </div>
-                        <div onClick={() => setReportFilters({...reportFilters, selectedRM: rm.name, rmDetailView: 'outstanding'})} style={{padding: '12px', background: '#f8fafc', borderRadius: '8px', cursor: 'pointer', border: '2px solid transparent'}} onMouseEnter={(e) => e.currentTarget.style.border = '2px solid #ef4444'} onMouseLeave={(e) => e.currentTarget.style.border = '2px solid transparent'}>
+                        <div onClick={() => setReportFilters({...reportFilters, selectedRM: rm.name, rmDetailView: 'outstanding'})} style={{padding: '12px', background: totalBilling - totalCollection > 0 ? '#fef2f2' : '#f0fdf4', borderRadius: '8px', cursor: 'pointer', border: '2px solid transparent'}} onMouseEnter={(e) => e.currentTarget.style.border = '2px solid #ef4444'} onMouseLeave={(e) => e.currentTarget.style.border = '2px solid transparent'}>
                           <div style={{fontSize: '10px', color: '#64748b', marginBottom: '4px'}}>Outstanding</div>
-                          <div style={{fontSize: '16px', fontWeight: '600', color: '#ef4444'}}>₹{(totalBilling - totalCollection).toLocaleString('en-IN')}</div>
+                          <div style={{fontSize: '16px', fontWeight: '600', color: totalBilling - totalCollection > 0 ? '#dc2626' : '#166534'}}>₹{(totalBilling - totalCollection).toLocaleString('en-IN')}</div>
                         </div>
                       </div>
                     </div>
@@ -12582,68 +12511,65 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   const rm = data.staff.find(s => s.name === reportFilters.selectedRM);
                   if (!rm) return <div style={{padding: '40px', textAlign: 'center', color: '#94a3b8'}}>RM not found</div>;
                   
-                  const teamMembers = data.staff.filter(s => s.reportingManager === rm.id || s.reportingManager === rm.name || (s.role === 'Seniors' || s.role === 'Articles'));
-                  let teamTasks = allTasks.filter(t => 
-                    teamMembers.some(m => t.primaryAssignedUser === m.name || t.assignedTo === m.name) || 
-                    t.taskManager === rm.name
-                  );
-                  if (reportFilters.financialYear) teamTasks = teamTasks.filter(t => t.financialYear === reportFilters.financialYear);
+                  // Get tasks where this RM is the taskManager
+                  let rmTasks = allTasks.filter(t => t.taskManager === rm.name);
+                  if (reportFilters.financialYear) rmTasks = rmTasks.filter(t => t.financialYear === reportFilters.financialYear);
                   
-                  const teamClients = [...new Set(teamTasks.map(t => t.clientName || t.client))].filter(Boolean);
-                  const completed = teamTasks.filter(t => t.status === 'Completed' || t.completedCheck).length;
-                  const pending = teamTasks.filter(t => t.status !== 'Completed' && !t.completedCheck).length;
-                  const overdue = teamTasks.filter(t => {
+                  const rmClients = [...new Set(rmTasks.map(t => t.clientName || t.client))].filter(Boolean);
+                  const completed = rmTasks.filter(t => t.status === 'Completed' || t.completedCheck).length;
+                  const pending = rmTasks.filter(t => t.status !== 'Completed' && !t.completedCheck).length;
+                  const overdue = rmTasks.filter(t => {
                     if (t.status === 'Completed' || t.completedCheck || !t.dueDate) return false;
                     return new Date(t.dueDate.split('-').reverse().join('-')) < today;
                   }).length;
                   
-                  const teamInvoices = (data.invoices || []).filter(inv => teamClients.includes(inv.clientName));
-                  const teamReceipts = (data.receipts || []).filter(r => teamClients.includes(r.clientName));
-                  const totalBilling = teamInvoices.reduce((sum, inv) => sum + (parseFloat(inv.totalAmount) || 0), 0);
-                  const totalCollection = teamReceipts.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
+                  const rmInvoices = (data.invoices || []).filter(inv => rmTasks.some(t => inv.taskIds?.includes(t.id)) || rmClients.includes(inv.clientName));
+                  const rmReceipts = (data.receipts || []).filter(r => rmClients.includes(r.clientName));
+                  const totalBilling = rmInvoices.reduce((sum, inv) => sum + (parseFloat(inv.totalAmount) || 0), 0);
+                  const totalCollection = rmReceipts.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
                   
                   // Filter tabs
                   const detailViews = [
-                    { id: 'clients', label: 'Clients', count: teamClients.length, color: '#3b82f6' },
+                    { id: 'clients', label: 'Clients', count: rmClients.length, color: '#10b981' },
                     { id: 'completed', label: 'Completed', count: completed, color: '#10b981' },
                     { id: 'pending', label: 'Pending', count: pending, color: '#f59e0b' },
                     { id: 'overdue', label: 'Overdue', count: overdue, color: '#ef4444' },
-                    { id: 'billing', label: 'Billing', count: teamInvoices.length, color: '#3b82f6' },
-                    { id: 'collection', label: 'Collection', count: teamReceipts.length, color: '#10b981' },
-                    { id: 'outstanding', label: 'Outstanding', count: teamClients.filter(c => {
-                      const inv = teamInvoices.filter(i => i.clientName === c).reduce((s, i) => s + (parseFloat(i.totalAmount) || 0), 0);
-                      const rec = teamReceipts.filter(r => r.clientName === c).reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
+                    { id: 'billing', label: 'Billing', count: rmInvoices.length, color: '#10b981' },
+                    { id: 'collection', label: 'Collection', count: rmReceipts.length, color: '#10b981' },
+                    { id: 'outstanding', label: 'Outstanding', count: rmClients.filter(c => {
+                      const inv = rmInvoices.filter(i => i.clientName === c).reduce((s, i) => s + (parseFloat(i.totalAmount) || 0), 0);
+                      const rec = rmReceipts.filter(r => r.clientName === c).reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
                       return inv - rec > 0;
                     }).length, color: '#ef4444' }
                   ];
                   
                   return (
                     <>
-                      {/* Summary Cards */}
+                      {/* Summary Cards - Green Theme */}
                       <div style={{display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '12px', marginBottom: '20px'}}>
                         {detailViews.map(view => (
                           <div 
                             key={view.id}
                             onClick={() => setReportFilters({...reportFilters, rmDetailView: view.id})}
                             style={{
-                              background: reportFilters.rmDetailView === view.id ? view.color : '#fff', 
+                              background: reportFilters.rmDetailView === view.id ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#fff', 
                               borderRadius: '10px', 
                               padding: '16px', 
-                              border: reportFilters.rmDetailView === view.id ? 'none' : `2px solid ${view.color}`,
+                              border: reportFilters.rmDetailView === view.id ? 'none' : '1px solid #10b981',
                               cursor: 'pointer',
                               textAlign: 'center'
                             }}
                           >
-                            <div style={{fontSize: '20px', fontWeight: '700', color: reportFilters.rmDetailView === view.id ? '#fff' : view.color}}>{view.count}</div>
+                            <div style={{fontSize: '20px', fontWeight: '700', color: reportFilters.rmDetailView === view.id ? '#fff' : '#166534'}}>{view.count}</div>
                             <div style={{fontSize: '11px', color: reportFilters.rmDetailView === view.id ? 'rgba(255,255,255,0.8)' : '#64748b'}}>{view.label}</div>
                           </div>
                         ))}
                       </div>
                       
                       {/* Detail Table based on selected view */}
-                      <div style={{background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden'}}>
-                        <div style={{padding: '16px 20px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc'}}>
-                          <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600'}}>
+                      <div style={{background: '#fff', borderRadius: '10px', border: '1px solid #10b981', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
+                        <div style={{padding: '16px 20px', borderBottom: '1px solid #10b981', background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}}>
+                          <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#166534'}}>
                             {reportFilters.rmDetailView === 'clients' && '🏢 Clients Mapped to ' + rm.name}
                             {reportFilters.rmDetailView === 'completed' && '✅ Completed Tasks'}
                             {reportFilters.rmDetailView === 'pending' && '⏳ Pending Tasks'}
@@ -12653,35 +12579,42 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             {reportFilters.rmDetailView === 'outstanding' && '⚠️ Outstanding by Client'}
                           </h3>
                         </div>
-                        <div style={{maxHeight: '500px', overflowY: 'auto'}}>
+                        <div style={{maxHeight: '500px', overflowY: 'auto', overflowX: 'auto'}}>
                           {/* Clients Table */}
                           {reportFilters.rmDetailView === 'clients' && (
-                            <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
-                              <thead style={{position: 'sticky', top: 0, background: '#f8fafc'}}>
-                                <tr>
-                                  <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Client</th>
-                                  <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Tasks</th>
-                                  <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Done</th>
-                                  <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Pending</th>
-                                  <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Billed</th>
-                                  <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Collected</th>
-                                  <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Outstanding</th>
+                            <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: '900px'}}>
+                              <thead style={{position: 'sticky', top: 0}}>
+                                <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '40px'}}>Sr.</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '70px'}}>Code</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '50px'}}>Grp</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client Name</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '60px'}}>Tasks</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '60px'}}>Done</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '60px'}}>Pending</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '100px'}}>Billed</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '100px'}}>Collected</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '100px'}}>Outstanding</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {teamClients.map(clientName => {
-                                  const clientTasks = teamTasks.filter(t => (t.clientName || t.client) === clientName);
-                                  const clientBilled = teamInvoices.filter(i => i.clientName === clientName).reduce((s, i) => s + (parseFloat(i.totalAmount) || 0), 0);
-                                  const clientCollected = teamReceipts.filter(r => r.clientName === clientName).reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
+                                {rmClients.map((clientName, idx) => {
+                                  const client = data.clients.find(c => c.name === clientName);
+                                  const clientTasks = rmTasks.filter(t => (t.clientName || t.client) === clientName);
+                                  const clientBilled = rmInvoices.filter(i => i.clientName === clientName).reduce((s, i) => s + (parseFloat(i.totalAmount) || 0), 0);
+                                  const clientCollected = rmReceipts.filter(r => r.clientName === clientName).reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
                                   return (
-                                    <tr key={clientName} style={{borderBottom: '1px solid #f1f5f9'}}>
-                                      <td style={{padding: '12px', fontWeight: '500'}}>{clientName}</td>
-                                      <td style={{padding: '12px', textAlign: 'center'}}>{clientTasks.length}</td>
-                                      <td style={{padding: '12px', textAlign: 'center', color: '#10b981'}}>{clientTasks.filter(t => t.status === 'Completed' || t.completedCheck).length}</td>
-                                      <td style={{padding: '12px', textAlign: 'center', color: '#f59e0b'}}>{clientTasks.filter(t => t.status !== 'Completed' && !t.completedCheck).length}</td>
-                                      <td style={{padding: '12px', textAlign: 'right'}}>₹{clientBilled.toLocaleString('en-IN')}</td>
-                                      <td style={{padding: '12px', textAlign: 'right', color: '#10b981'}}>₹{clientCollected.toLocaleString('en-IN')}</td>
-                                      <td style={{padding: '12px', textAlign: 'right', color: clientBilled - clientCollected > 0 ? '#ef4444' : '#10b981', fontWeight: '600'}}>₹{(clientBilled - clientCollected).toLocaleString('en-IN')}</td>
+                                    <tr key={clientName} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{idx + 1}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{client?.fileNo || '-'}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', textAlign: 'center', fontSize: '10px'}}>{client?.fileNo ? client.fileNo.split('.')[0] : '-'}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', fontWeight: '500', color: '#374151'}}>{clientName}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center', color: '#374151', fontWeight: '600'}}>{clientTasks.length}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}><span style={{padding: '2px 6px', borderRadius: '8px', fontSize: '10px', fontWeight: '600', background: '#dcfce7', color: '#166534'}}>{clientTasks.filter(t => t.status === 'Completed' || t.completedCheck).length}</span></td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}><span style={{padding: '2px 6px', borderRadius: '8px', fontSize: '10px', fontWeight: '600', background: '#fef3c7', color: '#92400e'}}>{clientTasks.filter(t => t.status !== 'Completed' && !t.completedCheck).length}</span></td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'right', color: '#374151', fontWeight: '500'}}>{clientBilled > 0 ? `₹${clientBilled.toLocaleString('en-IN')}` : '-'}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'right', color: '#374151', fontWeight: '500'}}>{clientCollected > 0 ? `₹${clientCollected.toLocaleString('en-IN')}` : '-'}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'right', fontWeight: '600', color: clientBilled - clientCollected > 0 ? '#dc2626' : clientBilled - clientCollected < 0 ? '#166534' : '#374151'}}>{clientBilled - clientCollected !== 0 ? `₹${(clientBilled - clientCollected).toLocaleString('en-IN')}` : '-'}</td>
                                     </tr>
                                   );
                                 })}
@@ -12691,18 +12624,21 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           
                           {/* Completed/Pending/Overdue Tasks Table */}
                           {(reportFilters.rmDetailView === 'completed' || reportFilters.rmDetailView === 'pending' || reportFilters.rmDetailView === 'overdue') && (
-                            <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
-                              <thead style={{position: 'sticky', top: 0, background: '#f8fafc'}}>
-                                <tr>
-                                  <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Client</th>
-                                  <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Task</th>
-                                  <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Assigned To</th>
-                                  <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Due Date</th>
-                                  <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Status</th>
+                            <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: '1000px'}}>
+                              <thead style={{position: 'sticky', top: 0}}>
+                                <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '40px'}}>Sr.</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '70px'}}>Code</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '120px'}}>Client Name</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '100px'}}>Parent Task</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '100px'}}>Child Task</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '150px'}}>Description</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '85px'}}>Start Date</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '80px'}}>Status</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {teamTasks.filter(t => {
+                                {rmTasks.filter(t => {
                                   if (reportFilters.rmDetailView === 'completed') return t.status === 'Completed' || t.completedCheck;
                                   if (reportFilters.rmDetailView === 'pending') return t.status !== 'Completed' && !t.completedCheck;
                                   if (reportFilters.rmDetailView === 'overdue') {
@@ -12710,101 +12646,136 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                     return new Date(t.dueDate.split('-').reverse().join('-')) < today;
                                   }
                                   return true;
-                                }).map(task => (
-                                  <tr key={task.id} style={{borderBottom: '1px solid #f1f5f9'}}>
-                                    <td style={{padding: '12px'}}>{task.clientName || task.client || '-'}</td>
-                                    <td style={{padding: '12px', fontWeight: '500'}}>{task.childTask || task.parentTask}</td>
-                                    <td style={{padding: '12px'}}>{task.primaryAssignedUser || task.assignedTo || '-'}</td>
-                                    <td style={{padding: '12px', color: reportFilters.rmDetailView === 'overdue' ? '#ef4444' : 'inherit'}}>{task.dueDate || '-'}</td>
-                                    <td style={{padding: '12px', textAlign: 'center'}}>
-                                      <span style={{padding: '4px 10px', borderRadius: '12px', fontSize: '10px', fontWeight: '600', background: task.status === 'Completed' || task.completedCheck ? '#dcfce7' : reportFilters.rmDetailView === 'overdue' ? '#fee2e2' : '#fef3c7', color: task.status === 'Completed' || task.completedCheck ? '#166534' : reportFilters.rmDetailView === 'overdue' ? '#dc2626' : '#92400e'}}>{task.status === 'Completed' || task.completedCheck ? 'Completed' : reportFilters.rmDetailView === 'overdue' ? 'Overdue' : task.status || 'Open'}</span>
-                                    </td>
-                                  </tr>
-                                ))}
+                                }).map((task, idx) => {
+                                  const client = data.clients.find(c => c.id === task.clientId || c.name === task.clientName || c.name === task.client);
+                                  return (
+                                    <tr key={task.id} style={{background: reportFilters.rmDetailView === 'overdue' ? '#fef2f2' : idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{idx + 1}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{client?.fileNo || '-'}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.clientName || task.client || '-'}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.parentTask || '-'}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontWeight: '500'}}>{task.childTask || '-'}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{task.taskDescription || task.description || '-'}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{task.startDate || '-'}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
+                                        <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '9px', fontWeight: '600', background: task.status === 'Completed' || task.completedCheck ? '#dcfce7' : reportFilters.rmDetailView === 'overdue' ? '#fee2e2' : '#fef3c7', color: task.status === 'Completed' || task.completedCheck ? '#166534' : reportFilters.rmDetailView === 'overdue' ? '#dc2626' : '#92400e'}}>{task.status === 'Completed' || task.completedCheck ? 'Completed' : reportFilters.rmDetailView === 'overdue' ? 'Overdue' : task.status || 'Open'}</span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
                               </tbody>
                             </table>
                           )}
                           
                           {/* Billing (Invoices) Table */}
                           {reportFilters.rmDetailView === 'billing' && (
-                            <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
-                              <thead style={{position: 'sticky', top: 0, background: '#f8fafc'}}>
-                                <tr>
-                                  <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Invoice #</th>
-                                  <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Client</th>
-                                  <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Date</th>
-                                  <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Amount</th>
+                            <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: '900px'}}>
+                              <thead style={{position: 'sticky', top: 0}}>
+                                <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '40px'}}>Sr.</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '100px'}}>Invoice No.</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '70px'}}>Code</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '50px'}}>Grp</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client Name</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '90px'}}>Bill Date</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '100px'}}>Amount</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {teamInvoices.map(inv => (
-                                  <tr key={inv.id} style={{borderBottom: '1px solid #f1f5f9'}}>
-                                    <td style={{padding: '12px', fontWeight: '500'}}>{inv.invoiceNumber || inv.id?.slice(-8)}</td>
-                                    <td style={{padding: '12px'}}>{inv.clientName || '-'}</td>
-                                    <td style={{padding: '12px'}}>{inv.date || '-'}</td>
-                                    <td style={{padding: '12px', textAlign: 'right', fontWeight: '600', color: '#3b82f6'}}>₹{(parseFloat(inv.totalAmount) || 0).toLocaleString('en-IN')}</td>
-                                  </tr>
-                                ))}
+                                {rmInvoices.map((inv, idx) => {
+                                  const client = data.clients.find(c => c.name === inv.clientName);
+                                  return (
+                                    <tr key={inv.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{idx + 1}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontWeight: '500'}}>{inv.invoiceNo || inv.invoiceNumber || '-'}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{client?.fileNo || inv.clientCode || '-'}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', textAlign: 'center', fontSize: '10px'}}>{client?.fileNo ? client.fileNo.split('.')[0] : '-'}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{inv.clientName || '-'}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{inv.invoiceDate || inv.date || '-'}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'right', fontWeight: '600', color: '#374151'}}>₹{(parseFloat(inv.totalAmount) || 0).toLocaleString('en-IN')}</td>
+                                    </tr>
+                                  );
+                                })}
                               </tbody>
                             </table>
                           )}
                           
                           {/* Collection (Receipts) Table */}
                           {reportFilters.rmDetailView === 'collection' && (
-                            <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
-                              <thead style={{position: 'sticky', top: 0, background: '#f8fafc'}}>
-                                <tr>
-                                  <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Receipt #</th>
-                                  <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Client</th>
-                                  <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Date</th>
-                                  <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Mode</th>
-                                  <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Amount</th>
+                            <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: '950px'}}>
+                              <thead style={{position: 'sticky', top: 0}}>
+                                <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '40px'}}>Sr.</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '100px'}}>Receipt No.</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '70px'}}>Code</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '50px'}}>Grp</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client Name</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '90px'}}>Receipt Date</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '80px'}}>Mode</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '100px'}}>Amount</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {teamReceipts.map(r => (
-                                  <tr key={r.id} style={{borderBottom: '1px solid #f1f5f9'}}>
-                                    <td style={{padding: '12px', fontWeight: '500'}}>{r.receiptNumber || r.id?.slice(-8)}</td>
-                                    <td style={{padding: '12px'}}>{r.clientName || '-'}</td>
-                                    <td style={{padding: '12px'}}>{r.date || '-'}</td>
-                                    <td style={{padding: '12px'}}>{r.mode || r.paymentMode || 'Bank'}</td>
-                                    <td style={{padding: '12px', textAlign: 'right', fontWeight: '600', color: '#10b981'}}>₹{(parseFloat(r.amount) || 0).toLocaleString('en-IN')}</td>
-                                  </tr>
-                                ))}
+                                {rmReceipts.map((r, idx) => {
+                                  const client = data.clients.find(c => c.name === r.clientName);
+                                  return (
+                                    <tr key={r.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{idx + 1}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontWeight: '500'}}>{r.receiptNo || r.receiptNumber || '-'}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{client?.fileNo || '-'}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', textAlign: 'center', fontSize: '10px'}}>{client?.fileNo ? client.fileNo.split('.')[0] : '-'}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{r.clientName || '-'}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{r.date || r.receiptDate || '-'}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{r.mode || r.paymentMode || 'Bank'}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'right', fontWeight: '600', color: '#374151'}}>₹{(parseFloat(r.amount) || 0).toLocaleString('en-IN')}</td>
+                                    </tr>
+                                  );
+                                })}
                               </tbody>
                             </table>
                           )}
                           
                           {/* Outstanding Table */}
                           {reportFilters.rmDetailView === 'outstanding' && (
-                            <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
-                              <thead style={{position: 'sticky', top: 0, background: '#f8fafc'}}>
-                                <tr>
-                                  <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Client</th>
-                                  <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Total Billed</th>
-                                  <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Collected</th>
-                                  <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Outstanding</th>
-                                  <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Collection %</th>
+                            <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: '800px'}}>
+                              <thead style={{position: 'sticky', top: 0}}>
+                                <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '40px'}}>Sr.</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '70px'}}>Code</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '50px'}}>Grp</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client Name</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '100px'}}>Total Billed</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '100px'}}>Collected</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '100px'}}>Outstanding</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '90px'}}>Collection %</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {teamClients.map(clientName => {
-                                  const clientBilled = teamInvoices.filter(i => i.clientName === clientName).reduce((s, i) => s + (parseFloat(i.totalAmount) || 0), 0);
-                                  const clientCollected = teamReceipts.filter(r => r.clientName === clientName).reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
-                                  const outstanding = clientBilled - clientCollected;
-                                  if (outstanding <= 0) return null;
-                                  return (
-                                    <tr key={clientName} style={{borderBottom: '1px solid #f1f5f9'}}>
-                                      <td style={{padding: '12px', fontWeight: '500'}}>{clientName}</td>
-                                      <td style={{padding: '12px', textAlign: 'right'}}>₹{clientBilled.toLocaleString('en-IN')}</td>
-                                      <td style={{padding: '12px', textAlign: 'right', color: '#10b981'}}>₹{clientCollected.toLocaleString('en-IN')}</td>
-                                      <td style={{padding: '12px', textAlign: 'right', color: '#ef4444', fontWeight: '600'}}>₹{outstanding.toLocaleString('en-IN')}</td>
-                                      <td style={{padding: '12px', textAlign: 'center'}}>
-                                        <span style={{padding: '4px 10px', borderRadius: '12px', fontSize: '10px', fontWeight: '600', background: clientBilled > 0 && (clientCollected / clientBilled) >= 0.8 ? '#dcfce7' : '#fee2e2', color: clientBilled > 0 && (clientCollected / clientBilled) >= 0.8 ? '#166534' : '#dc2626'}}>{clientBilled > 0 ? Math.round((clientCollected / clientBilled) * 100) : 0}%</span>
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
+                                {(() => {
+                                  let srNo = 0;
+                                  return rmClients.map(clientName => {
+                                    const client = data.clients.find(c => c.name === clientName);
+                                    const clientBilled = rmInvoices.filter(i => i.clientName === clientName).reduce((s, i) => s + (parseFloat(i.totalAmount) || 0), 0);
+                                    const clientCollected = rmReceipts.filter(r => r.clientName === clientName).reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
+                                    const outstanding = clientBilled - clientCollected;
+                                    if (outstanding <= 0) return null;
+                                    srNo++;
+                                    return (
+                                      <tr key={clientName} style={{background: srNo % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                                        <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{srNo}</td>
+                                        <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{client?.fileNo || '-'}</td>
+                                        <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', textAlign: 'center', fontSize: '10px'}}>{client?.fileNo ? client.fileNo.split('.')[0] : '-'}</td>
+                                        <td style={{padding: '8px', border: '1px solid #dcfce7', fontWeight: '500', color: '#374151'}}>{clientName}</td>
+                                        <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'right', color: '#374151'}}>₹{clientBilled.toLocaleString('en-IN')}</td>
+                                        <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'right', color: '#374151'}}>₹{clientCollected.toLocaleString('en-IN')}</td>
+                                        <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'right', fontWeight: '600', color: '#dc2626'}}>₹{outstanding.toLocaleString('en-IN')}</td>
+                                        <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
+                                          <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: '600', background: clientBilled > 0 && (clientCollected / clientBilled) >= 0.8 ? '#dcfce7' : '#fee2e2', color: clientBilled > 0 && (clientCollected / clientBilled) >= 0.8 ? '#166534' : '#dc2626'}}>{clientBilled > 0 ? Math.round((clientCollected / clientBilled) * 100) : 0}%</span>
+                                        </td>
+                                      </tr>
+                                    );
+                                  });
+                                })()}
                               </tbody>
                             </table>
                           )}
