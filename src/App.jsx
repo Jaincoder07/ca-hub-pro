@@ -1042,14 +1042,73 @@ const PracticeManagementApp = () => {
 
   // Handle Delete Task
   const handleDeleteTask = (taskId) => {
-    if (window.confirm('Are you sure you want to delete this task? This action can be reversed by filtering for Deleted tasks.')) {
+    // Find the task
+    const task = data.tasks.find(t => t.id === taskId);
+    if (!task) {
+      alert('Task not found!');
+      return;
+    }
+    
+    // Check if task is completed or in progress
+    if (task.status === 'Completed' || task.completedCheck) {
+      alert('❌ Cannot delete this task!\n\nReason: Task is already completed.\n\nCompleted tasks cannot be deleted as they may have associated billing records.');
+      return;
+    }
+    
+    if (task.status === 'In Progress') {
+      alert('❌ Cannot delete this task!\n\nReason: Task is In Progress.\n\nPlease change the status to Open before deleting.');
+      return;
+    }
+    
+    // Check if any invoice exists for this task
+    const hasInvoice = (data.invoices || []).some(inv => {
+      // Check if invoice is linked to this task
+      if (inv.taskId === taskId) return true;
+      if (inv.tasks && inv.tasks.some(t => t.taskId === taskId || t.id === taskId)) return true;
+      // Check by client and task details
+      if (inv.clientId === task.clientId || inv.clientName === task.clientName) {
+        if (inv.parentTask === task.parentTask && inv.childTask === task.childTask) return true;
+        if (inv.tasks && inv.tasks.some(t => t.parentTask === task.parentTask && t.childTask === task.childTask)) return true;
+      }
+      return false;
+    });
+    
+    if (hasInvoice) {
+      alert('❌ Cannot delete this task!\n\nReason: An invoice exists against this task.\n\nPlease delete or modify the invoice first.');
+      return;
+    }
+    
+    // Check if any receipt exists for this task (through invoice)
+    const taskInvoices = (data.invoices || []).filter(inv => {
+      if (inv.taskId === taskId) return true;
+      if (inv.tasks && inv.tasks.some(t => t.taskId === taskId || t.id === taskId)) return true;
+      return false;
+    });
+    
+    const hasReceipt = taskInvoices.some(inv => {
+      return (data.receipts || []).some(r => r.invoiceId === inv.id || r.invoiceNo === inv.invoiceNo);
+    });
+    
+    if (hasReceipt) {
+      alert('❌ Cannot delete this task!\n\nReason: A receipt exists against the invoice for this task.\n\nPlease delete or modify the receipt and invoice first.');
+      return;
+    }
+    
+    // Check if task is billed
+    if (task.billed) {
+      alert('❌ Cannot delete this task!\n\nReason: Task has been marked as billed.\n\nPlease unbill the task first or delete associated invoices.');
+      return;
+    }
+    
+    // All validations passed - confirm deletion
+    if (window.confirm('Are you sure you want to delete this task?\n\nThis action can be reversed by filtering for Deleted tasks.')) {
       setData(prev => ({
         ...prev,
         tasks: prev.tasks.map(t => 
-          t.id === taskId ? { ...t, deleted: true, deletedAt: new Date().toISOString() } : t
+          t.id === taskId ? { ...t, deleted: true, deletedAt: new Date().toISOString(), deletedBy: currentUser?.name || 'Admin' } : t
         )
       }));
-      alert('Task deleted successfully! You can view deleted tasks using the Status filter.');
+      alert('✅ Task deleted successfully!\n\nYou can view deleted tasks using the Status filter.');
     }
   };
 
@@ -10979,7 +11038,12 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 <h3 style={{margin: 0, fontSize: '15px', fontWeight: '600', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px'}}><Search size={16} /> Filters</h3>
                 <div style={{display: 'flex', gap: '8px'}}>
                   <button onClick={() => setReportFilters({...reportFilters, dateFrom: '', dateTo: '', client: '', parentTask: '', childTask: '', status: '', reportingManager: '', billingStatus: ''})} style={{padding: '8px 14px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500'}}>Clear Filters</button>
-                  <button onClick={() => exportToCSV(filteredTasks, 'task_report', ['clientName', 'parentTask', 'childTask', 'description', 'reportingManager', 'billingStatus', 'status'])} style={{padding: '8px 14px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'}}><Download size={14} /> Export CSV</button>
+                  <button onClick={() => exportToCSV(filteredTasks.filter(t => {
+                    if (reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager) return false;
+                    if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
+                    if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
+                    return true;
+                  }), 'task_report', ['clientName', 'parentTask', 'childTask', 'description', 'reportingManager', 'startDate', 'financialYear', 'billed', 'status'])} style={{padding: '8px 14px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'}}><Download size={14} /> Export CSV</button>
                 </div>
               </div>
               <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '12px'}}>
@@ -11085,19 +11149,22 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             
             {/* Task Table */}
             <div style={{background: '#fff', borderRadius: '10px', border: '1px solid #10b981', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
-              <div style={{maxHeight: '500px', overflowY: 'auto'}}>
-                <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+              <div style={{maxHeight: '500px', overflowY: 'auto', overflowX: 'auto'}}>
+                <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: '1400px'}}>
                   <thead style={{position: 'sticky', top: 0}}>
                     <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
-                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '50px'}}>Sr.</th>
-                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '80px'}}>Code</th>
-                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Parent Task</th>
-                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Child Task</th>
-                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Description</th>
-                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Reporting Manager</th>
-                      <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '90px'}}>Billing</th>
-                      <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '90px'}}>Status</th>
-                      <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '100px'}}>Actions</th>
+                      <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '40px'}}>Sr.</th>
+                      <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '70px'}}>Code</th>
+                      <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '120px'}}>Client Name</th>
+                      <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '100px'}}>Parent Task</th>
+                      <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '100px'}}>Child Task</th>
+                      <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '150px'}}>Description</th>
+                      <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '100px'}}>Reporting Manager</th>
+                      <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '85px'}}>Start Date</th>
+                      <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '70px'}}>FY</th>
+                      <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '70px'}}>Billing</th>
+                      <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '80px'}}>Status</th>
+                      <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '90px'}}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -11109,25 +11176,29 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     }).slice(0, 100).map((task, idx) => {
                       const client = data.clients.find(c => c.id === task.clientId || c.name === task.clientName || c.name === task.client);
                       const isOverdue = task.dueDate && task.status !== 'Completed' && !task.completedCheck && new Date(task.dueDate.split('-').reverse().join('-')) < today;
+                      const canDelete = !task.billed && task.status !== 'Completed' && !task.completedCheck && task.status !== 'In Progress';
                       return (
                         <tr key={task.id} style={{background: isOverdue ? '#fef2f2' : idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
-                          <td style={{padding: '10px', border: '1px solid #dcfce7', color: '#374151'}}>{idx + 1}</td>
-                          <td style={{padding: '10px', border: '1px solid #dcfce7', fontWeight: '600', color: '#10b981', fontSize: '11px'}}>{client?.fileNo || '-'}</td>
-                          <td style={{padding: '10px', border: '1px solid #dcfce7', color: '#374151'}}>{task.parentTask || '-'}</td>
-                          <td style={{padding: '10px', border: '1px solid #dcfce7', color: '#374151'}}>{task.childTask || '-'}</td>
-                          <td style={{padding: '10px', border: '1px solid #dcfce7', color: '#64748b', fontSize: '11px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{task.description || task.remarks || '-'}</td>
-                          <td style={{padding: '10px', border: '1px solid #dcfce7', color: '#374151'}}>{task.reportingManager || '-'}</td>
-                          <td style={{padding: '10px', border: '1px solid #dcfce7', textAlign: 'center'}}>
-                            <span style={{padding: '4px 10px', borderRadius: '12px', fontSize: '10px', fontWeight: '600', background: task.billed ? '#dcfce7' : '#fef3c7', color: task.billed ? '#166534' : '#92400e'}}>{task.billed ? 'Billed' : 'Unbilled'}</span>
+                          <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{idx + 1}</td>
+                          <td style={{padding: '8px', border: '1px solid #dcfce7', fontWeight: '600', color: '#10b981', fontSize: '10px'}}>{client?.fileNo || '-'}</td>
+                          <td style={{padding: '8px', border: '1px solid #dcfce7', fontWeight: '500', color: '#10b981'}}>{task.clientName || task.client || '-'}</td>
+                          <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.parentTask || '-'}</td>
+                          <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.childTask || '-'}</td>
+                          <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#64748b', fontSize: '10px'}}>{task.description || task.remarks || '-'}</td>
+                          <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.reportingManager || '-'}</td>
+                          <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{task.startDate || '-'}</td>
+                          <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', textAlign: 'center', fontSize: '10px'}}>{task.financialYear || '-'}</td>
+                          <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
+                            <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '9px', fontWeight: '600', background: task.billed ? '#dcfce7' : '#fef3c7', color: task.billed ? '#166534' : '#92400e'}}>{task.billed ? 'Billed' : 'Unbilled'}</span>
                           </td>
-                          <td style={{padding: '10px', border: '1px solid #dcfce7', textAlign: 'center'}}>
-                            <span style={{padding: '4px 10px', borderRadius: '12px', fontSize: '10px', fontWeight: '600', background: task.status === 'Completed' || task.completedCheck ? '#dcfce7' : task.status === 'In Progress' ? '#fef3c7' : isOverdue ? '#fee2e2' : '#dbeafe', color: task.status === 'Completed' || task.completedCheck ? '#166534' : task.status === 'In Progress' ? '#92400e' : isOverdue ? '#dc2626' : '#1d4ed8'}}>{task.status === 'Completed' || task.completedCheck ? 'Completed' : isOverdue ? 'Overdue' : task.status || 'Open'}</span>
+                          <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
+                            <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '9px', fontWeight: '600', background: task.status === 'Completed' || task.completedCheck ? '#dcfce7' : task.status === 'In Progress' ? '#fef3c7' : isOverdue ? '#fee2e2' : '#dbeafe', color: task.status === 'Completed' || task.completedCheck ? '#166534' : task.status === 'In Progress' ? '#92400e' : isOverdue ? '#dc2626' : '#1d4ed8'}}>{task.status === 'Completed' || task.completedCheck ? 'Completed' : isOverdue ? 'Overdue' : task.status || 'Open'}</span>
                           </td>
-                          <td style={{padding: '10px', border: '1px solid #dcfce7', textAlign: 'center'}}>
-                            <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
-                              <button onClick={() => { setSelectedTask(task); setShowTaskManageModal(true); }} title="View" style={{padding: '4px', background: 'transparent', color: '#10b981', border: 'none', cursor: 'pointer'}}><Eye size={16} /></button>
-                              <button onClick={() => { setSelectedItem(task); setFormData(task); setModalType('tasks'); setShowModal(true); }} title="Edit" style={{padding: '4px', background: 'transparent', color: '#3b82f6', border: 'none', cursor: 'pointer'}}><Edit size={16} /></button>
-                              <button onClick={() => handleDeleteTask(task.id)} title="Delete" style={{padding: '4px', background: 'transparent', color: '#ef4444', border: 'none', cursor: 'pointer'}}><Trash2 size={16} /></button>
+                          <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
+                            <div style={{display: 'flex', gap: '2px', justifyContent: 'center'}}>
+                              <button onClick={() => { setSelectedTask(task); setShowTaskManageModal(true); }} title="View" style={{padding: '3px', background: 'transparent', color: '#10b981', border: 'none', cursor: 'pointer'}}><Eye size={14} /></button>
+                              <button onClick={() => { setSelectedItem(task); setFormData(task); setModalType('tasks'); setShowModal(true); }} title="Edit" style={{padding: '3px', background: 'transparent', color: '#3b82f6', border: 'none', cursor: 'pointer'}}><Edit size={14} /></button>
+                              <button onClick={() => handleDeleteTask(task.id)} title={canDelete ? "Delete" : "Cannot delete - Task has billing/receipts or is not Open"} style={{padding: '3px', background: 'transparent', color: canDelete ? '#ef4444' : '#d1d5db', border: 'none', cursor: canDelete ? 'pointer' : 'not-allowed', opacity: canDelete ? 1 : 0.5}}><Trash2 size={14} /></button>
                             </div>
                           </td>
                         </tr>
