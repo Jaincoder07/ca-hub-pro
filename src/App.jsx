@@ -10503,24 +10503,24 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     // RENDER REPORTS
     // =====================
     return (
-      <div style={{padding: '24px', background: '#f8fafc', minHeight: '100vh'}}>
+      <div style={{padding: '24px', background: '#f0fdf4', minHeight: '100vh'}}>
         {/* Header */}
-        <div style={{marginBottom: '24px'}}>
-          <h1 style={{margin: 0, fontSize: '24px', fontWeight: '700', color: '#1e293b'}}>Reports & Analytics</h1>
-          <p style={{margin: '4px 0 0', color: '#64748b', fontSize: '14px'}}>Comprehensive business intelligence and reporting</p>
+        <div style={{marginBottom: '24px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '12px', padding: '24px', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'}}>
+          <h1 style={{margin: 0, fontSize: '26px', fontWeight: '700', color: '#fff', display: 'flex', alignItems: 'center', gap: '12px'}}><BarChart3 size={28} /> Reports & Analytics</h1>
+          <p style={{margin: '8px 0 0', color: '#bbf7d0', fontSize: '14px'}}>Comprehensive business intelligence and reporting</p>
         </div>
         
         {/* Report Tabs */}
-        <div style={{display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap', background: '#fff', padding: '12px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)'}}>
+        <div style={{display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap', background: '#fff', padding: '14px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #bbf7d0'}}>
           {reportTabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveReportTab(tab.id)}
               style={{
                 padding: '10px 20px',
-                background: activeReportTab === tab.id ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#f1f5f9',
-                color: activeReportTab === tab.id ? '#fff' : '#64748b',
-                border: 'none',
+                background: activeReportTab === tab.id ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#f8fafc',
+                color: activeReportTab === tab.id ? '#fff' : '#374151',
+                border: activeReportTab === tab.id ? 'none' : '1px solid #e2e8f0',
                 borderRadius: '8px',
                 cursor: 'pointer',
                 fontWeight: '600',
@@ -10528,7 +10528,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                boxShadow: activeReportTab === tab.id ? '0 2px 8px rgba(16, 185, 129, 0.4)' : 'none'
               }}
             >
               <span>{tab.icon}</span>
@@ -10541,20 +10542,20 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         {activeReportTab === 'dashboard' && (
           <div>
             {/* Date Selector */}
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', marginBottom: '20px', border: '1px solid #e2e8f0'}}>
+            <div style={{background: '#fff', borderRadius: '10px', padding: '20px', marginBottom: '20px', border: '1px solid #10b981', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600'}}>📅 Daily Activity Snapshot</h3>
+                <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px'}}><Calendar size={18} /> Daily Activity Snapshot</h3>
                 <div style={{display: 'flex', gap: '12px', alignItems: 'center'}}>
-                  <label style={{fontSize: '12px', color: '#64748b'}}>Select Date:</label>
+                  <label style={{fontSize: '12px', color: '#166534', fontWeight: '500'}}>Select Date:</label>
                   <input 
                     type="date" 
                     value={reportFilters.snapshotDate || new Date().toISOString().split('T')[0]} 
                     onChange={(e) => setReportFilters({...reportFilters, snapshotDate: e.target.value})} 
-                    style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}} 
+                    style={{padding: '8px 12px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px'}} 
                   />
                   <button 
                     onClick={() => setReportFilters({...reportFilters, snapshotDate: new Date().toISOString().split('T')[0]})}
-                    style={{padding: '8px 16px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px'}}
+                    style={{padding: '8px 16px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500'}}
                   >
                     Today
                   </button>
@@ -10677,9 +10678,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   {/* Detailed Sections - Row 1 */}
                   <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px'}}>
                     {/* Tasks Created */}
-                    <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
-                      <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                        <span style={{width: '8px', height: '8px', background: '#3b82f6', borderRadius: '50%'}}></span>
+                    <div style={{background: '#fff', borderRadius: '10px', padding: '20px', border: '1px solid #10b981', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+                      <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', color: '#166534'}}>
+                        <span style={{width: '10px', height: '10px', background: '#10b981', borderRadius: '50%'}}></span>
                         Tasks Created ({tasksCreated.length})
                       </h3>
                       {tasksCreated.length === 0 ? (
@@ -10687,34 +10688,34 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       ) : (
                         <div style={{maxHeight: '220px', overflowY: 'auto'}}>
                           <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
-                            <thead style={{position: 'sticky', top: 0, background: '#f8fafc'}}>
-                              <tr>
-                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600'}}>Client</th>
-                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600'}}>Task</th>
-                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600'}}>Sub-Period</th>
-                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600'}}>Assigned</th>
+                            <thead style={{position: 'sticky', top: 0}}>
+                              <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Task</th>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Sub-Period</th>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Assigned</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {tasksCreated.slice(0, 15).map(task => (
-                                <tr key={task.id} style={{borderBottom: '1px solid #f1f5f9'}}>
-                                  <td style={{padding: '8px'}}>{task.clientName || task.client || '-'}</td>
-                                  <td style={{padding: '8px', fontWeight: '500'}}>{task.childTask || task.parentTask}</td>
-                                  <td style={{padding: '8px', color: '#8b5cf6', fontSize: '10px'}}>{task.subPeriod || task.period || '-'}</td>
-                                  <td style={{padding: '8px', color: '#64748b'}}>{task.primaryAssignedUser || '-'}</td>
+                              {tasksCreated.slice(0, 15).map((task, idx) => (
+                                <tr key={task.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                                  <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#10b981', fontWeight: '500'}}>{task.clientName || task.client || '-'}</td>
+                                  <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.childTask || task.parentTask}</td>
+                                  <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#166534', fontSize: '10px'}}>{task.subPeriod || task.period || '-'}</td>
+                                  <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.primaryAssignedUser || '-'}</td>
                                 </tr>
                               ))}
                             </tbody>
                           </table>
-                          {tasksCreated.length > 15 && <div style={{padding: '8px', textAlign: 'center', color: '#64748b', fontSize: '10px'}}>+{tasksCreated.length - 15} more</div>}
+                          {tasksCreated.length > 15 && <div style={{padding: '8px', textAlign: 'center', color: '#166534', fontSize: '10px', background: '#f0fdf4'}}>+{tasksCreated.length - 15} more</div>}
                         </div>
                       )}
                     </div>
                     
                     {/* Tasks Deleted */}
-                    <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
-                      <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                        <span style={{width: '8px', height: '8px', background: '#ef4444', borderRadius: '50%'}}></span>
+                    <div style={{background: '#fff', borderRadius: '10px', padding: '20px', border: '1px solid #fecaca', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+                      <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', color: '#dc2626'}}>
+                        <span style={{width: '10px', height: '10px', background: '#ef4444', borderRadius: '50%'}}></span>
                         Tasks Deleted ({tasksDeleted.length})
                       </h3>
                       {tasksDeleted.length === 0 ? (
@@ -10722,26 +10723,26 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       ) : (
                         <div style={{maxHeight: '220px', overflowY: 'auto'}}>
                           <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
-                            <thead style={{position: 'sticky', top: 0, background: '#f8fafc'}}>
-                              <tr>
-                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600'}}>Client</th>
-                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600'}}>Task</th>
-                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600'}}>Sub-Period</th>
-                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600'}}>Deleted By</th>
+                            <thead style={{position: 'sticky', top: 0}}>
+                              <tr style={{background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'}}>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Task</th>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Sub-Period</th>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Deleted By</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {tasksDeleted.slice(0, 15).map(task => (
-                                <tr key={task.id} style={{borderBottom: '1px solid #f1f5f9', background: '#fef2f2'}}>
-                                  <td style={{padding: '8px'}}>{task.clientName || task.client || '-'}</td>
-                                  <td style={{padding: '8px', fontWeight: '500', textDecoration: 'line-through', color: '#94a3b8'}}>{task.childTask || task.parentTask}</td>
-                                  <td style={{padding: '8px', color: '#8b5cf6', fontSize: '10px'}}>{task.subPeriod || task.period || '-'}</td>
-                                  <td style={{padding: '8px', color: '#64748b'}}>{task.deletedBy || '-'}</td>
+                              {tasksDeleted.slice(0, 15).map((task, idx) => (
+                                <tr key={task.id} style={{background: idx % 2 === 0 ? '#fff' : '#fef2f2'}}>
+                                  <td style={{padding: '8px', border: '1px solid #fecaca', color: '#374151'}}>{task.clientName || task.client || '-'}</td>
+                                  <td style={{padding: '8px', border: '1px solid #fecaca', fontWeight: '500', textDecoration: 'line-through', color: '#94a3b8'}}>{task.childTask || task.parentTask}</td>
+                                  <td style={{padding: '8px', border: '1px solid #fecaca', color: '#dc2626', fontSize: '10px'}}>{task.subPeriod || task.period || '-'}</td>
+                                  <td style={{padding: '8px', border: '1px solid #fecaca', color: '#374151'}}>{task.deletedBy || '-'}</td>
                                 </tr>
                               ))}
                             </tbody>
                           </table>
-                          {tasksDeleted.length > 15 && <div style={{padding: '8px', textAlign: 'center', color: '#64748b', fontSize: '10px'}}>+{tasksDeleted.length - 15} more</div>}
+                          {tasksDeleted.length > 15 && <div style={{padding: '8px', textAlign: 'center', color: '#dc2626', fontSize: '10px', background: '#fef2f2'}}>+{tasksDeleted.length - 15} more</div>}
                         </div>
                       )}
                     </div>
@@ -10750,9 +10751,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   {/* Row 2 - Tasks Completed */}
                   <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px'}}>
                     {/* Tasks Completed */}
-                    <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
-                      <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                        <span style={{width: '8px', height: '8px', background: '#10b981', borderRadius: '50%'}}></span>
+                    <div style={{background: '#fff', borderRadius: '10px', padding: '20px', border: '1px solid #bbf7d0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+                      <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', color: '#166534'}}>
+                        <span style={{width: '10px', height: '10px', background: '#10b981', borderRadius: '50%'}}></span>
                         Tasks Completed ({tasksCompleted.length})
                       </h3>
                       {tasksCompleted.length === 0 ? (
@@ -10760,11 +10761,11 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       ) : (
                         <div style={{maxHeight: '200px', overflowY: 'auto'}}>
                           <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
-                            <thead style={{position: 'sticky', top: 0, background: '#f8fafc'}}>
-                              <tr>
-                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600'}}>Client</th>
-                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600'}}>Task</th>
-                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600'}}>Completed By</th>
+                            <thead style={{position: 'sticky', top: 0}}>
+                              <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Task</th>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Completed By</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -10934,47 +10935,47 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         {activeReportTab === 'taskReport' && (
           <div>
             {/* Filters */}
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', marginBottom: '20px', border: '1px solid #e2e8f0'}}>
+            <div style={{background: '#fff', borderRadius: '10px', padding: '20px', marginBottom: '20px', border: '1px solid #10b981', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
-                <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600'}}>🔍 Filters</h3>
+                <h3 style={{margin: 0, fontSize: '15px', fontWeight: '600', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px'}}><Search size={16} /> Filters</h3>
                 <div style={{display: 'flex', gap: '8px'}}>
-                  <button onClick={() => setReportFilters({dateFrom: '', dateTo: '', client: '', staff: '', parentTask: '', childTask: '', status: '', financialYear: '', reportingManager: ''})} style={{padding: '6px 12px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px'}}>Clear Filters</button>
-                  <button onClick={() => exportToCSV(filteredTasks, 'task_report', ['clientName', 'parentTask', 'childTask', 'primaryAssignedUser', 'status', 'startDate', 'dueDate', 'financialYear'])} style={{padding: '6px 12px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px'}}>📥 Export CSV</button>
+                  <button onClick={() => setReportFilters({dateFrom: '', dateTo: '', client: '', staff: '', parentTask: '', childTask: '', status: '', financialYear: '', reportingManager: ''})} style={{padding: '8px 14px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500'}}>Clear Filters</button>
+                  <button onClick={() => exportToCSV(filteredTasks, 'task_report', ['clientName', 'parentTask', 'childTask', 'primaryAssignedUser', 'status', 'startDate', 'dueDate', 'financialYear'])} style={{padding: '8px 14px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'}}><Download size={14} /> Export CSV</button>
                 </div>
               </div>
               <div style={{display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px'}}>
                 <div>
-                  <label style={{fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px'}}>Date From</label>
-                  <input type="date" value={reportFilters.dateFrom} onChange={(e) => setReportFilters({...reportFilters, dateFrom: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}} />
+                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Date From</label>
+                  <input type="date" value={reportFilters.dateFrom} onChange={(e) => setReportFilters({...reportFilters, dateFrom: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px'}} />
                 </div>
                 <div>
-                  <label style={{fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px'}}>Date To</label>
-                  <input type="date" value={reportFilters.dateTo} onChange={(e) => setReportFilters({...reportFilters, dateTo: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}} />
+                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Date To</label>
+                  <input type="date" value={reportFilters.dateTo} onChange={(e) => setReportFilters({...reportFilters, dateTo: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px'}} />
                 </div>
                 <div>
-                  <label style={{fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px'}}>Client</label>
-                  <select value={reportFilters.client} onChange={(e) => setReportFilters({...reportFilters, client: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}>
+                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Client</label>
+                  <select value={reportFilters.client} onChange={(e) => setReportFilters({...reportFilters, client: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px'}}>
                     <option value="">All Clients</option>
                     {uniqueClients.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px'}}>Staff</label>
-                  <select value={reportFilters.staff} onChange={(e) => setReportFilters({...reportFilters, staff: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}>
+                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Staff</label>
+                  <select value={reportFilters.staff} onChange={(e) => setReportFilters({...reportFilters, staff: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px'}}>
                     <option value="">All Staff</option>
                     {uniqueStaff.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px'}}>Task Category</label>
-                  <select value={reportFilters.parentTask} onChange={(e) => setReportFilters({...reportFilters, parentTask: e.target.value, childTask: ''})} style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}>
+                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Task Category</label>
+                  <select value={reportFilters.parentTask} onChange={(e) => setReportFilters({...reportFilters, parentTask: e.target.value, childTask: ''})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px'}}>
                     <option value="">All Categories</option>
                     {uniqueParentTasks.map(p => <option key={p} value={p}>{p}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px'}}>Status</label>
-                  <select value={reportFilters.status} onChange={(e) => setReportFilters({...reportFilters, status: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}>
+                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Status</label>
+                  <select value={reportFilters.status} onChange={(e) => setReportFilters({...reportFilters, status: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px'}}>
                     <option value="">All Status</option>
                     <option value="Completed">Completed</option>
                     <option value="Pending">Pending</option>
@@ -10987,67 +10988,67 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             
             {/* Summary Cards */}
             <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '20px'}}>
-              <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: '1px solid #e2e8f0'}}>
-                <div style={{fontSize: '24px', fontWeight: '700', color: '#3b82f6'}}>{filteredTasks.length}</div>
-                <div style={{fontSize: '12px', color: '#64748b'}}>Total Tasks</div>
+              <div style={{background: 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)', borderRadius: '10px', padding: '16px', border: '1px solid #bfdbfe'}}>
+                <div style={{fontSize: '28px', fontWeight: '700', color: '#1d4ed8'}}>{filteredTasks.length}</div>
+                <div style={{fontSize: '12px', color: '#3b82f6', fontWeight: '500'}}>Total Tasks</div>
               </div>
-              <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: '1px solid #e2e8f0'}}>
-                <div style={{fontSize: '24px', fontWeight: '700', color: '#10b981'}}>{filteredTasks.filter(t => t.status === 'Completed' || t.completedCheck).length}</div>
-                <div style={{fontSize: '12px', color: '#64748b'}}>Completed</div>
+              <div style={{background: 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '10px', padding: '16px', border: '1px solid #bbf7d0'}}>
+                <div style={{fontSize: '28px', fontWeight: '700', color: '#166534'}}>{filteredTasks.filter(t => t.status === 'Completed' || t.completedCheck).length}</div>
+                <div style={{fontSize: '12px', color: '#16a34a', fontWeight: '500'}}>Completed</div>
               </div>
-              <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: '1px solid #e2e8f0'}}>
-                <div style={{fontSize: '24px', fontWeight: '700', color: '#f59e0b'}}>{filteredTasks.filter(t => t.status !== 'Completed' && !t.completedCheck).length}</div>
-                <div style={{fontSize: '12px', color: '#64748b'}}>Pending</div>
+              <div style={{background: 'linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%)', borderRadius: '10px', padding: '16px', border: '1px solid #fde68a'}}>
+                <div style={{fontSize: '28px', fontWeight: '700', color: '#b45309'}}>{filteredTasks.filter(t => t.status !== 'Completed' && !t.completedCheck).length}</div>
+                <div style={{fontSize: '12px', color: '#d97706', fontWeight: '500'}}>Pending</div>
               </div>
-              <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: '1px solid #e2e8f0'}}>
-                <div style={{fontSize: '24px', fontWeight: '700', color: '#ef4444'}}>{filteredTasks.filter(t => {
+              <div style={{background: 'linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%)', borderRadius: '10px', padding: '16px', border: '1px solid #fecaca'}}>
+                <div style={{fontSize: '28px', fontWeight: '700', color: '#dc2626'}}>{filteredTasks.filter(t => {
                   if (t.status === 'Completed' || t.completedCheck || !t.dueDate) return false;
                   return new Date(t.dueDate.split('-').reverse().join('-')) < today;
                 }).length}</div>
-                <div style={{fontSize: '12px', color: '#64748b'}}>Overdue</div>
+                <div style={{fontSize: '12px', color: '#ef4444', fontWeight: '500'}}>Overdue</div>
               </div>
             </div>
             
             {/* Task Table */}
-            <div style={{background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden'}}>
+            <div style={{background: '#fff', borderRadius: '10px', border: '1px solid #10b981', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
               <div style={{maxHeight: '500px', overflowY: 'auto'}}>
                 <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
-                  <thead style={{position: 'sticky', top: 0, background: '#f8fafc'}}>
-                    <tr>
-                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Sr.</th>
-                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Client</th>
-                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Task Category</th>
-                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Task Type</th>
-                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Assigned To</th>
-                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Start Date</th>
-                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Due Date</th>
-                      <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Status</th>
-                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>FY</th>
+                  <thead style={{position: 'sticky', top: 0}}>
+                    <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Sr.</th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client</th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Task Category</th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Task Type</th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Assigned To</th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Start Date</th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Due Date</th>
+                      <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Status</th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>FY</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredTasks.slice(0, 100).map((task, idx) => {
                       const isOverdue = task.dueDate && task.status !== 'Completed' && !task.completedCheck && new Date(task.dueDate.split('-').reverse().join('-')) < today;
                       return (
-                        <tr key={task.id} style={{borderBottom: '1px solid #f1f5f9', background: isOverdue ? '#fef2f2' : 'transparent'}}>
-                          <td style={{padding: '10px 12px'}}>{idx + 1}</td>
-                          <td style={{padding: '10px 12px', fontWeight: '500'}}>{task.clientName || task.client || '-'}</td>
-                          <td style={{padding: '10px 12px'}}>{task.parentTask || '-'}</td>
-                          <td style={{padding: '10px 12px'}}>{task.childTask || '-'}</td>
-                          <td style={{padding: '10px 12px'}}>{task.primaryAssignedUser || task.assignedTo || '-'}</td>
-                          <td style={{padding: '10px 12px'}}>{task.startDate || '-'}</td>
-                          <td style={{padding: '10px 12px', color: isOverdue ? '#ef4444' : 'inherit', fontWeight: isOverdue ? '600' : '400'}}>{task.dueDate || '-'}</td>
-                          <td style={{padding: '10px 12px', textAlign: 'center'}}>
+                        <tr key={task.id} style={{background: isOverdue ? '#fef2f2' : idx % 2 === 0 ? '#fff' : '#f8fafc'}}>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb'}}>{idx + 1}</td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb', fontWeight: '500', color: '#10b981'}}>{task.clientName || task.client || '-'}</td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb', color: '#374151'}}>{task.parentTask || '-'}</td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb', color: '#374151'}}>{task.childTask || '-'}</td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb', color: '#374151'}}>{task.primaryAssignedUser || task.assignedTo || '-'}</td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb', color: '#374151'}}>{task.startDate || '-'}</td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb', color: isOverdue ? '#ef4444' : '#374151', fontWeight: isOverdue ? '600' : '400'}}>{task.dueDate || '-'}</td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb', textAlign: 'center'}}>
                             <span style={{padding: '4px 10px', borderRadius: '12px', fontSize: '10px', fontWeight: '600', background: task.status === 'Completed' || task.completedCheck ? '#dcfce7' : task.status === 'In Progress' ? '#fef3c7' : isOverdue ? '#fee2e2' : '#dbeafe', color: task.status === 'Completed' || task.completedCheck ? '#166534' : task.status === 'In Progress' ? '#92400e' : isOverdue ? '#dc2626' : '#1d4ed8'}}>{task.status === 'Completed' || task.completedCheck ? 'Completed' : isOverdue ? 'Overdue' : task.status || 'Open'}</span>
                           </td>
-                          <td style={{padding: '10px 12px'}}>{task.financialYear || '-'}</td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb', color: '#374151'}}>{task.financialYear || '-'}</td>
                         </tr>
                       );
                     })}
                   </tbody>
                 </table>
               </div>
-              {filteredTasks.length > 100 && <div style={{padding: '12px', textAlign: 'center', background: '#f8fafc', fontSize: '12px', color: '#64748b'}}>Showing 100 of {filteredTasks.length} tasks. Export to see all.</div>}
+              {filteredTasks.length > 100 && <div style={{padding: '12px', textAlign: 'center', background: '#f0fdf4', fontSize: '12px', color: '#166534', borderTop: '1px solid #bbf7d0'}}>Showing 100 of {filteredTasks.length} tasks. Export to see all.</div>}
             </div>
           </div>
         )}
@@ -11324,40 +11325,40 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       </div>
                       
                       {/* Task Table */}
-                      <div style={{background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden'}}>
+                      <div style={{background: '#fff', borderRadius: '10px', border: '1px solid #10b981', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
                         <div style={{maxHeight: '500px', overflowY: 'auto'}}>
                           <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
-                            <thead style={{position: 'sticky', top: 0, background: '#f8fafc'}}>
-                              <tr>
-                                <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Sr.</th>
-                                <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Client</th>
-                                <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Task Category</th>
-                                <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Task Type</th>
-                                <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Start Date</th>
-                                <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Due Date</th>
-                                <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Status</th>
-                                <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Billed</th>
-                                <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>FY</th>
+                            <thead style={{position: 'sticky', top: 0}}>
+                              <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                                <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Sr.</th>
+                                <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client</th>
+                                <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Task Category</th>
+                                <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Task Type</th>
+                                <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Start Date</th>
+                                <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Due Date</th>
+                                <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Status</th>
+                                <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Billed</th>
+                                <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>FY</th>
                               </tr>
                             </thead>
                             <tbody>
                               {staffTasks.map((task, idx) => {
                                 const isOverdue = task.dueDate && task.status !== 'Completed' && !task.completedCheck && new Date(task.dueDate.split('-').reverse().join('-')) < today;
                                 return (
-                                  <tr key={task.id} style={{borderBottom: '1px solid #f1f5f9', background: isOverdue ? '#fef2f2' : 'transparent'}}>
-                                    <td style={{padding: '10px 12px'}}>{idx + 1}</td>
-                                    <td style={{padding: '10px 12px', fontWeight: '500'}}>{task.clientName || task.client || '-'}</td>
-                                    <td style={{padding: '10px 12px'}}>{task.parentTask || '-'}</td>
-                                    <td style={{padding: '10px 12px'}}>{task.childTask || '-'}</td>
-                                    <td style={{padding: '10px 12px'}}>{task.startDate || '-'}</td>
-                                    <td style={{padding: '10px 12px', color: isOverdue ? '#ef4444' : 'inherit', fontWeight: isOverdue ? '600' : '400'}}>{task.dueDate || '-'}</td>
-                                    <td style={{padding: '10px 12px', textAlign: 'center'}}>
+                                  <tr key={task.id} style={{background: isOverdue ? '#fef2f2' : idx % 2 === 0 ? '#fff' : '#f8fafc'}}>
+                                    <td style={{padding: '10px', border: '1px solid #e5e7eb'}}>{idx + 1}</td>
+                                    <td style={{padding: '10px', border: '1px solid #e5e7eb', fontWeight: '500', color: '#10b981'}}>{task.clientName || task.client || '-'}</td>
+                                    <td style={{padding: '10px', border: '1px solid #e5e7eb', color: '#374151'}}>{task.parentTask || '-'}</td>
+                                    <td style={{padding: '10px', border: '1px solid #e5e7eb', color: '#374151'}}>{task.childTask || '-'}</td>
+                                    <td style={{padding: '10px', border: '1px solid #e5e7eb', color: '#374151'}}>{task.startDate || '-'}</td>
+                                    <td style={{padding: '10px', border: '1px solid #e5e7eb', color: isOverdue ? '#ef4444' : '#374151', fontWeight: isOverdue ? '600' : '400'}}>{task.dueDate || '-'}</td>
+                                    <td style={{padding: '10px', border: '1px solid #e5e7eb', textAlign: 'center'}}>
                                       <span style={{padding: '4px 10px', borderRadius: '12px', fontSize: '10px', fontWeight: '600', background: task.status === 'Completed' || task.completedCheck ? '#dcfce7' : task.status === 'In Progress' ? '#fef3c7' : isOverdue ? '#fee2e2' : '#dbeafe', color: task.status === 'Completed' || task.completedCheck ? '#166534' : task.status === 'In Progress' ? '#92400e' : isOverdue ? '#dc2626' : '#1d4ed8'}}>{task.status === 'Completed' || task.completedCheck ? 'Completed' : isOverdue ? 'Overdue' : task.status || 'Open'}</span>
                                     </td>
-                                    <td style={{padding: '10px 12px', textAlign: 'center'}}>
-                                      <span style={{padding: '4px 8px', borderRadius: '8px', fontSize: '10px', fontWeight: '600', background: task.billed ? '#dbeafe' : '#f1f5f9', color: task.billed ? '#1d4ed8' : '#94a3b8'}}>{task.billed ? '₹' : '-'}</span>
+                                    <td style={{padding: '10px', border: '1px solid #e5e7eb', textAlign: 'center'}}>
+                                      <span style={{padding: '4px 8px', borderRadius: '8px', fontSize: '10px', fontWeight: '600', background: task.billed ? '#dcfce7' : '#f1f5f9', color: task.billed ? '#166534' : '#94a3b8'}}>{task.billed ? '₹' : '-'}</span>
                                     </td>
-                                    <td style={{padding: '10px 12px'}}>{task.financialYear || '-'}</td>
+                                    <td style={{padding: '10px', border: '1px solid #e5e7eb', color: '#374151'}}>{task.financialYear || '-'}</td>
                                   </tr>
                                 );
                               })}
@@ -11463,18 +11464,18 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   {/* Charts Row */}
                   <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '20px'}}>
                     {/* Top Billed Clients Chart */}
-                    <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
-                      <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600'}}>📊 Top 5 Billed Clients</h3>
+                    <div style={{background: '#fff', borderRadius: '10px', padding: '20px', border: '1px solid #10b981', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+                      <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#166534'}}>📊 Top 5 Billed Clients</h3>
                       {topBilledClients.map((client, idx) => {
                         const maxVal = topBilledClients[0]?.totalInvoiced || 1;
                         return (
                           <div key={client.id} style={{marginBottom: '12px'}}>
                             <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
-                              <span style={{fontSize: '11px', color: '#64748b'}}>{client.name?.substring(0, 15)}</span>
-                              <span style={{fontSize: '11px', fontWeight: '600'}}>₹{client.totalInvoiced.toLocaleString('en-IN')}</span>
+                              <span style={{fontSize: '11px', color: '#374151'}}>{client.name?.substring(0, 15)}</span>
+                              <span style={{fontSize: '11px', fontWeight: '600', color: '#166534'}}>₹{client.totalInvoiced.toLocaleString('en-IN')}</span>
                             </div>
-                            <div style={{height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden'}}>
-                              <div style={{height: '100%', width: `${(client.totalInvoiced / maxVal) * 100}%`, background: '#3b82f6', borderRadius: '4px'}}></div>
+                            <div style={{height: '8px', background: '#dcfce7', borderRadius: '4px', overflow: 'hidden'}}>
+                              <div style={{height: '100%', width: `${(client.totalInvoiced / maxVal) * 100}%`, background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)', borderRadius: '4px'}}></div>
                             </div>
                           </div>
                         );
@@ -11482,18 +11483,18 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     </div>
                     
                     {/* Top Receipt Clients Chart */}
-                    <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
-                      <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600'}}>💚 Top 5 Collections</h3>
+                    <div style={{background: '#fff', borderRadius: '10px', padding: '20px', border: '1px solid #10b981', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+                      <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#166534'}}>💚 Top 5 Collections</h3>
                       {topReceiptClients.map((client, idx) => {
                         const maxVal = topReceiptClients[0]?.totalReceived || 1;
                         return (
                           <div key={client.id} style={{marginBottom: '12px'}}>
                             <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
-                              <span style={{fontSize: '11px', color: '#64748b'}}>{client.name?.substring(0, 15)}</span>
-                              <span style={{fontSize: '11px', fontWeight: '600'}}>₹{client.totalReceived.toLocaleString('en-IN')}</span>
+                              <span style={{fontSize: '11px', color: '#374151'}}>{client.name?.substring(0, 15)}</span>
+                              <span style={{fontSize: '11px', fontWeight: '600', color: '#166534'}}>₹{client.totalReceived.toLocaleString('en-IN')}</span>
                             </div>
-                            <div style={{height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden'}}>
-                              <div style={{height: '100%', width: `${(client.totalReceived / maxVal) * 100}%`, background: '#10b981', borderRadius: '4px'}}></div>
+                            <div style={{height: '8px', background: '#dcfce7', borderRadius: '4px', overflow: 'hidden'}}>
+                              <div style={{height: '100%', width: `${(client.totalReceived / maxVal) * 100}%`, background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)', borderRadius: '4px'}}></div>
                             </div>
                           </div>
                         );
@@ -11501,18 +11502,18 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     </div>
                     
                     {/* Top Outstanding Clients Chart */}
-                    <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
-                      <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600'}}>🔴 Top 5 Outstanding</h3>
+                    <div style={{background: '#fff', borderRadius: '10px', padding: '20px', border: '1px solid #fecaca', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+                      <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#dc2626'}}>🔴 Top 5 Outstanding</h3>
                       {topOutstandingClients.map((client, idx) => {
                         const maxVal = topOutstandingClients[0]?.outstanding || 1;
                         return (
                           <div key={client.id} style={{marginBottom: '12px'}}>
                             <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
-                              <span style={{fontSize: '11px', color: '#64748b'}}>{client.name?.substring(0, 15)}</span>
+                              <span style={{fontSize: '11px', color: '#374151'}}>{client.name?.substring(0, 15)}</span>
                               <span style={{fontSize: '11px', fontWeight: '600', color: '#ef4444'}}>₹{client.outstanding.toLocaleString('en-IN')}</span>
                             </div>
-                            <div style={{height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden'}}>
-                              <div style={{height: '100%', width: `${(client.outstanding / maxVal) * 100}%`, background: '#ef4444', borderRadius: '4px'}}></div>
+                            <div style={{height: '8px', background: '#fee2e2', borderRadius: '4px', overflow: 'hidden'}}>
+                              <div style={{height: '100%', width: `${(client.outstanding / maxVal) * 100}%`, background: 'linear-gradient(90deg, #ef4444 0%, #dc2626 100%)', borderRadius: '4px'}}></div>
                             </div>
                           </div>
                         );
@@ -11524,9 +11525,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             })()}
             
             {/* Filters */}
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', marginBottom: '20px', border: '1px solid #e2e8f0'}}>
+            <div style={{background: '#fff', borderRadius: '10px', padding: '20px', marginBottom: '20px', border: '1px solid #10b981', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
-                <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600'}}>📋 Debtors Ledger</h3>
+                <h3 style={{margin: 0, fontSize: '15px', fontWeight: '600', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px'}}><FileText size={16} /> Debtors Ledger</h3>
                 <button onClick={() => {
                   const debtorsData = data.clients.filter(c => !c.disabled).map(client => {
                     const clientInvoices = (data.invoices || []).filter(inv => inv.clientId === client.id || inv.clientName === client.name);
@@ -11551,23 +11552,23 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     };
                   }).filter(d => d.totalInvoiced > 0 || d.openingBalance > 0);
                   exportToCSV(debtorsData, 'debtors_report', ['clientName', 'clientCode', 'openingBalance', 'totalInvoiced', 'cashReceipts', 'bankReceipts', 'tdsDeducted', 'discount', 'totalReceived', 'outstanding']);
-                }} style={{padding: '6px 12px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px'}}>📥 Export CSV</button>
+                }} style={{padding: '8px 14px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'}}><Download size={14} /> Export CSV</button>
               </div>
               <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px'}}>
                 <div>
-                  <label style={{fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px'}}>Client</label>
-                  <select value={reportFilters.client} onChange={(e) => setReportFilters({...reportFilters, client: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}>
+                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Client</label>
+                  <select value={reportFilters.client} onChange={(e) => setReportFilters({...reportFilters, client: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px'}}>
                     <option value="">All Clients</option>
                     {data.clients.filter(c => !c.disabled).sort((a, b) => a.name.localeCompare(b.name)).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px'}}>As on Date</label>
-                  <input type="date" value={reportFilters.dateTo || new Date().toISOString().split('T')[0]} onChange={(e) => setReportFilters({...reportFilters, dateTo: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}} />
+                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>As on Date</label>
+                  <input type="date" value={reportFilters.dateTo || new Date().toISOString().split('T')[0]} onChange={(e) => setReportFilters({...reportFilters, dateTo: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px'}} />
                 </div>
                 <div>
-                  <label style={{fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px'}}>Show Only</label>
-                  <select value={reportFilters.debtorFilter || ''} onChange={(e) => setReportFilters({...reportFilters, debtorFilter: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}>
+                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Show Only</label>
+                  <select value={reportFilters.debtorFilter || ''} onChange={(e) => setReportFilters({...reportFilters, debtorFilter: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px'}}>
                     <option value="">All Clients</option>
                     <option value="outstanding">With Outstanding</option>
                     <option value="nil">Nil Balance</option>
@@ -11575,15 +11576,15 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   </select>
                 </div>
                 <div>
-                  <label style={{fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px'}}>Client Group</label>
-                  <select value={reportFilters.clientGroup || ''} onChange={(e) => setReportFilters({...reportFilters, clientGroup: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}>
+                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Client Group</label>
+                  <select value={reportFilters.clientGroup || ''} onChange={(e) => setReportFilters({...reportFilters, clientGroup: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px'}}>
                     <option value="">All Groups</option>
                     {[...new Set(data.clients.map(c => c.groupName))].filter(Boolean).sort().map(g => <option key={g} value={g}>{g}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px'}}>Sort By</label>
-                  <select value={reportFilters.sortBy || 'name'} onChange={(e) => setReportFilters({...reportFilters, sortBy: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}>
+                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Sort By</label>
+                  <select value={reportFilters.sortBy || 'name'} onChange={(e) => setReportFilters({...reportFilters, sortBy: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px'}}>
                     <option value="name">Client Name</option>
                     <option value="outstanding-desc">Outstanding (High to Low)</option>
                     <option value="outstanding-asc">Outstanding (Low to High)</option>
@@ -11595,20 +11596,20 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             </div>
             
             {/* Debtors Table */}
-            <div style={{background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden'}}>
+            <div style={{background: '#fff', borderRadius: '10px', border: '1px solid #10b981', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
               <div style={{maxHeight: '500px', overflowY: 'auto'}}>
                 <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
-                  <thead style={{position: 'sticky', top: 0, background: '#f8fafc'}}>
-                    <tr>
-                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Client</th>
-                      <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Opening Bal.</th>
-                      <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Invoices</th>
-                      <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Cash</th>
-                      <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Bank</th>
-                      <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>TDS</th>
-                      <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Discount</th>
-                      <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Total Recd.</th>
-                      <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Outstanding</th>
+                  <thead style={{position: 'sticky', top: 0}}>
+                    <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client</th>
+                      <th style={{padding: '12px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Opening Bal.</th>
+                      <th style={{padding: '12px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Invoices</th>
+                      <th style={{padding: '12px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Cash</th>
+                      <th style={{padding: '12px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Bank</th>
+                      <th style={{padding: '12px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>TDS</th>
+                      <th style={{padding: '12px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Discount</th>
+                      <th style={{padding: '12px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Total Recd.</th>
+                      <th style={{padding: '12px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Outstanding</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -11671,20 +11672,20 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       });
                       
                       if (results.length === 0) {
-                        return <tr><td colSpan="9" style={{padding: '40px', textAlign: 'center', color: '#94a3b8'}}>No debtors found{reportFilters.client ? ` for "${reportFilters.client}"` : ''}</td></tr>;
+                        return <tr><td colSpan="9" style={{padding: '40px', textAlign: 'center', color: '#94a3b8', border: '1px solid #e5e7eb'}}>No debtors found{reportFilters.client ? ` for "${reportFilters.client}"` : ''}</td></tr>;
                       }
                       
-                      return results.map(row => (
-                        <tr key={row.client.id} style={{borderBottom: '1px solid #f1f5f9'}}>
-                          <td style={{padding: '10px 12px', fontWeight: '500'}}>{row.client.name}</td>
-                          <td style={{padding: '10px 12px', textAlign: 'right'}}>{row.openingBal > 0 ? `₹${row.openingBal.toLocaleString('en-IN')}` : '-'}</td>
-                          <td style={{padding: '10px 12px', textAlign: 'right', color: '#3b82f6'}}>{row.totalInvoiced > 0 ? `₹${row.totalInvoiced.toLocaleString('en-IN')}` : '-'}</td>
-                          <td style={{padding: '10px 12px', textAlign: 'right', color: '#10b981'}}>{row.cashReceipts > 0 ? `₹${row.cashReceipts.toLocaleString('en-IN')}` : '-'}</td>
-                          <td style={{padding: '10px 12px', textAlign: 'right', color: '#10b981'}}>{row.bankReceipts > 0 ? `₹${row.bankReceipts.toLocaleString('en-IN')}` : '-'}</td>
-                          <td style={{padding: '10px 12px', textAlign: 'right', color: '#f59e0b'}}>{row.tdsDeducted > 0 ? `₹${row.tdsDeducted.toLocaleString('en-IN')}` : '-'}</td>
-                          <td style={{padding: '10px 12px', textAlign: 'right', color: '#8b5cf6'}}>{row.discount > 0 ? `₹${row.discount.toLocaleString('en-IN')}` : '-'}</td>
-                          <td style={{padding: '10px 12px', textAlign: 'right', fontWeight: '500', color: '#10b981'}}>{row.totalReceived > 0 ? `₹${row.totalReceived.toLocaleString('en-IN')}` : '-'}</td>
-                          <td style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: row.outstanding > 0 ? '#ef4444' : '#10b981'}}>{row.outstanding !== 0 ? `₹${row.outstanding.toLocaleString('en-IN')}` : '-'}</td>
+                      return results.map((row, idx) => (
+                        <tr key={row.client.id} style={{background: idx % 2 === 0 ? '#fff' : '#f8fafc'}}>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb', fontWeight: '600', color: '#10b981'}}>{row.client.name}</td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb', textAlign: 'right', color: '#374151'}}>{row.openingBal > 0 ? `₹${row.openingBal.toLocaleString('en-IN')}` : '-'}</td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb', textAlign: 'right', color: '#1d4ed8', fontWeight: '500'}}>{row.totalInvoiced > 0 ? `₹${row.totalInvoiced.toLocaleString('en-IN')}` : '-'}</td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb', textAlign: 'right', color: '#166534'}}>{row.cashReceipts > 0 ? `₹${row.cashReceipts.toLocaleString('en-IN')}` : '-'}</td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb', textAlign: 'right', color: '#166534'}}>{row.bankReceipts > 0 ? `₹${row.bankReceipts.toLocaleString('en-IN')}` : '-'}</td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb', textAlign: 'right', color: '#b45309'}}>{row.tdsDeducted > 0 ? `₹${row.tdsDeducted.toLocaleString('en-IN')}` : '-'}</td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb', textAlign: 'right', color: '#7c3aed'}}>{row.discount > 0 ? `₹${row.discount.toLocaleString('en-IN')}` : '-'}</td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb', textAlign: 'right', fontWeight: '600', color: '#166534'}}>{row.totalReceived > 0 ? `₹${row.totalReceived.toLocaleString('en-IN')}` : '-'}</td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb', textAlign: 'right', fontWeight: '700', color: row.outstanding > 0 ? '#dc2626' : '#166534'}}>{row.outstanding !== 0 ? `₹${row.outstanding.toLocaleString('en-IN')}` : '-'}</td>
                         </tr>
                       ));
                     })()}
@@ -11760,18 +11761,18 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       {/* Charts Row */}
                       <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '20px'}}>
                         {/* Top Clients by Tasks */}
-                        <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
-                          <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600'}}>📋 Top Clients by Tasks</h3>
+                        <div style={{background: '#fff', borderRadius: '10px', padding: '20px', border: '1px solid #10b981', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+                          <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#166534'}}>📋 Top Clients by Tasks</h3>
                           {topTaskClients.map((client, idx) => {
                             const maxVal = topTaskClients[0]?.tasks || 1;
                             return (
                               <div key={client.id} style={{marginBottom: '12px', cursor: 'pointer'}} onClick={() => setReportFilters({...reportFilters, client: client.name})}>
                                 <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
-                                  <span style={{fontSize: '11px', color: '#64748b'}}>{client.name?.substring(0, 18)}</span>
-                                  <span style={{fontSize: '11px', fontWeight: '600'}}>{client.tasks}</span>
+                                  <span style={{fontSize: '11px', color: '#374151'}}>{client.name?.substring(0, 18)}</span>
+                                  <span style={{fontSize: '11px', fontWeight: '600', color: '#166534'}}>{client.tasks}</span>
                                 </div>
-                                <div style={{height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden'}}>
-                                  <div style={{height: '100%', width: `${(client.tasks / maxVal) * 100}%`, background: '#3b82f6', borderRadius: '4px'}}></div>
+                                <div style={{height: '8px', background: '#dcfce7', borderRadius: '4px', overflow: 'hidden'}}>
+                                  <div style={{height: '100%', width: `${(client.tasks / maxVal) * 100}%`, background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)', borderRadius: '4px'}}></div>
                                 </div>
                               </div>
                             );
@@ -11779,18 +11780,18 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         </div>
                         
                         {/* Top Clients by Billing */}
-                        <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
-                          <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600'}}>💰 Top Clients by Billing</h3>
+                        <div style={{background: '#fff', borderRadius: '10px', padding: '20px', border: '1px solid #10b981', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+                          <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#166534'}}>💰 Top Clients by Billing</h3>
                           {topBilledClients.map((client, idx) => {
                             const maxVal = topBilledClients[0]?.totalBilled || 1;
                             return (
                               <div key={client.id} style={{marginBottom: '12px', cursor: 'pointer'}} onClick={() => setReportFilters({...reportFilters, client: client.name})}>
                                 <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
-                                  <span style={{fontSize: '11px', color: '#64748b'}}>{client.name?.substring(0, 18)}</span>
-                                  <span style={{fontSize: '11px', fontWeight: '600'}}>₹{client.totalBilled.toLocaleString('en-IN')}</span>
+                                  <span style={{fontSize: '11px', color: '#374151'}}>{client.name?.substring(0, 18)}</span>
+                                  <span style={{fontSize: '11px', fontWeight: '600', color: '#166534'}}>₹{client.totalBilled.toLocaleString('en-IN')}</span>
                                 </div>
-                                <div style={{height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden'}}>
-                                  <div style={{height: '100%', width: `${(client.totalBilled / maxVal) * 100}%`, background: '#10b981', borderRadius: '4px'}}></div>
+                                <div style={{height: '8px', background: '#dcfce7', borderRadius: '4px', overflow: 'hidden'}}>
+                                  <div style={{height: '100%', width: `${(client.totalBilled / maxVal) * 100}%`, background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)', borderRadius: '4px'}}></div>
                                 </div>
                               </div>
                             );
@@ -11798,18 +11799,18 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         </div>
                         
                         {/* Top Clients by Outstanding */}
-                        <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
-                          <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600'}}>🔴 Top Outstanding</h3>
+                        <div style={{background: '#fff', borderRadius: '10px', padding: '20px', border: '1px solid #fecaca', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+                          <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#dc2626'}}>🔴 Top Outstanding</h3>
                           {topOutstandingClients.filter(c => c.outstanding > 0).map((client, idx) => {
                             const maxVal = topOutstandingClients[0]?.outstanding || 1;
                             return (
                               <div key={client.id} style={{marginBottom: '12px', cursor: 'pointer'}} onClick={() => setReportFilters({...reportFilters, client: client.name})}>
                                 <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
-                                  <span style={{fontSize: '11px', color: '#64748b'}}>{client.name?.substring(0, 18)}</span>
+                                  <span style={{fontSize: '11px', color: '#374151'}}>{client.name?.substring(0, 18)}</span>
                                   <span style={{fontSize: '11px', fontWeight: '600', color: '#ef4444'}}>₹{client.outstanding.toLocaleString('en-IN')}</span>
                                 </div>
-                                <div style={{height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden'}}>
-                                  <div style={{height: '100%', width: `${(client.outstanding / maxVal) * 100}%`, background: '#ef4444', borderRadius: '4px'}}></div>
+                                <div style={{height: '8px', background: '#fee2e2', borderRadius: '4px', overflow: 'hidden'}}>
+                                  <div style={{height: '100%', width: `${(client.outstanding / maxVal) * 100}%`, background: 'linear-gradient(90deg, #ef4444 0%, #dc2626 100%)', borderRadius: '4px'}}></div>
                                 </div>
                               </div>
                             );
@@ -11821,32 +11822,32 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 })()}
                 
                 {/* Client Selection Table */}
-                <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
-                  <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600'}}>🏢 Select Client for Detailed View</h3>
+                <div style={{background: '#fff', borderRadius: '10px', padding: '20px', border: '1px solid #10b981', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+                  <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#166534'}}>🏢 Select Client for Detailed View</h3>
                   <div style={{marginBottom: '16px'}}>
                     <input 
                       type="text" 
                       placeholder="Search clients..." 
                       value={reportFilters.clientSearch || ''} 
                       onChange={(e) => setReportFilters({...reportFilters, clientSearch: e.target.value})} 
-                      style={{width: '300px', padding: '10px 16px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px'}} 
+                      style={{width: '300px', padding: '10px 16px', border: '1px solid #bbf7d0', borderRadius: '8px', fontSize: '13px'}} 
                     />
                   </div>
                   <div style={{maxHeight: '400px', overflowY: 'auto'}}>
                     <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
-                      <thead style={{position: 'sticky', top: 0, background: '#f8fafc'}}>
-                        <tr>
-                          <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Client</th>
-                          <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Tasks</th>
-                          <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Done</th>
-                          <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Pending</th>
-                          <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Billed</th>
-                          <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Outstanding</th>
-                          <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Action</th>
+                      <thead style={{position: 'sticky', top: 0}}>
+                        <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                          <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client</th>
+                          <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Tasks</th>
+                          <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Done</th>
+                          <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Pending</th>
+                          <th style={{padding: '12px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Billed</th>
+                          <th style={{padding: '12px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Outstanding</th>
+                          <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Action</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {data.clients.filter(c => !c.disabled && (!reportFilters.clientSearch || c.name.toLowerCase().includes(reportFilters.clientSearch.toLowerCase()))).map(client => {
+                        {data.clients.filter(c => !c.disabled && (!reportFilters.clientSearch || c.name.toLowerCase().includes(reportFilters.clientSearch.toLowerCase()))).map((client, idx) => {
                           const tasks = allTasks.filter(t => t.clientId === client.id || t.clientName === client.name || t.client === client.name);
                           const completed = tasks.filter(t => t.status === 'Completed' || t.completedCheck).length;
                           const pending = tasks.filter(t => t.status !== 'Completed' && !t.completedCheck).length;
