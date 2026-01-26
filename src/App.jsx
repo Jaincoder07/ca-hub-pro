@@ -11126,7 +11126,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           <td style={{padding: '10px', border: '1px solid #dcfce7', textAlign: 'center'}}>
                             <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
                               <button onClick={() => { setSelectedTask(task); setShowTaskManageModal(true); }} title="View" style={{padding: '4px', background: 'transparent', color: '#10b981', border: 'none', cursor: 'pointer'}}><Eye size={16} /></button>
-                              <button onClick={() => { setSelectedItem(task); setFormData(task); setModalType('tasks'); setShowModal(true); }} title="Edit" style={{padding: '4px', background: 'transparent', color: '#3b82f6', border: 'none', cursor: 'pointer'}}><Edit2 size={16} /></button>
+                              <button onClick={() => { setSelectedItem(task); setFormData(task); setModalType('tasks'); setShowModal(true); }} title="Edit" style={{padding: '4px', background: 'transparent', color: '#3b82f6', border: 'none', cursor: 'pointer'}}><Edit size={16} /></button>
                               <button onClick={() => handleDeleteTask(task.id)} title="Delete" style={{padding: '4px', background: 'transparent', color: '#ef4444', border: 'none', cursor: 'pointer'}}><Trash2 size={16} /></button>
                             </div>
                           </td>
