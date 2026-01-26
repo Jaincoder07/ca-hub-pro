@@ -24712,30 +24712,263 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   {/* Print & Download Buttons */}
                   <button
                     onClick={() => {
-                      const content = document.getElementById('debtor-ledger-print');
-                      if (content) {
-                        const printWindow = window.open('', '_blank');
-                        printWindow.document.write(`
-                          <html><head><title>Ledger - ${selectedDebtor.name}</title>
+                      // Calculate FY date range
+                      const fyFilter = ledgerFY && ledgerFY !== 'all';
+                      let fyStartDate = '', fyEndDate = '', fyLabel = 'All Years';
+                      if (fyFilter) {
+                        const [startYr] = ledgerFY.split('-');
+                        const fyStart = new Date(parseInt('20' + startYr.slice(-2)), 3, 1);
+                        const fyEnd = new Date(parseInt('20' + startYr.slice(-2)) + 1, 2, 31);
+                        fyStartDate = fyStart.toLocaleDateString('en-IN');
+                        fyEndDate = fyEnd.toLocaleDateString('en-IN');
+                        fyLabel = `FY ${ledgerFY}`;
+                      }
+                      
+                      // Filter invoices and receipts based on FY
+                      let clientInvoices = (data.invoices || []).filter(inv => inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
+                      let clientReceipts = (data.receipts || []).filter(r => r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
+                      
+                      if (fyFilter) {
+                        const [startYr] = ledgerFY.split('-');
+                        const fyStart = new Date(parseInt('20' + startYr.slice(-2)), 3, 1);
+                        const fyEnd = new Date(parseInt('20' + startYr.slice(-2)) + 1, 2, 31, 23, 59, 59);
+                        clientInvoices = clientInvoices.filter(inv => {
+                          const d = new Date(inv.invoiceDate);
+                          return d >= fyStart && d <= fyEnd;
+                        });
+                        clientReceipts = clientReceipts.filter(r => {
+                          const d = new Date(r.receiptDate);
+                          return d >= fyStart && d <= fyEnd;
+                        });
+                      }
+                      
+                      clientInvoices = clientInvoices.sort((a, b) => new Date(a.invoiceDate) - new Date(b.invoiceDate));
+                      clientReceipts = clientReceipts.sort((a, b) => new Date(a.receiptDate) - new Date(b.receiptDate));
+                      
+                      // Calculate outstanding
+                      const outstandingInvoices = clientInvoices.map(inv => {
+                        const paidAmount = (data.receipts || []).filter(r => r.invoiceId === inv.id || (r.invoiceEntries && r.invoiceEntries.some(e => e.invoiceId === inv.id))).reduce((sum, r) => {
+                          if (r.invoiceId === inv.id) return sum + (r.amount || 0) + (r.tds || 0) + (r.discount || 0);
+                          const entry = r.invoiceEntries?.find(e => e.invoiceId === inv.id);
+                          return sum + (entry?.amount || 0) + (entry?.tds || 0) + (entry?.discount || 0);
+                        }, 0);
+                        const balanceDue = (inv.totalAmount || 0) - paidAmount;
+                        return { ...inv, paidAmount, balanceDue };
+                      }).filter(inv => inv.balanceDue > 0.01);
+                      
+                      const totalInvoices = clientInvoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
+                      const totalReceipts = clientReceipts.reduce((sum, r) => sum + (r.amount || 0) + (r.tds || 0) + (r.discount || 0), 0);
+                      const totalOutstanding = outstandingInvoices.reduce((sum, inv) => sum + (inv.balanceDue || 0), 0);
+                      
+                      const printWindow = window.open('', '_blank');
+                      printWindow.document.write(`
+                        <html>
+                        <head>
+                          <title>Ledger - ${selectedDebtor.name}</title>
                           <style>
-                            body { font-family: Arial, sans-serif; padding: 20px; }
-                            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11px; }
-                            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                            th { background: #f5f5f5; font-weight: 600; }
-                            .header { margin-bottom: 20px; }
-                            .section-title { font-size: 14px; font-weight: 700; margin: 15px 0 10px; padding: 8px; background: #f5f5f5; }
+                            * { box-sizing: border-box; }
+                            body { font-family: Arial, sans-serif; padding: 30px; font-size: 11px; color: #1e293b; line-height: 1.4; }
+                            .header { text-align: center; margin-bottom: 25px; border-bottom: 2px solid #1e293b; padding-bottom: 15px; }
+                            .header h1 { margin: 0 0 5px; font-size: 18px; color: #1e293b; }
+                            .header h2 { margin: 0; font-size: 13px; font-weight: normal; color: #374151; }
+                            .client-info { margin-bottom: 20px; display: flex; justify-content: space-between; }
+                            .client-info .left, .client-info .right { width: 48%; }
+                            .client-info p { margin: 3px 0; }
+                            .client-info strong { color: #1e293b; }
+                            .section { margin-bottom: 20px; page-break-inside: avoid; }
+                            .section-title { font-size: 13px; font-weight: 700; margin: 0 0 8px; padding: 8px 10px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; border-radius: 4px; }
+                            .section-title.blue { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+                            .section-title.orange { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+                            table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px; }
+                            th { background: #f1f5f9; padding: 6px 8px; text-align: left; font-weight: 600; border: 1px solid #e2e8f0; color: #166534; }
+                            th.blue { color: #1e40af; }
+                            th.orange { color: #9a3412; }
+                            td { padding: 5px 8px; border: 1px solid #e2e8f0; color: #374151; }
                             .text-right { text-align: right; }
                             .text-center { text-align: center; }
-                            .summary-cards { display: flex; gap: 15px; margin-bottom: 20px; }
-                            .card { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 6px; }
-                            @media print { body { padding: 0; } }
-                          </style></head><body>
-                          ${content.innerHTML}
-                          </body></html>
-                        `);
-                        printWindow.document.close();
-                        printWindow.print();
-                      }
+                            .font-bold { font-weight: 700; color: #1e293b; }
+                            tfoot td { background: #f8fafc; font-weight: 700; color: #1e293b; }
+                            .summary-box { display: flex; gap: 15px; margin-bottom: 20px; }
+                            .summary-card { flex: 1; padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px; text-align: center; }
+                            .summary-card .label { font-size: 10px; color: #64748b; margin-bottom: 4px; }
+                            .summary-card .value { font-size: 14px; font-weight: 700; color: #1e293b; }
+                            .signature-section { margin-top: 50px; text-align: right; page-break-inside: avoid; }
+                            .signature-section .firm-name { font-weight: 700; font-size: 12px; margin-bottom: 40px; }
+                            .signature-section .auth { font-size: 11px; border-top: 1px solid #1e293b; padding-top: 5px; display: inline-block; }
+                            @media print { 
+                              body { padding: 15px; } 
+                              .section { page-break-inside: avoid; }
+                              @page { margin: 15mm; }
+                            }
+                          </style>
+                        </head>
+                        <body>
+                          <div class="header">
+                            <h1>LEDGER STATEMENT</h1>
+                            <h2>${fyFilter ? `For the period ${fyStartDate} to ${fyEndDate}` : 'All Financial Years'}</h2>
+                          </div>
+                          
+                          <div class="client-info">
+                            <div class="left">
+                              <p><strong>Client Name:</strong> ${selectedDebtor.name}</p>
+                              <p><strong>Client Code:</strong> ${selectedDebtor.fileNo || 'N/A'}</p>
+                              <p><strong>Address:</strong> ${selectedDebtor.address || 'N/A'}</p>
+                            </div>
+                            <div class="right" style="text-align: right;">
+                              <p><strong>Financial Year:</strong> ${fyLabel}</p>
+                              <p><strong>Generated:</strong> ${new Date().toLocaleDateString('en-IN')}</p>
+                            </div>
+                          </div>
+                          
+                          <div class="summary-box">
+                            <div class="summary-card">
+                              <div class="label">Total Invoices</div>
+                              <div class="value">₹${totalInvoices.toLocaleString('en-IN')}</div>
+                            </div>
+                            <div class="summary-card">
+                              <div class="label">Total Receipts</div>
+                              <div class="value">₹${totalReceipts.toLocaleString('en-IN')}</div>
+                            </div>
+                            <div class="summary-card">
+                              <div class="label">Outstanding</div>
+                              <div class="value">₹${totalOutstanding.toLocaleString('en-IN')}</div>
+                            </div>
+                          </div>
+                          
+                          <div class="section">
+                            <div class="section-title">📄 Invoices</div>
+                            <table>
+                              <thead>
+                                <tr>
+                                  <th>Date</th>
+                                  <th>Invoice No</th>
+                                  <th>Organization</th>
+                                  <th>Description</th>
+                                  <th>Period</th>
+                                  <th class="text-right">Amount</th>
+                                  <th class="text-center">Status</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                ${clientInvoices.length === 0 ? '<tr><td colspan="7" class="text-center">No invoices found</td></tr>' : clientInvoices.map(inv => {
+                                  const org = (data.organizations || []).find(o => o.id === inv.organizationId);
+                                  const paidAmount = (data.receipts || []).filter(r => r.invoiceId === inv.id || (r.invoiceEntries && r.invoiceEntries.some(e => e.invoiceId === inv.id))).reduce((sum, r) => {
+                                    if (r.invoiceId === inv.id) return sum + (r.amount || 0) + (r.tds || 0) + (r.discount || 0);
+                                    const entry = r.invoiceEntries?.find(e => e.invoiceId === inv.id);
+                                    return sum + (entry?.amount || 0) + (entry?.tds || 0) + (entry?.discount || 0);
+                                  }, 0);
+                                  const balanceDue = (inv.totalAmount || 0) - paidAmount;
+                                  const status = balanceDue <= 0.01 ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending';
+                                  return `<tr>
+                                    <td>${inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-'}</td>
+                                    <td class="font-bold">${inv.invoiceNo || '-'}</td>
+                                    <td>${org?.name || '-'}</td>
+                                    <td>${inv.serviceDescription || '-'}</td>
+                                    <td>${inv.subPeriod || inv.period || '-'}</td>
+                                    <td class="text-right font-bold">₹${(inv.totalAmount || 0).toLocaleString('en-IN')}</td>
+                                    <td class="text-center">${status}</td>
+                                  </tr>`;
+                                }).join('')}
+                              </tbody>
+                              <tfoot>
+                                <tr>
+                                  <td colspan="5" class="text-right">Total Invoices:</td>
+                                  <td class="text-right">₹${totalInvoices.toLocaleString('en-IN')}</td>
+                                  <td></td>
+                                </tr>
+                              </tfoot>
+                            </table>
+                          </div>
+                          
+                          <div class="section">
+                            <div class="section-title blue">💰 Receipts / Payments</div>
+                            <table>
+                              <thead>
+                                <tr>
+                                  <th class="blue">Date</th>
+                                  <th class="blue">Receipt No</th>
+                                  <th class="blue">Against Invoice</th>
+                                  <th class="blue">Mode</th>
+                                  <th class="blue text-right">Amount</th>
+                                  <th class="blue text-right">TDS</th>
+                                  <th class="blue text-right">Discount</th>
+                                  <th class="blue text-right">Total</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                ${clientReceipts.length === 0 ? '<tr><td colspan="8" class="text-center">No receipts found</td></tr>' : clientReceipts.map(r => {
+                                  const total = (r.amount || 0) + (r.tds || 0) + (r.discount || 0);
+                                  return `<tr>
+                                    <td>${r.receiptDate ? new Date(r.receiptDate).toLocaleDateString('en-IN') : '-'}</td>
+                                    <td class="font-bold">${r.receiptNo || '-'}</td>
+                                    <td>${r.invoiceNo || '-'}</td>
+                                    <td>${r.paymentMode || '-'}</td>
+                                    <td class="text-right">₹${(r.amount || 0).toLocaleString('en-IN')}</td>
+                                    <td class="text-right">${r.tds > 0 ? '₹' + r.tds.toLocaleString('en-IN') : '-'}</td>
+                                    <td class="text-right">${r.discount > 0 ? '₹' + r.discount.toLocaleString('en-IN') : '-'}</td>
+                                    <td class="text-right font-bold">₹${total.toLocaleString('en-IN')}</td>
+                                  </tr>`;
+                                }).join('')}
+                              </tbody>
+                              <tfoot>
+                                <tr>
+                                  <td colspan="4" class="text-right">Total Received:</td>
+                                  <td class="text-right">₹${clientReceipts.reduce((s,r) => s + (r.amount||0), 0).toLocaleString('en-IN')}</td>
+                                  <td class="text-right">₹${clientReceipts.reduce((s,r) => s + (r.tds||0), 0).toLocaleString('en-IN')}</td>
+                                  <td class="text-right">₹${clientReceipts.reduce((s,r) => s + (r.discount||0), 0).toLocaleString('en-IN')}</td>
+                                  <td class="text-right">₹${totalReceipts.toLocaleString('en-IN')}</td>
+                                </tr>
+                              </tfoot>
+                            </table>
+                          </div>
+                          
+                          <div class="section">
+                            <div class="section-title orange">⚠️ Outstanding Invoices</div>
+                            <table>
+                              <thead>
+                                <tr>
+                                  <th class="orange">Date</th>
+                                  <th class="orange">Invoice No</th>
+                                  <th class="orange">Description</th>
+                                  <th class="orange text-right">Invoice Amt</th>
+                                  <th class="orange text-right">Received</th>
+                                  <th class="orange text-right">Balance Due</th>
+                                  <th class="orange text-center">Days</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                ${outstandingInvoices.length === 0 ? '<tr><td colspan="7" class="text-center">✓ All invoices are fully paid!</td></tr>' : outstandingInvoices.map(inv => {
+                                  const daysDiff = Math.floor((new Date() - new Date(inv.invoiceDate)) / (1000 * 60 * 60 * 24));
+                                  return `<tr>
+                                    <td>${inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-'}</td>
+                                    <td class="font-bold">${inv.invoiceNo || '-'}</td>
+                                    <td>${inv.serviceDescription || '-'}</td>
+                                    <td class="text-right">₹${(inv.totalAmount || 0).toLocaleString('en-IN')}</td>
+                                    <td class="text-right">₹${(inv.paidAmount || 0).toLocaleString('en-IN')}</td>
+                                    <td class="text-right font-bold">₹${(inv.balanceDue || 0).toLocaleString('en-IN')}</td>
+                                    <td class="text-center">${daysDiff}</td>
+                                  </tr>`;
+                                }).join('')}
+                              </tbody>
+                              <tfoot>
+                                <tr>
+                                  <td colspan="5" class="text-right">Total Outstanding:</td>
+                                  <td class="text-right">₹${totalOutstanding.toLocaleString('en-IN')}</td>
+                                  <td></td>
+                                </tr>
+                              </tfoot>
+                            </table>
+                          </div>
+                          
+                          <div class="signature-section">
+                            <div class="firm-name">For Jain Ankit and Co, Chartered Accountants</div>
+                            <div class="auth">Authorized Signatory</div>
+                          </div>
+                        </body>
+                        </html>
+                      `);
+                      printWindow.document.close();
+                      printWindow.print();
                     }}
                     style={{padding: '8px 14px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'}}
                   >
@@ -24773,62 +25006,252 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         });
                       }
                       
-                      // Build CSV with client details
-                      let csv = `LEDGER STATEMENT\n`;
-                      csv += `================\n\n`;
-                      csv += `Client Name:,${selectedDebtor.name}\n`;
-                      csv += `Client Code:,${selectedDebtor.fileNo || 'N/A'}\n`;
-                      csv += `Group No:,${selectedDebtor.groupNo || selectedDebtor.fileNo?.split('.')[0] || 'N/A'}\n`;
-                      csv += `Address:,"${selectedDebtor.address || 'N/A'}"\n\n`;
-                      csv += `Financial Year:,${fyLabel}\n`;
-                      if (fyFilter) {
-                        csv += `Period:,${fyStartDate} to ${fyEndDate}\n`;
-                      }
-                      csv += `Generated On:,${new Date().toLocaleDateString('en-IN')} ${new Date().toLocaleTimeString('en-IN')}\n\n`;
+                      clientInvoices = clientInvoices.sort((a, b) => new Date(a.invoiceDate) - new Date(b.invoiceDate));
+                      clientReceipts = clientReceipts.sort((a, b) => new Date(a.receiptDate) - new Date(b.receiptDate));
                       
-                      csv += `INVOICES\n`;
-                      csv += `--------\n`;
-                      csv += `Date,Invoice No,Organization,Description,Period,FY,Amount,Status\n`;
-                      clientInvoices.forEach(inv => {
-                        const org = (data.organizations || []).find(o => o.id === inv.organizationId);
+                      // Calculate outstanding
+                      const outstandingInvoices = clientInvoices.map(inv => {
                         const paidAmount = (data.receipts || []).filter(r => r.invoiceId === inv.id || (r.invoiceEntries && r.invoiceEntries.some(e => e.invoiceId === inv.id))).reduce((sum, r) => {
                           if (r.invoiceId === inv.id) return sum + (r.amount || 0) + (r.tds || 0) + (r.discount || 0);
                           const entry = r.invoiceEntries?.find(e => e.invoiceId === inv.id);
                           return sum + (entry?.amount || 0) + (entry?.tds || 0) + (entry?.discount || 0);
                         }, 0);
                         const balanceDue = (inv.totalAmount || 0) - paidAmount;
-                        const status = balanceDue <= 0.01 ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending';
-                        csv += `${inv.invoiceDate || ''},${inv.invoiceNo || ''},"${org?.name || ''}","${inv.serviceDescription || ''}","${inv.subPeriod || inv.period || ''}",${inv.financialYear || ''},${inv.totalAmount || 0},${status}\n`;
-                      });
+                        return { ...inv, paidAmount, balanceDue };
+                      }).filter(inv => inv.balanceDue > 0.01);
+                      
                       const totalInvoices = clientInvoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
-                      csv += `,,,,,,Total:,${totalInvoices}\n`;
-                      
-                      csv += `\nRECEIPTS\n`;
-                      csv += `--------\n`;
-                      csv += `Date,Receipt No,Against Invoice,Mode,Narration,Amount,TDS,Discount,Total\n`;
-                      clientReceipts.forEach(r => {
-                        csv += `${r.receiptDate || ''},${r.receiptNo || ''},${r.invoiceNo || ''},${r.paymentMode || ''},"${r.narration || ''}",${r.amount || 0},${r.tds || 0},${r.discount || 0},${(r.amount || 0) + (r.tds || 0) + (r.discount || 0)}\n`;
-                      });
                       const totalReceipts = clientReceipts.reduce((sum, r) => sum + (r.amount || 0) + (r.tds || 0) + (r.discount || 0), 0);
-                      csv += `,,,,,,,Total:,${totalReceipts}\n`;
+                      const totalOutstanding = outstandingInvoices.reduce((sum, inv) => sum + (inv.balanceDue || 0), 0);
                       
-                      csv += `\nSUMMARY\n`;
-                      csv += `-------\n`;
-                      csv += `Total Invoices:,${totalInvoices}\n`;
-                      csv += `Total Receipts:,${totalReceipts}\n`;
-                      csv += `Outstanding:,${totalInvoices - totalReceipts}\n`;
+                      // Create PDF-ready HTML
+                      const pdfWindow = window.open('', '_blank');
+                      pdfWindow.document.write(`
+                        <html>
+                        <head>
+                          <title>Ledger - ${selectedDebtor.name}</title>
+                          <style>
+                            * { box-sizing: border-box; margin: 0; padding: 0; }
+                            body { font-family: Arial, sans-serif; padding: 25px; font-size: 10px; color: #1e293b; line-height: 1.3; }
+                            .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #1e293b; padding-bottom: 12px; }
+                            .header h1 { margin: 0 0 4px; font-size: 16px; color: #1e293b; }
+                            .header h2 { margin: 0; font-size: 11px; font-weight: normal; color: #374151; }
+                            .client-info { margin-bottom: 15px; display: flex; justify-content: space-between; }
+                            .client-info .left, .client-info .right { width: 48%; }
+                            .client-info p { margin: 2px 0; font-size: 10px; color: #374151; }
+                            .client-info strong { color: #1e293b; }
+                            .summary-box { display: flex; gap: 10px; margin-bottom: 15px; }
+                            .summary-card { flex: 1; padding: 10px; border: 1px solid #e2e8f0; border-radius: 4px; text-align: center; background: #f8fafc; }
+                            .summary-card .label { font-size: 9px; color: #64748b; margin-bottom: 3px; }
+                            .summary-card .value { font-size: 12px; font-weight: 700; color: #1e293b; }
+                            .section { margin-bottom: 15px; }
+                            .section-title { font-size: 11px; font-weight: 700; margin: 0 0 6px; padding: 6px 8px; color: #fff; border-radius: 3px; }
+                            .section-title.green { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+                            .section-title.blue { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+                            .section-title.orange { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+                            table { width: 100%; border-collapse: collapse; font-size: 9px; }
+                            th { padding: 5px 6px; text-align: left; font-weight: 600; border: 1px solid #d1d5db; }
+                            th.green { background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); color: #166534; }
+                            th.blue { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); color: #1e40af; }
+                            th.orange { background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%); color: #9a3412; }
+                            td { padding: 4px 6px; border: 1px solid #e5e7eb; color: #374151; }
+                            .text-right { text-align: right; }
+                            .text-center { text-align: center; }
+                            .font-bold { font-weight: 600; color: #1e293b; }
+                            tfoot td { background: #f8fafc; font-weight: 600; color: #1e293b; }
+                            .signature-section { margin-top: 40px; text-align: right; }
+                            .signature-section .firm-name { font-weight: 700; font-size: 11px; color: #1e293b; margin-bottom: 35px; }
+                            .signature-section .auth { font-size: 10px; color: #374151; border-top: 1px solid #1e293b; padding-top: 5px; display: inline-block; min-width: 150px; }
+                            @media print { 
+                              body { padding: 15px; -webkit-print-color-adjust: exact; print-color-adjust: exact; } 
+                              .section { page-break-inside: avoid; }
+                              @page { margin: 10mm; size: A4; }
+                            }
+                          </style>
+                        </head>
+                        <body>
+                          <div class="header">
+                            <h1>LEDGER STATEMENT</h1>
+                            <h2>${fyFilter ? `Period: ${fyStartDate} to ${fyEndDate}` : 'All Financial Years'}</h2>
+                          </div>
+                          
+                          <div class="client-info">
+                            <div class="left">
+                              <p><strong>Client Name:</strong> ${selectedDebtor.name}</p>
+                              <p><strong>Client Code:</strong> ${selectedDebtor.fileNo || 'N/A'}</p>
+                              <p><strong>Address:</strong> ${selectedDebtor.address || 'N/A'}</p>
+                            </div>
+                            <div class="right" style="text-align: right;">
+                              <p><strong>Financial Year:</strong> ${fyLabel}</p>
+                              ${fyFilter ? `<p><strong>From:</strong> ${fyStartDate}</p><p><strong>To:</strong> ${fyEndDate}</p>` : ''}
+                              <p><strong>Generated:</strong> ${new Date().toLocaleDateString('en-IN')}</p>
+                            </div>
+                          </div>
+                          
+                          <div class="summary-box">
+                            <div class="summary-card">
+                              <div class="label">Total Invoices</div>
+                              <div class="value">₹${totalInvoices.toLocaleString('en-IN')}</div>
+                            </div>
+                            <div class="summary-card">
+                              <div class="label">Total Receipts</div>
+                              <div class="value">₹${totalReceipts.toLocaleString('en-IN')}</div>
+                            </div>
+                            <div class="summary-card">
+                              <div class="label">Outstanding</div>
+                              <div class="value">₹${totalOutstanding.toLocaleString('en-IN')}</div>
+                            </div>
+                          </div>
+                          
+                          <div class="section">
+                            <div class="section-title green">📄 Invoices</div>
+                            <table>
+                              <thead>
+                                <tr>
+                                  <th class="green">Date</th>
+                                  <th class="green">Invoice No</th>
+                                  <th class="green">Organization</th>
+                                  <th class="green">Description</th>
+                                  <th class="green">Period</th>
+                                  <th class="green">FY</th>
+                                  <th class="green text-right">Amount</th>
+                                  <th class="green text-center">Status</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                ${clientInvoices.length === 0 ? '<tr><td colspan="8" class="text-center">No invoices found</td></tr>' : clientInvoices.map(inv => {
+                                  const org = (data.organizations || []).find(o => o.id === inv.organizationId);
+                                  const paidAmount = (data.receipts || []).filter(r => r.invoiceId === inv.id || (r.invoiceEntries && r.invoiceEntries.some(e => e.invoiceId === inv.id))).reduce((sum, r) => {
+                                    if (r.invoiceId === inv.id) return sum + (r.amount || 0) + (r.tds || 0) + (r.discount || 0);
+                                    const entry = r.invoiceEntries?.find(e => e.invoiceId === inv.id);
+                                    return sum + (entry?.amount || 0) + (entry?.tds || 0) + (entry?.discount || 0);
+                                  }, 0);
+                                  const balanceDue = (inv.totalAmount || 0) - paidAmount;
+                                  const status = balanceDue <= 0.01 ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending';
+                                  return `<tr>
+                                    <td>${inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-'}</td>
+                                    <td class="font-bold">${inv.invoiceNo || '-'}</td>
+                                    <td>${org?.name || '-'}</td>
+                                    <td>${inv.serviceDescription || '-'}</td>
+                                    <td>${inv.subPeriod || inv.period || '-'}</td>
+                                    <td>${inv.financialYear || '-'}</td>
+                                    <td class="text-right font-bold">₹${(inv.totalAmount || 0).toLocaleString('en-IN')}</td>
+                                    <td class="text-center">${status}</td>
+                                  </tr>`;
+                                }).join('')}
+                              </tbody>
+                              <tfoot>
+                                <tr>
+                                  <td colspan="6" class="text-right">Total Invoices:</td>
+                                  <td class="text-right">₹${totalInvoices.toLocaleString('en-IN')}</td>
+                                  <td></td>
+                                </tr>
+                              </tfoot>
+                            </table>
+                          </div>
+                          
+                          <div class="section">
+                            <div class="section-title blue">💰 Receipts / Payments</div>
+                            <table>
+                              <thead>
+                                <tr>
+                                  <th class="blue">Date</th>
+                                  <th class="blue">Receipt No</th>
+                                  <th class="blue">Against Invoice</th>
+                                  <th class="blue">Mode</th>
+                                  <th class="blue">Narration</th>
+                                  <th class="blue text-right">Amount</th>
+                                  <th class="blue text-right">TDS</th>
+                                  <th class="blue text-right">Discount</th>
+                                  <th class="blue text-right">Total</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                ${clientReceipts.length === 0 ? '<tr><td colspan="9" class="text-center">No receipts found</td></tr>' : clientReceipts.map(r => {
+                                  const total = (r.amount || 0) + (r.tds || 0) + (r.discount || 0);
+                                  return `<tr>
+                                    <td>${r.receiptDate ? new Date(r.receiptDate).toLocaleDateString('en-IN') : '-'}</td>
+                                    <td class="font-bold">${r.receiptNo || '-'}</td>
+                                    <td>${r.invoiceNo || '-'}</td>
+                                    <td>${r.paymentMode || '-'}</td>
+                                    <td>${r.narration || '-'}</td>
+                                    <td class="text-right">₹${(r.amount || 0).toLocaleString('en-IN')}</td>
+                                    <td class="text-right">${r.tds > 0 ? '₹' + r.tds.toLocaleString('en-IN') : '-'}</td>
+                                    <td class="text-right">${r.discount > 0 ? '₹' + r.discount.toLocaleString('en-IN') : '-'}</td>
+                                    <td class="text-right font-bold">₹${total.toLocaleString('en-IN')}</td>
+                                  </tr>`;
+                                }).join('')}
+                              </tbody>
+                              <tfoot>
+                                <tr>
+                                  <td colspan="5" class="text-right">Total Received:</td>
+                                  <td class="text-right">₹${clientReceipts.reduce((s,r) => s + (r.amount||0), 0).toLocaleString('en-IN')}</td>
+                                  <td class="text-right">₹${clientReceipts.reduce((s,r) => s + (r.tds||0), 0).toLocaleString('en-IN')}</td>
+                                  <td class="text-right">₹${clientReceipts.reduce((s,r) => s + (r.discount||0), 0).toLocaleString('en-IN')}</td>
+                                  <td class="text-right">₹${totalReceipts.toLocaleString('en-IN')}</td>
+                                </tr>
+                              </tfoot>
+                            </table>
+                          </div>
+                          
+                          <div class="section">
+                            <div class="section-title orange">⚠️ Outstanding Invoices</div>
+                            <table>
+                              <thead>
+                                <tr>
+                                  <th class="orange">Date</th>
+                                  <th class="orange">Invoice No</th>
+                                  <th class="orange">Organization</th>
+                                  <th class="orange">Description</th>
+                                  <th class="orange text-right">Invoice Amt</th>
+                                  <th class="orange text-right">Received</th>
+                                  <th class="orange text-right">Balance Due</th>
+                                  <th class="orange text-center">Days</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                ${outstandingInvoices.length === 0 ? '<tr><td colspan="8" class="text-center">✓ All invoices are fully paid!</td></tr>' : outstandingInvoices.map(inv => {
+                                  const org = (data.organizations || []).find(o => o.id === inv.organizationId);
+                                  const daysDiff = Math.floor((new Date() - new Date(inv.invoiceDate)) / (1000 * 60 * 60 * 24));
+                                  return `<tr>
+                                    <td>${inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-IN') : '-'}</td>
+                                    <td class="font-bold">${inv.invoiceNo || '-'}</td>
+                                    <td>${org?.name || '-'}</td>
+                                    <td>${inv.serviceDescription || '-'}</td>
+                                    <td class="text-right">₹${(inv.totalAmount || 0).toLocaleString('en-IN')}</td>
+                                    <td class="text-right">₹${(inv.paidAmount || 0).toLocaleString('en-IN')}</td>
+                                    <td class="text-right font-bold">₹${(inv.balanceDue || 0).toLocaleString('en-IN')}</td>
+                                    <td class="text-center">${daysDiff}</td>
+                                  </tr>`;
+                                }).join('')}
+                              </tbody>
+                              <tfoot>
+                                <tr>
+                                  <td colspan="6" class="text-right">Total Outstanding:</td>
+                                  <td class="text-right">₹${totalOutstanding.toLocaleString('en-IN')}</td>
+                                  <td></td>
+                                </tr>
+                              </tfoot>
+                            </table>
+                          </div>
+                          
+                          <div class="signature-section">
+                            <div class="firm-name">For Jain Ankit and Co, Chartered Accountants</div>
+                            <div class="auth">Authorized Signatory</div>
+                          </div>
+                        </body>
+                        </html>
+                      `);
+                      pdfWindow.document.close();
                       
-                      const blob = new Blob([csv], { type: 'text/csv' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      const fileName = fyFilter ? `Ledger_${selectedDebtor.name.replace(/[^a-zA-Z0-9]/g, '_')}_FY${ledgerFY}.csv` : `Ledger_${selectedDebtor.name.replace(/[^a-zA-Z0-9]/g, '_')}.csv`;
-                      a.download = fileName;
-                      a.click();
+                      // Trigger print dialog for PDF save
+                      setTimeout(() => {
+                        pdfWindow.print();
+                      }, 500);
                     }}
                     style={{padding: '8px 14px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'}}
                   >
-                    <Download size={14} /> Download Ledger
+                    <Download size={14} /> Download PDF
                   </button>
                 </div>
 
@@ -24962,11 +25385,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                   <td style={{padding: '8px 10px', color: '#374151'}}>{inv.subPeriod || inv.period || '-'}</td>
                                   <td style={{padding: '8px 10px', color: '#374151'}}>{inv.financialYear || '-'}</td>
                                   <td style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#1e293b'}}>₹{(inv.totalAmount || 0).toLocaleString('en-IN')}</td>
-                                  <td style={{padding: '8px 10px', textAlign: 'center'}}>
-                                    <span style={{padding: '3px 10px', borderRadius: '10px', fontSize: '11px', fontWeight: '600', background: status === 'Paid' ? '#dcfce7' : status === 'Partial' ? '#fef3c7' : '#fef2f2', color: status === 'Paid' ? '#166534' : status === 'Partial' ? '#92400e' : '#991b1b'}}>{status}</span>
-                                  </td>
+                                  <td style={{padding: '8px 10px', textAlign: 'center', color: '#374151'}}>{status}</td>
                                   <td style={{padding: '6px 8px', textAlign: 'center'}}>
-                                    <button onClick={() => setInvoicePreviewModal(inv)} style={{padding: '4px 10px', background: '#dcfce7', color: '#166534', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px'}}><Eye size={13} /></button>
+                                    <button onClick={() => setInvoicePreviewModal(inv)} style={{padding: '4px 10px', background: '#f1f5f9', color: '#374151', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer', fontSize: '11px'}}><Eye size={13} /></button>
                                   </td>
                                 </tr>
                               );
@@ -24974,9 +25395,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           })()}
                         </tbody>
                         <tfoot>
-                          <tr style={{background: '#f0fdf4'}}>
-                            <td colSpan={6} style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#166534'}}>Total Invoices:</td>
-                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#166534', fontSize: '13px'}}>
+                          <tr style={{background: '#f8fafc'}}>
+                            <td colSpan={6} style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#1e293b'}}>Total Invoices:</td>
+                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#1e293b', fontSize: '13px'}}>
                               ₹{(() => {
                                 const fyFilter = ledgerFY && ledgerFY !== 'all';
                                 let clientInvoices = (data.invoices || []).filter(inv => inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
@@ -25060,7 +25481,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                   <td style={{padding: '8px 10px', textAlign: 'right', color: '#374151'}}>{r.discount > 0 ? `₹${r.discount.toLocaleString('en-IN')}` : '-'}</td>
                                   <td style={{padding: '8px 10px', textAlign: 'right', fontWeight: '700', color: '#1e293b'}}>₹{totalReceived.toLocaleString('en-IN')}</td>
                                   <td style={{padding: '6px 8px', textAlign: 'center'}}>
-                                    <button onClick={() => setViewingReceipt(r)} style={{padding: '4px 10px', background: '#dbeafe', color: '#1d4ed8', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px'}}><Eye size={13} /></button>
+                                    <button onClick={() => setViewingReceipt(r)} style={{padding: '4px 10px', background: '#f1f5f9', color: '#374151', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer', fontSize: '11px'}}><Eye size={13} /></button>
                                   </td>
                                 </tr>
                               );
@@ -25068,9 +25489,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           })()}
                         </tbody>
                         <tfoot>
-                          <tr style={{background: '#eff6ff'}}>
-                            <td colSpan={5} style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#1d4ed8'}}>Total Received:</td>
-                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#1d4ed8'}}>
+                          <tr style={{background: '#f8fafc'}}>
+                            <td colSpan={5} style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#1e293b'}}>Total Received:</td>
+                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#1e293b'}}>
                               ₹{(() => {
                                 const fyFilter = ledgerFY && ledgerFY !== 'all';
                                 let clientReceipts = (data.receipts || []).filter(r => r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
@@ -25083,7 +25504,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 return clientReceipts.reduce((sum, r) => sum + (r.amount || 0), 0).toLocaleString('en-IN');
                               })()}
                             </td>
-                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#f59e0b'}}>
+                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#1e293b'}}>
                               ₹{(() => {
                                 const fyFilter = ledgerFY && ledgerFY !== 'all';
                                 let clientReceipts = (data.receipts || []).filter(r => r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
@@ -25096,7 +25517,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 return clientReceipts.reduce((sum, r) => sum + (r.tds || 0), 0).toLocaleString('en-IN');
                               })()}
                             </td>
-                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#8b5cf6'}}>
+                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#1e293b'}}>
                               ₹{(() => {
                                 const fyFilter = ledgerFY && ledgerFY !== 'all';
                                 let clientReceipts = (data.receipts || []).filter(r => r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
@@ -25109,7 +25530,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 return clientReceipts.reduce((sum, r) => sum + (r.discount || 0), 0).toLocaleString('en-IN');
                               })()}
                             </td>
-                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#1d4ed8', fontSize: '13px'}}>
+                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#1e293b', fontSize: '13px'}}>
                               ₹{(() => {
                                 const fyFilter = ledgerFY && ledgerFY !== 'all';
                                 let clientReceipts = (data.receipts || []).filter(r => r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
@@ -25188,7 +25609,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             }).filter(inv => inv.balanceDue > 0.01).sort((a, b) => new Date(a.invoiceDate) - new Date(b.invoiceDate));
                             
                             if (outstandingInvoices.length === 0) {
-                              return <tr><td colSpan={9} style={{padding: '30px', textAlign: 'center', color: '#16a34a', fontWeight: '600'}}>✓ All invoices are fully paid!</td></tr>;
+                              return <tr><td colSpan={9} style={{padding: '30px', textAlign: 'center', color: '#374151', fontWeight: '600'}}>✓ All invoices are fully paid!</td></tr>;
                             }
                             
                             return outstandingInvoices.map((inv, idx) => (
@@ -25199,21 +25620,19 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 <td style={{padding: '8px 10px', color: '#374151', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{inv.serviceDescription || '-'}</td>
                                 <td style={{padding: '8px 10px', textAlign: 'right', color: '#1e293b'}}>₹{(inv.totalAmount || 0).toLocaleString('en-IN')}</td>
                                 <td style={{padding: '8px 10px', textAlign: 'right', color: '#374151'}}>₹{(inv.paidAmount || 0).toLocaleString('en-IN')}</td>
-                                <td style={{padding: '8px 10px', textAlign: 'right', fontWeight: '700', color: '#ea580c'}}>₹{(inv.balanceDue || 0).toLocaleString('en-IN')}</td>
-                                <td style={{padding: '8px 10px', textAlign: 'center'}}>
-                                  <span style={{padding: '3px 8px', borderRadius: '8px', fontSize: '11px', fontWeight: '600', background: inv.daysDiff > 360 ? '#fecaca' : inv.daysDiff > 90 ? '#fed7aa' : inv.daysDiff > 30 ? '#fef9c3' : '#dcfce7', color: inv.daysDiff > 360 ? '#dc2626' : inv.daysDiff > 90 ? '#c2410c' : inv.daysDiff > 30 ? '#a16207' : '#166534'}}>{inv.daysDiff}</span>
-                                </td>
+                                <td style={{padding: '8px 10px', textAlign: 'right', fontWeight: '700', color: '#1e293b'}}>₹{(inv.balanceDue || 0).toLocaleString('en-IN')}</td>
+                                <td style={{padding: '8px 10px', textAlign: 'center', color: '#374151', fontWeight: '600'}}>{inv.daysDiff}</td>
                                 <td style={{padding: '6px 8px', textAlign: 'center'}}>
-                                  <button onClick={() => setInvoicePreviewModal(inv)} style={{padding: '4px 10px', background: '#ffedd5', color: '#c2410c', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px'}}><Eye size={13} /></button>
+                                  <button onClick={() => setInvoicePreviewModal(inv)} style={{padding: '4px 10px', background: '#f1f5f9', color: '#374151', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer', fontSize: '11px'}}><Eye size={13} /></button>
                                 </td>
                               </tr>
                             ));
                           })()}
                         </tbody>
                         <tfoot>
-                          <tr style={{background: '#fff7ed'}}>
-                            <td colSpan={4} style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#c2410c'}}>Total Outstanding:</td>
-                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#c2410c'}}>
+                          <tr style={{background: '#f8fafc'}}>
+                            <td colSpan={4} style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#1e293b'}}>Total Outstanding:</td>
+                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#1e293b'}}>
                               ₹{(() => {
                                 const fyFilter = ledgerFY && ledgerFY !== 'all';
                                 let clientInvoices = (data.invoices || []).filter(inv => inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
@@ -25234,7 +25653,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 return outstandingInvoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0).toLocaleString('en-IN');
                               })()}
                             </td>
-                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#16a34a'}}>
+                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#1e293b'}}>
                               ₹{(() => {
                                 const fyFilter = ledgerFY && ledgerFY !== 'all';
                                 let clientInvoices = (data.invoices || []).filter(inv => inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
@@ -25256,7 +25675,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 }, 0).toLocaleString('en-IN');
                               })()}
                             </td>
-                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#ea580c', fontSize: '13px'}}>
+                            <td style={{padding: '8px 10px', fontWeight: '700', textAlign: 'right', color: '#1e293b', fontSize: '13px'}}>
                               ₹{(() => {
                                 const fyFilter = ledgerFY && ledgerFY !== 'all';
                                 let clientInvoices = (data.invoices || []).filter(inv => inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
