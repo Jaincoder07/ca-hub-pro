@@ -18904,7 +18904,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         {activeTab === 'organizations' && (
           <div>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-              <h2 style={{margin: 0, fontSize: '18px', fontWeight: '600'}}>Organizations</h2>
+              <h2 style={{margin: 0, fontSize: '18px', fontWeight: '600', color: '#1e293b'}}>Organizations</h2>
               <button
                 onClick={() => { resetOrgForm(); setShowOrgModal(true); }}
                 style={{
@@ -18912,12 +18912,14 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   alignItems: 'center',
                   gap: '8px',
                   padding: '10px 20px',
-                  background: '#10b981',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                   color: '#fff',
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
-                  fontWeight: '500'
+                  fontWeight: '600',
+                  fontSize: '13px',
+                  boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)'
                 }}
               >
                 <Plus size={18} /> Add Organization
@@ -18925,104 +18927,106 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             </div>
 
             {/* Organizations Table */}
-            <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
-              <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
-                <thead>
-                  <tr style={{background: '#f8fafc'}}>
-                    <th style={{padding: '14px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Organization</th>
-                    <th style={{padding: '14px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Address Details</th>
-                    <th style={{padding: '14px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Contact Details</th>
-                    <th style={{padding: '14px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Website Details</th>
-                    <th style={{padding: '14px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>GSTIN/PAN No.</th>
-                    <th style={{padding: '14px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Bank Details</th>
-                    <th style={{padding: '14px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Authorized Signatory</th>
-                    <th style={{padding: '14px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Logo</th>
-                    <th style={{padding: '14px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(data.organizations || []).length === 0 ? (
-                    <tr>
-                      <td colSpan={9} style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>
-                        No organizations added yet. Click "Add Organization" to create one.
-                      </td>
+            <div style={{background: '#fff', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #10b981'}}>
+              <div style={{overflowX: 'auto'}}>
+                <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+                  <thead>
+                    <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Organization</th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Address Details</th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Contact Details</th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Website Details</th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>GSTIN/PAN No.</th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Bank Details</th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Authorized Signatory</th>
+                      <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '70px'}}>Logo</th>
+                      <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '80px'}}>Actions</th>
                     </tr>
-                  ) : (
-                    (data.organizations || []).map(org => (
-                      <tr key={org.id} style={{borderBottom: '1px solid #f1f5f9'}}>
-                        <td style={{padding: '14px', fontWeight: '500', color: '#0ea5e9'}}>{org.name}</td>
-                        <td style={{padding: '14px'}}>
-                          <div style={{fontSize: '12px'}}>
-                            <strong>Address:</strong> {org.address || '-'}<br/>
-                            <strong>State:</strong> {org.state || '-'}
-                          </div>
-                        </td>
-                        <td style={{padding: '14px'}}>
-                          <div style={{fontSize: '12px'}}>
-                            <strong>Phone:</strong> {org.phoneNo || '-'}<br/>
-                            <strong>Mobile:</strong> {org.mobileNo || '-'}<br/>
-                            <strong>Email:</strong> {org.emailId || '-'}
-                          </div>
-                        </td>
-                        <td style={{padding: '14px'}}>
-                          <div style={{fontSize: '12px'}}>
-                            <strong>Website:</strong> {org.website || '-'}<br/>
-                            <strong>Fax:</strong> {org.faxNo || '-'}
-                          </div>
-                        </td>
-                        <td style={{padding: '14px'}}>
-                          <div style={{fontSize: '12px'}}>
-                            <div style={{marginBottom: '6px'}}>
-                              <span style={{
-                                padding: '3px 8px',
-                                borderRadius: '4px',
-                                fontSize: '10px',
-                                fontWeight: '600',
-                                background: org.gstApplicable === 'yes' ? '#dcfce7' : '#fef2f2',
-                                color: org.gstApplicable === 'yes' ? '#166534' : '#dc2626'
-                              }}>
-                                GST: {org.gstApplicable === 'yes' ? 'Applicable' : 'Not Applicable'}
-                              </span>
-                            </div>
-                            <strong>GSTIN:</strong> {org.gstin || 'Not Available'}<br/>
-                            <strong>PAN:</strong> {org.panNo || '-'}
-                          </div>
-                        </td>
-                        <td style={{padding: '14px'}}>
-                          <div style={{fontSize: '12px'}}>
-                            <strong>Bank:</strong> {org.bankName || '-'}<br/>
-                            <strong>A/C:</strong> {org.bankAccountNo || '-'}
-                          </div>
-                        </td>
-                        <td style={{padding: '14px'}}>{org.authorizedSignatory || '-'}</td>
-                        <td style={{padding: '14px', textAlign: 'center'}}>
-                          {org.logo ? (
-                            <img src={org.logo} alt="Logo" style={{maxWidth: '50px', maxHeight: '50px', objectFit: 'contain'}} />
-                          ) : '-'}
-                        </td>
-                        <td style={{padding: '14px', textAlign: 'center'}}>
-                          <div style={{display: 'flex', gap: '8px', justifyContent: 'center'}}>
-                            <button
-                              onClick={() => editOrganization(org)}
-                              style={{padding: '6px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer'}}
-                              title="Edit"
-                            >
-                              <Edit size={14} />
-                            </button>
-                            <button
-                              onClick={() => deleteOrganization(org.id)}
-                              style={{padding: '6px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer'}}
-                              title="Delete"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
+                  </thead>
+                  <tbody>
+                    {(data.organizations || []).length === 0 ? (
+                      <tr>
+                        <td colSpan={9} style={{padding: '40px', textAlign: 'center', color: '#64748b', border: '1px solid #e5e7eb'}}>
+                          No organizations added yet. Click "Add Organization" to create one.
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      (data.organizations || []).map((org, idx) => (
+                        <tr key={org.id} style={{background: idx % 2 === 0 ? '#fff' : '#f8fafc'}}>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb', fontWeight: '600', color: '#10b981'}}>{org.name}</td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb'}}>
+                            <div style={{fontSize: '11px', color: '#374151'}}>
+                              <div><strong style={{color: '#64748b'}}>Address:</strong> {org.address || '-'}</div>
+                              <div><strong style={{color: '#64748b'}}>State:</strong> {org.state || '-'}</div>
+                            </div>
+                          </td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb'}}>
+                            <div style={{fontSize: '11px', color: '#374151'}}>
+                              <div><strong style={{color: '#64748b'}}>Phone:</strong> {org.phoneNo || '-'}</div>
+                              <div><strong style={{color: '#64748b'}}>Mobile:</strong> {org.mobileNo || '-'}</div>
+                              <div><strong style={{color: '#64748b'}}>Email:</strong> {org.emailId || '-'}</div>
+                            </div>
+                          </td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb'}}>
+                            <div style={{fontSize: '11px', color: '#374151'}}>
+                              <div><strong style={{color: '#64748b'}}>Website:</strong> {org.website || '-'}</div>
+                              <div><strong style={{color: '#64748b'}}>Fax:</strong> {org.faxNo || '-'}</div>
+                            </div>
+                          </td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb'}}>
+                            <div style={{fontSize: '11px', color: '#374151'}}>
+                              <div style={{marginBottom: '4px'}}>
+                                <span style={{
+                                  padding: '2px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '10px',
+                                  fontWeight: '600',
+                                  background: org.gstApplicable === 'yes' ? '#dcfce7' : '#fef2f2',
+                                  color: org.gstApplicable === 'yes' ? '#166534' : '#dc2626'
+                                }}>
+                                  GST: {org.gstApplicable === 'yes' ? 'Applicable' : 'Not Applicable'}
+                                </span>
+                              </div>
+                              <div><strong style={{color: '#64748b'}}>GSTIN:</strong> {org.gstin || 'N/A'}</div>
+                              <div><strong style={{color: '#64748b'}}>PAN:</strong> {org.panNo || '-'}</div>
+                            </div>
+                          </td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb'}}>
+                            <div style={{fontSize: '11px', color: '#374151'}}>
+                              <div><strong style={{color: '#64748b'}}>Bank:</strong> {org.bankName || '-'}</div>
+                              <div><strong style={{color: '#64748b'}}>A/C:</strong> {org.bankAccountNo || '-'}</div>
+                            </div>
+                          </td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb', color: '#374151', fontSize: '11px'}}>{org.authorizedSignatory || '-'}</td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb', textAlign: 'center'}}>
+                            {org.logo ? (
+                              <img src={org.logo} alt="Logo" style={{maxWidth: '45px', maxHeight: '45px', objectFit: 'contain', borderRadius: '4px'}} />
+                            ) : <span style={{color: '#94a3b8', fontSize: '11px'}}>-</span>}
+                          </td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb', textAlign: 'center'}}>
+                            <div style={{display: 'flex', gap: '6px', justifyContent: 'center'}}>
+                              <button
+                                onClick={() => editOrganization(org)}
+                                style={{padding: '6px 8px', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+                                title="Edit"
+                              >
+                                <Edit size={13} />
+                              </button>
+                              <button
+                                onClick={() => deleteOrganization(org.id)}
+                                style={{padding: '6px 8px', background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+                                title="Delete"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
