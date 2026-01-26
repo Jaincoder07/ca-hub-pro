@@ -10399,6 +10399,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       financialYear: '',
       reportingManager: '',
       billingStatus: '',
+      taskCardFilter: '', // 'total', 'completed', 'pending', 'overdue', 'billed'
       selectedRM: '',
       rmDetailView: '',
       clientSearch: '',
@@ -11117,44 +11118,63 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               </div>
             </div>
             
-            {/* Summary Cards */}
-            <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '20px'}}>
-              <div style={{background: 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)', borderRadius: '10px', padding: '16px', border: '1px solid #bfdbfe'}}>
-                <div style={{fontSize: '28px', fontWeight: '700', color: '#1d4ed8'}}>{filteredTasks.filter(t => {
+            {/* Summary Cards - Clickable Filters */}
+            <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '20px'}}>
+              <div 
+                onClick={() => setReportFilters({...reportFilters, taskCardFilter: reportFilters.taskCardFilter === 'total' ? '' : 'total'})}
+                style={{background: reportFilters.taskCardFilter === 'total' ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)', borderRadius: '10px', padding: '16px', border: reportFilters.taskCardFilter === 'total' ? '2px solid #1d4ed8' : '1px solid #bfdbfe', cursor: 'pointer', transition: 'all 0.2s', transform: reportFilters.taskCardFilter === 'total' ? 'scale(1.02)' : 'scale(1)'}}>
+                <div style={{fontSize: '28px', fontWeight: '700', color: reportFilters.taskCardFilter === 'total' ? '#fff' : '#1d4ed8'}}>{filteredTasks.filter(t => {
                   if (reportFilters.reportingManager && (t.taskManager !== reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager)) return false;
                   if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
                   if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
                   return true;
                 }).length}</div>
-                <div style={{fontSize: '12px', color: '#3b82f6', fontWeight: '500'}}>Total Tasks</div>
+                <div style={{fontSize: '12px', color: reportFilters.taskCardFilter === 'total' ? 'rgba(255,255,255,0.9)' : '#3b82f6', fontWeight: '500'}}>Total Tasks</div>
               </div>
-              <div style={{background: 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '10px', padding: '16px', border: '1px solid #bbf7d0'}}>
-                <div style={{fontSize: '28px', fontWeight: '700', color: '#166534'}}>{filteredTasks.filter(t => {
+              <div 
+                onClick={() => setReportFilters({...reportFilters, taskCardFilter: reportFilters.taskCardFilter === 'completed' ? '' : 'completed'})}
+                style={{background: reportFilters.taskCardFilter === 'completed' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '10px', padding: '16px', border: reportFilters.taskCardFilter === 'completed' ? '2px solid #059669' : '1px solid #bbf7d0', cursor: 'pointer', transition: 'all 0.2s', transform: reportFilters.taskCardFilter === 'completed' ? 'scale(1.02)' : 'scale(1)'}}>
+                <div style={{fontSize: '28px', fontWeight: '700', color: reportFilters.taskCardFilter === 'completed' ? '#fff' : '#166534'}}>{filteredTasks.filter(t => {
                   if (reportFilters.reportingManager && (t.taskManager !== reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager)) return false;
                   if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
                   if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
                   return t.status === 'Completed' || t.completedCheck;
                 }).length}</div>
-                <div style={{fontSize: '12px', color: '#16a34a', fontWeight: '500'}}>Completed</div>
+                <div style={{fontSize: '12px', color: reportFilters.taskCardFilter === 'completed' ? 'rgba(255,255,255,0.9)' : '#16a34a', fontWeight: '500'}}>Completed</div>
               </div>
-              <div style={{background: 'linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%)', borderRadius: '10px', padding: '16px', border: '1px solid #fde68a'}}>
-                <div style={{fontSize: '28px', fontWeight: '700', color: '#b45309'}}>{filteredTasks.filter(t => {
+              <div 
+                onClick={() => setReportFilters({...reportFilters, taskCardFilter: reportFilters.taskCardFilter === 'pending' ? '' : 'pending'})}
+                style={{background: reportFilters.taskCardFilter === 'pending' ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%)', borderRadius: '10px', padding: '16px', border: reportFilters.taskCardFilter === 'pending' ? '2px solid #d97706' : '1px solid #fde68a', cursor: 'pointer', transition: 'all 0.2s', transform: reportFilters.taskCardFilter === 'pending' ? 'scale(1.02)' : 'scale(1)'}}>
+                <div style={{fontSize: '28px', fontWeight: '700', color: reportFilters.taskCardFilter === 'pending' ? '#fff' : '#b45309'}}>{filteredTasks.filter(t => {
                   if (reportFilters.reportingManager && (t.taskManager !== reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager)) return false;
                   if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
                   if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
                   return t.status !== 'Completed' && !t.completedCheck;
                 }).length}</div>
-                <div style={{fontSize: '12px', color: '#d97706', fontWeight: '500'}}>Pending</div>
+                <div style={{fontSize: '12px', color: reportFilters.taskCardFilter === 'pending' ? 'rgba(255,255,255,0.9)' : '#d97706', fontWeight: '500'}}>Pending</div>
               </div>
-              <div style={{background: 'linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%)', borderRadius: '10px', padding: '16px', border: '1px solid #fecaca'}}>
-                <div style={{fontSize: '28px', fontWeight: '700', color: '#dc2626'}}>{filteredTasks.filter(t => {
+              <div 
+                onClick={() => setReportFilters({...reportFilters, taskCardFilter: reportFilters.taskCardFilter === 'billed' ? '' : 'billed'})}
+                style={{background: reportFilters.taskCardFilter === 'billed' ? 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)' : 'linear-gradient(135deg, #ede9fe 0%, #f5f3ff 100%)', borderRadius: '10px', padding: '16px', border: reportFilters.taskCardFilter === 'billed' ? '2px solid #7c3aed' : '1px solid #c4b5fd', cursor: 'pointer', transition: 'all 0.2s', transform: reportFilters.taskCardFilter === 'billed' ? 'scale(1.02)' : 'scale(1)'}}>
+                <div style={{fontSize: '28px', fontWeight: '700', color: reportFilters.taskCardFilter === 'billed' ? '#fff' : '#7c3aed'}}>{filteredTasks.filter(t => {
+                  if (reportFilters.reportingManager && (t.taskManager !== reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager)) return false;
+                  if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
+                  if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
+                  return t.billed;
+                }).length}</div>
+                <div style={{fontSize: '12px', color: reportFilters.taskCardFilter === 'billed' ? 'rgba(255,255,255,0.9)' : '#8b5cf6', fontWeight: '500'}}>Billed</div>
+              </div>
+              <div 
+                onClick={() => setReportFilters({...reportFilters, taskCardFilter: reportFilters.taskCardFilter === 'overdue' ? '' : 'overdue'})}
+                style={{background: reportFilters.taskCardFilter === 'overdue' ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%)', borderRadius: '10px', padding: '16px', border: reportFilters.taskCardFilter === 'overdue' ? '2px solid #dc2626' : '1px solid #fecaca', cursor: 'pointer', transition: 'all 0.2s', transform: reportFilters.taskCardFilter === 'overdue' ? 'scale(1.02)' : 'scale(1)'}}>
+                <div style={{fontSize: '28px', fontWeight: '700', color: reportFilters.taskCardFilter === 'overdue' ? '#fff' : '#dc2626'}}>{filteredTasks.filter(t => {
                   if (reportFilters.reportingManager && (t.taskManager !== reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager)) return false;
                   if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
                   if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
                   if (t.status === 'Completed' || t.completedCheck || !t.dueDate) return false;
                   return new Date(t.dueDate.split('-').reverse().join('-')) < today;
                 }).length}</div>
-                <div style={{fontSize: '12px', color: '#ef4444', fontWeight: '500'}}>Overdue</div>
+                <div style={{fontSize: '12px', color: reportFilters.taskCardFilter === 'overdue' ? 'rgba(255,255,255,0.9)' : '#ef4444', fontWeight: '500'}}>Overdue</div>
               </div>
             </div>
             
@@ -11183,6 +11203,14 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       if (reportFilters.reportingManager && (t.taskManager !== reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager)) return false;
                       if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
                       if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
+                      // Card filters
+                      if (reportFilters.taskCardFilter === 'completed' && t.status !== 'Completed' && !t.completedCheck) return false;
+                      if (reportFilters.taskCardFilter === 'pending' && (t.status === 'Completed' || t.completedCheck)) return false;
+                      if (reportFilters.taskCardFilter === 'billed' && !t.billed) return false;
+                      if (reportFilters.taskCardFilter === 'overdue') {
+                        if (t.status === 'Completed' || t.completedCheck || !t.dueDate) return false;
+                        if (new Date(t.dueDate.split('-').reverse().join('-')) >= today) return false;
+                      }
                       return true;
                     }).slice(0, 100).map((task, idx) => {
                       const client = data.clients.find(c => c.id === task.clientId || c.name === task.clientName || c.name === task.client);
@@ -11222,11 +11250,25 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 if (reportFilters.reportingManager && (t.taskManager !== reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager)) return false;
                 if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
                 if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
+                if (reportFilters.taskCardFilter === 'completed' && t.status !== 'Completed' && !t.completedCheck) return false;
+                if (reportFilters.taskCardFilter === 'pending' && (t.status === 'Completed' || t.completedCheck)) return false;
+                if (reportFilters.taskCardFilter === 'billed' && !t.billed) return false;
+                if (reportFilters.taskCardFilter === 'overdue') {
+                  if (t.status === 'Completed' || t.completedCheck || !t.dueDate) return false;
+                  if (new Date(t.dueDate.split('-').reverse().join('-')) >= today) return false;
+                }
                 return true;
               }).length > 100 && <div style={{padding: '12px', textAlign: 'center', background: '#f0fdf4', fontSize: '12px', color: '#166534', borderTop: '1px solid #bbf7d0'}}>Showing 100 of {filteredTasks.filter(t => {
                 if (reportFilters.reportingManager && (t.taskManager !== reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager)) return false;
                 if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
                 if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
+                if (reportFilters.taskCardFilter === 'completed' && t.status !== 'Completed' && !t.completedCheck) return false;
+                if (reportFilters.taskCardFilter === 'pending' && (t.status === 'Completed' || t.completedCheck)) return false;
+                if (reportFilters.taskCardFilter === 'billed' && !t.billed) return false;
+                if (reportFilters.taskCardFilter === 'overdue') {
+                  if (t.status === 'Completed' || t.completedCheck || !t.dueDate) return false;
+                  if (new Date(t.dueDate.split('-').reverse().join('-')) >= today) return false;
+                }
                 return true;
               }).length} tasks. Export to see all.</div>}
             </div>
@@ -11301,100 +11343,152 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   })()}
                 </div>
                 
-                {/* Staff Performance Charts & Table */}
-                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px'}}>
-                  {/* Completion Rate Chart */}
-                  <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
-                    <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600'}}>📊 Completion Rate by Staff</h3>
-                    {data.staff.filter(s => s.status === 'Active').slice(0, 8).map(staff => {
+                {/* Top 5 Charts Row - Same style as Debtors Report */}
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '20px'}}>
+                  {(() => {
+                    const staffStats = data.staff.filter(s => s.status === 'Active').map(staff => {
                       const tasks = allTasks.filter(t => t.primaryAssignedUser === staff.name || t.assignedTo === staff.name);
                       const completed = tasks.filter(t => t.status === 'Completed' || t.completedCheck).length;
-                      const rate = tasks.length > 0 ? (completed / tasks.length) * 100 : 0;
-                      return (
-                        <div key={staff.id} style={{marginBottom: '12px'}}>
-                          <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
-                            <span style={{fontSize: '12px', color: '#64748b'}}>{staff.name.split(' ')[0]}</span>
-                            <span style={{fontSize: '12px', fontWeight: '600'}}>{Math.round(rate)}%</span>
-                          </div>
-                          <div style={{height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden'}}>
-                            <div style={{height: '100%', width: `${rate}%`, background: rate >= 80 ? '#10b981' : rate >= 50 ? '#f59e0b' : '#ef4444', borderRadius: '4px'}}></div>
-                          </div>
+                      const pending = tasks.filter(t => t.status !== 'Completed' && !t.completedCheck).length;
+                      const overdue = tasks.filter(t => {
+                        if (t.status === 'Completed' || t.completedCheck || !t.dueDate) return false;
+                        return new Date(t.dueDate.split('-').reverse().join('-')) < today;
+                      }).length;
+                      return { ...staff, tasks: tasks.length, completed, pending, overdue, completionRate: tasks.length > 0 ? (completed / tasks.length) * 100 : 0 };
+                    }).filter(s => s.tasks > 0);
+                    
+                    const topByTasks = [...staffStats].sort((a, b) => b.tasks - a.tasks).slice(0, 5);
+                    const topByCompletion = [...staffStats].sort((a, b) => b.completed - a.completed).slice(0, 5);
+                    const topByOverdue = [...staffStats].sort((a, b) => b.overdue - a.overdue).slice(0, 5);
+                    
+                    return (
+                      <>
+                        {/* Top 5 by Total Tasks */}
+                        <div style={{background: '#fff', borderRadius: '10px', padding: '20px', border: '1px solid #10b981', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+                          <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#166534'}}>📊 Top 5 by Total Tasks</h3>
+                          {topByTasks.map((staff, idx) => {
+                            const maxVal = topByTasks[0]?.tasks || 1;
+                            return (
+                              <div key={staff.id} style={{marginBottom: '12px'}}>
+                                <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
+                                  <span style={{fontSize: '11px', color: '#374151'}}>{staff.name?.substring(0, 15)}</span>
+                                  <span style={{fontSize: '11px', fontWeight: '600', color: '#166534'}}>{staff.tasks} tasks</span>
+                                </div>
+                                <div style={{height: '8px', background: '#dcfce7', borderRadius: '4px', overflow: 'hidden'}}>
+                                  <div style={{height: '100%', width: `${(staff.tasks / maxVal) * 100}%`, background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)', borderRadius: '4px'}}></div>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
-                  </div>
-                  
-                  {/* Workload Distribution */}
-                  <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
-                    <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600'}}>📈 Workload Distribution</h3>
-                    {data.staff.filter(s => s.status === 'Active').slice(0, 8).map(staff => {
-                      const tasks = allTasks.filter(t => t.primaryAssignedUser === staff.name || t.assignedTo === staff.name);
-                      const completed = tasks.filter(t => t.status === 'Completed' || t.completedCheck).length;
-                      const pending = tasks.length - completed;
-                      const maxTasks = Math.max(...data.staff.filter(s => s.status === 'Active').map(s => allTasks.filter(t => t.primaryAssignedUser === s.name || t.assignedTo === s.name).length), 1);
-                      return (
-                        <div key={staff.id} style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px'}}>
-                          <div style={{width: '60px', fontSize: '11px', color: '#64748b'}}>{staff.name.split(' ')[0]}</div>
-                          <div style={{flex: 1, display: 'flex', height: '20px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden'}}>
-                            <div style={{width: `${(completed / maxTasks) * 100}%`, background: '#10b981'}} title={`Completed: ${completed}`}></div>
-                            <div style={{width: `${(pending / maxTasks) * 100}%`, background: '#f59e0b'}} title={`Pending: ${pending}`}></div>
-                          </div>
-                          <div style={{width: '40px', fontSize: '11px', fontWeight: '600', textAlign: 'right'}}>{tasks.length}</div>
+                        
+                        {/* Top 5 by Completed Tasks */}
+                        <div style={{background: '#fff', borderRadius: '10px', padding: '20px', border: '1px solid #10b981', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+                          <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#166534'}}>💚 Top 5 by Completed</h3>
+                          {topByCompletion.map((staff, idx) => {
+                            const maxVal = topByCompletion[0]?.completed || 1;
+                            return (
+                              <div key={staff.id} style={{marginBottom: '12px'}}>
+                                <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
+                                  <span style={{fontSize: '11px', color: '#374151'}}>{staff.name?.substring(0, 15)}</span>
+                                  <span style={{fontSize: '11px', fontWeight: '600', color: '#166534'}}>{staff.completed} done</span>
+                                </div>
+                                <div style={{height: '8px', background: '#dcfce7', borderRadius: '4px', overflow: 'hidden'}}>
+                                  <div style={{height: '100%', width: `${(staff.completed / maxVal) * 100}%`, background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)', borderRadius: '4px'}}></div>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
-                    <div style={{display: 'flex', gap: '16px', marginTop: '12px', fontSize: '11px'}}>
-                      <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}><div style={{width: '12px', height: '12px', background: '#10b981', borderRadius: '2px'}}></div> Completed</div>
-                      <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}><div style={{width: '12px', height: '12px', background: '#f59e0b', borderRadius: '2px'}}></div> Pending</div>
-                    </div>
-                  </div>
+                        
+                        {/* Top 5 by Overdue */}
+                        <div style={{background: '#fff', borderRadius: '10px', padding: '20px', border: '1px solid #fecaca', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+                          <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#dc2626'}}>🔴 Top 5 by Overdue</h3>
+                          {topByOverdue.filter(s => s.overdue > 0).length === 0 ? (
+                            <div style={{padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '12px'}}>No overdue tasks! 🎉</div>
+                          ) : topByOverdue.filter(s => s.overdue > 0).map((staff, idx) => {
+                            const maxVal = topByOverdue[0]?.overdue || 1;
+                            return (
+                              <div key={staff.id} style={{marginBottom: '12px'}}>
+                                <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
+                                  <span style={{fontSize: '11px', color: '#374151'}}>{staff.name?.substring(0, 15)}</span>
+                                  <span style={{fontSize: '11px', fontWeight: '600', color: '#ef4444'}}>{staff.overdue} overdue</span>
+                                </div>
+                                <div style={{height: '8px', background: '#fee2e2', borderRadius: '4px', overflow: 'hidden'}}>
+                                  <div style={{height: '100%', width: `${(staff.overdue / maxVal) * 100}%`, background: 'linear-gradient(90deg, #ef4444 0%, #dc2626 100%)', borderRadius: '4px'}}></div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
                 
-                {/* All Staff Performance Table */}
-                <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
-                  <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600'}}>👥 All Staff Performance</h3>
-                  <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
-                    <thead>
-                      <tr style={{background: '#f8fafc'}}>
-                        <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Employee</th>
-                        <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Role</th>
-                        <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Total</th>
-                        <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Completed</th>
-                        <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Pending</th>
-                        <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Overdue</th>
-                        <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Rate</th>
-                        <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.staff.filter(s => s.status === 'Active').map(staff => {
-                        const tasks = allTasks.filter(t => t.primaryAssignedUser === staff.name || t.assignedTo === staff.name);
-                        const completed = tasks.filter(t => t.status === 'Completed' || t.completedCheck).length;
-                        const pending = tasks.filter(t => t.status !== 'Completed' && !t.completedCheck).length;
-                        const overdue = tasks.filter(t => {
-                          if (t.status === 'Completed' || t.completedCheck || !t.dueDate) return false;
-                          return new Date(t.dueDate.split('-').reverse().join('-')) < today;
-                        }).length;
-                        const rate = tasks.length > 0 ? Math.round((completed / tasks.length) * 100) : 0;
-                        return (
-                          <tr key={staff.id} style={{borderBottom: '1px solid #f1f5f9'}}>
-                            <td style={{padding: '12px', fontWeight: '500'}}>{staff.name}</td>
-                            <td style={{padding: '12px', color: '#64748b'}}>{staff.role}</td>
-                            <td style={{padding: '12px', textAlign: 'center', fontWeight: '600'}}>{tasks.length}</td>
-                            <td style={{padding: '12px', textAlign: 'center', color: '#10b981', fontWeight: '600'}}>{completed}</td>
-                            <td style={{padding: '12px', textAlign: 'center', color: '#f59e0b', fontWeight: '600'}}>{pending}</td>
-                            <td style={{padding: '12px', textAlign: 'center', color: overdue > 0 ? '#ef4444' : '#94a3b8', fontWeight: '600'}}>{overdue}</td>
-                            <td style={{padding: '12px', textAlign: 'center'}}>
-                              <span style={{padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', background: rate >= 80 ? '#dcfce7' : rate >= 50 ? '#fef3c7' : '#fee2e2', color: rate >= 80 ? '#166534' : rate >= 50 ? '#92400e' : '#dc2626'}}>{rate}%</span>
-                            </td>
-                            <td style={{padding: '12px', textAlign: 'center'}}>
-                              <button onClick={() => setReportFilters({...reportFilters, staff: staff.name})} style={{padding: '6px 12px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px'}}>View Tasks</button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                {/* All Staff Performance Table - Green Theme */}
+                <div style={{background: '#fff', borderRadius: '10px', border: '1px solid #10b981', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
+                  <div style={{padding: '16px 20px', borderBottom: '1px solid #10b981', background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}}>
+                    <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#166534'}}>👥 All Staff Performance</h3>
+                  </div>
+                  <div style={{maxHeight: '500px', overflowY: 'auto', overflowX: 'auto'}}>
+                    <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: '1100px'}}>
+                      <thead style={{position: 'sticky', top: 0}}>
+                        <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                          <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '40px'}}>Sr.</th>
+                          <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Employee</th>
+                          <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Role</th>
+                          <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Reporting Manager</th>
+                          <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '70px'}}>Total</th>
+                          <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '80px'}}>Completed</th>
+                          <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '70px'}}>Pending</th>
+                          <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '70px'}}>Overdue</th>
+                          <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '80px'}}>Rate</th>
+                          <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '100px'}}>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.staff.filter(s => s.status === 'Active').map((staff, idx) => {
+                          const tasks = allTasks.filter(t => t.primaryAssignedUser === staff.name || t.assignedTo === staff.name);
+                          const completed = tasks.filter(t => t.status === 'Completed' || t.completedCheck).length;
+                          const pending = tasks.filter(t => t.status !== 'Completed' && !t.completedCheck).length;
+                          const overdue = tasks.filter(t => {
+                            if (t.status === 'Completed' || t.completedCheck || !t.dueDate) return false;
+                            return new Date(t.dueDate.split('-').reverse().join('-')) < today;
+                          }).length;
+                          const rate = tasks.length > 0 ? Math.round((completed / tasks.length) * 100) : 0;
+                          // Get Reporting Manager - RM of RM is Superadmin
+                          const reportingManager = staff.role === 'Superadmin' || staff.role === 'Partner' ? '-' : 
+                            staff.role === 'Manager' ? data.staff.find(s => s.role === 'Superadmin' || s.role === 'Partner')?.name || 'Superadmin' :
+                            staff.reportingManager || data.staff.find(s => s.role === 'Manager')?.name || '-';
+                          return (
+                            <tr key={staff.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                              <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{idx + 1}</td>
+                              <td style={{padding: '8px', border: '1px solid #dcfce7', fontWeight: '500', color: '#374151'}}>{staff.name}</td>
+                              <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{staff.role}</td>
+                              <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{reportingManager}</td>
+                              <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center', fontWeight: '600', color: '#374151'}}>{tasks.length}</td>
+                              <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
+                                <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: '600', background: '#dcfce7', color: '#166534'}}>{completed}</span>
+                              </td>
+                              <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
+                                <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: '600', background: '#fef3c7', color: '#92400e'}}>{pending}</span>
+                              </td>
+                              <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
+                                <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: '600', background: overdue > 0 ? '#fee2e2' : '#f1f5f9', color: overdue > 0 ? '#dc2626' : '#94a3b8'}}>{overdue}</span>
+                              </td>
+                              <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
+                                <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: '600', background: rate >= 80 ? '#dcfce7' : rate >= 50 ? '#fef3c7' : '#fee2e2', color: rate >= 80 ? '#166534' : rate >= 50 ? '#92400e' : '#dc2626'}}>{rate}%</span>
+                              </td>
+                              <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
+                                <button onClick={() => setReportFilters({...reportFilters, staff: staff.name})} style={{padding: '5px 12px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '10px', fontWeight: '500'}}>View Tasks</button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </>
             )}
@@ -11415,11 +11509,13 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         client: t.clientName || t.client,
                         parentTask: t.parentTask,
                         childTask: t.childTask,
-                        status: t.status === 'Completed' || t.completedCheck ? 'Completed' : t.status || 'Open',
+                        description: t.taskDescription || t.description || '',
                         startDate: t.startDate,
                         dueDate: t.dueDate,
-                        financialYear: t.financialYear
-                      })), `${reportFilters.staff}_tasks`, ['client', 'parentTask', 'childTask', 'status', 'startDate', 'dueDate', 'financialYear']);
+                        financialYear: t.financialYear,
+                        billingStatus: t.billed ? 'Billed' : 'Unbilled',
+                        status: t.status === 'Completed' || t.completedCheck ? 'Completed' : t.status || 'Open'
+                      })), `${reportFilters.staff}_tasks`, ['client', 'parentTask', 'childTask', 'description', 'startDate', 'dueDate', 'financialYear', 'billingStatus', 'status']);
                     }} style={{padding: '6px 12px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px'}}>📥 Export CSV</button>
                   </div>
                   <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px'}}>
@@ -11504,41 +11600,43 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         </div>
                       </div>
                       
-                      {/* Task Table */}
+                      {/* Task Table - Same style as Task Report */}
                       <div style={{background: '#fff', borderRadius: '10px', border: '1px solid #10b981', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
-                        <div style={{maxHeight: '500px', overflowY: 'auto'}}>
-                          <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+                        <div style={{maxHeight: '500px', overflowY: 'auto', overflowX: 'auto'}}>
+                          <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: '1200px'}}>
                             <thead style={{position: 'sticky', top: 0}}>
                               <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
-                                <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Sr.</th>
-                                <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client</th>
-                                <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Task Category</th>
-                                <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Task Type</th>
-                                <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Start Date</th>
-                                <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Due Date</th>
-                                <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Status</th>
-                                <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Billed</th>
-                                <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>FY</th>
+                                <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '40px'}}>Sr.</th>
+                                <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '120px'}}>Client</th>
+                                <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '100px'}}>Parent Task</th>
+                                <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '100px'}}>Child Task</th>
+                                <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '180px'}}>Description</th>
+                                <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '85px'}}>Start Date</th>
+                                <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '85px'}}>Due Date</th>
+                                <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '90px'}}>FY</th>
+                                <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '90px'}}>Billing Status</th>
+                                <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '80px'}}>Status</th>
                               </tr>
                             </thead>
                             <tbody>
                               {staffTasks.map((task, idx) => {
                                 const isOverdue = task.dueDate && task.status !== 'Completed' && !task.completedCheck && new Date(task.dueDate.split('-').reverse().join('-')) < today;
                                 return (
-                                  <tr key={task.id} style={{background: isOverdue ? '#fef2f2' : idx % 2 === 0 ? '#fff' : '#f8fafc'}}>
-                                    <td style={{padding: '10px', border: '1px solid #e5e7eb'}}>{idx + 1}</td>
-                                    <td style={{padding: '10px', border: '1px solid #e5e7eb', fontWeight: '500', color: '#10b981'}}>{task.clientName || task.client || '-'}</td>
-                                    <td style={{padding: '10px', border: '1px solid #e5e7eb', color: '#374151'}}>{task.parentTask || '-'}</td>
-                                    <td style={{padding: '10px', border: '1px solid #e5e7eb', color: '#374151'}}>{task.childTask || '-'}</td>
-                                    <td style={{padding: '10px', border: '1px solid #e5e7eb', color: '#374151'}}>{task.startDate || '-'}</td>
-                                    <td style={{padding: '10px', border: '1px solid #e5e7eb', color: isOverdue ? '#ef4444' : '#374151', fontWeight: isOverdue ? '600' : '400'}}>{task.dueDate || '-'}</td>
-                                    <td style={{padding: '10px', border: '1px solid #e5e7eb', textAlign: 'center'}}>
-                                      <span style={{padding: '4px 10px', borderRadius: '12px', fontSize: '10px', fontWeight: '600', background: task.status === 'Completed' || task.completedCheck ? '#dcfce7' : task.status === 'In Progress' ? '#fef3c7' : isOverdue ? '#fee2e2' : '#dbeafe', color: task.status === 'Completed' || task.completedCheck ? '#166534' : task.status === 'In Progress' ? '#92400e' : isOverdue ? '#dc2626' : '#1d4ed8'}}>{task.status === 'Completed' || task.completedCheck ? 'Completed' : isOverdue ? 'Overdue' : task.status || 'Open'}</span>
+                                  <tr key={task.id} style={{background: isOverdue ? '#fef2f2' : idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{idx + 1}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', fontWeight: '500', color: '#374151'}}>{task.clientName || task.client || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.parentTask || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.childTask || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{task.taskDescription || task.description || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{task.startDate || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{task.dueDate || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', textAlign: 'center', fontSize: '10px'}}>{task.financialYear || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
+                                      <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '9px', fontWeight: '600', background: task.billed ? '#dcfce7' : '#fef3c7', color: task.billed ? '#166534' : '#92400e'}}>{task.billed ? 'Billed' : 'Unbilled'}</span>
                                     </td>
-                                    <td style={{padding: '10px', border: '1px solid #e5e7eb', textAlign: 'center'}}>
-                                      <span style={{padding: '4px 8px', borderRadius: '8px', fontSize: '10px', fontWeight: '600', background: task.billed ? '#dcfce7' : '#f1f5f9', color: task.billed ? '#166534' : '#94a3b8'}}>{task.billed ? '₹' : '-'}</span>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
+                                      <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '9px', fontWeight: '600', background: task.status === 'Completed' || task.completedCheck ? '#dcfce7' : task.status === 'In Progress' ? '#fef3c7' : '#dbeafe', color: task.status === 'Completed' || task.completedCheck ? '#166534' : task.status === 'In Progress' ? '#92400e' : '#1d4ed8'}}>{task.status === 'Completed' || task.completedCheck ? 'Completed' : task.status === 'In Progress' ? 'In Progress' : 'Open'}</span>
                                     </td>
-                                    <td style={{padding: '10px', border: '1px solid #e5e7eb', color: '#374151'}}>{task.financialYear || '-'}</td>
                                   </tr>
                                 );
                               })}
