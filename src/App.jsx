@@ -10339,6 +10339,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       status: '',
       financialYear: '',
       reportingManager: '',
+      billingStatus: '',
       selectedRM: '',
       rmDetailView: '',
       clientSearch: '',
@@ -10977,11 +10978,11 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
                 <h3 style={{margin: 0, fontSize: '15px', fontWeight: '600', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px'}}><Search size={16} /> Filters</h3>
                 <div style={{display: 'flex', gap: '8px'}}>
-                  <button onClick={() => setReportFilters({dateFrom: '', dateTo: '', client: '', staff: '', parentTask: '', childTask: '', status: '', financialYear: '', reportingManager: ''})} style={{padding: '8px 14px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500'}}>Clear Filters</button>
-                  <button onClick={() => exportToCSV(filteredTasks, 'task_report', ['clientName', 'parentTask', 'childTask', 'primaryAssignedUser', 'status', 'startDate', 'dueDate', 'financialYear'])} style={{padding: '8px 14px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'}}><Download size={14} /> Export CSV</button>
+                  <button onClick={() => setReportFilters({...reportFilters, dateFrom: '', dateTo: '', client: '', parentTask: '', childTask: '', status: '', reportingManager: '', billingStatus: ''})} style={{padding: '8px 14px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500'}}>Clear Filters</button>
+                  <button onClick={() => exportToCSV(filteredTasks, 'task_report', ['clientName', 'parentTask', 'childTask', 'description', 'reportingManager', 'billingStatus', 'status'])} style={{padding: '8px 14px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'}}><Download size={14} /> Export CSV</button>
                 </div>
               </div>
-              <div style={{display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px'}}>
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '12px'}}>
                 <div>
                   <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Date From</label>
                   <input type="date" value={reportFilters.dateFrom} onChange={(e) => setReportFilters({...reportFilters, dateFrom: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px'}} />
@@ -10998,17 +10999,34 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   </select>
                 </div>
                 <div>
-                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Staff</label>
-                  <select value={reportFilters.staff} onChange={(e) => setReportFilters({...reportFilters, staff: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px'}}>
-                    <option value="">All Staff</option>
-                    {uniqueStaff.map(s => <option key={s} value={s}>{s}</option>)}
+                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Parent Task</label>
+                  <select value={reportFilters.parentTask} onChange={(e) => setReportFilters({...reportFilters, parentTask: e.target.value, childTask: ''})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px'}}>
+                    <option value="">All Parent Tasks</option>
+                    {uniqueParentTasks.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px'}}>
+                <div>
+                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Child Task</label>
+                  <select value={reportFilters.childTask} onChange={(e) => setReportFilters({...reportFilters, childTask: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px'}}>
+                    <option value="">All Child Tasks</option>
+                    {(reportFilters.parentTask ? (PARENT_CHILD_TASKS[reportFilters.parentTask] || []) : [...new Set(data.tasks.map(t => t.childTask).filter(Boolean))]).map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Task Category</label>
-                  <select value={reportFilters.parentTask} onChange={(e) => setReportFilters({...reportFilters, parentTask: e.target.value, childTask: ''})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px'}}>
-                    <option value="">All Categories</option>
-                    {uniqueParentTasks.map(p => <option key={p} value={p}>{p}</option>)}
+                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Reporting Manager</label>
+                  <select value={reportFilters.reportingManager} onChange={(e) => setReportFilters({...reportFilters, reportingManager: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px'}}>
+                    <option value="">All Managers</option>
+                    {[...new Set(data.staff.filter(s => s.role === 'Manager' || s.role === 'Partner' || s.role === 'Superadmin').map(s => s.name))].map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Billing Status</label>
+                  <select value={reportFilters.billingStatus || ''} onChange={(e) => setReportFilters({...reportFilters, billingStatus: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px'}}>
+                    <option value="">All</option>
+                    <option value="Billed">Billed</option>
+                    <option value="Unbilled">Unbilled</option>
                   </select>
                 </div>
                 <div>
@@ -11027,19 +11045,37 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             {/* Summary Cards */}
             <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '20px'}}>
               <div style={{background: 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)', borderRadius: '10px', padding: '16px', border: '1px solid #bfdbfe'}}>
-                <div style={{fontSize: '28px', fontWeight: '700', color: '#1d4ed8'}}>{filteredTasks.length}</div>
+                <div style={{fontSize: '28px', fontWeight: '700', color: '#1d4ed8'}}>{filteredTasks.filter(t => {
+                  if (reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager) return false;
+                  if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
+                  if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
+                  return true;
+                }).length}</div>
                 <div style={{fontSize: '12px', color: '#3b82f6', fontWeight: '500'}}>Total Tasks</div>
               </div>
               <div style={{background: 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '10px', padding: '16px', border: '1px solid #bbf7d0'}}>
-                <div style={{fontSize: '28px', fontWeight: '700', color: '#166534'}}>{filteredTasks.filter(t => t.status === 'Completed' || t.completedCheck).length}</div>
+                <div style={{fontSize: '28px', fontWeight: '700', color: '#166534'}}>{filteredTasks.filter(t => {
+                  if (reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager) return false;
+                  if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
+                  if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
+                  return t.status === 'Completed' || t.completedCheck;
+                }).length}</div>
                 <div style={{fontSize: '12px', color: '#16a34a', fontWeight: '500'}}>Completed</div>
               </div>
               <div style={{background: 'linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%)', borderRadius: '10px', padding: '16px', border: '1px solid #fde68a'}}>
-                <div style={{fontSize: '28px', fontWeight: '700', color: '#b45309'}}>{filteredTasks.filter(t => t.status !== 'Completed' && !t.completedCheck).length}</div>
+                <div style={{fontSize: '28px', fontWeight: '700', color: '#b45309'}}>{filteredTasks.filter(t => {
+                  if (reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager) return false;
+                  if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
+                  if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
+                  return t.status !== 'Completed' && !t.completedCheck;
+                }).length}</div>
                 <div style={{fontSize: '12px', color: '#d97706', fontWeight: '500'}}>Pending</div>
               </div>
               <div style={{background: 'linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%)', borderRadius: '10px', padding: '16px', border: '1px solid #fecaca'}}>
                 <div style={{fontSize: '28px', fontWeight: '700', color: '#dc2626'}}>{filteredTasks.filter(t => {
+                  if (reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager) return false;
+                  if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
+                  if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
                   if (t.status === 'Completed' || t.completedCheck || !t.dueDate) return false;
                   return new Date(t.dueDate.split('-').reverse().join('-')) < today;
                 }).length}</div>
@@ -11053,40 +11089,64 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                   <thead style={{position: 'sticky', top: 0}}>
                     <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
-                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Sr.</th>
-                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Client</th>
-                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Task Category</th>
-                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Task Type</th>
-                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Assigned To</th>
-                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Start Date</th>
-                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Due Date</th>
-                      <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Status</th>
-                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>FY</th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '50px'}}>Sr.</th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '80px'}}>Code</th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Parent Task</th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Child Task</th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Description</th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Reporting Manager</th>
+                      <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '90px'}}>Billing</th>
+                      <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '90px'}}>Status</th>
+                      <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '100px'}}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredTasks.slice(0, 100).map((task, idx) => {
+                    {filteredTasks.filter(t => {
+                      if (reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager) return false;
+                      if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
+                      if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
+                      return true;
+                    }).slice(0, 100).map((task, idx) => {
+                      const client = data.clients.find(c => c.id === task.clientId || c.name === task.clientName || c.name === task.client);
                       const isOverdue = task.dueDate && task.status !== 'Completed' && !task.completedCheck && new Date(task.dueDate.split('-').reverse().join('-')) < today;
                       return (
-                        <tr key={task.id} style={{background: isOverdue ? '#fef2f2' : idx % 2 === 0 ? '#fff' : '#f8fafc'}}>
-                          <td style={{padding: '10px', border: '1px solid #e5e7eb'}}>{idx + 1}</td>
-                          <td style={{padding: '10px', border: '1px solid #e5e7eb', fontWeight: '500', color: '#10b981'}}>{task.clientName || task.client || '-'}</td>
-                          <td style={{padding: '10px', border: '1px solid #e5e7eb', color: '#374151'}}>{task.parentTask || '-'}</td>
-                          <td style={{padding: '10px', border: '1px solid #e5e7eb', color: '#374151'}}>{task.childTask || '-'}</td>
-                          <td style={{padding: '10px', border: '1px solid #e5e7eb', color: '#374151'}}>{task.primaryAssignedUser || task.assignedTo || '-'}</td>
-                          <td style={{padding: '10px', border: '1px solid #e5e7eb', color: '#374151'}}>{task.startDate || '-'}</td>
-                          <td style={{padding: '10px', border: '1px solid #e5e7eb', color: isOverdue ? '#ef4444' : '#374151', fontWeight: isOverdue ? '600' : '400'}}>{task.dueDate || '-'}</td>
-                          <td style={{padding: '10px', border: '1px solid #e5e7eb', textAlign: 'center'}}>
+                        <tr key={task.id} style={{background: isOverdue ? '#fef2f2' : idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                          <td style={{padding: '10px', border: '1px solid #dcfce7', color: '#374151'}}>{idx + 1}</td>
+                          <td style={{padding: '10px', border: '1px solid #dcfce7', fontWeight: '600', color: '#10b981', fontSize: '11px'}}>{client?.fileNo || '-'}</td>
+                          <td style={{padding: '10px', border: '1px solid #dcfce7', color: '#374151'}}>{task.parentTask || '-'}</td>
+                          <td style={{padding: '10px', border: '1px solid #dcfce7', color: '#374151'}}>{task.childTask || '-'}</td>
+                          <td style={{padding: '10px', border: '1px solid #dcfce7', color: '#64748b', fontSize: '11px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{task.description || task.remarks || '-'}</td>
+                          <td style={{padding: '10px', border: '1px solid #dcfce7', color: '#374151'}}>{task.reportingManager || '-'}</td>
+                          <td style={{padding: '10px', border: '1px solid #dcfce7', textAlign: 'center'}}>
+                            <span style={{padding: '4px 10px', borderRadius: '12px', fontSize: '10px', fontWeight: '600', background: task.billed ? '#dcfce7' : '#fef3c7', color: task.billed ? '#166534' : '#92400e'}}>{task.billed ? 'Billed' : 'Unbilled'}</span>
+                          </td>
+                          <td style={{padding: '10px', border: '1px solid #dcfce7', textAlign: 'center'}}>
                             <span style={{padding: '4px 10px', borderRadius: '12px', fontSize: '10px', fontWeight: '600', background: task.status === 'Completed' || task.completedCheck ? '#dcfce7' : task.status === 'In Progress' ? '#fef3c7' : isOverdue ? '#fee2e2' : '#dbeafe', color: task.status === 'Completed' || task.completedCheck ? '#166534' : task.status === 'In Progress' ? '#92400e' : isOverdue ? '#dc2626' : '#1d4ed8'}}>{task.status === 'Completed' || task.completedCheck ? 'Completed' : isOverdue ? 'Overdue' : task.status || 'Open'}</span>
                           </td>
-                          <td style={{padding: '10px', border: '1px solid #e5e7eb', color: '#374151'}}>{task.financialYear || '-'}</td>
+                          <td style={{padding: '10px', border: '1px solid #dcfce7', textAlign: 'center'}}>
+                            <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
+                              <button onClick={() => { setSelectedTask(task); setShowTaskManageModal(true); }} title="View" style={{padding: '4px', background: 'transparent', color: '#10b981', border: 'none', cursor: 'pointer'}}><Eye size={16} /></button>
+                              <button onClick={() => { setSelectedItem(task); setFormData(task); setModalType('tasks'); setShowModal(true); }} title="Edit" style={{padding: '4px', background: 'transparent', color: '#3b82f6', border: 'none', cursor: 'pointer'}}><Edit2 size={16} /></button>
+                              <button onClick={() => handleDeleteTask(task.id)} title="Delete" style={{padding: '4px', background: 'transparent', color: '#ef4444', border: 'none', cursor: 'pointer'}}><Trash2 size={16} /></button>
+                            </div>
+                          </td>
                         </tr>
                       );
                     })}
                   </tbody>
                 </table>
               </div>
-              {filteredTasks.length > 100 && <div style={{padding: '12px', textAlign: 'center', background: '#f0fdf4', fontSize: '12px', color: '#166534', borderTop: '1px solid #bbf7d0'}}>Showing 100 of {filteredTasks.length} tasks. Export to see all.</div>}
+              {filteredTasks.filter(t => {
+                if (reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager) return false;
+                if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
+                if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
+                return true;
+              }).length > 100 && <div style={{padding: '12px', textAlign: 'center', background: '#f0fdf4', fontSize: '12px', color: '#166534', borderTop: '1px solid #bbf7d0'}}>Showing 100 of {filteredTasks.filter(t => {
+                if (reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager) return false;
+                if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
+                if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
+                return true;
+              }).length} tasks. Export to see all.</div>}
             </div>
           </div>
         )}
