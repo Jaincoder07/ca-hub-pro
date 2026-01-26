@@ -10684,21 +10684,28 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
                             <thead style={{position: 'sticky', top: 0}}>
                               <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Code</th>
                                 <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
-                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Task</th>
-                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Sub-Period</th>
-                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Assigned</th>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Parent Task</th>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Child Task</th>
+                                <th style={{padding: '8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>View</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {tasksCreated.slice(0, 15).map((task, idx) => (
-                                <tr key={task.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
-                                  <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#10b981', fontWeight: '500'}}>{task.clientName || task.client || '-'}</td>
-                                  <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.childTask || task.parentTask}</td>
-                                  <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#166534', fontSize: '10px'}}>{task.subPeriod || task.period || '-'}</td>
-                                  <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.primaryAssignedUser || '-'}</td>
-                                </tr>
-                              ))}
+                              {tasksCreated.slice(0, 15).map((task, idx) => {
+                                const client = data.clients.find(c => c.id === task.clientId || c.name === task.clientName || c.name === task.client);
+                                return (
+                                  <tr key={task.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{client?.fileNo || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#10b981', fontWeight: '500'}}>{task.clientName || task.client || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.parentTask || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.childTask || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
+                                      <button onClick={() => setSelectedTask(task)} style={{padding: '4px 8px', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}><Eye size={12} /></button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                           {tasksCreated.length > 15 && <div style={{padding: '8px', textAlign: 'center', color: '#166534', fontSize: '10px', background: '#f0fdf4'}}>+{tasksCreated.length - 15} more</div>}
@@ -10719,21 +10726,26 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
                             <thead style={{position: 'sticky', top: 0}}>
                               <tr style={{background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'}}>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Code</th>
                                 <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
-                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Task</th>
-                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Sub-Period</th>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Parent Task</th>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Child Task</th>
                                 <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Deleted By</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {tasksDeleted.slice(0, 15).map((task, idx) => (
-                                <tr key={task.id} style={{background: idx % 2 === 0 ? '#fff' : '#fef2f2'}}>
-                                  <td style={{padding: '8px', border: '1px solid #fecaca', color: '#374151'}}>{task.clientName || task.client || '-'}</td>
-                                  <td style={{padding: '8px', border: '1px solid #fecaca', fontWeight: '500', textDecoration: 'line-through', color: '#94a3b8'}}>{task.childTask || task.parentTask}</td>
-                                  <td style={{padding: '8px', border: '1px solid #fecaca', color: '#dc2626', fontSize: '10px'}}>{task.subPeriod || task.period || '-'}</td>
-                                  <td style={{padding: '8px', border: '1px solid #fecaca', color: '#374151'}}>{task.deletedBy || '-'}</td>
-                                </tr>
-                              ))}
+                              {tasksDeleted.slice(0, 15).map((task, idx) => {
+                                const client = data.clients.find(c => c.id === task.clientId || c.name === task.clientName || c.name === task.client);
+                                return (
+                                  <tr key={task.id} style={{background: idx % 2 === 0 ? '#fff' : '#fef2f2'}}>
+                                    <td style={{padding: '8px', border: '1px solid #fecaca', color: '#374151', fontSize: '10px'}}>{client?.fileNo || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #fecaca', color: '#374151'}}>{task.clientName || task.client || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #fecaca', textDecoration: 'line-through', color: '#94a3b8'}}>{task.parentTask || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #fecaca', textDecoration: 'line-through', color: '#94a3b8'}}>{task.childTask || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #fecaca', color: '#374151'}}>{task.deletedBy || '-'}</td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                           {tasksDeleted.length > 15 && <div style={{padding: '8px', textAlign: 'center', color: '#dc2626', fontSize: '10px', background: '#fef2f2'}}>+{tasksDeleted.length - 15} more</div>}
@@ -10753,26 +10765,35 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       {tasksCompleted.length === 0 ? (
                         <div style={{padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '12px'}}>No tasks completed on this date</div>
                       ) : (
-                        <div style={{maxHeight: '200px', overflowY: 'auto'}}>
+                        <div style={{maxHeight: '220px', overflowY: 'auto'}}>
                           <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
                             <thead style={{position: 'sticky', top: 0}}>
                               <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Code</th>
                                 <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
-                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Task</th>
-                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Completed By</th>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Parent Task</th>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Child Task</th>
+                                <th style={{padding: '8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>View</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {tasksCompleted.slice(0, 10).map((task, idx) => (
-                                <tr key={task.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
-                                  <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#10b981', fontWeight: '500'}}>{task.clientName || task.client || '-'}</td>
-                                  <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.childTask || task.parentTask}</td>
-                                  <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.primaryAssignedUser || '-'}</td>
-                                </tr>
-                              ))}
+                              {tasksCompleted.slice(0, 15).map((task, idx) => {
+                                const client = data.clients.find(c => c.id === task.clientId || c.name === task.clientName || c.name === task.client);
+                                return (
+                                  <tr key={task.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{client?.fileNo || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#10b981', fontWeight: '500'}}>{task.clientName || task.client || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.parentTask || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.childTask || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
+                                      <button onClick={() => setSelectedTask(task)} style={{padding: '4px 8px', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}><Eye size={12} /></button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
-                          {tasksCompleted.length > 10 && <div style={{padding: '8px', textAlign: 'center', color: '#166534', fontSize: '10px', background: '#f0fdf4'}}>+{tasksCompleted.length - 10} more</div>}
+                          {tasksCompleted.length > 15 && <div style={{padding: '8px', textAlign: 'center', color: '#166534', fontSize: '10px', background: '#f0fdf4'}}>+{tasksCompleted.length - 15} more</div>}
                         </div>
                       )}
                     </div>
@@ -10830,7 +10851,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 const org = (data.organizations || []).find(o => o.id === inv.organizationId);
                                 return (
                                   <tr key={inv.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
-                                    <td style={{padding: '8px', border: '1px solid #dcfce7', fontWeight: '500', color: '#10b981'}}>{inv.invoiceNumber || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', fontWeight: '500', color: '#10b981'}}>{inv.invoiceNo || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{client?.fileNo || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{inv.clientName || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{org?.name || '-'}</td>
@@ -10853,8 +10874,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     </div>
                     
                     {/* Receipts */}
-                    <div style={{background: '#fff', borderRadius: '10px', padding: '20px', border: '1px solid #10b981', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
-                      <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', color: '#166534'}}>
+                    <div style={{background: '#fff', borderRadius: '10px', padding: '20px', border: '1px solid #f59e0b', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+                      <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', color: '#b45309'}}>
                         <span style={{width: '10px', height: '10px', background: '#f59e0b', borderRadius: '50%'}}></span>
                         Receipts ({receiptsCreated.length}) - ₹{totalReceiptAmount.toLocaleString('en-IN')}
                       </h3>
@@ -10878,7 +10899,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 const client = data.clients.find(c => c.id === r.clientId || c.name === r.clientName);
                                 return (
                                   <tr key={r.id} style={{background: idx % 2 === 0 ? '#fff' : '#fffbeb'}}>
-                                    <td style={{padding: '8px', border: '1px solid #fde68a', fontWeight: '500', color: '#b45309'}}>{r.receiptNumber || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #fde68a', fontWeight: '500', color: '#b45309'}}>{r.receiptNo || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #fde68a', color: '#374151', fontSize: '10px'}}>{client?.fileNo || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #fde68a', color: '#374151'}}>{r.clientName || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #fde68a', color: '#374151'}}>{r.mode || r.paymentMode || 'Bank'}</td>
