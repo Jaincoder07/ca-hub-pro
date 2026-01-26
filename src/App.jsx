@@ -10477,14 +10477,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           if (reportFilters.childTask && item.childTask !== reportFilters.childTask) return false;
           if (reportFilters.status) {
             if (reportFilters.status === 'Completed' && item.status !== 'Completed' && !item.completedCheck) return false;
-            if (reportFilters.status === 'Pending' && (item.status === 'Completed' || item.completedCheck)) return false;
+            if (reportFilters.status === 'Open' && (item.status === 'Completed' || item.completedCheck || item.status === 'In Progress')) return false;
             if (reportFilters.status === 'In Progress' && item.status !== 'In Progress') return false;
-            if (reportFilters.status === 'Overdue') {
-              if (item.status === 'Completed' || item.completedCheck) return false;
-              if (!item.dueDate) return false;
-              const dueDate = new Date(item.dueDate.split('-').reverse().join('-'));
-              if (dueDate >= today) return false;
-            }
           }
           if (reportFilters.financialYear && item.financialYear !== reportFilters.financialYear) return false;
           if (reportFilters.dateFrom) {
@@ -10793,6 +10787,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Parent Task</th>
                                 <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Child Task</th>
                                 <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Deleted By</th>
+                                <th style={{padding: '8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Actions</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -10805,6 +10800,20 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                     <td style={{padding: '8px', border: '1px solid #fecaca', textDecoration: 'line-through', color: '#94a3b8'}}>{task.parentTask || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #fecaca', textDecoration: 'line-through', color: '#94a3b8'}}>{task.childTask || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #fecaca', color: '#374151'}}>{task.deletedBy || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #fecaca', textAlign: 'center'}}>
+                                      <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
+                                        <button onClick={() => { setSelectedTask({...task, deleted: false}); setShowTaskManageModal(true); }} title="View Task" style={{padding: '4px', background: 'transparent', color: '#3b82f6', border: 'none', cursor: 'pointer'}}><Eye size={14} /></button>
+                                        <button onClick={() => {
+                                          if (window.confirm('Are you sure you want to restore this task?')) {
+                                            setData(prev => ({
+                                              ...prev,
+                                              tasks: prev.tasks.map(t => t.id === task.id ? {...t, deleted: false, deletedAt: null, deletedBy: null, restoredAt: new Date().toISOString(), restoredBy: currentUser?.name || 'Admin'} : t)
+                                            }));
+                                            alert('✅ Task restored successfully!');
+                                          }
+                                        }} title="Restore Task" style={{padding: '4px', background: 'transparent', color: '#10b981', border: 'none', cursor: 'pointer'}}><RefreshCw size={14} /></button>
+                                      </div>
+                                    </td>
                                   </tr>
                                 );
                               })}
@@ -11039,11 +11048,11 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 <div style={{display: 'flex', gap: '8px'}}>
                   <button onClick={() => setReportFilters({...reportFilters, dateFrom: '', dateTo: '', client: '', parentTask: '', childTask: '', status: '', reportingManager: '', billingStatus: ''})} style={{padding: '8px 14px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500'}}>Clear Filters</button>
                   <button onClick={() => exportToCSV(filteredTasks.filter(t => {
-                    if (reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager) return false;
+                    if (reportFilters.reportingManager && (t.taskManager !== reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager)) return false;
                     if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
                     if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
                     return true;
-                  }), 'task_report', ['clientName', 'parentTask', 'childTask', 'description', 'reportingManager', 'startDate', 'financialYear', 'billed', 'status'])} style={{padding: '8px 14px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'}}><Download size={14} /> Export CSV</button>
+                  }), 'task_report', ['clientName', 'parentTask', 'childTask', 'taskDescription', 'taskManager', 'startDate', 'financialYear', 'billed', 'status'])} style={{padding: '8px 14px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'}}><Download size={14} /> Export CSV</button>
                 </div>
               </div>
               <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '12px'}}>
@@ -11079,10 +11088,13 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   </select>
                 </div>
                 <div>
-                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Reporting Manager</label>
+                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Manager</label>
                   <select value={reportFilters.reportingManager} onChange={(e) => setReportFilters({...reportFilters, reportingManager: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px'}}>
                     <option value="">All Managers</option>
-                    {[...new Set(data.staff.filter(s => s.role === 'Manager' || s.role === 'Partner' || s.role === 'Superadmin').map(s => s.name))].map(m => <option key={m} value={m}>{m}</option>)}
+                    {[...new Set([
+                      ...data.staff.filter(s => s.role === 'Manager' || s.role === 'Partner' || s.role === 'Superadmin').map(s => s.name),
+                      ...data.tasks.map(t => t.taskManager).filter(Boolean)
+                    ])].sort().map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
                 </div>
                 <div>
@@ -11097,10 +11109,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Status</label>
                   <select value={reportFilters.status} onChange={(e) => setReportFilters({...reportFilters, status: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px'}}>
                     <option value="">All Status</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Pending">Pending</option>
+                    <option value="Open">Open</option>
                     <option value="In Progress">In Progress</option>
-                    <option value="Overdue">Overdue</option>
+                    <option value="Completed">Completed</option>
                   </select>
                 </div>
               </div>
@@ -11110,7 +11121,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '20px'}}>
               <div style={{background: 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)', borderRadius: '10px', padding: '16px', border: '1px solid #bfdbfe'}}>
                 <div style={{fontSize: '28px', fontWeight: '700', color: '#1d4ed8'}}>{filteredTasks.filter(t => {
-                  if (reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager) return false;
+                  if (reportFilters.reportingManager && (t.taskManager !== reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager)) return false;
                   if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
                   if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
                   return true;
@@ -11119,7 +11130,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               </div>
               <div style={{background: 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '10px', padding: '16px', border: '1px solid #bbf7d0'}}>
                 <div style={{fontSize: '28px', fontWeight: '700', color: '#166534'}}>{filteredTasks.filter(t => {
-                  if (reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager) return false;
+                  if (reportFilters.reportingManager && (t.taskManager !== reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager)) return false;
                   if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
                   if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
                   return t.status === 'Completed' || t.completedCheck;
@@ -11128,7 +11139,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               </div>
               <div style={{background: 'linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%)', borderRadius: '10px', padding: '16px', border: '1px solid #fde68a'}}>
                 <div style={{fontSize: '28px', fontWeight: '700', color: '#b45309'}}>{filteredTasks.filter(t => {
-                  if (reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager) return false;
+                  if (reportFilters.reportingManager && (t.taskManager !== reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager)) return false;
                   if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
                   if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
                   return t.status !== 'Completed' && !t.completedCheck;
@@ -11137,7 +11148,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               </div>
               <div style={{background: 'linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%)', borderRadius: '10px', padding: '16px', border: '1px solid #fecaca'}}>
                 <div style={{fontSize: '28px', fontWeight: '700', color: '#dc2626'}}>{filteredTasks.filter(t => {
-                  if (reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager) return false;
+                  if (reportFilters.reportingManager && (t.taskManager !== reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager)) return false;
                   if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
                   if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
                   if (t.status === 'Completed' || t.completedCheck || !t.dueDate) return false;
@@ -11158,10 +11169,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '120px'}}>Client Name</th>
                       <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '100px'}}>Parent Task</th>
                       <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '100px'}}>Child Task</th>
-                      <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '150px'}}>Description</th>
-                      <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '100px'}}>Reporting Manager</th>
+                      <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '180px'}}>Description</th>
+                      <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '120px'}}>Manager</th>
                       <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '85px'}}>Start Date</th>
-                      <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '70px'}}>FY</th>
+                      <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '90px'}}>FY</th>
                       <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '70px'}}>Billing</th>
                       <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '80px'}}>Status</th>
                       <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '90px'}}>Actions</th>
@@ -11169,7 +11180,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   </thead>
                   <tbody>
                     {filteredTasks.filter(t => {
-                      if (reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager) return false;
+                      if (reportFilters.reportingManager && (t.taskManager !== reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager)) return false;
                       if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
                       if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
                       return true;
@@ -11180,19 +11191,19 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       return (
                         <tr key={task.id} style={{background: isOverdue ? '#fef2f2' : idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
                           <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{idx + 1}</td>
-                          <td style={{padding: '8px', border: '1px solid #dcfce7', fontWeight: '600', color: '#10b981', fontSize: '10px'}}>{client?.fileNo || '-'}</td>
-                          <td style={{padding: '8px', border: '1px solid #dcfce7', fontWeight: '500', color: '#10b981'}}>{task.clientName || task.client || '-'}</td>
+                          <td style={{padding: '8px', border: '1px solid #dcfce7', fontWeight: '500', color: '#374151', fontSize: '10px'}}>{client?.fileNo || '-'}</td>
+                          <td style={{padding: '8px', border: '1px solid #dcfce7', fontWeight: '500', color: '#374151'}}>{task.clientName || task.client || '-'}</td>
                           <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.parentTask || '-'}</td>
                           <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.childTask || '-'}</td>
-                          <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#64748b', fontSize: '10px'}}>{task.description || task.remarks || '-'}</td>
-                          <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.reportingManager || '-'}</td>
+                          <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{task.taskDescription || task.description || '-'}</td>
+                          <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.taskManager || task.reportingManager || '-'}</td>
                           <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{task.startDate || '-'}</td>
                           <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', textAlign: 'center', fontSize: '10px'}}>{task.financialYear || '-'}</td>
                           <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
                             <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '9px', fontWeight: '600', background: task.billed ? '#dcfce7' : '#fef3c7', color: task.billed ? '#166534' : '#92400e'}}>{task.billed ? 'Billed' : 'Unbilled'}</span>
                           </td>
                           <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
-                            <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '9px', fontWeight: '600', background: task.status === 'Completed' || task.completedCheck ? '#dcfce7' : task.status === 'In Progress' ? '#fef3c7' : isOverdue ? '#fee2e2' : '#dbeafe', color: task.status === 'Completed' || task.completedCheck ? '#166534' : task.status === 'In Progress' ? '#92400e' : isOverdue ? '#dc2626' : '#1d4ed8'}}>{task.status === 'Completed' || task.completedCheck ? 'Completed' : isOverdue ? 'Overdue' : task.status || 'Open'}</span>
+                            <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '9px', fontWeight: '600', background: task.status === 'Completed' || task.completedCheck ? '#dcfce7' : task.status === 'In Progress' ? '#fef3c7' : '#dbeafe', color: task.status === 'Completed' || task.completedCheck ? '#166534' : task.status === 'In Progress' ? '#92400e' : '#1d4ed8'}}>{task.status === 'Completed' || task.completedCheck ? 'Completed' : task.status === 'In Progress' ? 'In Progress' : 'Open'}</span>
                           </td>
                           <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
                             <div style={{display: 'flex', gap: '2px', justifyContent: 'center'}}>
@@ -11208,12 +11219,12 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 </table>
               </div>
               {filteredTasks.filter(t => {
-                if (reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager) return false;
+                if (reportFilters.reportingManager && (t.taskManager !== reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager)) return false;
                 if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
                 if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
                 return true;
               }).length > 100 && <div style={{padding: '12px', textAlign: 'center', background: '#f0fdf4', fontSize: '12px', color: '#166534', borderTop: '1px solid #bbf7d0'}}>Showing 100 of {filteredTasks.filter(t => {
-                if (reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager) return false;
+                if (reportFilters.reportingManager && (t.taskManager !== reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager)) return false;
                 if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
                 if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
                 return true;
