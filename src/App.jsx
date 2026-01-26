@@ -433,6 +433,7 @@ const PracticeManagementApp = () => {
                 invoices: [...prev.invoices, ...dataToUse.invoices],
                 tasks: updatedTasks,
                 latestGeneratedInvoices: [...dataToUse.invoices, ...(prev.latestGeneratedInvoices || [])].slice(0, 50),
+                bulkBatches: dataToUse.batch ? [dataToUse.batch, ...(prev.bulkBatches || [])] : prev.bulkBatches,
                 pendingApprovals: prev.pendingApprovals.map(a => 
                   a.id === approvalId ? {...a, status: 'approved', actionedBy: currentUser?.name, updatedAt: new Date().toISOString(), comments} : a
                 )
@@ -15497,17 +15498,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         return;
       }
       
-      // Update state
-      setData(prev => ({
-        ...prev,
-        invoices: [...(prev.invoices || []), ...invoices],
-        tasks: (prev.tasks || []).map(t => {
-          const inv = invoices.find(i => String(i.taskId) === String(t.id));
-          return inv ? {...t, billed: true, invoiceId: inv.id} : t;
-        })
-      }));
-      
-      // Create batch
+      // Create batch info
       const batch = {
         id: batchId,
         createdAt: new Date().toISOString(),
@@ -15519,24 +15510,50 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         invoiceIds: invoices.map(i => i.id)
       };
       
-      // Save batch to data.bulkBatches for persistence
-      setData(prev => ({
-        ...prev,
-        bulkBatches: [batch, ...(prev.bulkBatches || [])]
-      }));
-      setBulkBatches(prev => [batch, ...prev]);
+      // Check if needs approval
+      if (currentUser?.isSuperAdmin) {
+        // Direct save for Superadmin
+        setData(prev => ({
+          ...prev,
+          invoices: [...(prev.invoices || []), ...invoices],
+          tasks: (prev.tasks || []).map(t => {
+            const inv = invoices.find(i => String(i.taskId) === String(t.id));
+            return inv ? {...t, billed: true, invoiceId: inv.id} : t;
+          }),
+          bulkBatches: [batch, ...(prev.bulkBatches || [])],
+          latestGeneratedInvoices: [...invoices, ...(prev.latestGeneratedInvoices || [])].slice(0, 50)
+        }));
+        setBulkBatches(prev => [batch, ...prev]);
+        
+        alert('SUCCESS! Created ' + invoices.length + ' invoices. Total Amount: ₹' + invoices.reduce((s,i) => s + i.totalAmount, 0).toLocaleString('en-IN'));
+        setBulkTaskStep('batches');
+        setViewingBulkBatch(batch);
+      } else {
+        // Create approval request for bulk invoice
+        const taskUpdates = {};
+        invoices.forEach(inv => {
+          if (inv.taskId) taskUpdates[inv.taskId] = inv.id;
+        });
+        
+        const approval = createApprovalRequest('invoice-create', 
+          {isBulkInvoice: true, invoices, batch, taskUpdates, invoiceCount: invoices.length, totalAmount: batch.totalAmount}, 
+          `Bulk Invoice: ${invoices.length} invoices for ${bulkTaskFilters.childTask || bulkTaskFilters.parentTask} - Total ₹${batch.totalAmount.toLocaleString('en-IN')}`
+        );
+        
+        if (approval) {
+          setData(prev => ({
+            ...prev,
+            pendingApprovals: [...(prev.pendingApprovals || []), approval]
+          }));
+          alert(`📋 Bulk Invoice request sent for Superadmin approval.\n${invoices.length} invoices - Total: ₹${batch.totalAmount.toLocaleString('en-IN')}`);
+        }
+      }
       
       // Reset
       setBulkBillingData([]);
       setBulkSelectedTaskIds([]);
       setBulkFilteredTasks([]);
       setBulkOriginalTasks([]);
-      
-      alert('SUCCESS! Created ' + invoices.length + ' invoices. Total Amount: ₹' + invoices.reduce((s,i) => s + i.totalAmount, 0).toLocaleString('en-IN'));
-      
-      // Navigate to Bulk Invoice Log and show the created batch
-      setBulkTaskStep('batches');
-      setViewingBulkBatch(batch);
     };
     
     const [editingReceipt, setEditingReceipt] = useState(null);
@@ -21663,19 +21680,26 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                           alert(`✅ Successfully generated ${newInvoices.length} invoice(s)!`);
                                           setBillingMode('latest');
                                         } else {
-                                          // Create single approval request for bulk invoices
-                                          const totalAmount = newInvoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
-                                          const approval = createApprovalRequest('invoice-create', 
-                                            {isBulkInvoice: true, invoices: newInvoices, taskUpdates, invoiceCount: newInvoices.length, totalAmount}, 
-                                            `Bulk Invoice: ${newInvoices.length} invoices - Total ₹${totalAmount.toLocaleString('en-IN')}`
-                                          );
+                                          // Create individual approval request for each invoice
+                                          const approvals = newInvoices.map(inv => {
+                                            // Find related task updates for this invoice
+                                            const invTaskIds = inv.taskIds || (inv.taskId ? [inv.taskId] : []);
+                                            const invTaskUpdates = {};
+                                            invTaskIds.forEach(tid => {
+                                              if (taskUpdates[tid]) invTaskUpdates[tid] = taskUpdates[tid];
+                                            });
+                                            return createApprovalRequest('invoice-create', 
+                                              {...inv, taskUpdates: invTaskUpdates}, 
+                                              `Create Invoice ${inv.invoiceNo} for ${inv.clientName} - ₹${(inv.totalAmount || 0).toLocaleString('en-IN')}`
+                                            );
+                                          }).filter(Boolean);
                                           
-                                          if (approval) {
+                                          if (approvals.length > 0) {
                                             setData(prev => ({
                                               ...prev,
-                                              pendingApprovals: [...(prev.pendingApprovals || []), approval]
+                                              pendingApprovals: [...(prev.pendingApprovals || []), ...approvals]
                                             }));
-                                            alert(`📋 Bulk Invoice request (${newInvoices.length} invoices) sent for Superadmin approval.\nTotal Amount: ₹${totalAmount.toLocaleString('en-IN')}`);
+                                            alert(`📋 ${approvals.length} Invoice request(s) sent for Superadmin approval.`);
                                           }
                                         }
                                         
@@ -28766,22 +28790,6 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   </div>
                 )}
               </div>
-              {viewingApproval.status === 'pending' && (
-                <div style={{padding: '16px 24px', borderTop: '1px solid #e5e7eb', background: '#fff', display: 'flex', justifyContent: 'flex-end', gap: '12px'}}>
-                  <button onClick={() => { const reason = prompt('Rejection reason:'); if (reason) { handleApprovalAction(viewingApproval.id, 'rejected', null, reason); setViewingApproval(null); } }}
-                    style={{padding: '10px 20px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600'}}>
-                    ✗ Reject
-                  </button>
-                  <button onClick={() => { setEditingApproval(viewingApproval); setEditedData({...viewingApproval.data}); setViewingApproval(null); }}
-                    style={{padding: '10px 20px', background: '#fef3c7', color: '#d97706', border: '1px solid #fcd34d', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600'}}>
-                    ✎ Edit & Approve
-                  </button>
-                  <button onClick={() => { handleApprovalAction(viewingApproval.id, 'approved'); setViewingApproval(null); }}
-                    style={{padding: '10px 20px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600'}}>
-                    ✓ Approve
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         )}
