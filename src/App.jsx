@@ -407,19 +407,73 @@ const PracticeManagementApp = () => {
           break;
         case 'invoice':
         case 'invoice-create':
-          setData(prev => ({
-            ...prev,
-            invoices: [...prev.invoices, dataToUse],
-            tasks: dataToUse.taskId ? prev.tasks.map(t => t.id === dataToUse.taskId ? {...t, billed: true, invoiceId: dataToUse.id} : t) : prev.tasks,
-            pendingApprovals: prev.pendingApprovals.map(a => 
-              a.id === approvalId ? {...a, status: 'approved', actionedBy: currentUser?.name, updatedAt: new Date().toISOString(), comments} : a
-            )
-          }));
+          setData(prev => {
+            // Check if it's a bulk invoice
+            if (dataToUse.isBulk && dataToUse.invoices) {
+              let updatedTasks = prev.tasks;
+              // Handle taskUpdates for bulk invoices
+              if (dataToUse.taskUpdates) {
+                Object.entries(dataToUse.taskUpdates).forEach(([taskId, invId]) => {
+                  updatedTasks = updatedTasks.map(t => 
+                    t.id === taskId ? {...t, billed: true, invoiceId: invId} : t
+                  );
+                });
+              }
+              // Also update tasks from each invoice's taskIds
+              dataToUse.invoices.forEach(inv => {
+                if (inv.taskIds && Array.isArray(inv.taskIds)) {
+                  updatedTasks = updatedTasks.map(t => 
+                    inv.taskIds.includes(t.id) ? {...t, billed: true, invoiceId: inv.id} : t
+                  );
+                }
+              });
+              
+              return {
+                ...prev,
+                invoices: [...prev.invoices, ...dataToUse.invoices],
+                tasks: updatedTasks,
+                latestGeneratedInvoices: [...dataToUse.invoices, ...(prev.latestGeneratedInvoices || [])].slice(0, 50),
+                pendingApprovals: prev.pendingApprovals.map(a => 
+                  a.id === approvalId ? {...a, status: 'approved', actionedBy: currentUser?.name, updatedAt: new Date().toISOString(), comments} : a
+                )
+              };
+            }
+            
+            // Single invoice handling
+            let updatedTasks = prev.tasks;
+            if (dataToUse.taskId) {
+              updatedTasks = prev.tasks.map(t => t.id === dataToUse.taskId ? {...t, billed: true, invoiceId: dataToUse.id} : t);
+            }
+            if (dataToUse.taskIds && Array.isArray(dataToUse.taskIds)) {
+              updatedTasks = prev.tasks.map(t => 
+                dataToUse.taskIds.includes(t.id) ? {...t, billed: true, invoiceId: dataToUse.id} : t
+              );
+            }
+            // Also handle taskUpdates if present (for multiple task billing)
+            if (dataToUse.taskUpdates) {
+              Object.entries(dataToUse.taskUpdates).forEach(([taskId, invId]) => {
+                updatedTasks = updatedTasks.map(t => 
+                  t.id === taskId ? {...t, billed: true, invoiceId: invId} : t
+                );
+              });
+            }
+            
+            return {
+              ...prev,
+              invoices: [...prev.invoices, dataToUse],
+              tasks: updatedTasks,
+              latestGeneratedInvoices: [dataToUse, ...(prev.latestGeneratedInvoices || [])].slice(0, 50),
+              pendingApprovals: prev.pendingApprovals.map(a => 
+                a.id === approvalId ? {...a, status: 'approved', actionedBy: currentUser?.name, updatedAt: new Date().toISOString(), comments} : a
+              )
+            };
+          });
           break;
         case 'invoice-edit':
           setData(prev => ({
             ...prev,
             invoices: prev.invoices.map(inv => inv.id === dataToUse.id ? {...inv, ...dataToUse} : inv),
+            latestGeneratedInvoices: (prev.latestGeneratedInvoices || []).map(inv => inv.id === dataToUse.id ? {...inv, ...dataToUse} : inv),
             pendingApprovals: prev.pendingApprovals.map(a => 
               a.id === approvalId ? {...a, status: 'approved', actionedBy: currentUser?.name, updatedAt: new Date().toISOString(), comments} : a
             )
@@ -428,10 +482,23 @@ const PracticeManagementApp = () => {
         case 'invoice-delete':
           setData(prev => {
             const invoiceToDelete = prev.invoices.find(i => i.id === dataToUse.invoiceId);
+            let updatedTasks = prev.tasks;
+            // Handle single taskId
+            if (invoiceToDelete?.taskId) {
+              updatedTasks = prev.tasks.map(t => t.id === invoiceToDelete.taskId ? {...t, billed: false, invoiceId: null} : t);
+            }
+            // Handle multiple taskIds
+            if (invoiceToDelete?.taskIds && Array.isArray(invoiceToDelete.taskIds)) {
+              updatedTasks = prev.tasks.map(t => 
+                invoiceToDelete.taskIds.includes(t.id) ? {...t, billed: false, invoiceId: null} : t
+              );
+            }
+            
             return {
               ...prev,
               invoices: prev.invoices.filter(i => i.id !== dataToUse.invoiceId),
-              tasks: invoiceToDelete?.taskId ? prev.tasks.map(t => t.id === invoiceToDelete.taskId ? {...t, billed: false, invoiceId: null} : t) : prev.tasks,
+              tasks: updatedTasks,
+              latestGeneratedInvoices: (prev.latestGeneratedInvoices || []).filter(i => i.id !== dataToUse.invoiceId),
               pendingApprovals: prev.pendingApprovals.map(a => 
                 a.id === approvalId ? {...a, status: 'approved', actionedBy: currentUser?.name, updatedAt: new Date().toISOString(), comments} : a
               )
@@ -21596,17 +21663,19 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                           alert(`✅ Successfully generated ${newInvoices.length} invoice(s)!`);
                                           setBillingMode('latest');
                                         } else {
-                                          // Create approval request for each invoice
-                                          const approvals = newInvoices.map(inv => 
-                                            createApprovalRequest('invoice-create', {...inv, taskUpdates}, `Create Invoice ${inv.invoiceNo} for ${inv.clientName} - ₹${inv.totalAmount.toLocaleString('en-IN')}`)
-                                          ).filter(Boolean);
+                                          // Create single approval request for bulk invoices
+                                          const totalAmount = newInvoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
+                                          const approval = createApprovalRequest('invoice-create', 
+                                            {isBulk: true, invoices: newInvoices, taskUpdates, invoiceCount: newInvoices.length, totalAmount}, 
+                                            `Bulk Invoice: ${newInvoices.length} invoices - Total ₹${totalAmount.toLocaleString('en-IN')}`
+                                          );
                                           
-                                          if (approvals.length > 0) {
+                                          if (approval) {
                                             setData(prev => ({
                                               ...prev,
-                                              pendingApprovals: [...(prev.pendingApprovals || []), ...approvals]
+                                              pendingApprovals: [...(prev.pendingApprovals || []), approval]
                                             }));
-                                            alert(`📋 ${approvals.length} Invoice request(s) sent for Superadmin approval.`);
+                                            alert(`📋 Bulk Invoice request (${newInvoices.length} invoices) sent for Superadmin approval.\nTotal Amount: ₹${totalAmount.toLocaleString('en-IN')}`);
                                           }
                                         }
                                         
@@ -23136,13 +23205,27 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         <div style={{display: 'flex', gap: '8px', justifyContent: 'flex-end', paddingTop: '12px', borderTop: '1px solid #e2e8f0'}}>
                           <button onClick={() => setEditingGeneratedInvoice(null)} style={{padding: '10px 20px', background: '#e2e8f0', color: '#64748b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600'}}>Cancel</button>
                           <button onClick={() => {
-                            setData(prev => ({
-                              ...prev,
-                              invoices: (prev.invoices || []).map(inv => inv.id === editingGeneratedInvoice.id ? editingGeneratedInvoice : inv),
-                              latestGeneratedInvoices: (prev.latestGeneratedInvoices || []).map(inv => inv.id === editingGeneratedInvoice.id ? editingGeneratedInvoice : inv)
-                            }));
-                            setEditingGeneratedInvoice(null);
-                            alert('Invoice updated successfully!');
+                            if (currentUser?.isSuperAdmin) {
+                              // Direct save for Superadmin
+                              setData(prev => ({
+                                ...prev,
+                                invoices: (prev.invoices || []).map(inv => inv.id === editingGeneratedInvoice.id ? editingGeneratedInvoice : inv),
+                                latestGeneratedInvoices: (prev.latestGeneratedInvoices || []).map(inv => inv.id === editingGeneratedInvoice.id ? editingGeneratedInvoice : inv)
+                              }));
+                              setEditingGeneratedInvoice(null);
+                              alert('✅ Invoice updated successfully!');
+                            } else {
+                              // Create approval request
+                              const approval = createApprovalRequest('invoice-edit', editingGeneratedInvoice, `Edit Invoice ${editingGeneratedInvoice.invoiceNo} for ${editingGeneratedInvoice.clientName} - ₹${(editingGeneratedInvoice.totalAmount || 0).toLocaleString('en-IN')}`);
+                              if (approval) {
+                                setData(prev => ({
+                                  ...prev,
+                                  pendingApprovals: [...(prev.pendingApprovals || []), approval]
+                                }));
+                                setEditingGeneratedInvoice(null);
+                                alert(`📋 Invoice edit request sent for Superadmin approval.\nInvoice No: ${editingGeneratedInvoice.invoiceNo}`);
+                              }
+                            }
                           }} style={{padding: '10px 24px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600'}}>💾 Save Changes</button>
                         </div>
                       </div>
@@ -23213,12 +23296,27 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                         <button onClick={() => setEditingGeneratedInvoice({...invoice})} title="Edit" style={{padding: '5px 8px', background: '#fef3c7', color: '#d97706', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Edit size={14} /></button>
                                         <button onClick={() => {
                                           if (!window.confirm(`Delete invoice ${invoice.invoiceNo}?\n\nThis will also unbill associated tasks.`)) return;
-                                          setData(prev => ({
-                                            ...prev,
-                                            invoices: (prev.invoices || []).filter(i => i.id !== invoice.id),
-                                            latestGeneratedInvoices: (prev.latestGeneratedInvoices || []).filter(i => i.id !== invoice.id),
-                                            tasks: (prev.tasks || []).map(t => (invoice.taskIds && invoice.taskIds.includes(t.id)) || t.invoiceId === invoice.id ? {...t, billed: false, invoiceId: null} : t)
-                                          }));
+                                          
+                                          if (currentUser?.isSuperAdmin) {
+                                            // Direct delete for Superadmin
+                                            setData(prev => ({
+                                              ...prev,
+                                              invoices: (prev.invoices || []).filter(i => i.id !== invoice.id),
+                                              latestGeneratedInvoices: (prev.latestGeneratedInvoices || []).filter(i => i.id !== invoice.id),
+                                              tasks: (prev.tasks || []).map(t => (invoice.taskIds && invoice.taskIds.includes(t.id)) || t.invoiceId === invoice.id ? {...t, billed: false, invoiceId: null} : t)
+                                            }));
+                                            alert('✅ Invoice deleted successfully!');
+                                          } else {
+                                            // Create approval request
+                                            const approval = createApprovalRequest('invoice-delete', {invoiceId: invoice.id, invoiceNo: invoice.invoiceNo, clientName: invoice.clientName, totalAmount: invoice.totalAmount}, `Delete Invoice ${invoice.invoiceNo} for ${invoice.clientName} - ₹${(invoice.totalAmount || 0).toLocaleString('en-IN')}`);
+                                            if (approval) {
+                                              setData(prev => ({
+                                                ...prev,
+                                                pendingApprovals: [...(prev.pendingApprovals || []), approval]
+                                              }));
+                                              alert(`📋 Invoice deletion request sent for Superadmin approval.\nInvoice No: ${invoice.invoiceNo}`);
+                                            }
+                                          }
                                         }} title="Delete" style={{padding: '5px 8px', background: '#fef2f2', color: '#ef4444', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Trash2 size={14} /></button>
                                       </div>
                                     </td>
@@ -28026,8 +28124,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       return approvals.filter(a => {
         if (selectedApprovalType === 'tasks') return a.type === 'task' || a.type === 'bulk_task';
         if (selectedApprovalType === 'clients') return a.type === 'client_add' || a.type === 'client_disable';
-        if (selectedApprovalType === 'billing') return a.type === 'invoice';
-        if (selectedApprovalType === 'receipts') return a.type === 'receipt';
+        if (selectedApprovalType === 'invoices') return (a.type === 'invoice' || a.type === 'invoice-create' || a.type === 'invoice-edit' || a.type === 'invoice-delete') && !a.data?.isBulk;
+        if (selectedApprovalType === 'bulk-invoices') return (a.type === 'invoice' || a.type === 'invoice-create') && a.data?.isBulk;
+        if (selectedApprovalType === 'receipts') return a.type === 'receipt' || a.type === 'receipt-create' || a.type === 'receipt-edit' || a.type === 'receipt-delete';
         if (selectedApprovalType === 'staff') return a.type === 'staff_add' || a.type === 'staff_disable';
         return true;
       });
@@ -28039,8 +28138,14 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         'bulk_task': '📋 Bulk Tasks',
         'client_add': '👤 New Client',
         'client_disable': '🚫 Client Disable',
-        'invoice': '💰 Invoice',
-        'receipt': '🧾 Receipt',
+        'invoice': '📄 New Invoice',
+        'invoice-create': '📄 New Invoice',
+        'invoice-edit': '✏️ Invoice Edit',
+        'invoice-delete': '🗑️ Invoice Delete',
+        'receipt': '💰 New Receipt',
+        'receipt-create': '💰 New Receipt',
+        'receipt-edit': '✏️ Receipt Edit',
+        'receipt-delete': '🗑️ Receipt Delete',
         'staff_add': '👥 New Staff',
         'staff_disable': '🚫 Staff Disable'
       };
@@ -28128,25 +28233,267 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             </div>
           );
         case 'invoice':
+        case 'invoice-create':
+          // Check if it's a bulk invoice
+          if (d.isBulk && d.invoices) {
+            return (
+              <div style={{background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', padding: '20px', borderRadius: '12px', marginTop: '12px', border: '1px solid #fcd34d'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid #fcd34d'}}>
+                  <FileText size={20} color="#d97706" />
+                  <span style={{fontWeight: '700', fontSize: '16px', color: '#92400e'}}>📦 Bulk Invoice Request ({d.invoiceCount} Invoices)</span>
+                </div>
+                <div style={{display: 'flex', gap: '16px', marginBottom: '16px'}}>
+                  <div style={{background: '#fff', padding: '16px 24px', borderRadius: '8px', flex: 1, textAlign: 'center'}}>
+                    <div style={{fontSize: '11px', color: '#64748b'}}>Total Invoices</div>
+                    <div style={{fontSize: '28px', fontWeight: '700', color: '#d97706'}}>{d.invoiceCount}</div>
+                  </div>
+                  <div style={{background: '#fff', padding: '16px 24px', borderRadius: '8px', flex: 1, textAlign: 'center'}}>
+                    <div style={{fontSize: '11px', color: '#64748b'}}>Total Amount</div>
+                    <div style={{fontSize: '24px', fontWeight: '700', color: '#16a34a'}}>₹{(d.totalAmount || 0).toLocaleString('en-IN')}</div>
+                  </div>
+                </div>
+                <div style={{background: '#fff', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb'}}>
+                  <div style={{background: '#f8fafc', padding: '10px 12px', borderBottom: '1px solid #e5e7eb', fontWeight: '600', fontSize: '12px', color: '#374151'}}>
+                    Invoice Details
+                  </div>
+                  <div style={{maxHeight: '300px', overflowY: 'auto'}}>
+                    <table style={{width: '100%', fontSize: '11px', borderCollapse: 'collapse'}}>
+                      <thead>
+                        <tr style={{background: '#f8fafc'}}>
+                          <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e5e7eb'}}>#</th>
+                          <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e5e7eb'}}>Invoice No</th>
+                          <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e5e7eb'}}>Client</th>
+                          <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e5e7eb'}}>Code</th>
+                          <th style={{padding: '8px', textAlign: 'right', fontWeight: '600', borderBottom: '1px solid #e5e7eb'}}>Net</th>
+                          <th style={{padding: '8px', textAlign: 'right', fontWeight: '600', borderBottom: '1px solid #e5e7eb'}}>GST</th>
+                          <th style={{padding: '8px', textAlign: 'right', fontWeight: '600', borderBottom: '1px solid #e5e7eb'}}>Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {d.invoices.map((inv, idx) => (
+                          <tr key={idx} style={{borderBottom: '1px solid #f1f5f9'}}>
+                            <td style={{padding: '8px', color: '#64748b'}}>{idx + 1}</td>
+                            <td style={{padding: '8px', fontWeight: '600', color: '#d97706'}}>{inv.invoiceNo}</td>
+                            <td style={{padding: '8px'}}>{inv.clientName}</td>
+                            <td style={{padding: '8px', fontFamily: 'monospace', color: '#4f46e5'}}>{inv.clientCode}</td>
+                            <td style={{padding: '8px', textAlign: 'right'}}>₹{(inv.netAmount || 0).toLocaleString('en-IN')}</td>
+                            <td style={{padding: '8px', textAlign: 'right'}}>₹{((inv.cgst || 0) + (inv.sgst || 0) + (inv.igst || 0)).toLocaleString('en-IN')}</td>
+                            <td style={{padding: '8px', textAlign: 'right', fontWeight: '600', color: '#16a34a'}}>₹{(inv.totalAmount || 0).toLocaleString('en-IN')}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+          // Single invoice
           return (
-            <div style={{background: '#f8fafc', padding: '16px', borderRadius: '8px', marginTop: '12px'}}>
-              <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', fontSize: '13px'}}>
-                <div><strong>Invoice No:</strong> {d.invoiceNo}</div>
-                <div><strong>Client:</strong> {d.clientName}</div>
-                <div><strong>Amount:</strong> ₹{(d.totalAmount || d.amount || 0).toLocaleString()}</div>
-                <div><strong>Date:</strong> {d.invoiceDate}</div>
+            <div style={{background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', padding: '20px', borderRadius: '12px', marginTop: '12px', border: '1px solid #86efac'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid #86efac'}}>
+                <FileText size={20} color="#16a34a" />
+                <span style={{fontWeight: '700', fontSize: '16px', color: '#166534'}}>New Invoice Request</span>
+              </div>
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', fontSize: '13px'}}>
+                <div style={{background: '#fff', padding: '12px', borderRadius: '8px'}}>
+                  <div style={{fontSize: '10px', color: '#64748b', marginBottom: '4px'}}>Invoice No.</div>
+                  <div style={{fontWeight: '600', color: '#166534', fontSize: '15px'}}>{d.invoiceNo}</div>
+                </div>
+                <div style={{background: '#fff', padding: '12px', borderRadius: '8px'}}>
+                  <div style={{fontSize: '10px', color: '#64748b', marginBottom: '4px'}}>Invoice Date</div>
+                  <div style={{fontWeight: '600', color: '#374151'}}>{d.invoiceDate}</div>
+                </div>
+                <div style={{background: '#fff', padding: '12px', borderRadius: '8px', gridColumn: 'span 2'}}>
+                  <div style={{fontSize: '10px', color: '#64748b', marginBottom: '4px'}}>Client</div>
+                  <div style={{fontWeight: '600', color: '#374151'}}>{d.clientName} {d.clientCode ? `(${d.clientCode})` : ''}</div>
+                  <div style={{fontSize: '11px', color: '#64748b'}}>{d.clientAddress || ''}</div>
+                </div>
+                <div style={{background: '#fff', padding: '12px', borderRadius: '8px', gridColumn: 'span 2'}}>
+                  <div style={{fontSize: '10px', color: '#64748b', marginBottom: '4px'}}>Organization</div>
+                  <div style={{fontWeight: '600', color: '#374151'}}>{d.orgName}</div>
+                  <div style={{fontSize: '11px', color: '#64748b'}}>GSTIN: {d.orgGstin || 'N/A'}</div>
+                </div>
+                <div style={{background: '#fff', padding: '12px', borderRadius: '8px', gridColumn: 'span 2'}}>
+                  <div style={{fontSize: '10px', color: '#64748b', marginBottom: '4px'}}>Service Description</div>
+                  <div style={{color: '#374151'}}>{d.serviceDescription || d.narration || '-'}</div>
+                </div>
+              </div>
+              <div style={{marginTop: '16px', background: '#fff', padding: '16px', borderRadius: '8px'}}>
+                <table style={{width: '100%', fontSize: '12px'}}>
+                  <tbody>
+                    <tr><td style={{padding: '4px 0', color: '#64748b'}}>Gross Amount</td><td style={{textAlign: 'right', fontWeight: '500'}}>₹{(d.amount || 0).toLocaleString('en-IN')}</td></tr>
+                    {d.discount > 0 && <tr><td style={{padding: '4px 0', color: '#64748b'}}>Discount</td><td style={{textAlign: 'right', color: '#dc2626'}}>- ₹{(d.discount || 0).toLocaleString('en-IN')}</td></tr>}
+                    <tr><td style={{padding: '4px 0', color: '#64748b'}}>Net Amount</td><td style={{textAlign: 'right', fontWeight: '500'}}>₹{(d.netAmount || 0).toLocaleString('en-IN')}</td></tr>
+                    {d.cgst > 0 && <tr><td style={{padding: '4px 0', color: '#64748b'}}>CGST (9%)</td><td style={{textAlign: 'right'}}>₹{(d.cgst || 0).toLocaleString('en-IN')}</td></tr>}
+                    {d.sgst > 0 && <tr><td style={{padding: '4px 0', color: '#64748b'}}>SGST (9%)</td><td style={{textAlign: 'right'}}>₹{(d.sgst || 0).toLocaleString('en-IN')}</td></tr>}
+                    {d.igst > 0 && <tr><td style={{padding: '4px 0', color: '#64748b'}}>IGST (18%)</td><td style={{textAlign: 'right'}}>₹{(d.igst || 0).toLocaleString('en-IN')}</td></tr>}
+                    <tr style={{borderTop: '2px solid #10b981'}}><td style={{padding: '8px 0', fontWeight: '700', color: '#166534'}}>Total Amount</td><td style={{textAlign: 'right', fontWeight: '700', fontSize: '16px', color: '#166534'}}>₹{(d.totalAmount || 0).toLocaleString('en-IN')}</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              {d.financialYear && <div style={{marginTop: '12px', fontSize: '11px', color: '#64748b'}}>Financial Year: {d.financialYear}</div>}
+            </div>
+          );
+        case 'invoice-edit':
+          return (
+            <div style={{background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', padding: '20px', borderRadius: '12px', marginTop: '12px', border: '1px solid #93c5fd'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid #93c5fd'}}>
+                <Edit size={20} color="#2563eb" />
+                <span style={{fontWeight: '700', fontSize: '16px', color: '#1d4ed8'}}>Invoice Edit Request</span>
+              </div>
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', fontSize: '13px'}}>
+                <div style={{background: '#fff', padding: '12px', borderRadius: '8px'}}>
+                  <div style={{fontSize: '10px', color: '#64748b', marginBottom: '4px'}}>Invoice No.</div>
+                  <div style={{fontWeight: '600', color: '#1d4ed8', fontSize: '15px'}}>{d.invoiceNo}</div>
+                </div>
+                <div style={{background: '#fff', padding: '12px', borderRadius: '8px'}}>
+                  <div style={{fontSize: '10px', color: '#64748b', marginBottom: '4px'}}>Invoice Date</div>
+                  <div style={{fontWeight: '600', color: '#374151'}}>{d.invoiceDate}</div>
+                </div>
+                <div style={{background: '#fff', padding: '12px', borderRadius: '8px', gridColumn: 'span 2'}}>
+                  <div style={{fontSize: '10px', color: '#64748b', marginBottom: '4px'}}>Client</div>
+                  <div style={{fontWeight: '600', color: '#374151'}}>{d.clientName} {d.clientCode ? `(${d.clientCode})` : ''}</div>
+                </div>
+                <div style={{background: '#fff', padding: '12px', borderRadius: '8px', gridColumn: 'span 2'}}>
+                  <div style={{fontSize: '10px', color: '#64748b', marginBottom: '4px'}}>Service Description</div>
+                  <div style={{color: '#374151'}}>{d.serviceDescription || d.narration || '-'}</div>
+                </div>
+              </div>
+              <div style={{marginTop: '16px', background: '#fff', padding: '16px', borderRadius: '8px'}}>
+                <div style={{fontSize: '11px', color: '#64748b', marginBottom: '8px'}}>Updated Amount Details:</div>
+                <table style={{width: '100%', fontSize: '12px'}}>
+                  <tbody>
+                    <tr><td style={{padding: '4px 0', color: '#64748b'}}>Net Amount</td><td style={{textAlign: 'right', fontWeight: '500'}}>₹{(d.netAmount || 0).toLocaleString('en-IN')}</td></tr>
+                    {d.cgst > 0 && <tr><td style={{padding: '4px 0', color: '#64748b'}}>CGST</td><td style={{textAlign: 'right'}}>₹{(d.cgst || 0).toLocaleString('en-IN')}</td></tr>}
+                    {d.sgst > 0 && <tr><td style={{padding: '4px 0', color: '#64748b'}}>SGST</td><td style={{textAlign: 'right'}}>₹{(d.sgst || 0).toLocaleString('en-IN')}</td></tr>}
+                    {d.igst > 0 && <tr><td style={{padding: '4px 0', color: '#64748b'}}>IGST</td><td style={{textAlign: 'right'}}>₹{(d.igst || 0).toLocaleString('en-IN')}</td></tr>}
+                    <tr style={{borderTop: '2px solid #3b82f6'}}><td style={{padding: '8px 0', fontWeight: '700', color: '#1d4ed8'}}>Total Amount</td><td style={{textAlign: 'right', fontWeight: '700', fontSize: '16px', color: '#1d4ed8'}}>₹{(d.totalAmount || 0).toLocaleString('en-IN')}</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        case 'invoice-delete':
+          return (
+            <div style={{background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)', padding: '20px', borderRadius: '12px', marginTop: '12px', border: '1px solid #fca5a5'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid #fca5a5'}}>
+                <Trash2 size={20} color="#dc2626" />
+                <span style={{fontWeight: '700', fontSize: '16px', color: '#dc2626'}}>Invoice Delete Request</span>
+              </div>
+              <div style={{background: '#fff', padding: '16px', borderRadius: '8px'}}>
+                <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', fontSize: '13px'}}>
+                  <div>
+                    <div style={{fontSize: '10px', color: '#64748b', marginBottom: '4px'}}>Invoice No.</div>
+                    <div style={{fontWeight: '600', color: '#dc2626', fontSize: '15px'}}>{d.invoiceNo}</div>
+                  </div>
+                  <div>
+                    <div style={{fontSize: '10px', color: '#64748b', marginBottom: '4px'}}>Amount</div>
+                    <div style={{fontWeight: '600', color: '#374151'}}>₹{(d.totalAmount || 0).toLocaleString('en-IN')}</div>
+                  </div>
+                  <div style={{gridColumn: 'span 2'}}>
+                    <div style={{fontSize: '10px', color: '#64748b', marginBottom: '4px'}}>Client</div>
+                    <div style={{fontWeight: '600', color: '#374151'}}>{d.clientName}</div>
+                  </div>
+                </div>
+              </div>
+              <div style={{marginTop: '12px', padding: '12px', background: '#fef2f2', borderRadius: '8px', fontSize: '12px', color: '#dc2626'}}>
+                ⚠️ This action will permanently delete the invoice and mark the associated task(s) as unbilled.
               </div>
             </div>
           );
         case 'receipt':
+        case 'receipt-create':
+          const receipts = d.receipts || [d];
+          const totalReceiptAmt = receipts.reduce((sum, r) => sum + (r.amount || 0), 0);
           return (
-            <div style={{background: '#f8fafc', padding: '16px', borderRadius: '8px', marginTop: '12px'}}>
-              <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', fontSize: '13px'}}>
-                <div><strong>Receipt No:</strong> {d.receiptNo}</div>
-                <div><strong>Client:</strong> {d.clientName}</div>
-                <div><strong>Amount:</strong> ₹{(d.amount || 0).toLocaleString()}</div>
-                <div><strong>Date:</strong> {d.receiptDate}</div>
-                <div><strong>Mode:</strong> {d.paymentMode}</div>
+            <div style={{background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', padding: '20px', borderRadius: '12px', marginTop: '12px', border: '1px solid #86efac'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid #86efac'}}>
+                <IndianRupee size={20} color="#16a34a" />
+                <span style={{fontWeight: '700', fontSize: '16px', color: '#166534'}}>New Receipt Request ({receipts.length} receipt{receipts.length > 1 ? 's' : ''})</span>
+              </div>
+              <div style={{maxHeight: '300px', overflowY: 'auto'}}>
+                {receipts.map((r, idx) => (
+                  <div key={idx} style={{background: '#fff', padding: '12px', borderRadius: '8px', marginBottom: '8px'}}>
+                    <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', fontSize: '12px'}}>
+                      <div><span style={{color: '#64748b'}}>Receipt No:</span> <strong>{r.receiptNo}</strong></div>
+                      <div><span style={{color: '#64748b'}}>Date:</span> {r.receiptDate}</div>
+                      <div><span style={{color: '#64748b'}}>Client:</span> {r.clientName}</div>
+                      <div><span style={{color: '#64748b'}}>Invoice:</span> {r.invoiceNo || '-'}</div>
+                      <div><span style={{color: '#64748b'}}>Amount:</span> <strong style={{color: '#166534'}}>₹{(r.amount || 0).toLocaleString('en-IN')}</strong></div>
+                      <div><span style={{color: '#64748b'}}>Mode:</span> {r.paymentMode}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{marginTop: '12px', padding: '12px', background: '#fff', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <span style={{fontWeight: '600', color: '#166534'}}>Total Amount</span>
+                <span style={{fontWeight: '700', fontSize: '18px', color: '#166534'}}>₹{totalReceiptAmt.toLocaleString('en-IN')}</span>
+              </div>
+            </div>
+          );
+        case 'receipt-edit':
+          return (
+            <div style={{background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', padding: '20px', borderRadius: '12px', marginTop: '12px', border: '1px solid #93c5fd'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid #93c5fd'}}>
+                <Edit size={20} color="#2563eb" />
+                <span style={{fontWeight: '700', fontSize: '16px', color: '#1d4ed8'}}>Receipt Edit Request</span>
+              </div>
+              <div style={{background: '#fff', padding: '16px', borderRadius: '8px'}}>
+                <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', fontSize: '13px'}}>
+                  <div>
+                    <div style={{fontSize: '10px', color: '#64748b', marginBottom: '4px'}}>Receipt No.</div>
+                    <div style={{fontWeight: '600', color: '#1d4ed8'}}>{d.receiptNo}</div>
+                  </div>
+                  <div>
+                    <div style={{fontSize: '10px', color: '#64748b', marginBottom: '4px'}}>Date</div>
+                    <div style={{fontWeight: '500'}}>{d.receiptDate || d.date}</div>
+                  </div>
+                  <div>
+                    <div style={{fontSize: '10px', color: '#64748b', marginBottom: '4px'}}>Client</div>
+                    <div style={{fontWeight: '500'}}>{d.clientName}</div>
+                  </div>
+                  <div>
+                    <div style={{fontSize: '10px', color: '#64748b', marginBottom: '4px'}}>Amount</div>
+                    <div style={{fontWeight: '600', color: '#1d4ed8'}}>₹{(d.amount || 0).toLocaleString('en-IN')}</div>
+                  </div>
+                  <div>
+                    <div style={{fontSize: '10px', color: '#64748b', marginBottom: '4px'}}>TDS</div>
+                    <div style={{fontWeight: '500'}}>₹{(d.tds || 0).toLocaleString('en-IN')}</div>
+                  </div>
+                  <div>
+                    <div style={{fontSize: '10px', color: '#64748b', marginBottom: '4px'}}>Mode</div>
+                    <div style={{fontWeight: '500'}}>{d.paymentMode || '-'}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        case 'receipt-delete':
+          return (
+            <div style={{background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)', padding: '20px', borderRadius: '12px', marginTop: '12px', border: '1px solid #fca5a5'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid #fca5a5'}}>
+                <Trash2 size={20} color="#dc2626" />
+                <span style={{fontWeight: '700', fontSize: '16px', color: '#dc2626'}}>Receipt Delete Request</span>
+              </div>
+              <div style={{background: '#fff', padding: '16px', borderRadius: '8px'}}>
+                <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', fontSize: '13px'}}>
+                  <div>
+                    <div style={{fontSize: '10px', color: '#64748b', marginBottom: '4px'}}>Receipt No.</div>
+                    <div style={{fontWeight: '600', color: '#dc2626'}}>{d.receiptNo}</div>
+                  </div>
+                  <div>
+                    <div style={{fontSize: '10px', color: '#64748b', marginBottom: '4px'}}>Amount</div>
+                    <div style={{fontWeight: '600'}}>₹{(d.amount || 0).toLocaleString('en-IN')}</div>
+                  </div>
+                  <div style={{gridColumn: 'span 2'}}>
+                    <div style={{fontSize: '10px', color: '#64748b', marginBottom: '4px'}}>Client</div>
+                    <div style={{fontWeight: '500'}}>{d.clientName}</div>
+                  </div>
+                </div>
+              </div>
+              <div style={{marginTop: '12px', padding: '12px', background: '#fef2f2', borderRadius: '8px', fontSize: '12px', color: '#dc2626'}}>
+                ⚠️ This action will permanently delete the receipt from the ledger.
               </div>
             </div>
           );
@@ -28175,7 +28522,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         default:
           return (
             <div style={{background: '#f8fafc', padding: '16px', borderRadius: '8px', marginTop: '12px'}}>
-              <pre style={{fontSize: '11px', overflow: 'auto'}}>{JSON.stringify(d, null, 2)}</pre>
+              <pre style={{fontSize: '11px', overflow: 'auto', maxHeight: '200px'}}>{JSON.stringify(d, null, 2)}</pre>
             </div>
           );
       }
@@ -28262,8 +28609,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               {id: 'all', label: 'All Types'},
               {id: 'tasks', label: '📋 Tasks'},
               {id: 'clients', label: '👤 Clients'},
-              {id: 'billing', label: '💰 Billing'},
-              {id: 'receipts', label: '🧾 Receipts'},
+              {id: 'invoices', label: '📄 Invoices'},
+              {id: 'bulk-invoices', label: '📦 Bulk Invoices'},
+              {id: 'receipts', label: '💰 Receipts'},
               {id: 'staff', label: '👥 Staff'}
             ].map(type => (
               <button
@@ -28557,8 +28905,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               background: '#fff',
               borderRadius: '16px',
               width: '90%',
-              maxWidth: '600px',
-              maxHeight: '80vh',
+              maxWidth: '800px',
+              maxHeight: '85vh',
               overflow: 'auto'
             }}>
               <div style={{
