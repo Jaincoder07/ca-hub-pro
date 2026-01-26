@@ -10640,12 +10640,6 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               
               return (
                 <>
-                  {/* Date Header */}
-                  <div style={{textAlign: 'center', marginBottom: '24px'}}>
-                    <div style={{fontSize: '14px', color: '#64748b', marginBottom: '4px'}}>Activity Summary for</div>
-                    <div style={{fontSize: '20px', fontWeight: '600', color: '#1e293b'}}>{snapshotDateStr}</div>
-                  </div>
-                  
                   {/* Summary Cards */}
                   <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '24px'}}>
                     <div style={{background: 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #bfdbfe'}}>
@@ -10769,24 +10763,24 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               </tr>
                             </thead>
                             <tbody>
-                              {tasksCompleted.slice(0, 10).map(task => (
-                                <tr key={task.id} style={{borderBottom: '1px solid #f1f5f9'}}>
-                                  <td style={{padding: '8px'}}>{task.clientName || task.client || '-'}</td>
-                                  <td style={{padding: '8px', fontWeight: '500'}}>{task.childTask || task.parentTask}</td>
-                                  <td style={{padding: '8px', color: '#64748b'}}>{task.primaryAssignedUser || '-'}</td>
+                              {tasksCompleted.slice(0, 10).map((task, idx) => (
+                                <tr key={task.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                                  <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#10b981', fontWeight: '500'}}>{task.clientName || task.client || '-'}</td>
+                                  <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.childTask || task.parentTask}</td>
+                                  <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.primaryAssignedUser || '-'}</td>
                                 </tr>
                               ))}
                             </tbody>
                           </table>
-                          {tasksCompleted.length > 10 && <div style={{padding: '8px', textAlign: 'center', color: '#64748b', fontSize: '10px'}}>+{tasksCompleted.length - 10} more</div>}
+                          {tasksCompleted.length > 10 && <div style={{padding: '8px', textAlign: 'center', color: '#166534', fontSize: '10px', background: '#f0fdf4'}}>+{tasksCompleted.length - 10} more</div>}
                         </div>
                       )}
                     </div>
                     
                     {/* Clients Added */}
-                    <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
-                      <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                        <span style={{width: '8px', height: '8px', background: '#8b5cf6', borderRadius: '50%'}}></span>
+                    <div style={{background: '#fff', borderRadius: '10px', padding: '20px', border: '1px solid #8b5cf6', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+                      <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', color: '#6d28d9'}}>
+                        <span style={{width: '10px', height: '10px', background: '#8b5cf6', borderRadius: '50%'}}></span>
                         Clients Added ({clientsCreated.length})
                       </h3>
                       {clientsCreated.length === 0 ? (
@@ -10794,10 +10788,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       ) : (
                         <div style={{maxHeight: '200px', overflowY: 'auto'}}>
                           {clientsCreated.map(client => (
-                            <div key={client.id} style={{display: 'flex', alignItems: 'center', gap: '12px', padding: '10px', background: '#f8fafc', borderRadius: '8px', marginBottom: '8px'}}>
-                              <div style={{width: '36px', height: '36px', borderRadius: '50%', background: '#8b5cf6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: '600'}}>{client.name.charAt(0)}</div>
+                            <div key={client.id} style={{display: 'flex', alignItems: 'center', gap: '12px', padding: '10px', background: '#f5f3ff', borderRadius: '8px', marginBottom: '8px', border: '1px solid #ddd6fe'}}>
+                              <div style={{width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: '600'}}>{client.name.charAt(0)}</div>
                               <div>
-                                <div style={{fontSize: '12px', fontWeight: '500'}}>{client.name}</div>
+                                <div style={{fontSize: '12px', fontWeight: '600', color: '#6d28d9'}}>{client.name}</div>
                                 <div style={{fontSize: '10px', color: '#64748b'}}>{formatFileNo(client.fileNo) || 'No Code'} • Group {client.fileNo ? client.fileNo.split('.')[0] : 'N/A'}</div>
                               </div>
                             </div>
@@ -10810,31 +10804,48 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   {/* Row 3 - Billing & Receipts */}
                   <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px'}}>
                     {/* Billing/Invoices */}
-                    <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
-                      <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                        <span style={{width: '8px', height: '8px', background: '#10b981', borderRadius: '50%'}}></span>
+                    <div style={{background: '#fff', borderRadius: '10px', padding: '20px', border: '1px solid #10b981', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+                      <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', color: '#166534'}}>
+                        <span style={{width: '10px', height: '10px', background: '#10b981', borderRadius: '50%'}}></span>
                         Billing ({invoicesCreated.length}) - ₹{totalInvoiceAmount.toLocaleString('en-IN')}
                       </h3>
                       {invoicesCreated.length === 0 ? (
                         <div style={{padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '12px'}}>No billing on this date</div>
                       ) : (
-                        <div style={{maxHeight: '200px', overflowY: 'auto'}}>
+                        <div style={{maxHeight: '220px', overflowY: 'auto'}}>
                           <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
-                            <thead style={{position: 'sticky', top: 0, background: '#f8fafc'}}>
-                              <tr>
-                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600'}}>Invoice #</th>
-                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600'}}>Client</th>
-                                <th style={{padding: '8px', textAlign: 'right', fontWeight: '600'}}>Amount</th>
+                            <thead style={{position: 'sticky', top: 0}}>
+                              <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Invoice No.</th>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Code</th>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Organization</th>
+                                <th style={{padding: '8px', textAlign: 'right', fontWeight: '600', color: '#fff'}}>Amount</th>
+                                <th style={{padding: '8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>View</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {invoicesCreated.map(inv => (
-                                <tr key={inv.id} style={{borderBottom: '1px solid #f1f5f9'}}>
-                                  <td style={{padding: '8px', fontWeight: '500'}}>{inv.invoiceNumber || inv.id?.slice(-8)}</td>
-                                  <td style={{padding: '8px'}}>{inv.clientName || '-'}</td>
-                                  <td style={{padding: '8px', textAlign: 'right', fontWeight: '600', color: '#10b981'}}>₹{(parseFloat(inv.totalAmount) || 0).toLocaleString('en-IN')}</td>
-                                </tr>
-                              ))}
+                              {invoicesCreated.map((inv, idx) => {
+                                const client = data.clients.find(c => c.id === inv.clientId || c.name === inv.clientName);
+                                const org = (data.organizations || []).find(o => o.id === inv.organizationId);
+                                return (
+                                  <tr key={inv.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', fontWeight: '500', color: '#10b981'}}>{inv.invoiceNumber || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{client?.fileNo || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{inv.clientName || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{org?.name || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'right', fontWeight: '600', color: '#166534'}}>₹{(parseFloat(inv.totalAmount) || 0).toLocaleString('en-IN')}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
+                                      <button 
+                                        onClick={() => { setGeneratedInvoice(inv); setShowInvoicePreview(true); }}
+                                        style={{padding: '4px 8px', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}
+                                      >
+                                        <Eye size={12} />
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
@@ -10842,33 +10853,47 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     </div>
                     
                     {/* Receipts */}
-                    <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
-                      <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                        <span style={{width: '8px', height: '8px', background: '#f59e0b', borderRadius: '50%'}}></span>
+                    <div style={{background: '#fff', borderRadius: '10px', padding: '20px', border: '1px solid #10b981', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+                      <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', color: '#166534'}}>
+                        <span style={{width: '10px', height: '10px', background: '#f59e0b', borderRadius: '50%'}}></span>
                         Receipts ({receiptsCreated.length}) - ₹{totalReceiptAmount.toLocaleString('en-IN')}
                       </h3>
                       {receiptsCreated.length === 0 ? (
                         <div style={{padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '12px'}}>No receipts on this date</div>
                       ) : (
-                        <div style={{maxHeight: '200px', overflowY: 'auto'}}>
+                        <div style={{maxHeight: '220px', overflowY: 'auto'}}>
                           <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
-                            <thead style={{position: 'sticky', top: 0, background: '#f8fafc'}}>
-                              <tr>
-                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600'}}>Receipt #</th>
-                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600'}}>Client</th>
-                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600'}}>Mode</th>
-                                <th style={{padding: '8px', textAlign: 'right', fontWeight: '600'}}>Amount</th>
+                            <thead style={{position: 'sticky', top: 0}}>
+                              <tr style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'}}>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Receipt No.</th>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Code</th>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Mode</th>
+                                <th style={{padding: '8px', textAlign: 'right', fontWeight: '600', color: '#fff'}}>Amount</th>
+                                <th style={{padding: '8px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>View</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {receiptsCreated.map(r => (
-                                <tr key={r.id} style={{borderBottom: '1px solid #f1f5f9'}}>
-                                  <td style={{padding: '8px', fontWeight: '500'}}>{r.receiptNumber || r.id?.slice(-8)}</td>
-                                  <td style={{padding: '8px'}}>{r.clientName || '-'}</td>
-                                  <td style={{padding: '8px'}}>{r.mode || r.paymentMode || 'Bank'}</td>
-                                  <td style={{padding: '8px', textAlign: 'right', fontWeight: '600', color: '#f59e0b'}}>₹{(parseFloat(r.amount) || 0).toLocaleString('en-IN')}</td>
-                                </tr>
-                              ))}
+                              {receiptsCreated.map((r, idx) => {
+                                const client = data.clients.find(c => c.id === r.clientId || c.name === r.clientName);
+                                return (
+                                  <tr key={r.id} style={{background: idx % 2 === 0 ? '#fff' : '#fffbeb'}}>
+                                    <td style={{padding: '8px', border: '1px solid #fde68a', fontWeight: '500', color: '#b45309'}}>{r.receiptNumber || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #fde68a', color: '#374151', fontSize: '10px'}}>{client?.fileNo || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #fde68a', color: '#374151'}}>{r.clientName || '-'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #fde68a', color: '#374151'}}>{r.mode || r.paymentMode || 'Bank'}</td>
+                                    <td style={{padding: '8px', border: '1px solid #fde68a', textAlign: 'right', fontWeight: '600', color: '#b45309'}}>₹{(parseFloat(r.amount) || 0).toLocaleString('en-IN')}</td>
+                                    <td style={{padding: '8px', border: '1px solid #fde68a', textAlign: 'center'}}>
+                                      <button 
+                                        onClick={() => { setViewingReceipt(r); setShowReceiptViewModal(true); }}
+                                        style={{padding: '4px 8px', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}
+                                      >
+                                        <Eye size={12} />
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
@@ -10878,9 +10903,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   
                   {/* Row 4 - Staff Added */}
                   <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px'}}>
-                    <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
-                      <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                        <span style={{width: '8px', height: '8px', background: '#ec4899', borderRadius: '50%'}}></span>
+                    <div style={{background: '#fff', borderRadius: '10px', padding: '20px', border: '1px solid #ec4899', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+                      <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', color: '#9d174d'}}>
+                        <span style={{width: '10px', height: '10px', background: '#ec4899', borderRadius: '50%'}}></span>
                         Staff Added ({staffAdded.length})
                       </h3>
                       {staffAdded.length === 0 ? (
@@ -10888,10 +10913,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       ) : (
                         <div style={{maxHeight: '200px', overflowY: 'auto'}}>
                           {staffAdded.map(staff => (
-                            <div key={staff.id} style={{display: 'flex', alignItems: 'center', gap: '12px', padding: '10px', background: '#f8fafc', borderRadius: '8px', marginBottom: '8px'}}>
-                              <div style={{width: '36px', height: '36px', borderRadius: '50%', background: '#ec4899', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: '600'}}>{staff.name.charAt(0)}</div>
+                            <div key={staff.id} style={{display: 'flex', alignItems: 'center', gap: '12px', padding: '10px', background: '#fdf2f8', borderRadius: '8px', marginBottom: '8px', border: '1px solid #fbcfe8'}}>
+                              <div style={{width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: '600'}}>{staff.name.charAt(0)}</div>
                               <div>
-                                <div style={{fontSize: '12px', fontWeight: '500'}}>{staff.name}</div>
+                                <div style={{fontSize: '12px', fontWeight: '600', color: '#9d174d'}}>{staff.name}</div>
                                 <div style={{fontSize: '10px', color: '#64748b'}}>{staff.role} • {staff.email}</div>
                               </div>
                             </div>
@@ -10901,27 +10926,27 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     </div>
                     
                     {/* Quick Stats */}
-                    <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0'}}>
-                      <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                        <span style={{width: '8px', height: '8px', background: '#64748b', borderRadius: '50%'}}></span>
+                    <div style={{background: '#fff', borderRadius: '10px', padding: '20px', border: '1px solid #10b981', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+                      <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', color: '#166534'}}>
+                        <span style={{width: '10px', height: '10px', background: '#10b981', borderRadius: '50%'}}></span>
                         Quick Stats
                       </h3>
                       <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
-                        <div style={{padding: '12px', background: '#f8fafc', borderRadius: '8px', textAlign: 'center'}}>
-                          <div style={{fontSize: '20px', fontWeight: '700', color: '#3b82f6'}}>{allTasks.length}</div>
-                          <div style={{fontSize: '10px', color: '#64748b'}}>Total Tasks</div>
+                        <div style={{padding: '12px', background: 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)', borderRadius: '8px', textAlign: 'center', border: '1px solid #bfdbfe'}}>
+                          <div style={{fontSize: '20px', fontWeight: '700', color: '#1d4ed8'}}>{allTasks.length}</div>
+                          <div style={{fontSize: '10px', color: '#3b82f6', fontWeight: '500'}}>Total Tasks</div>
                         </div>
-                        <div style={{padding: '12px', background: '#f8fafc', borderRadius: '8px', textAlign: 'center'}}>
-                          <div style={{fontSize: '20px', fontWeight: '700', color: '#10b981'}}>{allTasks.filter(t => t.status === 'Completed' || t.completedCheck).length}</div>
-                          <div style={{fontSize: '10px', color: '#64748b'}}>Completed</div>
+                        <div style={{padding: '12px', background: 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '8px', textAlign: 'center', border: '1px solid #bbf7d0'}}>
+                          <div style={{fontSize: '20px', fontWeight: '700', color: '#166534'}}>{allTasks.filter(t => t.status === 'Completed' || t.completedCheck).length}</div>
+                          <div style={{fontSize: '10px', color: '#16a34a', fontWeight: '500'}}>Completed</div>
                         </div>
-                        <div style={{padding: '12px', background: '#f8fafc', borderRadius: '8px', textAlign: 'center'}}>
-                          <div style={{fontSize: '20px', fontWeight: '700', color: '#8b5cf6'}}>{data.clients.filter(c => !c.disabled).length}</div>
-                          <div style={{fontSize: '10px', color: '#64748b'}}>Active Clients</div>
+                        <div style={{padding: '12px', background: 'linear-gradient(135deg, #f3e8ff 0%, #faf5ff 100%)', borderRadius: '8px', textAlign: 'center', border: '1px solid #e9d5ff'}}>
+                          <div style={{fontSize: '20px', fontWeight: '700', color: '#7c3aed'}}>{data.clients.filter(c => !c.disabled).length}</div>
+                          <div style={{fontSize: '10px', color: '#9333ea', fontWeight: '500'}}>Active Clients</div>
                         </div>
-                        <div style={{padding: '12px', background: '#f8fafc', borderRadius: '8px', textAlign: 'center'}}>
-                          <div style={{fontSize: '20px', fontWeight: '700', color: '#f59e0b'}}>{data.staff.filter(s => s.status === 'Active').length}</div>
-                          <div style={{fontSize: '10px', color: '#64748b'}}>Active Staff</div>
+                        <div style={{padding: '12px', background: 'linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%)', borderRadius: '8px', textAlign: 'center', border: '1px solid #fde68a'}}>
+                          <div style={{fontSize: '20px', fontWeight: '700', color: '#b45309'}}>{data.staff.filter(s => s.status === 'Active').length}</div>
+                          <div style={{fontSize: '10px', color: '#d97706', fontWeight: '500'}}>Active Staff</div>
                         </div>
                       </div>
                     </div>
