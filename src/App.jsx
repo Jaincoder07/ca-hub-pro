@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Clock, FileText, DollarSign, Bell, Settings, Home, Briefcase, TrendingUp, Plus, Search, Filter, ChevronDown, ChevronRight, ChevronLeft, Mail, MessageSquare, Download, Upload, CheckCircle, AlertCircle, XCircle, Menu, X, MoreVertical, Edit, Trash2, Eye, User, LogOut, BarChart3, PieChart, Activity, Check, Building, Percent, Key, Shield, RefreshCw } from 'lucide-react';
+import { Calendar, Users, Clock, FileText, DollarSign, Bell, Settings, Home, Briefcase, TrendingUp, Plus, Search, Filter, ChevronDown, ChevronRight, ChevronLeft, Mail, MessageSquare, Download, Upload, CheckCircle, AlertCircle, XCircle, Menu, X, MoreVertical, Edit, Trash2, Eye, User, LogOut, BarChart3, PieChart, Activity, Check, Building, Percent, Key, Shield, RefreshCw, IndianRupee } from 'lucide-react';
 
 // Firebase imports
 import { initializeApp } from "firebase/app";
@@ -11832,7 +11832,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     }
                     const totalInvoiced = clientInvoices.reduce((sum, inv) => sum + (parseFloat(inv.totalAmount) || 0), 0);
                     const totalReceived = clientReceipts.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
-                    const reportingManagers = [...new Set(clientInvoices.map(inv => inv.reportingManager || inv.taskManager).filter(Boolean))];
+                    const clientTasks = allTasks.filter(t => t.clientId === client.id || t.clientName === client.name || t.client === client.name);
+                    const reportingManagers = [...new Set(clientTasks.map(t => t.taskManager).filter(Boolean))];
                     return {
                       clientCode: client.fileNo || '',
                       groupNo: client.fileNo ? client.fileNo.split('.')[0] : '',
@@ -11939,24 +11940,26 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         let clientInvoices = (data.invoices || []).filter(inv => inv.clientId === client.id || inv.clientName === client.name);
                         let clientReceipts = (data.receipts || []).filter(r => r.clientId === client.id || r.clientName === client.name);
                         
+                        // Get client's tasks first for RM filtering and display
+                        const clientTasks = allTasks.filter(t => t.clientId === client.id || t.clientName === client.name || t.client === client.name);
+                        const reportingManagers = [...new Set(clientTasks.map(t => t.taskManager).filter(Boolean))];
+                        
+                        // Check if client has tasks with the selected RM
+                        const hasSelectedRM = !reportFilters.reportingManager || clientTasks.some(t => t.taskManager === reportFilters.reportingManager);
+                        if (!hasSelectedRM) {
+                          return null; // Will be filtered out
+                        }
+                        
                         // Filter by FY if selected
                         if (selectedFY) {
                           clientInvoices = clientInvoices.filter(inv => inv.financialYear === selectedFY);
                           clientReceipts = clientReceipts.filter(r => r.financialYear === selectedFY);
                         }
                         
-                        // Filter by RM if selected
-                        if (reportFilters.reportingManager) {
-                          clientInvoices = clientInvoices.filter(inv => inv.reportingManager === reportFilters.reportingManager || inv.taskManager === reportFilters.reportingManager);
-                        }
-                        
                         const totalInvoiced = clientInvoices.reduce((sum, inv) => sum + (parseFloat(inv.totalAmount) || 0), 0);
                         const totalReceived = clientReceipts.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
                         const openingBal = selectedFY ? 0 : (parseFloat(client.openingBalance) || 0);
                         const outstanding = openingBal + totalInvoiced - totalReceived;
-                        
-                        // Get Reporting Managers from invoices
-                        const reportingManagers = [...new Set(clientInvoices.map(inv => inv.reportingManager || inv.taskManager).filter(Boolean))];
                         
                         // Calculate ageing based on unpaid invoices
                         const todayDate = new Date();
@@ -11998,6 +12001,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           age0to30, age31to60, age61to90, age91to360, ageOver360
                         };
                       }).filter(row => {
+                        // Filter out null rows (from RM filter)
+                        if (!row) return false;
                         // Filter based on debtorFilter
                         if (reportFilters.debtorFilter === 'outstanding' && row.outstanding <= 0) return false;
                         if (reportFilters.debtorFilter === 'nil' && row.outstanding !== 0) return false;
@@ -12210,7 +12215,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           const receipts = (data.receipts || []).filter(r => r.clientId === client.id || r.clientName === client.name);
                           const totalBilled = invoices.reduce((sum, inv) => sum + (parseFloat(inv.totalAmount) || 0), 0);
                           const totalReceived = receipts.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
-                          const reportingManagers = [...new Set(invoices.map(inv => inv.reportingManager || inv.taskManager).filter(Boolean))];
+                          const reportingManagers = [...new Set(tasks.map(t => t.taskManager).filter(Boolean))];
                           return (
                             <tr key={client.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
                               <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{idx + 1}</td>
@@ -12247,7 +12252,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   const client = data.clients.find(c => c.name === reportFilters.client || c.name.toLowerCase().includes(reportFilters.client.toLowerCase()));
                   if (!client) return <div style={{padding: '40px', textAlign: 'center', color: '#94a3b8'}}>Client not found</div>;
                   
-                  let clientTasks = allTasks.filter(t => t.clientId === client.id || t.clientName === client.name || t.client === client.name);
+                  // All tasks for this client (for RM display)
+                  const allClientTasks = allTasks.filter(t => t.clientId === client.id || t.clientName === client.name || t.client === client.name);
+                  
+                  let clientTasks = [...allClientTasks];
                   if (reportFilters.parentTask) clientTasks = clientTasks.filter(t => t.parentTask === reportFilters.parentTask);
                   if (reportFilters.childTask) clientTasks = clientTasks.filter(t => t.childTask === reportFilters.childTask);
                   if (reportFilters.financialYear) clientTasks = clientTasks.filter(t => t.financialYear === reportFilters.financialYear);
@@ -12265,7 +12273,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   const clientReceipts = (data.receipts || []).filter(r => r.clientId === client.id || r.clientName === client.name);
                   const totalBilled = clientInvoices.reduce((sum, inv) => sum + (parseFloat(inv.totalAmount) || 0), 0);
                   const totalReceived = clientReceipts.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
-                  const reportingManagers = [...new Set(clientInvoices.map(inv => inv.reportingManager || inv.taskManager).filter(Boolean))];
+                  const reportingManagers = [...new Set(allClientTasks.map(t => t.taskManager).filter(Boolean))];
                   
                   return (
                     <>
