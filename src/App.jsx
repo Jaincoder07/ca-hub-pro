@@ -286,6 +286,12 @@ const PracticeManagementApp = () => {
     // Superadmin never needs approval
     if (userRole === 'Superadmin' || currentUser?.isSuperAdmin) return false;
     
+    // ALL invoice and receipt operations need Superadmin approval (for everyone except Superadmin)
+    const invoiceReceiptActions = ['invoice-create', 'invoice-edit', 'invoice-delete', 'receipt-create', 'receipt-edit', 'receipt-delete'];
+    if (invoiceReceiptActions.includes(actionType)) {
+      return { needsApproval: true, approverRole: 'Superadmin' };
+    }
+    
     // RM actions that need Superadmin approval
     const rmActionsNeedingApproval = ['invoice', 'receipt', 'client_disable', 'staff_add', 'staff_disable'];
     if (userRole === 'Reporting Manager' && rmActionsNeedingApproval.includes(actionType)) {
@@ -400,18 +406,63 @@ const PracticeManagementApp = () => {
           }));
           break;
         case 'invoice':
+        case 'invoice-create':
           setData(prev => ({
             ...prev,
             invoices: [...prev.invoices, dataToUse],
+            tasks: dataToUse.taskId ? prev.tasks.map(t => t.id === dataToUse.taskId ? {...t, billed: true, invoiceId: dataToUse.id} : t) : prev.tasks,
             pendingApprovals: prev.pendingApprovals.map(a => 
               a.id === approvalId ? {...a, status: 'approved', actionedBy: currentUser?.name, updatedAt: new Date().toISOString(), comments} : a
             )
           }));
           break;
-        case 'receipt':
+        case 'invoice-edit':
           setData(prev => ({
             ...prev,
-            receipts: [...prev.receipts, dataToUse],
+            invoices: prev.invoices.map(inv => inv.id === dataToUse.id ? {...inv, ...dataToUse} : inv),
+            pendingApprovals: prev.pendingApprovals.map(a => 
+              a.id === approvalId ? {...a, status: 'approved', actionedBy: currentUser?.name, updatedAt: new Date().toISOString(), comments} : a
+            )
+          }));
+          break;
+        case 'invoice-delete':
+          setData(prev => {
+            const invoiceToDelete = prev.invoices.find(i => i.id === dataToUse.invoiceId);
+            return {
+              ...prev,
+              invoices: prev.invoices.filter(i => i.id !== dataToUse.invoiceId),
+              tasks: invoiceToDelete?.taskId ? prev.tasks.map(t => t.id === invoiceToDelete.taskId ? {...t, billed: false, invoiceId: null} : t) : prev.tasks,
+              pendingApprovals: prev.pendingApprovals.map(a => 
+                a.id === approvalId ? {...a, status: 'approved', actionedBy: currentUser?.name, updatedAt: new Date().toISOString(), comments} : a
+              )
+            };
+          });
+          break;
+        case 'receipt':
+        case 'receipt-create':
+          // Handle both single receipt and array of receipts
+          const receiptsToAdd = dataToUse.receipts ? dataToUse.receipts : [dataToUse];
+          setData(prev => ({
+            ...prev,
+            receipts: [...prev.receipts, ...receiptsToAdd],
+            pendingApprovals: prev.pendingApprovals.map(a => 
+              a.id === approvalId ? {...a, status: 'approved', actionedBy: currentUser?.name, updatedAt: new Date().toISOString(), comments} : a
+            )
+          }));
+          break;
+        case 'receipt-edit':
+          setData(prev => ({
+            ...prev,
+            receipts: prev.receipts.map(r => r.id === dataToUse.id ? {...r, ...dataToUse} : r),
+            pendingApprovals: prev.pendingApprovals.map(a => 
+              a.id === approvalId ? {...a, status: 'approved', actionedBy: currentUser?.name, updatedAt: new Date().toISOString(), comments} : a
+            )
+          }));
+          break;
+        case 'receipt-delete':
+          setData(prev => ({
+            ...prev,
+            receipts: prev.receipts.filter(r => r.id !== dataToUse.receiptId),
             pendingApprovals: prev.pendingApprovals.map(a => 
               a.id === approvalId ? {...a, status: 'approved', actionedBy: currentUser?.name, updatedAt: new Date().toISOString(), comments} : a
             )
@@ -16181,49 +16232,49 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         return;
       }
       
-      // Check if approval is needed (RM needs Superadmin approval for receipts)
-      const userRole = getCurrentUserRole();
-      const approvalNeeded = needsApproval('receipt', userRole);
-      
-      if (approvalNeeded) {
-        // Create approval request for each receipt or batch
+      // Check if approval is needed (everyone except Superadmin needs approval)
+      if (currentUser?.isSuperAdmin) {
+        // Direct save for Superadmin
+        setData(prev => {
+          const updatedOrgs = prev.organizations.map(o => 
+            o.id === receiptFormData.organizationId 
+              ? { ...o, receiptCurrentNo: receiptCounter }
+              : o
+          );
+          
+          return {
+            ...prev,
+            receipts: [...(prev.receipts || []), ...newReceipts],
+            organizations: updatedOrgs
+          };
+        });
+        
+        setGeneratedReceipts(newReceipts);
+        setShowReceiptSummary(true);
+      } else {
+        // Create approval request for receipt(s)
         const totalAmount = newReceipts.reduce((sum, r) => sum + r.amount, 0);
         const approval = createApprovalRequest(
-          'receipt',
-          newReceipts.length === 1 ? newReceipts[0] : newReceipts,
-          `Receipt${newReceipts.length > 1 ? 's' : ''}: ${newReceipts.length} receipt(s) - Total ₹${totalAmount.toLocaleString()}`
+          'receipt-create',
+          {receipts: newReceipts, orgIdForCounter: receiptFormData.organizationId, newCounter: receiptCounter},
+          `Create ${newReceipts.length} Receipt(s) - Total ₹${totalAmount.toLocaleString('en-IN')}`
         );
         
         if (approval) {
           setData(prev => ({
             ...prev,
-            pendingApprovals: [...(prev.pendingApprovals || []), approval]
+            pendingApprovals: [...(prev.pendingApprovals || []), approval],
+            organizations: prev.organizations.map(o => 
+              o.id === receiptFormData.organizationId 
+                ? { ...o, receiptCurrentNo: receiptCounter }
+                : o
+            )
           }));
           resetReceiptForm();
-          alert('📝 Receipt(s) submitted for approval!\n\nSuperadmin will review and approve.');
+          alert(`📋 ${newReceipts.length} Receipt(s) sent for Superadmin approval!\nTotal Amount: ₹${totalAmount.toLocaleString('en-IN')}`);
           return;
         }
       }
-      
-      // Direct save for Superadmin
-      // Save receipts with proper state update
-      setData(prev => {
-        const updatedOrgs = prev.organizations.map(o => 
-          o.id === receiptFormData.organizationId 
-            ? { ...o, receiptCurrentNo: receiptCounter }
-            : o
-        );
-        
-        return {
-          ...prev,
-          receipts: [...(prev.receipts || []), ...newReceipts],
-          organizations: updatedOrgs
-        };
-      });
-      
-      // Show summary
-      setGeneratedReceipts(newReceipts);
-      setShowReceiptSummary(true);
     };
     
     // Reset receipt form
@@ -16277,25 +16328,63 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const saveEditedReceipt = () => {
       if (!editingReceipt) return;
       
-      setData(prev => ({
-        ...prev,
-        receipts: prev.receipts.map(r => 
-          r.id === editingReceipt.id ? editingReceipt : r
-        )
-      }));
-      
-      setShowEditReceiptModal(false);
-      setEditingReceipt(null);
+      // Check if needs approval
+      if (currentUser?.isSuperAdmin) {
+        // Direct save - Superadmin
+        setData(prev => ({
+          ...prev,
+          receipts: prev.receipts.map(r => 
+            r.id === editingReceipt.id ? editingReceipt : r
+          )
+        }));
+        
+        setShowEditReceiptModal(false);
+        setEditingReceipt(null);
+        alert('✅ Receipt updated successfully!');
+      } else {
+        // Create approval request for edit
+        const approval = createApprovalRequest('receipt-edit', editingReceipt, `Edit Receipt ${editingReceipt.receiptNo} for ${editingReceipt.clientName} - ₹${(editingReceipt.amount || 0).toLocaleString('en-IN')}`);
+        if (approval) {
+          setData(prev => ({
+            ...prev,
+            pendingApprovals: [...(prev.pendingApprovals || []), approval]
+          }));
+          setShowEditReceiptModal(false);
+          setEditingReceipt(null);
+          alert(`📋 Receipt edit request sent for Superadmin approval.\nReceipt No: ${editingReceipt.receiptNo}`);
+        }
+      }
     };
     
     // Delete receipt
     const deleteReceipt = (receiptId) => {
       if (!window.confirm('Are you sure you want to delete this receipt?')) return;
       
-      setData(prev => ({
-        ...prev,
-        receipts: prev.receipts.filter(r => r.id !== receiptId)
-      }));
+      const receipt = (data.receipts || []).find(r => r.id === receiptId);
+      if (!receipt) {
+        alert('Receipt not found');
+        return;
+      }
+      
+      // Check if needs approval
+      if (currentUser?.isSuperAdmin) {
+        // Direct delete - Superadmin
+        setData(prev => ({
+          ...prev,
+          receipts: prev.receipts.filter(r => r.id !== receiptId)
+        }));
+        alert('✅ Receipt deleted successfully!');
+      } else {
+        // Create approval request for delete
+        const approval = createApprovalRequest('receipt-delete', {receiptId, receiptNo: receipt.receiptNo, clientName: receipt.clientName, amount: receipt.amount}, `Delete Receipt ${receipt.receiptNo} for ${receipt.clientName} - ₹${(receipt.amount || 0).toLocaleString('en-IN')}`);
+        if (approval) {
+          setData(prev => ({
+            ...prev,
+            pendingApprovals: [...(prev.pendingApprovals || []), approval]
+          }));
+          alert(`📋 Receipt deletion request sent for Superadmin approval.\nReceipt No: ${receipt.receiptNo}`);
+        }
+      }
     };
     
     // ============ END RECEIPT FUNCTIONS ============
@@ -16390,24 +16479,40 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         })
       };
       
-      // Update in data
-      setData(prev => ({
-        ...prev,
-        invoices: prev.invoices.map(inv => 
-          inv.id === updatedInvoice.id ? updatedInvoice : inv
-        )
-      }));
-      
-      // Update viewing invoice
-      const org = data.organizations.find(o => o.id === updatedInvoice.organizationId);
-      setViewingInvoice({
-        ...updatedInvoice,
-        orgLogo: org?.logo || null,
-        orgSignature: org?.signatureImage || null
-      });
-      
-      setShowEditInvoiceModal(false);
-      setEditingInvoiceData(null);
+      // Check if needs approval
+      if (currentUser?.isSuperAdmin) {
+        // Direct save - Superadmin
+        setData(prev => ({
+          ...prev,
+          invoices: prev.invoices.map(inv => 
+            inv.id === updatedInvoice.id ? updatedInvoice : inv
+          )
+        }));
+        
+        const org = data.organizations.find(o => o.id === updatedInvoice.organizationId);
+        setViewingInvoice({
+          ...updatedInvoice,
+          orgLogo: org?.logo || null,
+          orgSignature: org?.signatureImage || null
+        });
+        
+        setShowEditInvoiceModal(false);
+        setEditingInvoiceData(null);
+        alert('✅ Invoice updated successfully!');
+      } else {
+        // Create approval request for edit
+        const approval = createApprovalRequest('invoice-edit', updatedInvoice, `Edit Invoice ${updatedInvoice.invoiceNo} for ${updatedInvoice.clientName} - ₹${updatedInvoice.totalAmount.toLocaleString('en-IN')}`);
+        if (approval) {
+          setData(prev => ({
+            ...prev,
+            pendingApprovals: [...(prev.pendingApprovals || []), approval]
+          }));
+          setShowEditInvoiceModal(false);
+          setEditingInvoiceData(null);
+          setViewingInvoice(null);
+          alert(`📋 Invoice edit request sent for Superadmin approval.\nInvoice No: ${updatedInvoice.invoiceNo}`);
+        }
+      }
     };
     
     // Check if invoice has received any payment
@@ -20032,24 +20137,36 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                     status: 'Generated'
                                   };
 
-                                  // Save invoice and update task
-                                  setData(prev => ({
-                                    ...prev,
-                                    invoices: [...(prev.invoices || []), newInvoice],
-                                    organizations: prev.organizations.map(o =>
-                                      o.id === org.id ? {...o, invoiceCurrentNo: currentNo + 1} : o
-                                    ),
-                                    tasks: prev.tasks.map(t =>
-                                      t.id === task.id ? {...t, billed: true, invoiceId: newInvoice.id} : t
-                                    ),
-                                    latestGeneratedInvoices: [newInvoice, ...(prev.latestGeneratedInvoices || [])].slice(0, 50) // Keep last 50
-                                  }));
-
-                                  // Show success message first
-                                  alert(`Invoice ${newInvoice.invoiceNo} generated successfully!`);
-                                  
-                                  // Navigate to Latest Invoices tab
-                                  setBillingMode('latest');
+                                  // Check if needs approval
+                                  if (currentUser?.isSuperAdmin) {
+                                    // Direct save - Superadmin
+                                    setData(prev => ({
+                                      ...prev,
+                                      invoices: [...(prev.invoices || []), newInvoice],
+                                      organizations: prev.organizations.map(o =>
+                                        o.id === org.id ? {...o, invoiceCurrentNo: currentNo + 1} : o
+                                      ),
+                                      tasks: prev.tasks.map(t =>
+                                        t.id === task.id ? {...t, billed: true, invoiceId: newInvoice.id} : t
+                                      ),
+                                      latestGeneratedInvoices: [newInvoice, ...(prev.latestGeneratedInvoices || [])].slice(0, 50)
+                                    }));
+                                    alert(`✅ Invoice ${newInvoice.invoiceNo} generated successfully!`);
+                                    setBillingMode('latest');
+                                  } else {
+                                    // Create approval request
+                                    const approval = createApprovalRequest('invoice-create', {...newInvoice, orgIdForCounter: org.id}, `Create Invoice ${newInvoice.invoiceNo} for ${newInvoice.clientName} - ₹${totalAmount.toLocaleString('en-IN')}`);
+                                    if (approval) {
+                                      setData(prev => ({
+                                        ...prev,
+                                        pendingApprovals: [...(prev.pendingApprovals || []), approval],
+                                        organizations: prev.organizations.map(o =>
+                                          o.id === org.id ? {...o, invoiceCurrentNo: currentNo + 1} : o
+                                        )
+                                      }));
+                                      alert(`📋 Invoice request sent for Superadmin approval.\nInvoice No: ${newInvoice.invoiceNo}\nAmount: ₹${totalAmount.toLocaleString('en-IN')}`);
+                                    }
+                                  }
 
                                   // Reset form
                                   setSelectedBillingTask(null);
@@ -20416,17 +20533,27 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                   status: 'Pending'
                                 };
                                 
-                                setData(prev => ({
-                                  ...prev, 
-                                  invoices: [...(prev.invoices || []), newInvoice],
-                                  latestGeneratedInvoices: [newInvoice, ...(prev.latestGeneratedInvoices || [])].slice(0, 50)
-                                }));
-                                
-                                // Show success message first
-                                alert(`Invoice ${newInvoice.invoiceNo} generated successfully!`);
-                                
-                                // Navigate to Latest Invoices tab
-                                setBillingMode('latest');
+                                // Check if needs approval
+                                if (currentUser?.isSuperAdmin) {
+                                  // Direct save - Superadmin
+                                  setData(prev => ({
+                                    ...prev, 
+                                    invoices: [...(prev.invoices || []), newInvoice],
+                                    latestGeneratedInvoices: [newInvoice, ...(prev.latestGeneratedInvoices || [])].slice(0, 50)
+                                  }));
+                                  alert(`✅ Invoice ${newInvoice.invoiceNo} generated successfully!`);
+                                  setBillingMode('latest');
+                                } else {
+                                  // Create approval request
+                                  const approval = createApprovalRequest('invoice-create', newInvoice, `Create Invoice ${newInvoice.invoiceNo} for ${newInvoice.clientName} - ₹${total.toLocaleString('en-IN')}`);
+                                  if (approval) {
+                                    setData(prev => ({
+                                      ...prev,
+                                      pendingApprovals: [...(prev.pendingApprovals || []), approval]
+                                    }));
+                                    alert(`📋 Invoice request sent for Superadmin approval.\nInvoice No: ${newInvoice.invoiceNo}\nAmount: ₹${total.toLocaleString('en-IN')}`);
+                                  }
+                                }
                                 
                                 setWithoutTaskForm({
                                   clientId: '', clientName: '', clientCode: '', groupName: '', organizationId: '',
@@ -21455,20 +21582,33 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                           return;
                                         }
                                         
-                                        setData(prev => ({
-                                          ...prev,
-                                          invoices: [...(prev.invoices || []), ...newInvoices],
-                                          tasks: (prev.tasks || []).map(t => 
-                                            taskUpdates[t.id] ? { ...t, billed: true, invoiceId: taskUpdates[t.id] } : t
-                                          ),
-                                          latestGeneratedInvoices: [...newInvoices, ...(prev.latestGeneratedInvoices || [])].slice(0, 50)
-                                        }));
-                                        
-                                        // Show success message first
-                                        alert(`Successfully generated ${newInvoices.length} invoice(s)!`);
-                                        
-                                        // Navigate to Latest Invoices tab
-                                        setBillingMode('latest');
+                                        // Check if needs approval
+                                        if (currentUser?.isSuperAdmin) {
+                                          // Direct save - Superadmin
+                                          setData(prev => ({
+                                            ...prev,
+                                            invoices: [...(prev.invoices || []), ...newInvoices],
+                                            tasks: (prev.tasks || []).map(t => 
+                                              taskUpdates[t.id] ? { ...t, billed: true, invoiceId: taskUpdates[t.id] } : t
+                                            ),
+                                            latestGeneratedInvoices: [...newInvoices, ...(prev.latestGeneratedInvoices || [])].slice(0, 50)
+                                          }));
+                                          alert(`✅ Successfully generated ${newInvoices.length} invoice(s)!`);
+                                          setBillingMode('latest');
+                                        } else {
+                                          // Create approval request for each invoice
+                                          const approvals = newInvoices.map(inv => 
+                                            createApprovalRequest('invoice-create', {...inv, taskUpdates}, `Create Invoice ${inv.invoiceNo} for ${inv.clientName} - ₹${inv.totalAmount.toLocaleString('en-IN')}`)
+                                          ).filter(Boolean);
+                                          
+                                          if (approvals.length > 0) {
+                                            setData(prev => ({
+                                              ...prev,
+                                              pendingApprovals: [...(prev.pendingApprovals || []), ...approvals]
+                                            }));
+                                            alert(`📋 ${approvals.length} Invoice request(s) sent for Superadmin approval.`);
+                                          }
+                                        }
                                         
                                         // Reset all states
                                         setMultipleTaskClient(null);
@@ -24593,13 +24733,34 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 counter++;
                               });
                               
-                              setData(prev => ({
-                                ...prev,
-                                receipts: [...(prev.receipts || []), ...newReceipts]
-                              }));
+                              // Check if needs approval
+                              if (currentUser?.isSuperAdmin) {
+                                // Direct save - Superadmin
+                                setData(prev => ({
+                                  ...prev,
+                                  receipts: [...(prev.receipts || []), ...newReceipts]
+                                }));
+                                
+                                setGeneratedReceipts(newReceipts);
+                                setShowReceiptSummary(true);
+                              } else {
+                                // Create approval request
+                                const totalAmount = newReceipts.reduce((sum, r) => sum + r.amount, 0);
+                                const approval = createApprovalRequest(
+                                  'receipt-create',
+                                  {receipts: newReceipts},
+                                  `Create ${newReceipts.length} Receipt(s) - Total ₹${totalAmount.toLocaleString('en-IN')}`
+                                );
+                                
+                                if (approval) {
+                                  setData(prev => ({
+                                    ...prev,
+                                    pendingApprovals: [...(prev.pendingApprovals || []), approval]
+                                  }));
+                                  alert(`📋 ${newReceipts.length} Receipt(s) sent for Superadmin approval!\nTotal Amount: ₹${totalAmount.toLocaleString('en-IN')}`);
+                                }
+                              }
                               
-                              setGeneratedReceipts(newReceipts);
-                              setShowReceiptSummary(true);
                               setSelectedClientsForReceipt([]);
                               setSelectedInvoicesForReceipt([]);
                               setInvoiceReceiptAmounts({});
@@ -26253,34 +26414,45 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             return;
                           }
                           
-                          // Delete invoice and update tasks
-                          const newInvoices = (data.invoices || []).filter(i => String(i.id) !== String(invoiceId));
-                          const newTasks = (data.tasks || []).map(t => {
-                            if (invoice.taskId && String(t.id) === String(invoice.taskId)) {
-                              return { ...t, billed: false, invoiceId: null };
+                          // Check if needs approval
+                          if (currentUser?.isSuperAdmin) {
+                            // Direct delete - Superadmin
+                            const newInvoices = (data.invoices || []).filter(i => String(i.id) !== String(invoiceId));
+                            const newTasks = (data.tasks || []).map(t => {
+                              if (invoice.taskId && String(t.id) === String(invoice.taskId)) {
+                                return { ...t, billed: false, invoiceId: null };
+                              }
+                              if (invoice.taskIds && invoice.taskIds.map(String).includes(String(t.id))) {
+                                return { ...t, billed: false, invoiceId: null };
+                              }
+                              return t;
+                            });
+                            
+                            setData(prev => ({
+                              ...prev,
+                              invoices: newInvoices,
+                              tasks: newTasks
+                            }));
+                            
+                            setViewingInvoice(null);
+                            if (selectedDebtor) {
+                              setDebtorViewMode('ledger');
+                            } else {
+                              setDebtorViewMode('list');
                             }
-                            if (invoice.taskIds && invoice.taskIds.map(String).includes(String(t.id))) {
-                              return { ...t, billed: false, invoiceId: null };
-                            }
-                            return t;
-                          });
-                          
-                          // Update state
-                          setData(prev => ({
-                            ...prev,
-                            invoices: newInvoices,
-                            tasks: newTasks
-                          }));
-                          
-                          // Navigate back
-                          setViewingInvoice(null);
-                          if (selectedDebtor) {
-                            setDebtorViewMode('ledger');
+                            alert('✅ Invoice deleted successfully!');
                           } else {
-                            setDebtorViewMode('list');
+                            // Create approval request
+                            const approval = createApprovalRequest('invoice-delete', {invoiceId, invoiceNo: invoice.invoiceNo, clientName: invoice.clientName, totalAmount: invoice.totalAmount}, `Delete Invoice ${invoice.invoiceNo} for ${invoice.clientName} - ₹${(invoice.totalAmount || 0).toLocaleString('en-IN')}`);
+                            if (approval) {
+                              setData(prev => ({
+                                ...prev,
+                                pendingApprovals: [...(prev.pendingApprovals || []), approval]
+                              }));
+                              alert(`📋 Invoice deletion request sent for Superadmin approval.\nInvoice No: ${invoice.invoiceNo}`);
+                              setViewingInvoice(null);
+                            }
                           }
-                          
-                          alert('Invoice deleted successfully!');
                         }}
                         style={{padding: '10px 20px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'}}
                       >
@@ -30653,12 +30825,32 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   alignItems: 'center'
                 }}>
                   <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600'}}>🔔 Notifications</h3>
-                  <button
-                    onClick={() => setShowNotificationDropdown(false)}
-                    style={{background: 'none', border: 'none', cursor: 'pointer', padding: '4px'}}
-                  >
-                    <X size={16} color="#64748b" />
-                  </button>
+                  <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+                    {/* Mark all as seen button */}
+                    {getMyApprovalRequests().filter(a => (a.status === 'approved' || a.status === 'rejected') && !a.seenByRequester).length > 0 && (
+                      <button
+                        onClick={() => {
+                          setData(prev => ({
+                            ...prev,
+                            pendingApprovals: prev.pendingApprovals.map(a => 
+                              a.requestedByEmail === currentUser?.email && (a.status === 'approved' || a.status === 'rejected')
+                                ? {...a, seenByRequester: true}
+                                : a
+                            )
+                          }));
+                        }}
+                        style={{background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '4px', padding: '4px 8px', fontSize: '10px', color: '#166534', cursor: 'pointer', fontWeight: '500'}}
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setShowNotificationDropdown(false)}
+                      style={{background: 'none', border: 'none', cursor: 'pointer', padding: '4px'}}
+                    >
+                      <X size={16} color="#64748b" />
+                    </button>
+                  </div>
                 </div>
                 
                 <div style={{maxHeight: '350px', overflowY: 'auto'}}>
@@ -30725,14 +30917,30 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   {getMyApprovalRequests().filter(a => a.status !== 'pending').slice(0, 5).map(approval => (
                     <div
                       key={approval.id}
+                      onClick={() => {
+                        // Mark as seen when clicked
+                        if (!approval.seenByRequester) {
+                          setData(prev => ({
+                            ...prev,
+                            pendingApprovals: prev.pendingApprovals.map(a => 
+                              a.id === approval.id ? {...a, seenByRequester: true} : a
+                            )
+                          }));
+                        }
+                        setShowNotificationDropdown(false);
+                        setCurrentView('approvals');
+                      }}
                       style={{
                         padding: '12px 16px',
                         borderBottom: '1px solid #f1f5f9',
+                        cursor: 'pointer',
                         display: 'flex',
                         gap: '12px',
                         alignItems: 'flex-start',
                         background: !approval.seenByRequester ? '#eff6ff' : '#fff'
                       }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = !approval.seenByRequester ? '#dbeafe' : '#f8fafc'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = !approval.seenByRequester ? '#eff6ff' : '#fff'}
                     >
                       <div style={{
                         width: '36px',
