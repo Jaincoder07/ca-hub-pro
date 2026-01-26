@@ -32582,7 +32582,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               </button>
             </div>
             
-            {/* Invoice Template */}
+            {/* Invoice Template - Exact copy from BillingView */}
             <div id="app-invoice-print-area" style={{padding: '20px'}}>
               {(() => {
                 const currentOrg = data.organizations?.find(o => o.id === (appViewInvoice.orgId || appViewInvoice.organizationId)) || {};
@@ -32613,116 +32613,132 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   logo: currentOrg.logo || appViewInvoice.orgLogo,
                   signature: currentOrg.signature || appViewInvoice.orgSignature,
                   signatory: currentOrg.signatory || appViewInvoice.orgSignatory,
-                  bankName: currentOrg.bankName,
-                  accountNo: currentOrg.accountNo,
-                  ifsc: currentOrg.ifsc,
-                  branch: currentOrg.branch
+                  bankName: currentOrg.bankName || appViewInvoice.orgBankName,
+                  bankAccount: currentOrg.bankAccount || appViewInvoice.orgBankAccount,
+                  bankIfsc: currentOrg.bankIfsc || appViewInvoice.orgBankIfsc,
+                };
+                
+                const displayClient = {
+                  name: appViewInvoice.clientName || client.name,
+                  address: appViewInvoice.clientAddress || client.address,
+                  gstin: appViewInvoice.clientGstin || client.gstin,
+                  pan: appViewInvoice.clientPan || client.pan,
+                  state: appViewInvoice.clientState || client.state,
                 };
                 
                 return (
-                  <div style={{background: '#fff', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', overflow: 'hidden', maxWidth: '800px', margin: '0 auto', border: '1px solid #e2e8f0'}}>
+                  <div style={{background: '#fff', border: `2px solid ${primaryColor}`, borderRadius: '0'}}>
                     {/* Header */}
-                    <div style={{background: headerGradient, padding: '24px 30px', color: '#fff'}}>
-                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
-                        <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
-                          {displayOrg.logo && <img src={displayOrg.logo} alt="Logo" style={{height: '60px', borderRadius: '8px', background: '#fff', padding: '4px'}} />}
-                          <div>
-                            <div style={{fontSize: '22px', fontWeight: '700', letterSpacing: '0.5px'}}>{displayOrg.name || 'Organization Name'}</div>
-                            <div style={{fontSize: '12px', opacity: 0.9, marginTop: '4px'}}>{displayOrg.address || 'Address not provided'}</div>
-                            {displayOrg.mobile && <div style={{fontSize: '11px', opacity: 0.8, marginTop: '2px'}}>📞 {displayOrg.mobile} {displayOrg.email && `| ✉️ ${displayOrg.email}`}</div>}
-                          </div>
+                    <div style={{background: headerGradient, padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                      <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
+                        {displayOrg.logo && <img src={displayOrg.logo} alt="" style={{height: '60px', objectFit: 'contain', background: '#fff', padding: '4px', borderRadius: '4px'}} />}
+                        <div>
+                          <h1 style={{margin: 0, fontSize: '22px', fontWeight: '800', color: '#fff', letterSpacing: '0.5px'}}>{displayOrg.name}</h1>
+                          <div style={{fontSize: '11px', color: 'rgba(255,255,255,0.85)', marginTop: '4px'}}>{displayOrg.address}</div>
                         </div>
-                        <div style={{textAlign: 'right'}}>
-                          <div style={{fontSize: '12px', fontWeight: '600', letterSpacing: '3px', marginBottom: '4px', opacity: 0.7}}>{invoiceTitle}</div>
-                          <div style={{fontSize: '24px', fontWeight: '800', letterSpacing: '1px'}}>#{appViewInvoice.invoiceNo}</div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Info Row */}
-                    <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px', padding: '20px 30px', borderBottom: '1px solid #e5e7eb', background: '#fafafa'}}>
-                      <div>
-                        <div style={{fontSize: '10px', color: '#6b7280', fontWeight: '600', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px'}}>Bill To</div>
-                        <div style={{fontSize: '15px', fontWeight: '700', color: primaryColor, marginBottom: '4px'}}>{appViewInvoice.clientName || 'Client Name'}</div>
-                        <div style={{fontSize: '11px', color: '#6b7280'}}>{client?.address || 'Client address'}</div>
-                        {showGst && client?.gstin && <div style={{fontSize: '11px', color: '#6b7280', marginTop: '2px'}}>GSTIN: {client.gstin}</div>}
                       </div>
                       <div style={{textAlign: 'right'}}>
-                        <div style={{marginBottom: '8px'}}>
-                          <div style={{fontSize: '10px', color: '#6b7280', fontWeight: '600'}}>Invoice Date</div>
-                          <div style={{fontSize: '13px', fontWeight: '600', color: primaryColor}}>{appViewInvoice.date || new Date().toLocaleDateString()}</div>
-                        </div>
-                        {showGst && displayOrg.gstin && (
-                          <div>
-                            <div style={{fontSize: '10px', color: '#6b7280', fontWeight: '600'}}>GSTIN</div>
-                            <div style={{fontSize: '12px', fontWeight: '600', color: primaryColor}}>{displayOrg.gstin}</div>
-                          </div>
-                        )}
+                        <div style={{fontSize: '20px', fontWeight: '800', color: '#fff', letterSpacing: '2px'}}>{invoiceTitle}</div>
+                        {displayOrg.gstin && showGst && <div style={{fontSize: '11px', color: 'rgba(255,255,255,0.9)', marginTop: '4px'}}>GSTIN: {displayOrg.gstin}</div>}
                       </div>
                     </div>
                     
-                    {/* Items Table */}
-                    <div style={{padding: '20px 30px'}}>
+                    {/* Invoice Details Row */}
+                    <div style={{display: 'flex', justifyContent: 'space-between', padding: '16px 24px', borderBottom: `1px solid ${primaryColor}`, background: '#f8fafc'}}>
+                      <div>
+                        <div style={{fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Invoice Number</div>
+                        <div style={{fontSize: '16px', fontWeight: '700', color: primaryColor}}>{appViewInvoice.invoiceNo}</div>
+                      </div>
+                      <div style={{textAlign: 'right'}}>
+                        <div style={{fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px'}}>Invoice Date</div>
+                        <div style={{fontSize: '16px', fontWeight: '700', color: primaryColor}}>{appViewInvoice.invoiceDate ? new Date(appViewInvoice.invoiceDate).toLocaleDateString('en-IN', {day: '2-digit', month: 'short', year: 'numeric'}) : (appViewInvoice.date || '-')}</div>
+                      </div>
+                    </div>
+                    
+                    {/* Bill To */}
+                    <div style={{padding: '16px 24px', borderBottom: `1px solid ${primaryColor}`}}>
+                      <div style={{fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px'}}>Bill To</div>
+                      <div style={{fontSize: '15px', fontWeight: '700', color: primaryColor}}>{displayClient.name}</div>
+                      {displayClient.address && <div style={{fontSize: '12px', color: '#64748b', marginTop: '2px'}}>{displayClient.address}</div>}
+                      {displayClient.gstin && showGst && <div style={{fontSize: '11px', color: '#64748b', marginTop: '4px'}}>GSTIN: {displayClient.gstin}</div>}
+                    </div>
+                    
+                    {/* Services Table */}
+                    <div style={{padding: '16px 24px'}}>
                       <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                         <thead>
-                          <tr style={{background: isDarkTheme ? '#4b5563' : '#1f2937'}}>
-                            <th style={{padding: '10px 12px', textAlign: 'left', color: '#fff', fontWeight: '600', width: '50px'}}>#</th>
-                            <th style={{padding: '10px 12px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>Description</th>
-                            <th style={{padding: '10px 12px', textAlign: 'right', color: '#fff', fontWeight: '600', width: '120px'}}>Amount</th>
+                          <tr style={{background: primaryColor}}>
+                            <th style={{padding: '10px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>Description</th>
+                            <th style={{padding: '10px', textAlign: 'right', color: '#fff', fontWeight: '600'}}>Amount</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {(appViewInvoice.tasks || []).map((task, idx) => (
-                            <tr key={idx} style={{borderBottom: '1px solid #e5e7eb'}}>
-                              <td style={{padding: '10px 12px', color: '#6b7280'}}>{idx + 1}</td>
-                              <td style={{padding: '10px 12px'}}>
-                                <div style={{fontWeight: '500', color: primaryColor}}>{task.childTask || task.parentTask || task.description}</div>
-                                {task.period && <div style={{fontSize: '10px', color: '#6b7280', marginTop: '2px'}}>Period: {task.period}</div>}
-                              </td>
-                              <td style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600'}}>₹{(task.amount || 0).toLocaleString('en-IN')}</td>
-                            </tr>
-                          ))}
+                          <tr>
+                            <td style={{padding: '12px 10px', borderBottom: '1px solid #e5e7eb'}}>
+                              {appViewInvoice.serviceDescription || appViewInvoice.narration || appViewInvoice.description || 'Professional Services'}
+                            </td>
+                            <td style={{padding: '12px 10px', textAlign: 'right', borderBottom: '1px solid #e5e7eb'}}>
+                              ₹{(appViewInvoice.netAmount || appViewInvoice.amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                            </td>
+                          </tr>
                         </tbody>
                       </table>
                     </div>
                     
                     {/* Totals */}
-                    <div style={{padding: '0 30px 20px', display: 'flex', justifyContent: 'flex-end'}}>
-                      <div style={{width: '280px', background: '#f9fafb', borderRadius: '8px', padding: '16px', border: '1px solid #e5e7eb'}}>
-                        <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px'}}>
-                          <span style={{color: '#6b7280'}}>Subtotal</span>
-                          <span style={{fontWeight: '500'}}>₹{(appViewInvoice.amount || 0).toLocaleString('en-IN')}</span>
-                        </div>
-                        {showGst && (
-                          <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px'}}>
-                            <span style={{color: '#6b7280'}}>GST (18%)</span>
-                            <span style={{fontWeight: '500'}}>₹{(appViewInvoice.gstAmount || 0).toLocaleString('en-IN')}</span>
+                    <div style={{padding: '16px 24px', background: '#f8fafc', borderTop: `1px solid ${primaryColor}`}}>
+                      <div style={{display: 'flex', justifyContent: 'flex-end'}}>
+                        <div style={{width: '250px'}}>
+                          <div style={{display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '12px'}}>
+                            <span>Subtotal:</span>
+                            <span>₹{(appViewInvoice.netAmount || appViewInvoice.amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
                           </div>
-                        )}
-                        <div style={{display: 'flex', justifyContent: 'space-between', paddingTop: '10px', borderTop: '2px solid ' + primaryColor, marginTop: '8px'}}>
-                          <span style={{fontWeight: '700', color: primaryColor}}>Total</span>
-                          <span style={{fontWeight: '700', fontSize: '16px', color: primaryColor}}>₹{(appViewInvoice.totalAmount || 0).toLocaleString('en-IN')}</span>
+                          {showGst && (appViewInvoice.cgst > 0 || appViewInvoice.sgst > 0) && (
+                            <>
+                              <div style={{display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '12px'}}>
+                                <span>CGST @9%:</span>
+                                <span>₹{(appViewInvoice.cgst || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                              </div>
+                              <div style={{display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '12px'}}>
+                                <span>SGST @9%:</span>
+                                <span>₹{(appViewInvoice.sgst || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                              </div>
+                            </>
+                          )}
+                          {showGst && appViewInvoice.igst > 0 && (
+                            <div style={{display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '12px'}}>
+                              <span>IGST @18%:</span>
+                              <span>₹{(appViewInvoice.igst || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                            </div>
+                          )}
+                          {showGst && !appViewInvoice.cgst && !appViewInvoice.igst && (appViewInvoice.gstAmount || appViewInvoice.taxAmount) > 0 && (
+                            <div style={{display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '12px'}}>
+                              <span>GST @18%:</span>
+                              <span>₹{(appViewInvoice.gstAmount || appViewInvoice.taxAmount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                            </div>
+                          )}
+                          <div style={{display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: '16px', fontWeight: '700', borderTop: `2px solid ${primaryColor}`, marginTop: '8px'}}>
+                            <span>Total:</span>
+                            <span style={{color: '#10b981'}}>₹{(appViewInvoice.totalAmount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
                     
                     {/* Bank Details & Signature */}
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', padding: '20px 30px', borderTop: '1px solid #e5e7eb', background: '#fafafa'}}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', padding: '16px 24px', borderTop: `1px solid ${primaryColor}`}}>
                       {displayOrg.bankName && (
-                        <div>
-                          <div style={{fontSize: '10px', color: '#6b7280', fontWeight: '600', marginBottom: '8px', textTransform: 'uppercase'}}>Bank Details</div>
-                          <div style={{fontSize: '11px', color: '#374151'}}>
-                            <div><strong>Bank:</strong> {displayOrg.bankName}</div>
-                            <div><strong>A/C No:</strong> {displayOrg.accountNo}</div>
-                            <div><strong>IFSC:</strong> {displayOrg.ifsc}</div>
-                            {displayOrg.branch && <div><strong>Branch:</strong> {displayOrg.branch}</div>}
-                          </div>
+                        <div style={{fontSize: '11px'}}>
+                          <div style={{fontWeight: '600', marginBottom: '4px'}}>Bank Details:</div>
+                          <div>Bank: {displayOrg.bankName}</div>
+                          <div>A/C No: {displayOrg.bankAccount}</div>
+                          <div>IFSC: {displayOrg.bankIfsc}</div>
                         </div>
                       )}
                       <div style={{textAlign: 'right'}}>
-                        <div style={{fontSize: '10px', color: '#6b7280', fontWeight: '600', marginBottom: '8px', textTransform: 'uppercase'}}>Authorized Signatory</div>
-                        {displayOrg.signature && <img src={displayOrg.signature} alt="Signature" style={{height: '40px', marginBottom: '4px'}} />}
-                        <div style={{fontSize: '12px', fontWeight: '600', color: primaryColor}}>{displayOrg.signatory || displayOrg.name}</div>
+                        {displayOrg.signature && <img src={displayOrg.signature} alt="Signature" style={{height: '50px', marginBottom: '4px'}} />}
+                        <div style={{fontSize: '12px', fontWeight: '600'}}>For {displayOrg.name}</div>
+                        {displayOrg.signatory && <div style={{fontSize: '11px', color: '#64748b'}}>{displayOrg.signatory}</div>}
                       </div>
                     </div>
                   </div>
