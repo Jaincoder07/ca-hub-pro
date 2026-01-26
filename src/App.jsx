@@ -24745,6 +24745,27 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       clientInvoices = clientInvoices.sort((a, b) => new Date(a.invoiceDate) - new Date(b.invoiceDate));
                       clientReceipts = clientReceipts.sort((a, b) => new Date(a.receiptDate) - new Date(b.receiptDate));
                       
+                      // Calculate Opening Balance (invoices before FY - receipts before FY)
+                      let openingBalance = 0;
+                      if (fyFilter) {
+                        const [startYr] = ledgerFY.split('-');
+                        const fyStart = new Date(parseInt('20' + startYr.slice(-2)), 3, 1);
+                        
+                        const invoicesBeforeFY = (data.invoices || []).filter(inv => 
+                          inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase() &&
+                          new Date(inv.invoiceDate) < fyStart
+                        );
+                        const totalInvoicesBeforeFY = invoicesBeforeFY.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
+                        
+                        const receiptsBeforeFY = (data.receipts || []).filter(r => 
+                          r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase() &&
+                          new Date(r.receiptDate) < fyStart
+                        );
+                        const totalReceiptsBeforeFY = receiptsBeforeFY.reduce((sum, r) => sum + (r.amount || 0) + (r.tds || 0) + (r.discount || 0), 0);
+                        
+                        openingBalance = totalInvoicesBeforeFY - totalReceiptsBeforeFY;
+                      }
+                      
                       // Calculate outstanding
                       const outstandingInvoices = clientInvoices.map(inv => {
                         const paidAmount = (data.receipts || []).filter(r => r.invoiceId === inv.id || (r.invoiceEntries && r.invoiceEntries.some(e => e.invoiceId === inv.id))).reduce((sum, r) => {
@@ -24759,6 +24780,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       const totalInvoices = clientInvoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
                       const totalReceipts = clientReceipts.reduce((sum, r) => sum + (r.amount || 0) + (r.tds || 0) + (r.discount || 0), 0);
                       const totalOutstanding = outstandingInvoices.reduce((sum, inv) => sum + (inv.balanceDue || 0), 0);
+                      const closingBalance = openingBalance + totalInvoices - totalReceipts;
                       
                       const printWindow = window.open('', '_blank');
                       printWindow.document.write(`
@@ -24788,17 +24810,24 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             .text-center { text-align: center; }
                             .font-bold { font-weight: 700; color: #1e293b; }
                             tfoot td { background: #f8fafc; font-weight: 700; color: #1e293b; }
-                            .summary-box { display: flex; gap: 15px; margin-bottom: 20px; }
-                            .summary-card { flex: 1; padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px; text-align: center; }
-                            .summary-card .label { font-size: 10px; color: #64748b; margin-bottom: 4px; }
-                            .summary-card .value { font-size: 14px; font-weight: 700; color: #1e293b; }
+                            .summary-box { display: flex; gap: 10px; margin-bottom: 20px; }
+                            .summary-card { flex: 1; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; text-align: center; background: #f8fafc; }
+                            .summary-card .label { font-size: 9px; color: #64748b; margin-bottom: 3px; }
+                            .summary-card .value { font-size: 13px; font-weight: 700; color: #1e293b; }
                             .signature-section { margin-top: 50px; text-align: right; page-break-inside: avoid; }
                             .signature-section .firm-name { font-weight: 700; font-size: 12px; margin-bottom: 40px; }
                             .signature-section .auth { font-size: 11px; border-top: 1px solid #1e293b; padding-top: 5px; display: inline-block; }
                             @media print { 
-                              body { padding: 15px; } 
+                              body { padding: 15px; -webkit-print-color-adjust: exact; print-color-adjust: exact; } 
                               .section { page-break-inside: avoid; }
-                              @page { margin: 15mm; }
+                              @page { 
+                                margin: 10mm 10mm 15mm 10mm;
+                                @bottom-center {
+                                  content: "Page " counter(page) " of " counter(pages);
+                                  font-size: 9px;
+                                  color: #64748b;
+                                }
+                              }
                             }
                           </style>
                         </head>
@@ -24816,11 +24845,16 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             </div>
                             <div class="right" style="text-align: right;">
                               <p><strong>Financial Year:</strong> ${fyLabel}</p>
+                              ${fyFilter ? `<p><strong>From:</strong> ${fyStartDate}</p><p><strong>To:</strong> ${fyEndDate}</p>` : ''}
                               <p><strong>Generated:</strong> ${new Date().toLocaleDateString('en-IN')}</p>
                             </div>
                           </div>
                           
                           <div class="summary-box">
+                            <div class="summary-card">
+                              <div class="label">Opening Balance</div>
+                              <div class="value">₹${openingBalance.toLocaleString('en-IN')}</div>
+                            </div>
                             <div class="summary-card">
                               <div class="label">Total Invoices</div>
                               <div class="value">₹${totalInvoices.toLocaleString('en-IN')}</div>
@@ -24831,7 +24865,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             </div>
                             <div class="summary-card">
                               <div class="label">Outstanding</div>
-                              <div class="value">₹${totalOutstanding.toLocaleString('en-IN')}</div>
+                              <div class="value">₹${closingBalance.toLocaleString('en-IN')}</div>
                             </div>
                           </div>
                           
@@ -25009,6 +25043,29 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       clientInvoices = clientInvoices.sort((a, b) => new Date(a.invoiceDate) - new Date(b.invoiceDate));
                       clientReceipts = clientReceipts.sort((a, b) => new Date(a.receiptDate) - new Date(b.receiptDate));
                       
+                      // Calculate Opening Balance (invoices before FY - receipts before FY)
+                      let openingBalance = 0;
+                      if (fyFilter) {
+                        const [startYr] = ledgerFY.split('-');
+                        const fyStart = new Date(parseInt('20' + startYr.slice(-2)), 3, 1);
+                        
+                        // All invoices before FY start for this client
+                        const invoicesBeforeFY = (data.invoices || []).filter(inv => 
+                          inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase() &&
+                          new Date(inv.invoiceDate) < fyStart
+                        );
+                        const totalInvoicesBeforeFY = invoicesBeforeFY.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
+                        
+                        // All receipts before FY start for this client
+                        const receiptsBeforeFY = (data.receipts || []).filter(r => 
+                          r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase() &&
+                          new Date(r.receiptDate) < fyStart
+                        );
+                        const totalReceiptsBeforeFY = receiptsBeforeFY.reduce((sum, r) => sum + (r.amount || 0) + (r.tds || 0) + (r.discount || 0), 0);
+                        
+                        openingBalance = totalInvoicesBeforeFY - totalReceiptsBeforeFY;
+                      }
+                      
                       // Calculate outstanding
                       const outstandingInvoices = clientInvoices.map(inv => {
                         const paidAmount = (data.receipts || []).filter(r => r.invoiceId === inv.id || (r.invoiceEntries && r.invoiceEntries.some(e => e.invoiceId === inv.id))).reduce((sum, r) => {
@@ -25023,6 +25080,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       const totalInvoices = clientInvoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
                       const totalReceipts = clientReceipts.reduce((sum, r) => sum + (r.amount || 0) + (r.tds || 0) + (r.discount || 0), 0);
                       const totalOutstanding = outstandingInvoices.reduce((sum, inv) => sum + (inv.balanceDue || 0), 0);
+                      const closingBalance = openingBalance + totalInvoices - totalReceipts;
                       
                       // Create PDF-ready HTML
                       const pdfWindow = window.open('', '_blank');
@@ -25032,7 +25090,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           <title>Ledger - ${selectedDebtor.name}</title>
                           <style>
                             * { box-sizing: border-box; margin: 0; padding: 0; }
-                            body { font-family: Arial, sans-serif; padding: 25px; font-size: 10px; color: #1e293b; line-height: 1.3; }
+                            body { font-family: Arial, sans-serif; padding: 25px; font-size: 10px; color: #1e293b; line-height: 1.3; counter-reset: page; }
                             .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #1e293b; padding-bottom: 12px; }
                             .header h1 { margin: 0 0 4px; font-size: 16px; color: #1e293b; }
                             .header h2 { margin: 0; font-size: 11px; font-weight: normal; color: #374151; }
@@ -25040,10 +25098,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             .client-info .left, .client-info .right { width: 48%; }
                             .client-info p { margin: 2px 0; font-size: 10px; color: #374151; }
                             .client-info strong { color: #1e293b; }
-                            .summary-box { display: flex; gap: 10px; margin-bottom: 15px; }
-                            .summary-card { flex: 1; padding: 10px; border: 1px solid #e2e8f0; border-radius: 4px; text-align: center; background: #f8fafc; }
-                            .summary-card .label { font-size: 9px; color: #64748b; margin-bottom: 3px; }
-                            .summary-card .value { font-size: 12px; font-weight: 700; color: #1e293b; }
+                            .summary-box { display: flex; gap: 8px; margin-bottom: 15px; }
+                            .summary-card { flex: 1; padding: 8px; border: 1px solid #e2e8f0; border-radius: 4px; text-align: center; background: #f8fafc; }
+                            .summary-card .label { font-size: 8px; color: #64748b; margin-bottom: 2px; }
+                            .summary-card .value { font-size: 11px; font-weight: 700; color: #1e293b; }
                             .section { margin-bottom: 15px; }
                             .section-title { font-size: 11px; font-weight: 700; margin: 0 0 6px; padding: 6px 8px; color: #fff; border-radius: 3px; }
                             .section-title.green { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
@@ -25065,7 +25123,15 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             @media print { 
                               body { padding: 15px; -webkit-print-color-adjust: exact; print-color-adjust: exact; } 
                               .section { page-break-inside: avoid; }
-                              @page { margin: 10mm; size: A4; }
+                              @page { 
+                                margin: 10mm 10mm 15mm 10mm; 
+                                size: A4;
+                                @bottom-center {
+                                  content: "Page " counter(page) " of " counter(pages);
+                                  font-size: 9px;
+                                  color: #64748b;
+                                }
+                              }
                             }
                           </style>
                         </head>
@@ -25090,6 +25156,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           
                           <div class="summary-box">
                             <div class="summary-card">
+                              <div class="label">Opening Balance</div>
+                              <div class="value">₹${openingBalance.toLocaleString('en-IN')}</div>
+                            </div>
+                            <div class="summary-card">
                               <div class="label">Total Invoices</div>
                               <div class="value">₹${totalInvoices.toLocaleString('en-IN')}</div>
                             </div>
@@ -25099,7 +25169,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             </div>
                             <div class="summary-card">
                               <div class="label">Outstanding</div>
-                              <div class="value">₹${totalOutstanding.toLocaleString('en-IN')}</div>
+                              <div class="value">₹${closingBalance.toLocaleString('en-IN')}</div>
                             </div>
                           </div>
                           
@@ -25276,6 +25346,24 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     let clientInvoices = (data.invoices || []).filter(inv => inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
                     let clientReceipts = (data.receipts || []).filter(r => r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase());
                     
+                    // Calculate Opening Balance (invoices before FY - receipts before FY)
+                    let openingBalance = 0;
+                    if (fyFilter) {
+                      const invoicesBeforeFY = (data.invoices || []).filter(inv => 
+                        inv.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase() &&
+                        new Date(inv.invoiceDate) < fyStart
+                      );
+                      const totalInvoicesBeforeFY = invoicesBeforeFY.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
+                      
+                      const receiptsBeforeFY = (data.receipts || []).filter(r => 
+                        r.clientName?.toLowerCase() === selectedDebtor.name?.toLowerCase() &&
+                        new Date(r.receiptDate) < fyStart
+                      );
+                      const totalReceiptsBeforeFY = receiptsBeforeFY.reduce((sum, r) => sum + (r.amount || 0) + (r.tds || 0) + (r.discount || 0), 0);
+                      
+                      openingBalance = totalInvoicesBeforeFY - totalReceiptsBeforeFY;
+                    }
+                    
                     if (fyFilter) {
                       clientInvoices = clientInvoices.filter(inv => {
                         const d = new Date(inv.invoiceDate);
@@ -25289,14 +25377,14 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     
                     const totalInvoiced = clientInvoices.reduce((s, inv) => s + (inv.totalAmount || 0), 0);
                     const totalReceived = clientReceipts.reduce((s, r) => s + (r.amount || 0) + (r.tds || 0) + (r.discount || 0), 0);
-                    const outstanding = totalInvoiced - totalReceived;
+                    const closingBalance = openingBalance + totalInvoiced - totalReceived;
                     
                     return (
                       <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px'}}>
                         <div style={{background: '#f8fafc', borderRadius: '10px', padding: '14px 16px', border: '1px solid #e2e8f0'}}>
                           <div style={{fontSize: '11px', color: '#64748b', fontWeight: '500', marginBottom: '4px'}}>Opening Balance</div>
-                          <div style={{fontSize: '22px', fontWeight: '700', color: '#475569'}}>₹0</div>
-                          <div style={{fontSize: '10px', color: '#94a3b8', marginTop: '2px'}}>As on start</div>
+                          <div style={{fontSize: '22px', fontWeight: '700', color: '#475569'}}>₹{openingBalance.toLocaleString('en-IN')}</div>
+                          <div style={{fontSize: '10px', color: '#94a3b8', marginTop: '2px'}}>{fyFilter ? 'As on FY start' : 'Not applicable'}</div>
                         </div>
                         <div style={{background: '#f0fdf4', borderRadius: '10px', padding: '14px 16px', border: '1px solid #bbf7d0'}}>
                           <div style={{fontSize: '11px', color: '#16a34a', fontWeight: '500', marginBottom: '4px'}}>Total Invoices</div>
@@ -25308,10 +25396,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           <div style={{fontSize: '22px', fontWeight: '700', color: '#1d4ed8'}}>₹{totalReceived.toLocaleString('en-IN')}</div>
                           <div style={{fontSize: '10px', color: '#93c5fd', marginTop: '2px'}}>{clientReceipts.length} receipt(s)</div>
                         </div>
-                        <div style={{background: outstanding > 0 ? '#fff7ed' : '#f0fdf4', borderRadius: '10px', padding: '14px 16px', border: `1px solid ${outstanding > 0 ? '#fed7aa' : '#bbf7d0'}`}}>
-                          <div style={{fontSize: '11px', color: outstanding > 0 ? '#ea580c' : '#16a34a', fontWeight: '500', marginBottom: '4px'}}>Outstanding</div>
-                          <div style={{fontSize: '22px', fontWeight: '700', color: outstanding > 0 ? '#c2410c' : '#166534'}}>₹{outstanding.toLocaleString('en-IN')}</div>
-                          <div style={{fontSize: '10px', color: outstanding > 0 ? '#fdba74' : '#86efac', marginTop: '2px'}}>{outstanding > 0 ? 'Pending collection' : 'Fully settled'}</div>
+                        <div style={{background: closingBalance > 0 ? '#fff7ed' : '#f0fdf4', borderRadius: '10px', padding: '14px 16px', border: `1px solid ${closingBalance > 0 ? '#fed7aa' : '#bbf7d0'}`}}>
+                          <div style={{fontSize: '11px', color: closingBalance > 0 ? '#ea580c' : '#16a34a', fontWeight: '500', marginBottom: '4px'}}>Outstanding</div>
+                          <div style={{fontSize: '22px', fontWeight: '700', color: closingBalance > 0 ? '#c2410c' : '#166534'}}>₹{closingBalance.toLocaleString('en-IN')}</div>
+                          <div style={{fontSize: '10px', color: closingBalance > 0 ? '#fdba74' : '#86efac', marginTop: '2px'}}>{closingBalance > 0 ? 'Pending collection' : 'Fully settled'}</div>
                         </div>
                       </div>
                     );
