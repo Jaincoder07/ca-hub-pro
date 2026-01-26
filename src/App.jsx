@@ -11047,7 +11047,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
                 <h3 style={{margin: 0, fontSize: '15px', fontWeight: '600', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px'}}><Search size={16} /> Filters</h3>
                 <div style={{display: 'flex', gap: '8px'}}>
-                  <button onClick={() => setReportFilters({...reportFilters, dateFrom: '', dateTo: '', client: '', parentTask: '', childTask: '', status: '', reportingManager: '', billingStatus: ''})} style={{padding: '8px 14px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500'}}>Clear Filters</button>
+                  <button onClick={() => setReportFilters({...reportFilters, dateFrom: '', dateTo: '', client: '', parentTask: '', childTask: '', status: '', reportingManager: '', billingStatus: '', taskCardFilter: ''})} style={{padding: '8px 14px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500'}}>Clear Filters</button>
                   <button onClick={() => exportToCSV(filteredTasks.filter(t => {
                     if (reportFilters.reportingManager && (t.taskManager !== reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager)) return false;
                     if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
@@ -11289,7 +11289,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 {/* Top KPI Cards */}
                 <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '20px'}}>
                   {(() => {
-                    const staffStats = data.staff.filter(s => s.status === 'Active').map(staff => {
+                    const staffStats = data.staff.filter(s => s.status === 'Active' && s.role !== 'Superadmin' && s.role !== 'Admin').map(staff => {
                       const tasks = allTasks.filter(t => t.primaryAssignedUser === staff.name || t.assignedTo === staff.name);
                       const completed = tasks.filter(t => t.status === 'Completed' || t.completedCheck).length;
                       const pending = tasks.filter(t => t.status !== 'Completed' && !t.completedCheck).length;
@@ -11346,7 +11346,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 {/* Top 5 Charts Row - Same style as Debtors Report */}
                 <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '20px'}}>
                   {(() => {
-                    const staffStats = data.staff.filter(s => s.status === 'Active').map(staff => {
+                    const staffStats = data.staff.filter(s => s.status === 'Active' && s.role !== 'Superadmin' && s.role !== 'Admin').map(staff => {
                       const tasks = allTasks.filter(t => t.primaryAssignedUser === staff.name || t.assignedTo === staff.name);
                       const completed = tasks.filter(t => t.status === 'Completed' || t.completedCheck).length;
                       const pending = tasks.filter(t => t.status !== 'Completed' && !t.completedCheck).length;
@@ -11448,7 +11448,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         </tr>
                       </thead>
                       <tbody>
-                        {data.staff.filter(s => s.status === 'Active').map((staff, idx) => {
+                        {data.staff.filter(s => s.status === 'Active' && s.role !== 'Superadmin' && s.role !== 'Admin').map((staff, idx) => {
                           const tasks = allTasks.filter(t => t.primaryAssignedUser === staff.name || t.assignedTo === staff.name);
                           const completed = tasks.filter(t => t.status === 'Completed' || t.completedCheck).length;
                           const pending = tasks.filter(t => t.status !== 'Completed' && !t.completedCheck).length;
@@ -11457,10 +11457,11 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             return new Date(t.dueDate.split('-').reverse().join('-')) < today;
                           }).length;
                           const rate = tasks.length > 0 ? Math.round((completed / tasks.length) * 100) : 0;
-                          // Get Reporting Manager - RM of RM is Superadmin
-                          const reportingManager = staff.role === 'Superadmin' || staff.role === 'Partner' ? '-' : 
-                            staff.role === 'Manager' ? data.staff.find(s => s.role === 'Superadmin' || s.role === 'Partner')?.name || 'Superadmin' :
-                            staff.reportingManager || data.staff.find(s => s.role === 'Manager')?.name || '-';
+                          // Get Reporting Manager - Manager's RM is Superadmin, others have their assigned RM
+                          const superadminName = data.staff.find(s => s.role === 'Superadmin')?.name || 'Superadmin';
+                          const reportingManager = staff.role === 'Partner' ? superadminName : 
+                            staff.role === 'Manager' ? superadminName :
+                            staff.reportingManager || data.staff.find(s => s.role === 'Manager')?.name || superadminName;
                           return (
                             <tr key={staff.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
                               <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{idx + 1}</td>
@@ -11496,16 +11497,17 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             {/* Individual Staff Task View */}
             {reportFilters.staff && (
               <>
-                {/* Filters Bar */}
-                <div style={{background: '#fff', borderRadius: '12px', padding: '20px', marginBottom: '20px', border: '1px solid #e2e8f0'}}>
+                {/* Filters Bar - Green Theme */}
+                <div style={{background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '12px', padding: '20px', marginBottom: '20px', border: '1px solid #10b981'}}>
                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
                     <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
-                      <button onClick={() => setReportFilters({...reportFilters, staff: ''})} style={{padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px'}}>← Back to Dashboard</button>
-                      <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600'}}>👤 {reportFilters.staff}'s Tasks</h3>
+                      <button onClick={() => setReportFilters({...reportFilters, staff: '', parentTask: '', childTask: ''})} style={{padding: '8px 16px', background: '#fff', border: '1px solid #10b981', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', color: '#166534', fontWeight: '500'}}>← Back to Dashboard</button>
+                      <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600', color: '#166534'}}>👤 {reportFilters.staff}'s Tasks</h3>
                     </div>
                     <button onClick={() => {
                       const staffTasks = allTasks.filter(t => t.primaryAssignedUser === reportFilters.staff || t.assignedTo === reportFilters.staff);
                       exportToCSV(staffTasks.map(t => ({
+                        clientCode: data.clients.find(c => c.id === t.clientId || c.name === t.clientName || c.name === t.client)?.fileNo || '',
                         client: t.clientName || t.client,
                         parentTask: t.parentTask,
                         childTask: t.childTask,
@@ -11515,40 +11517,49 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         financialYear: t.financialYear,
                         billingStatus: t.billed ? 'Billed' : 'Unbilled',
                         status: t.status === 'Completed' || t.completedCheck ? 'Completed' : t.status || 'Open'
-                      })), `${reportFilters.staff}_tasks`, ['client', 'parentTask', 'childTask', 'description', 'startDate', 'dueDate', 'financialYear', 'billingStatus', 'status']);
-                    }} style={{padding: '6px 12px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px'}}>📥 Export CSV</button>
+                      })), `${reportFilters.staff}_tasks`, ['clientCode', 'client', 'parentTask', 'childTask', 'description', 'startDate', 'dueDate', 'financialYear', 'billingStatus', 'status']);
+                    }} style={{padding: '8px 14px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'}}><Download size={14} /> Export CSV</button>
                   </div>
-                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px'}}>
+                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px'}}>
                     <div>
-                      <label style={{fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px'}}>Task Category</label>
-                      <select value={reportFilters.parentTask} onChange={(e) => setReportFilters({...reportFilters, parentTask: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}>
-                        <option value="">All Categories</option>
+                      <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Parent Task</label>
+                      <select value={reportFilters.parentTask} onChange={(e) => setReportFilters({...reportFilters, parentTask: e.target.value, childTask: ''})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
+                        <option value="">All Parent Tasks</option>
                         {uniqueParentTasks.map(p => <option key={p} value={p}>{p}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label style={{fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px'}}>Status</label>
-                      <select value={reportFilters.status} onChange={(e) => setReportFilters({...reportFilters, status: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}>
-                        <option value="">All Status</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Pending">Pending</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Overdue">Overdue</option>
+                      <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Child Task</label>
+                      <select value={reportFilters.childTask} onChange={(e) => setReportFilters({...reportFilters, childTask: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
+                        <option value="">All Child Tasks</option>
+                        {(reportFilters.parentTask ? (PARENT_CHILD_TASKS[reportFilters.parentTask] || []) : [...new Set(data.tasks.map(t => t.childTask).filter(Boolean))]).map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label style={{fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px'}}>Financial Year</label>
-                      <select value={reportFilters.financialYear} onChange={(e) => setReportFilters({...reportFilters, financialYear: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}>
+                      <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Status</label>
+                      <select value={reportFilters.status} onChange={(e) => setReportFilters({...reportFilters, status: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
+                        <option value="">All Status</option>
+                        <option value="Open">Open</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Financial Year</label>
+                      <select value={reportFilters.financialYear} onChange={(e) => setReportFilters({...reportFilters, financialYear: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
                         <option value="">All FY</option>
                         {uniqueFYs.map(fy => <option key={fy} value={fy}>{fy}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label style={{fontSize: '11px', color: '#64748b', display: 'block', marginBottom: '4px'}}>Client</label>
-                      <select value={reportFilters.client} onChange={(e) => setReportFilters({...reportFilters, client: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}>
+                      <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Client</label>
+                      <select value={reportFilters.client} onChange={(e) => setReportFilters({...reportFilters, client: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
                         <option value="">All Clients</option>
                         {uniqueClients.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
+                    </div>
+                    <div style={{display: 'flex', alignItems: 'flex-end'}}>
+                      <button onClick={() => setReportFilters({...reportFilters, parentTask: '', childTask: '', status: '', financialYear: '', client: ''})} style={{padding: '8px 14px', background: '#fff', border: '1px solid #bbf7d0', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', color: '#166534'}}>Clear Filters</button>
                     </div>
                   </div>
                 </div>
@@ -11557,15 +11568,12 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 {(() => {
                   let staffTasks = allTasks.filter(t => t.primaryAssignedUser === reportFilters.staff || t.assignedTo === reportFilters.staff);
                   if (reportFilters.parentTask) staffTasks = staffTasks.filter(t => t.parentTask === reportFilters.parentTask);
+                  if (reportFilters.childTask) staffTasks = staffTasks.filter(t => t.childTask === reportFilters.childTask);
                   if (reportFilters.financialYear) staffTasks = staffTasks.filter(t => t.financialYear === reportFilters.financialYear);
                   if (reportFilters.client) staffTasks = staffTasks.filter(t => (t.clientName || t.client || '').toLowerCase().includes(reportFilters.client.toLowerCase()));
                   if (reportFilters.status === 'Completed') staffTasks = staffTasks.filter(t => t.status === 'Completed' || t.completedCheck);
-                  if (reportFilters.status === 'Pending') staffTasks = staffTasks.filter(t => t.status !== 'Completed' && !t.completedCheck && t.status !== 'In Progress');
+                  if (reportFilters.status === 'Open') staffTasks = staffTasks.filter(t => t.status !== 'Completed' && !t.completedCheck && t.status !== 'In Progress');
                   if (reportFilters.status === 'In Progress') staffTasks = staffTasks.filter(t => t.status === 'In Progress');
-                  if (reportFilters.status === 'Overdue') staffTasks = staffTasks.filter(t => {
-                    if (t.status === 'Completed' || t.completedCheck || !t.dueDate) return false;
-                    return new Date(t.dueDate.split('-').reverse().join('-')) < today;
-                  });
                   
                   const completed = staffTasks.filter(t => t.status === 'Completed' || t.completedCheck).length;
                   const pending = staffTasks.filter(t => t.status !== 'Completed' && !t.completedCheck).length;
@@ -11603,27 +11611,31 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       {/* Task Table - Same style as Task Report */}
                       <div style={{background: '#fff', borderRadius: '10px', border: '1px solid #10b981', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
                         <div style={{maxHeight: '500px', overflowY: 'auto', overflowX: 'auto'}}>
-                          <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: '1200px'}}>
+                          <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: '1350px'}}>
                             <thead style={{position: 'sticky', top: 0}}>
                               <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
                                 <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '40px'}}>Sr.</th>
+                                <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '70px'}}>Code</th>
                                 <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '120px'}}>Client</th>
                                 <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '100px'}}>Parent Task</th>
                                 <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '100px'}}>Child Task</th>
-                                <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '180px'}}>Description</th>
+                                <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '150px'}}>Description</th>
                                 <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '85px'}}>Start Date</th>
                                 <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '85px'}}>Due Date</th>
-                                <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '90px'}}>FY</th>
+                                <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '80px'}}>FY</th>
                                 <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '90px'}}>Billing Status</th>
                                 <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '80px'}}>Status</th>
+                                <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '60px'}}>Action</th>
                               </tr>
                             </thead>
                             <tbody>
                               {staffTasks.map((task, idx) => {
+                                const client = data.clients.find(c => c.id === task.clientId || c.name === task.clientName || c.name === task.client);
                                 const isOverdue = task.dueDate && task.status !== 'Completed' && !task.completedCheck && new Date(task.dueDate.split('-').reverse().join('-')) < today;
                                 return (
                                   <tr key={task.id} style={{background: isOverdue ? '#fef2f2' : idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{idx + 1}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{client?.fileNo || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', fontWeight: '500', color: '#374151'}}>{task.clientName || task.client || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.parentTask || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.childTask || '-'}</td>
@@ -11636,6 +11648,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                     </td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
                                       <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '9px', fontWeight: '600', background: task.status === 'Completed' || task.completedCheck ? '#dcfce7' : task.status === 'In Progress' ? '#fef3c7' : '#dbeafe', color: task.status === 'Completed' || task.completedCheck ? '#166534' : task.status === 'In Progress' ? '#92400e' : '#1d4ed8'}}>{task.status === 'Completed' || task.completedCheck ? 'Completed' : task.status === 'In Progress' ? 'In Progress' : 'Open'}</span>
+                                    </td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', textAlign: 'center'}}>
+                                      <button onClick={() => { setSelectedTask(task); setShowTaskManageModal(true); }} title="View Task" style={{padding: '3px', background: 'transparent', color: '#10b981', border: 'none', cursor: 'pointer'}}><Eye size={14} /></button>
                                     </td>
                                   </tr>
                                 );
