@@ -26,6 +26,38 @@ const storage = getStorage(firebaseApp);
 // Utility function for generating IDs
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
+// Get Financial Year string from date (e.g., "25-26" for dates between Apr 2025 - Mar 2026)
+const getFYFromDate = (date) => {
+  const d = date ? new Date(date) : new Date();
+  const month = d.getMonth(); // 0-11
+  const year = d.getFullYear();
+  
+  // FY starts in April (month 3)
+  // If month is Jan-Mar (0-2), it belongs to previous year's FY
+  const fyStartYear = month < 3 ? year - 1 : year;
+  const fyEndYear = fyStartYear + 1;
+  
+  return `${String(fyStartYear).slice(-2)}-${String(fyEndYear).slice(-2)}`;
+};
+
+// Generate sequential Task Code within Financial Year (e.g., 25-26/0001)
+const generateTaskCode = (existingTasks, creationDate) => {
+  const fy = getFYFromDate(creationDate);
+  const fyPrefix = `${fy}/`;
+  
+  // Find all task codes for this FY
+  const existingCodes = (existingTasks || [])
+    .map(t => t.taskCode)
+    .filter(code => code && code.startsWith(fyPrefix))
+    .map(code => {
+      const numPart = code.replace(fyPrefix, '');
+      return parseInt(numPart) || 0;
+    });
+  
+  const maxCode = existingCodes.length > 0 ? Math.max(...existingCodes) : 0;
+  return `${fyPrefix}${String(maxCode + 1).padStart(4, '0')}`;
+};
+
 // Helper function to format fileNo to always show 2 digits after decimal
 const formatFileNo = (fileNo) => {
   if (!fileNo) return '';
@@ -371,7 +403,7 @@ const PracticeManagementApp = () => {
     const approval = data.pendingApprovals.find(a => a.id === approvalId);
     if (!approval) return;
     
-    if (action === 'approve') {
+    if (action === 'approve' || action === 'approved') {
       const dataToUse = editedData || approval.data;
       
       // Create the actual item based on type
@@ -567,7 +599,7 @@ const PracticeManagementApp = () => {
           break;
       }
       alert('✅ Approved successfully!');
-    } else if (action === 'reject') {
+    } else if (action === 'reject' || action === 'rejected') {
       setData(prev => ({
         ...prev,
         pendingApprovals: prev.pendingApprovals.map(a => 
@@ -643,8 +675,44 @@ const PracticeManagementApp = () => {
             }
             
             // Properly merge ALL data fields with defaults
+            // Generate taskCode for tasks that don't have it
+            let existingTasks = firebaseData.tasks || [];
+            // Group tasks by FY and assign codes
+            const tasksByFY = {};
+            existingTasks.forEach(t => {
+              if (!t.taskCode) {
+                const taskDate = t.createdAt || t.startDate || new Date().toISOString();
+                const fy = getFYFromDate(taskDate);
+                if (!tasksByFY[fy]) tasksByFY[fy] = [];
+                tasksByFY[fy].push(t);
+              }
+            });
+            
+            // Find max code for each FY from existing codes
+            const maxCodeByFY = {};
+            existingTasks.forEach(t => {
+              if (t.taskCode) {
+                const match = t.taskCode.match(/^(\d{2}-\d{2})\/(\d+)$/);
+                if (match) {
+                  const fy = match[1];
+                  const num = parseInt(match[2]) || 0;
+                  maxCodeByFY[fy] = Math.max(maxCodeByFY[fy] || 0, num);
+                }
+              }
+            });
+            
+            existingTasks = existingTasks.map(t => {
+              if (!t.taskCode) {
+                const taskDate = t.createdAt || t.startDate || new Date().toISOString();
+                const fy = getFYFromDate(taskDate);
+                maxCodeByFY[fy] = (maxCodeByFY[fy] || 0) + 1;
+                return { ...t, taskCode: `${fy}/${String(maxCodeByFY[fy]).padStart(4, '0')}` };
+              }
+              return t;
+            });
+            
             setData(prev => ({
-              tasks: firebaseData.tasks || prev.tasks || [],
+              tasks: existingTasks,
               clients: uniqueClients, // Use deduplicated clients
               staff: firebaseData.staff || prev.staff || [],
               timesheets: firebaseData.timesheets || prev.timesheets || [],
@@ -13793,6 +13861,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
 
       const newTask = {
         id: generateId(),
+        taskCode: generateTaskCode(data.tasks, new Date()),
         fileNo: taskFormData.fileNo,
         clientName: taskFormData.clientName,
         clientId: taskFormData.clientId || '',
@@ -14240,6 +14309,19 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       
       setBulkSaving(true); // Show loading
       
+      // Track max code by FY for sequential numbering
+      const maxCodeByFY = {};
+      (data.tasks || []).forEach(t => {
+        if (t.taskCode) {
+          const match = t.taskCode.match(/^(\d{2}-\d{2})\/(\d+)$/);
+          if (match) {
+            const fy = match[1];
+            const num = parseInt(match[2]) || 0;
+            maxCodeByFY[fy] = Math.max(maxCodeByFY[fy] || 0, num);
+          }
+        }
+      });
+      
       const newTasks = bulkPreview.map(t => {
         // Combine period and subPeriod if both exist
         let periodDisplay = t.period || '';
@@ -14247,10 +14329,17 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           periodDisplay = `${t.period} - ${t.subPeriod}`;
         }
         
+        // Generate FY-based task code
+        const taskDate = t.startDate || new Date().toISOString();
+        const fy = getFYFromDate(taskDate);
+        maxCodeByFY[fy] = (maxCodeByFY[fy] || 0) + 1;
+        const taskCode = `${fy}/${String(maxCodeByFY[fy]).padStart(4, '0')}`;
+        
         // IMPORTANT: Every field MUST have a value (use empty string for missing values)
         // Firebase does NOT accept undefined values
         return {
           id: generateId(),
+          taskCode: taskCode,
           fileNo: t.fileNo || '',
           clientName: t.clientName || '',
           groupName: t.groupName || t.clientName || '',
@@ -20011,6 +20100,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                                   <thead>
                                     <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', width: '80px'}}>Task ID</th>
                                       <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
                                       <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Task</th>
                                       <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>FY / Period</th>
@@ -20019,8 +20109,13 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {searchedTasks.slice(0, 20).map((task, idx) => (
-                                      <tr key={task.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4', borderBottom: '1px solid #e2e8f0'}}>
+                                    {searchedTasks.slice(0, 20).map((task, idx) => {
+                                      const hasPendingApproval = hasTaskPendingInvoiceApproval(task.id);
+                                      return (
+                                      <tr key={task.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4', borderBottom: '1px solid #e2e8f0', opacity: hasPendingApproval ? 0.6 : 1}}>
+                                        <td style={{padding: '10px'}}>
+                                          <span style={{fontFamily: 'monospace', fontSize: '11px', fontWeight: '600', color: '#7c3aed', background: '#f3e8ff', padding: '2px 6px', borderRadius: '4px'}}>{task.taskCode || '-'}</span>
+                                        </td>
                                         <td style={{padding: '10px'}}>
                                           <div style={{fontWeight: '600', color: '#065f46'}}>{task.clientName}</div>
                                           <div style={{fontSize: '11px', color: '#64748b'}}>{task.fileNo} {task.fileNo ? `• Group ${task.fileNo.split('.')[0]}` : ''}</div>
@@ -20037,15 +20132,21 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                           <span style={{padding: '4px 10px', borderRadius: '20px', fontSize: '10px', fontWeight: '600', background: task.status === 'Completed' ? '#dcfce7' : '#fef3c7', color: task.status === 'Completed' ? '#166534' : '#92400e'}}>{task.status}</span>
                                         </td>
                                         <td style={{padding: '10px', textAlign: 'center'}}>
+                                          {hasPendingApproval ? (
+                                            <span style={{padding: '6px 12px', background: '#fef3c7', color: '#d97706', borderRadius: '6px', fontSize: '10px', fontWeight: '600'}}>
+                                              ⏳ Pending Approval
+                                            </span>
+                                          ) : (
                                           <button
                                             onClick={() => setSelectedBillingTask(task)}
                                             style={{padding: '6px 16px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '600'}}
                                           >
                                             Generate Invoice
                                           </button>
+                                          )}
                                         </td>
                                       </tr>
-                                    ))}
+                                    );})}
                                   </tbody>
                                 </table>
                               </div>
@@ -23645,6 +23746,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           />
                         </th>
                         <th style={{padding: '12px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', fontSize: '11px', borderRight: '1px solid #34d399', width: '45px'}}>S.No</th>
+                        <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', fontSize: '11px', borderRight: '1px solid #34d399', minWidth: '80px'}}>Task ID</th>
                         <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', fontSize: '11px', borderRight: '1px solid #34d399', minWidth: '70px'}}>Code</th>
                         <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', fontSize: '11px', borderRight: '1px solid #34d399', minWidth: '140px'}}>Client Name</th>
                         <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', fontSize: '11px', borderRight: '1px solid #34d399', minWidth: '100px'}}>Parent Task</th>
@@ -23707,6 +23809,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               />
                             </td>
                             <td style={{padding: '10px 8px', textAlign: 'center', color: '#64748b', borderRight: '1px solid #e2e8f0', fontSize: '12px'}}>{idx + 1}</td>
+                            <td style={{padding: '10px 8px', borderRight: '1px solid #e2e8f0'}}>
+                              <span style={{fontFamily: 'monospace', fontSize: '11px', fontWeight: '600', color: '#7c3aed', background: '#f3e8ff', padding: '2px 6px', borderRadius: '4px'}}>{task.taskCode || '-'}</span>
+                            </td>
                             <td style={{padding: '10px 8px', fontWeight: '600', color: '#4f46e5', borderRight: '1px solid #e2e8f0', fontSize: '12px', fontFamily: 'monospace'}}>{task.fileNo || '-'}</td>
                             <td style={{padding: '10px 8px', fontWeight: '500', color: '#1e293b', borderRight: '1px solid #e2e8f0', fontSize: '12px'}}>{task.clientName}</td>
                             <td style={{padding: '10px 8px', borderRight: '1px solid #e2e8f0', fontSize: '12px', color: '#166534', fontWeight: '500'}}>{task.parentTask}</td>
@@ -31979,10 +32084,29 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                       <button
                                         onClick={() => {
                                           // Manual run - create tasks for this batch
+                                          // Track max code by FY for sequential numbering
+                                          const maxCodeByFY = {};
+                                          (data.tasks || []).forEach(t => {
+                                            if (t.taskCode) {
+                                              const match = t.taskCode.match(/^(\d{2}-\d{2})\/(\d+)$/);
+                                              if (match) {
+                                                const fy = match[1];
+                                                const num = parseInt(match[2]) || 0;
+                                                maxCodeByFY[fy] = Math.max(maxCodeByFY[fy] || 0, num);
+                                              }
+                                            }
+                                          });
+                                          
+                                          const taskDate = batch.startDate || new Date().toISOString();
+                                          const fy = getFYFromDate(taskDate);
+                                          
                                           const newTasks = (batch.clients || []).map(clientData => {
                                             const client = data.clients.find(c => c.id === (clientData.clientId || clientData));
+                                            maxCodeByFY[fy] = (maxCodeByFY[fy] || 0) + 1;
+                                            const taskCode = `${fy}/${String(maxCodeByFY[fy]).padStart(4, '0')}`;
                                             return {
                                               id: generateId(),
+                                              taskCode: taskCode,
                                               clientName: client?.name || 'Unknown',
                                               clientId: clientData.clientId || clientData,
                                               parentTask: batch.parentTask,
@@ -32119,10 +32243,29 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         </h3>
                         <button
                           onClick={() => {
+                            // Track max code by FY for sequential numbering
+                            const maxCodeByFY = {};
+                            (data.tasks || []).forEach(t => {
+                              if (t.taskCode) {
+                                const match = t.taskCode.match(/^(\d{2}-\d{2})\/(\d+)$/);
+                                if (match) {
+                                  const fy = match[1];
+                                  const num = parseInt(match[2]) || 0;
+                                  maxCodeByFY[fy] = Math.max(maxCodeByFY[fy] || 0, num);
+                                }
+                              }
+                            });
+                            
+                            const taskDate = selectedBatch.startDate || new Date().toISOString();
+                            const fy = getFYFromDate(taskDate);
+                            
                             const newTasks = (selectedBatch.clients || []).map(clientData => {
                               const client = data.clients.find(c => c.id === (clientData.clientId || clientData));
+                              maxCodeByFY[fy] = (maxCodeByFY[fy] || 0) + 1;
+                              const taskCode = `${fy}/${String(maxCodeByFY[fy]).padStart(4, '0')}`;
                               return {
                                 id: generateId(),
+                                taskCode: taskCode,
                                 clientName: client?.name || 'Unknown',
                                 clientId: clientData.clientId || clientData,
                                 parentTask: selectedBatch.parentTask,
