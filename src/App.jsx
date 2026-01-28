@@ -10633,6 +10633,14 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       sortBy: 'name',
       snapshotDate: new Date().toISOString().split('T')[0]
     });
+    const [receiptReportFilters, setReceiptReportFilters] = useState({
+      parentTask: '',
+      childTask: '',
+      financialYear: '',
+      period: '', // Monthly, Quarterly, Half-Yearly, Annual
+      reportingManager: '',
+      client: ''
+    });
     const [showFilters, setShowFilters] = useState(true);
     
     // Get current date info
@@ -10758,7 +10766,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       { id: 'employeeReport', label: 'Employee Report', icon: '👥' },
       { id: 'debtorsReport', label: 'Debtors Report', icon: '💰' },
       { id: 'clientReport', label: 'Client Report', icon: '🏢' },
-      { id: 'rmReport', label: 'RM Report', icon: '📈' }
+      { id: 'rmReport', label: 'RM Report', icon: '📈' },
+      { id: 'receiptReport', label: 'Receipt Report', icon: '🧾' }
     ];
     
     // =====================
@@ -13023,6 +13032,346 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 })()}
               </>
             )}
+          </div>
+        )}
+
+        {/* Receipt Report - Monthly Comparative Billing vs Receipt */}
+        {activeReportTab === 'receiptReport' && (
+          <div>
+            {/* Header & Filters */}
+            <div style={{background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '12px', padding: '20px', marginBottom: '20px', border: '1px solid #10b981'}}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
+                <h3 style={{margin: 0, fontSize: '16px', fontWeight: '700', color: '#166534'}}>🧾 Receipt Report - Billing vs Collection Analysis</h3>
+                <button 
+                  onClick={() => setReceiptReportFilters({parentTask: '', childTask: '', financialYear: '', period: '', reportingManager: '', client: ''})}
+                  style={{padding: '8px 14px', background: '#fff', border: '1px solid #10b981', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', color: '#166534'}}
+                >
+                  Reset Filters
+                </button>
+              </div>
+              
+              {/* Filter Row */}
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px'}}>
+                <div>
+                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Parent Task *</label>
+                  <select 
+                    value={receiptReportFilters.parentTask} 
+                    onChange={(e) => setReceiptReportFilters({...receiptReportFilters, parentTask: e.target.value, childTask: ''})}
+                    style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', background: '#fff'}}
+                  >
+                    <option value="">Select Parent Task</option>
+                    {Object.keys(PARENT_CHILD_TASKS).map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Child Task *</label>
+                  <select 
+                    value={receiptReportFilters.childTask} 
+                    onChange={(e) => setReceiptReportFilters({...receiptReportFilters, childTask: e.target.value})}
+                    style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', background: '#fff'}}
+                    disabled={!receiptReportFilters.parentTask}
+                  >
+                    <option value="">Select Child Task</option>
+                    {(PARENT_CHILD_TASKS[receiptReportFilters.parentTask] || []).map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Financial Year</label>
+                  <select 
+                    value={receiptReportFilters.financialYear} 
+                    onChange={(e) => setReceiptReportFilters({...receiptReportFilters, financialYear: e.target.value})}
+                    style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', background: '#fff'}}
+                  >
+                    <option value="">All FY</option>
+                    {FINANCIAL_YEARS.map(fy => <option key={fy} value={fy}>{fy}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Period Type</label>
+                  <select 
+                    value={receiptReportFilters.period} 
+                    onChange={(e) => setReceiptReportFilters({...receiptReportFilters, period: e.target.value})}
+                    style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', background: '#fff'}}
+                  >
+                    <option value="">All Periods</option>
+                    <option value="Monthly">Monthly</option>
+                    <option value="Quarterly">Quarterly</option>
+                    <option value="Half-Yearly">Half-Yearly</option>
+                    <option value="Annual">Annual</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Reporting Manager</label>
+                  <select 
+                    value={receiptReportFilters.reportingManager} 
+                    onChange={(e) => setReceiptReportFilters({...receiptReportFilters, reportingManager: e.target.value})}
+                    style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', background: '#fff'}}
+                  >
+                    <option value="">All RMs</option>
+                    {reportingManagers.map(rm => <option key={rm} value={rm}>{rm}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{fontSize: '11px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Client</label>
+                  <select 
+                    value={receiptReportFilters.client} 
+                    onChange={(e) => setReceiptReportFilters({...receiptReportFilters, client: e.target.value})}
+                    style={{width: '100%', padding: '8px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', background: '#fff'}}
+                  >
+                    <option value="">All Clients</option>
+                    {data.clients.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Report Content */}
+            {!receiptReportFilters.parentTask || !receiptReportFilters.childTask ? (
+              <div style={{background: '#fff', borderRadius: '12px', padding: '60px', textAlign: 'center', border: '1px solid #e2e8f0'}}>
+                <div style={{fontSize: '48px', marginBottom: '16px'}}>🧾</div>
+                <h3 style={{margin: '0 0 8px', fontSize: '18px', fontWeight: '600', color: '#374151'}}>Select Parent & Child Task</h3>
+                <p style={{margin: 0, color: '#64748b', fontSize: '14px'}}>Please select both Parent Task and Child Task to generate the comparative billing vs receipt report.</p>
+              </div>
+            ) : (() => {
+              // Filter tasks based on selected criteria
+              let filteredTasks = data.tasks.filter(t => 
+                !t.deleted &&
+                t.parentTask === receiptReportFilters.parentTask &&
+                t.childTask === receiptReportFilters.childTask
+              );
+              
+              if (receiptReportFilters.financialYear) {
+                filteredTasks = filteredTasks.filter(t => t.financialYear === receiptReportFilters.financialYear);
+              }
+              if (receiptReportFilters.period) {
+                filteredTasks = filteredTasks.filter(t => t.period === receiptReportFilters.period);
+              }
+              if (receiptReportFilters.reportingManager) {
+                filteredTasks = filteredTasks.filter(t => t.taskManager === receiptReportFilters.reportingManager);
+              }
+              if (receiptReportFilters.client) {
+                filteredTasks = filteredTasks.filter(t => (t.clientName || t.client) === receiptReportFilters.client);
+              }
+              
+              // Determine period columns based on subPeriod
+              // Get unique subPeriods from filtered tasks
+              const subPeriods = [...new Set(filteredTasks.map(t => t.subPeriod).filter(Boolean))];
+              
+              // Define period order for sorting
+              const monthOrder = ['April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December', 'January', 'February', 'March'];
+              const quarterOrder = ['Q1 (Apr-Jun)', 'Q2 (Jul-Sep)', 'Q3 (Oct-Dec)', 'Q4 (Jan-Mar)'];
+              const halfYearOrder = ['H1 (Apr-Sep)', 'H2 (Oct-Mar)'];
+              
+              // Sort subPeriods
+              const sortedSubPeriods = subPeriods.sort((a, b) => {
+                const aIdx = monthOrder.indexOf(a) !== -1 ? monthOrder.indexOf(a) : 
+                             quarterOrder.indexOf(a) !== -1 ? quarterOrder.indexOf(a) :
+                             halfYearOrder.indexOf(a) !== -1 ? halfYearOrder.indexOf(a) : 99;
+                const bIdx = monthOrder.indexOf(b) !== -1 ? monthOrder.indexOf(b) : 
+                             quarterOrder.indexOf(b) !== -1 ? quarterOrder.indexOf(b) :
+                             halfYearOrder.indexOf(b) !== -1 ? halfYearOrder.indexOf(b) : 99;
+                return aIdx - bIdx;
+              });
+              
+              // Get unique clients from filtered tasks
+              const clients = [...new Set(filteredTasks.map(t => t.clientName || t.client))].filter(Boolean).sort();
+              
+              // Build data matrix: client -> subPeriod -> {billing, receipt}
+              const dataMatrix = {};
+              clients.forEach(client => {
+                dataMatrix[client] = {};
+                sortedSubPeriods.forEach(sp => {
+                  dataMatrix[client][sp] = { billing: 0, receipt: 0, taskId: null };
+                });
+              });
+              
+              // Populate billing data
+              filteredTasks.forEach(task => {
+                const client = task.clientName || task.client;
+                const sp = task.subPeriod;
+                if (client && sp && dataMatrix[client] && dataMatrix[client][sp]) {
+                  // Find invoice for this task
+                  const invoice = (data.invoices || []).find(inv => 
+                    inv.taskId === task.id || 
+                    (inv.taskIds && inv.taskIds.includes(task.id))
+                  );
+                  if (invoice) {
+                    dataMatrix[client][sp].billing += parseFloat(invoice.totalAmount) || 0;
+                    dataMatrix[client][sp].taskId = task.id;
+                    
+                    // Find receipt for this invoice
+                    const receipts = (data.receipts || []).filter(r => 
+                      r.invoiceId === invoice.id || 
+                      r.invoiceNo === invoice.invoiceNo
+                    );
+                    receipts.forEach(r => {
+                      dataMatrix[client][sp].receipt += parseFloat(r.amount) || 0;
+                    });
+                  }
+                }
+              });
+              
+              // Calculate totals
+              const periodTotals = {};
+              sortedSubPeriods.forEach(sp => {
+                periodTotals[sp] = { billing: 0, receipt: 0 };
+              });
+              
+              clients.forEach(client => {
+                sortedSubPeriods.forEach(sp => {
+                  periodTotals[sp].billing += dataMatrix[client][sp].billing;
+                  periodTotals[sp].receipt += dataMatrix[client][sp].receipt;
+                });
+              });
+              
+              const grandTotalBilling = Object.values(periodTotals).reduce((sum, p) => sum + p.billing, 0);
+              const grandTotalReceipt = Object.values(periodTotals).reduce((sum, p) => sum + p.receipt, 0);
+              
+              return (
+                <>
+                  {/* Summary Cards */}
+                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '20px'}}>
+                    <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: '1px solid #bbf7d0'}}>
+                      <div style={{fontSize: '11px', color: '#64748b', fontWeight: '600', marginBottom: '4px'}}>Total Tasks</div>
+                      <div style={{fontSize: '24px', fontWeight: '700', color: '#10b981'}}>{filteredTasks.length}</div>
+                    </div>
+                    <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: '1px solid #bbf7d0'}}>
+                      <div style={{fontSize: '11px', color: '#64748b', fontWeight: '600', marginBottom: '4px'}}>Total Billing</div>
+                      <div style={{fontSize: '24px', fontWeight: '700', color: '#3b82f6'}}>₹{grandTotalBilling.toLocaleString('en-IN')}</div>
+                    </div>
+                    <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: '1px solid #bbf7d0'}}>
+                      <div style={{fontSize: '11px', color: '#64748b', fontWeight: '600', marginBottom: '4px'}}>Total Receipt</div>
+                      <div style={{fontSize: '24px', fontWeight: '700', color: '#10b981'}}>₹{grandTotalReceipt.toLocaleString('en-IN')}</div>
+                    </div>
+                    <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: '1px solid #bbf7d0'}}>
+                      <div style={{fontSize: '11px', color: '#64748b', fontWeight: '600', marginBottom: '4px'}}>Outstanding</div>
+                      <div style={{fontSize: '24px', fontWeight: '700', color: grandTotalBilling - grandTotalReceipt > 0 ? '#ef4444' : '#10b981'}}>₹{(grandTotalBilling - grandTotalReceipt).toLocaleString('en-IN')}</div>
+                    </div>
+                  </div>
+                  
+                  {/* Report Table */}
+                  <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', border: '1px solid #10b981', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+                    <div style={{padding: '16px 20px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff'}}>
+                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                        <h4 style={{margin: 0, fontSize: '14px', fontWeight: '600'}}>
+                          {receiptReportFilters.parentTask} → {receiptReportFilters.childTask}
+                          {receiptReportFilters.financialYear && ` | ${receiptReportFilters.financialYear}`}
+                        </h4>
+                        <button 
+                          onClick={() => {
+                            const exportData = [];
+                            clients.forEach(client => {
+                              const row = { Client: client };
+                              sortedSubPeriods.forEach(sp => {
+                                row[`${sp} Billing`] = dataMatrix[client][sp].billing;
+                                row[`${sp} Receipt`] = dataMatrix[client][sp].receipt;
+                              });
+                              row['Total Billing'] = sortedSubPeriods.reduce((sum, sp) => sum + dataMatrix[client][sp].billing, 0);
+                              row['Total Receipt'] = sortedSubPeriods.reduce((sum, sp) => sum + dataMatrix[client][sp].receipt, 0);
+                              row['Outstanding'] = row['Total Billing'] - row['Total Receipt'];
+                              exportData.push(row);
+                            });
+                            exportToCSV(exportData, `receipt_report_${receiptReportFilters.childTask}`, Object.keys(exportData[0] || {}));
+                          }}
+                          style={{padding: '6px 12px', background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}
+                        >
+                          <Download size={12} style={{marginRight: '4px', verticalAlign: 'middle'}} /> Export
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div style={{overflowX: 'auto'}}>
+                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: sortedSubPeriods.length > 6 ? '1200px' : '800px'}}>
+                        <thead>
+                          <tr style={{background: '#f0fdf4'}}>
+                            <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '700', color: '#166534', border: '1px solid #dcfce7', position: 'sticky', left: 0, background: '#f0fdf4', minWidth: '150px'}}>Client</th>
+                            {sortedSubPeriods.map(sp => (
+                              <th key={sp} colSpan={2} style={{padding: '10px 8px', textAlign: 'center', fontWeight: '700', color: '#166534', border: '1px solid #dcfce7', minWidth: '120px'}}>
+                                {sp}
+                              </th>
+                            ))}
+                            <th colSpan={2} style={{padding: '10px 8px', textAlign: 'center', fontWeight: '700', color: '#166534', border: '1px solid #dcfce7', background: '#dcfce7', minWidth: '120px'}}>Total</th>
+                            <th style={{padding: '10px 8px', textAlign: 'right', fontWeight: '700', color: '#166534', border: '1px solid #dcfce7', background: '#dcfce7', minWidth: '100px'}}>Outstanding</th>
+                          </tr>
+                          <tr style={{background: '#f8fafc'}}>
+                            <th style={{padding: '6px 8px', textAlign: 'left', fontWeight: '600', color: '#64748b', border: '1px solid #dcfce7', position: 'sticky', left: 0, background: '#f8fafc', fontSize: '10px'}}></th>
+                            {sortedSubPeriods.map(sp => (
+                              <React.Fragment key={sp + '-sub'}>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#3b82f6', border: '1px solid #dcfce7', fontSize: '10px'}}>Billing</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#10b981', border: '1px solid #dcfce7', fontSize: '10px'}}>Receipt</th>
+                              </React.Fragment>
+                            ))}
+                            <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#3b82f6', border: '1px solid #dcfce7', background: '#f0fdf4', fontSize: '10px'}}>Billing</th>
+                            <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#10b981', border: '1px solid #dcfce7', background: '#f0fdf4', fontSize: '10px'}}>Receipt</th>
+                            <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#ef4444', border: '1px solid #dcfce7', background: '#f0fdf4', fontSize: '10px'}}></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {clients.length === 0 ? (
+                            <tr>
+                              <td colSpan={sortedSubPeriods.length * 2 + 4} style={{padding: '40px', textAlign: 'center', color: '#64748b', border: '1px solid #dcfce7'}}>
+                                No data found for the selected filters.
+                              </td>
+                            </tr>
+                          ) : (
+                            <>
+                              {clients.map((client, idx) => {
+                                const clientTotalBilling = sortedSubPeriods.reduce((sum, sp) => sum + dataMatrix[client][sp].billing, 0);
+                                const clientTotalReceipt = sortedSubPeriods.reduce((sum, sp) => sum + dataMatrix[client][sp].receipt, 0);
+                                const clientOutstanding = clientTotalBilling - clientTotalReceipt;
+                                
+                                return (
+                                  <tr key={client} style={{background: idx % 2 === 0 ? '#fff' : '#f8fafc'}}>
+                                    <td style={{padding: '8px', fontWeight: '500', color: '#374151', border: '1px solid #dcfce7', position: 'sticky', left: 0, background: idx % 2 === 0 ? '#fff' : '#f8fafc'}}>{client}</td>
+                                    {sortedSubPeriods.map(sp => (
+                                      <React.Fragment key={sp + '-' + client}>
+                                        <td style={{padding: '8px', textAlign: 'right', color: dataMatrix[client][sp].billing > 0 ? '#1e40af' : '#94a3b8', border: '1px solid #dcfce7'}}>
+                                          {dataMatrix[client][sp].billing > 0 ? `₹${dataMatrix[client][sp].billing.toLocaleString('en-IN')}` : '-'}
+                                        </td>
+                                        <td style={{padding: '8px', textAlign: 'right', color: dataMatrix[client][sp].receipt > 0 ? '#166534' : '#94a3b8', border: '1px solid #dcfce7'}}>
+                                          {dataMatrix[client][sp].receipt > 0 ? `₹${dataMatrix[client][sp].receipt.toLocaleString('en-IN')}` : '-'}
+                                        </td>
+                                      </React.Fragment>
+                                    ))}
+                                    <td style={{padding: '8px', textAlign: 'right', fontWeight: '600', color: '#1e40af', border: '1px solid #dcfce7', background: idx % 2 === 0 ? '#f0fdf4' : '#e7f7ef'}}>
+                                      {clientTotalBilling > 0 ? `₹${clientTotalBilling.toLocaleString('en-IN')}` : '-'}
+                                    </td>
+                                    <td style={{padding: '8px', textAlign: 'right', fontWeight: '600', color: '#166534', border: '1px solid #dcfce7', background: idx % 2 === 0 ? '#f0fdf4' : '#e7f7ef'}}>
+                                      {clientTotalReceipt > 0 ? `₹${clientTotalReceipt.toLocaleString('en-IN')}` : '-'}
+                                    </td>
+                                    <td style={{padding: '8px', textAlign: 'right', fontWeight: '600', color: clientOutstanding > 0 ? '#dc2626' : '#166534', border: '1px solid #dcfce7', background: idx % 2 === 0 ? '#f0fdf4' : '#e7f7ef'}}>
+                                      {clientOutstanding !== 0 ? `₹${clientOutstanding.toLocaleString('en-IN')}` : '-'}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                              
+                              {/* Totals Row */}
+                              <tr style={{background: '#dcfce7', fontWeight: '700'}}>
+                                <td style={{padding: '10px 8px', fontWeight: '700', color: '#166534', border: '1px solid #10b981', position: 'sticky', left: 0, background: '#dcfce7'}}>TOTAL ({clients.length} Clients)</td>
+                                {sortedSubPeriods.map(sp => (
+                                  <React.Fragment key={sp + '-total'}>
+                                    <td style={{padding: '10px 8px', textAlign: 'right', fontWeight: '700', color: '#1e40af', border: '1px solid #10b981'}}>
+                                      {periodTotals[sp].billing > 0 ? `₹${periodTotals[sp].billing.toLocaleString('en-IN')}` : '-'}
+                                    </td>
+                                    <td style={{padding: '10px 8px', textAlign: 'right', fontWeight: '700', color: '#166534', border: '1px solid #10b981'}}>
+                                      {periodTotals[sp].receipt > 0 ? `₹${periodTotals[sp].receipt.toLocaleString('en-IN')}` : '-'}
+                                    </td>
+                                  </React.Fragment>
+                                ))}
+                                <td style={{padding: '10px 8px', textAlign: 'right', fontWeight: '700', color: '#1e40af', border: '1px solid #10b981', background: '#bbf7d0'}}>₹{grandTotalBilling.toLocaleString('en-IN')}</td>
+                                <td style={{padding: '10px 8px', textAlign: 'right', fontWeight: '700', color: '#166534', border: '1px solid #10b981', background: '#bbf7d0'}}>₹{grandTotalReceipt.toLocaleString('en-IN')}</td>
+                                <td style={{padding: '10px 8px', textAlign: 'right', fontWeight: '700', color: grandTotalBilling - grandTotalReceipt > 0 ? '#dc2626' : '#166534', border: '1px solid #10b981', background: '#bbf7d0'}}>₹{(grandTotalBilling - grandTotalReceipt).toLocaleString('en-IN')}</td>
+                              </tr>
+                            </>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         )}
       </div>
