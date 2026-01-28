@@ -1,55 +1,102 @@
-# CA Hub Pro - Practice Management System
+# INDREESH MEDIA Finance Manager
 
-A comprehensive practice management application for Chartered Accountants with **Firebase cloud database**.
+A comprehensive finance management system for INDREESH MEDIA LLP with GST invoicing, receipt management, party ledgers, and more.
 
-## 🔥 Firebase Powered Features
+## Features
 
-- ✅ **Real Authentication** - Secure email/password login via Firebase Auth
-- ✅ **Cloud Database** - Data stored in Firestore, accessible from any device
-- ✅ **Shared Data** - All team members see the same data in real-time
-- ✅ **No Data Loss** - Your data persists even if you clear browser cache
+- 📊 **Master Sheet** - Campaign management with Excel upload support
+- 🧾 **Invoice Generation** - Individual and combined invoicing with GST calculation
+- 💰 **Receipt Management** - Record payments with TDS and discount tracking
+- 📚 **Party Ledgers** - Complete debit/credit tracking per party
+- 📈 **Reports** - Financial summaries and analytics
+- 🔐 **Role-based Access** - Finance Team and Director roles
+- ☁️ **Cloud Sync** - Firebase Firestore for data persistence
 
-## 🚀 Quick Deploy to Vercel
+## Tech Stack
 
-### Step 1: Upload to GitHub
-1. Log in to your GitHub repository (Jaincoder07/ca-hub-pro)
-2. Delete all existing files or create a new branch
-3. Upload ALL files from this folder
-4. Commit changes
+- **Frontend**: React 18 + Vite
+- **Backend**: Firebase Firestore
+- **Deployment**: Vercel
+- **Styling**: Inline CSS
+- **Icons**: Lucide React
 
-### Step 2: Vercel Auto-Deploys
-Vercel will automatically detect the changes and redeploy your app within 1-2 minutes.
+## Deployment to Vercel
 
----
+### Prerequisites
 
-## 📱 How to Login
+1. A GitHub account
+2. A Vercel account (free at vercel.com)
+3. Firebase project (already configured)
 
-### First Time Setup (Create Account)
-1. Go to your app URL
-2. Click "Don't have an account? Create one"
-3. Enter your email and password (min 6 characters)
-4. Click "Create Account"
-5. You're now logged in as Superadmin!
+### Steps
 
-### Existing Users
-1. Enter your email and password
-2. Click "Sign In"
+1. **Push to GitHub**
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git branch -M main
+   git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
+   git push -u origin main
+   ```
 
----
+2. **Deploy to Vercel**
+   - Go to [vercel.com](https://vercel.com)
+   - Click "New Project"
+   - Import your GitHub repository
+   - Framework Preset: Vite
+   - Click "Deploy"
 
-## 👥 Adding Team Members
+3. **That's it!** Vercel will automatically build and deploy your app.
 
-After logging in as Superadmin:
-1. Go to **Staff** in the sidebar
-2. Click **"+ Add Staff"**
-3. Fill in details (name, email, role)
-4. The new team member can create their account with the same email
+## Firebase Setup
 
-**Note:** The email in Staff module should match the Firebase Auth email.
+The app uses Firebase Firestore for data persistence. The configuration is already set up in `src/firebase.js`.
 
----
+### Firestore Security Rules
 
-## 🔧 Local Development
+Add these rules in Firebase Console → Firestore → Rules:
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /appState/{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
+```
+
+⚠️ **Note**: These are permissive rules for development. For production, implement proper authentication.
+
+## Login Credentials
+
+| Role | Username | Password |
+|------|----------|----------|
+| Finance Team | finance | finance123 |
+| Director | director | director123 |
+
+## Role Permissions
+
+### Finance Team
+- Upload Excel sheets
+- Change amounts and emails
+- Create invoices
+- Create receipts and credit notes
+- Send emails
+- Delete invoices
+- Access settings
+
+### Director
+- Upload Excel sheets
+- Mark Bill? (Yes/Not Yet)
+- Change amounts and emails
+- **Approve/Reject invoices**
+- Add remarks
+- View-only access to Invoice Register and Ledgers
+
+## Local Development
 
 ```bash
 # Install dependencies
@@ -60,66 +107,31 @@ npm run dev
 
 # Build for production
 npm run build
+
+# Preview production build
+npm run preview
 ```
 
----
-
-## 📁 Project Structure
+## Project Structure
 
 ```
-ca-hub-pro/
+finance-vercel-app/
+├── public/
+│   └── favicon.svg
+├── src/
+│   ├── App.jsx          # Main application component
+│   ├── firebase.js      # Firebase configuration
+│   └── main.jsx         # Entry point
 ├── index.html
 ├── package.json
 ├── vite.config.js
-├── .gitignore
-├── README.md
-└── src/
-    ├── main.jsx
-    └── App.jsx         # Main app with Firebase integration
+└── README.md
 ```
 
----
+## Support
 
-## ✨ Features
-
-- 📊 Role-based Dashboards
-- 📋 Task Management
-- 💰 Invoicing & Billing with GST
-- 📄 Receipt Management  
-- 👥 Client Management
-- 👤 Staff Management
-- 📈 Reports & Analytics
-- 🔄 Recurring Tasks
-- ✅ Approval Workflows
-- 🔔 Notifications
+For issues or questions, please contact the development team.
 
 ---
 
-## 🔒 Firebase Security
-
-Your Firebase project is configured with:
-- **Authentication**: Email/Password sign-in
-- **Firestore**: Cloud database for all app data
-
-**Important**: For production, update Firestore security rules to restrict access.
-
----
-
-## 🆘 Troubleshooting
-
-**"Firebase: Error (auth/invalid-credential)"**
-- Check email and password are correct
-- Try creating a new account
-
-**Data not syncing?**
-- Check internet connection
-- Refresh the page
-- Check browser console for errors
-
-**Changes not appearing after deploy?**
-- Wait 1-2 minutes for Vercel to rebuild
-- Hard refresh (Ctrl+Shift+R)
-
----
-
-Enjoy your cloud-powered CA Hub Pro! 🎉
+© 2025 INDREESH MEDIA LLP. All rights reserved.
