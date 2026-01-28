@@ -5216,6 +5216,7 @@ const PracticeManagementApp = () => {
                   />
                 </th>
                 <th style={{width: '60px', padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>Manage</th>
+                <th style={{width: '80px', padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>Task ID</th>
                 <th style={{minWidth: '140px', padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>Client Name</th>
                 <th style={{width: '70px', padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>Code</th>
                 <th style={{minWidth: '180px', padding: '10px 6px', color: '#fff', fontWeight: '700', border: '1px solid #059669', fontSize: '11px'}}>Description</th>
@@ -5234,7 +5235,7 @@ const PracticeManagementApp = () => {
             <tbody>
               {filteredTasks.length === 0 ? (
                 <tr>
-                  <td colSpan={15} style={{textAlign: 'center', padding: '40px', color: '#64748b', border: '1px solid #e5e7eb'}}>
+                  <td colSpan={16} style={{textAlign: 'center', padding: '40px', color: '#64748b', border: '1px solid #e5e7eb'}}>
                     No tasks found. {activeStatusFilter && <span>Try clearing the filter.</span>}
                   </td>
                 </tr>
@@ -5299,6 +5300,7 @@ const PracticeManagementApp = () => {
                         )}
                       </div>
                     </td>
+                    <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', fontSize: '11px'}}>{task.taskCode || '-'}</td>
                     <td style={{padding: '8px 6px', border: '1px solid #e5e7eb', maxWidth: '140px'}}>
                       <div style={{wordWrap: 'break-word', whiteSpace: 'normal', lineHeight: '1.3', maxHeight: '36px', overflow: 'hidden', fontSize: '11px'}}>{task.clientName || '-'}</div>
                     </td>
@@ -23888,12 +23890,15 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               ₹{(parseFloat(task.agreedFees) || getClientAgreedFee(task.clientId, task.parentTask || task.taskType, task.childTask || task.subTask) || 0).toLocaleString('en-IN')}
                             </td>
                             <td style={{padding: '10px 8px', textAlign: 'center'}}>
-                              <button
-                                onClick={() => setViewingUnbilledTask(task)}
-                                style={{padding: '6px 12px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: '600'}}
-                              >
-                                View
-                              </button>
+                              <div style={{display: 'flex', gap: '6px', justifyContent: 'center'}}>
+                                <button
+                                  onClick={() => { setSelectedTask(task); setShowTaskManageModal(true); }}
+                                  title="View Task Details"
+                                  style={{padding: '5px 8px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px'}}
+                                >
+                                  <Eye size={12} /> View
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );});
