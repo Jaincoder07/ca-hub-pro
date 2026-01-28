@@ -28,9 +28,46 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 
 // Get Financial Year string from date (e.g., "25-26" for dates between Apr 2025 - Mar 2026)
 const getFYFromDate = (date) => {
-  const d = date ? new Date(date) : new Date();
+  let d;
+  
+  // Handle various date formats
+  if (date && date instanceof Date && !isNaN(date.getTime())) {
+    d = date;
+  } else if (date && typeof date === 'string' && date.trim() !== '') {
+    // Try to parse the date string
+    let dateStr = date.trim();
+    
+    // Handle DD-MM-YYYY or DD/MM/YYYY format
+    if (/^\d{1,2}[-\/]\d{1,2}[-\/]\d{4}$/.test(dateStr)) {
+      const parts = dateStr.split(/[-\/]/);
+      d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+    }
+    // Handle YYYY-MM-DD format (ISO)
+    else if (/^\d{4}[-\/]\d{1,2}[-\/]\d{1,2}/.test(dateStr)) {
+      d = new Date(dateStr);
+    }
+    // Try native parsing as fallback
+    else {
+      d = new Date(dateStr);
+    }
+    
+    // If still invalid, use current date
+    if (!d || isNaN(d.getTime())) {
+      d = new Date();
+    }
+  } else {
+    d = new Date(); // Default to current date
+  }
+  
   const month = d.getMonth(); // 0-11
   const year = d.getFullYear();
+  
+  // Validate year is reasonable
+  if (year < 2000 || year > 2100) {
+    const now = new Date();
+    const fyStartYear = now.getMonth() < 3 ? now.getFullYear() - 1 : now.getFullYear();
+    return `${String(fyStartYear).slice(-2)}-${String(fyStartYear + 1).slice(-2)}`;
+  }
   
   // FY starts in April (month 3)
   // If month is Jan-Mar (0-2), it belongs to previous year's FY
@@ -675,23 +712,19 @@ const PracticeManagementApp = () => {
             }
             
             // Properly merge ALL data fields with defaults
-            // Generate taskCode for tasks that don't have it
+            // Generate taskCode for tasks that don't have it or have invalid format
             let existingTasks = firebaseData.tasks || [];
-            // Group tasks by FY and assign codes
-            const tasksByFY = {};
-            existingTasks.forEach(t => {
-              if (!t.taskCode) {
-                const taskDate = t.createdAt || t.startDate || new Date().toISOString();
-                const fy = getFYFromDate(taskDate);
-                if (!tasksByFY[fy]) tasksByFY[fy] = [];
-                tasksByFY[fy].push(t);
-              }
-            });
             
-            // Find max code for each FY from existing codes
+            // Helper to check if taskCode is valid
+            const isValidTaskCode = (code) => {
+              if (!code) return false;
+              return /^\d{2}-\d{2}\/\d+$/.test(code);
+            };
+            
+            // Find max code for each FY from existing VALID codes
             const maxCodeByFY = {};
             existingTasks.forEach(t => {
-              if (t.taskCode) {
+              if (t.taskCode && isValidTaskCode(t.taskCode)) {
                 const match = t.taskCode.match(/^(\d{2}-\d{2})\/(\d+)$/);
                 if (match) {
                   const fy = match[1];
@@ -701,8 +734,9 @@ const PracticeManagementApp = () => {
               }
             });
             
+            // Assign codes to tasks without valid taskCode
             existingTasks = existingTasks.map(t => {
-              if (!t.taskCode) {
+              if (!t.taskCode || !isValidTaskCode(t.taskCode)) {
                 const taskDate = t.createdAt || t.startDate || new Date().toISOString();
                 const fy = getFYFromDate(taskDate);
                 maxCodeByFY[fy] = (maxCodeByFY[fy] || 0) + 1;
@@ -3631,6 +3665,7 @@ const PracticeManagementApp = () => {
               <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
                 <thead style={{position: 'sticky', top: 0, background: '#fff'}}>
                   <tr style={{background: '#f8fafc'}}>
+                    <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0', width: '80px'}}>Task ID</th>
                     <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Task</th>
                     <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Client</th>
                     <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', borderBottom: '2px solid #e2e8f0'}}>Due Date</th>
@@ -3643,6 +3678,7 @@ const PracticeManagementApp = () => {
                     const isOverdue = task.dueDate && new Date(task.dueDate.split('-').reverse().join('-')) < today;
                     return (
                       <tr key={task.id} style={{borderBottom: '1px solid #f1f5f9', background: isOverdue ? '#fef2f2' : 'transparent'}}>
+                        <td style={{padding: '12px', color: '#374151', fontSize: '12px'}}>{task.taskCode || '-'}</td>
                         <td style={{padding: '12px'}}>
                           <div style={{fontWeight: '500'}}>{task.childTask || task.parentTask}</div>
                           <div style={{fontSize: '11px', color: '#94a3b8'}}>{task.parentTask}</div>
@@ -10923,6 +10959,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
                             <thead style={{position: 'sticky', top: 0}}>
                               <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Task ID</th>
                                 <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Code</th>
                                 <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
                                 <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Parent Task</th>
@@ -10935,6 +10972,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 const client = data.clients.find(c => c.id === task.clientId || c.name === task.clientName || c.name === task.client);
                                 return (
                                   <tr key={task.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '11px'}}>{task.taskCode || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{client?.fileNo || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#10b981', fontWeight: '500'}}>{task.clientName || task.client || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.parentTask || '-'}</td>
@@ -10965,6 +11003,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
                             <thead style={{position: 'sticky', top: 0}}>
                               <tr style={{background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'}}>
+                                <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Task ID</th>
                                 <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Code</th>
                                 <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
                                 <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Parent Task</th>
@@ -10978,6 +11017,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 const client = data.clients.find(c => c.id === task.clientId || c.name === task.clientName || c.name === task.client);
                                 return (
                                   <tr key={task.id} style={{background: idx % 2 === 0 ? '#fff' : '#fef2f2'}}>
+                                    <td style={{padding: '8px', border: '1px solid #fecaca', color: '#374151', fontSize: '11px'}}>{task.taskCode || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #fecaca', color: '#374151', fontSize: '10px'}}>{client?.fileNo || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #fecaca', color: '#374151'}}>{task.clientName || task.client || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #fecaca', textDecoration: 'line-through', color: '#94a3b8'}}>{task.parentTask || '-'}</td>
@@ -11367,6 +11407,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <thead style={{position: 'sticky', top: 0}}>
                     <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
                       <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '40px'}}>Sr.</th>
+                      <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '80px'}}>Task ID</th>
                       <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '70px'}}>Code</th>
                       <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '120px'}}>Client Name</th>
                       <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '100px'}}>Parent Task</th>
@@ -11401,6 +11442,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       return (
                         <tr key={task.id} style={{background: isOverdue ? '#fef2f2' : idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
                           <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{idx + 1}</td>
+                          <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '11px'}}>{task.taskCode || '-'}</td>
                           <td style={{padding: '8px', border: '1px solid #dcfce7', fontWeight: '500', color: '#374151', fontSize: '10px'}}>{client?.fileNo || '-'}</td>
                           <td style={{padding: '8px', border: '1px solid #dcfce7', fontWeight: '500', color: '#374151'}}>{task.clientName || task.client || '-'}</td>
                           <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.parentTask || '-'}</td>
@@ -11764,6 +11806,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             <thead style={{position: 'sticky', top: 0}}>
                               <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
                                 <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '40px'}}>Sr.</th>
+                                <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '80px'}}>Task ID</th>
                                 <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '70px'}}>Code</th>
                                 <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '120px'}}>Client</th>
                                 <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '100px'}}>Parent Task</th>
@@ -11784,6 +11827,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 return (
                                   <tr key={task.id} style={{background: isOverdue ? '#fef2f2' : idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{idx + 1}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '11px'}}>{task.taskCode || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{client?.fileNo || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', fontWeight: '500', color: '#374151'}}>{task.clientName || task.client || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.parentTask || '-'}</td>
@@ -12500,6 +12544,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             <thead style={{position: 'sticky', top: 0}}>
                               <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
                                 <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '40px'}}>Sr.</th>
+                                <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '80px'}}>Task ID</th>
                                 <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '100px'}}>Parent Task</th>
                                 <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '100px'}}>Child Task</th>
                                 <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '150px'}}>Description</th>
@@ -12520,6 +12565,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 return (
                                   <tr key={task.id} style={{background: isOverdue ? '#fef2f2' : idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{idx + 1}</td>
+                                    <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '11px'}}>{task.taskCode || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.parentTask || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontWeight: '500'}}>{task.childTask || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{task.taskDescription || task.description || '-'}</td>
@@ -12815,6 +12861,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               <thead style={{position: 'sticky', top: 0}}>
                                 <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
                                   <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '40px'}}>Sr.</th>
+                                  <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '80px'}}>Task ID</th>
                                   <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '70px'}}>Code</th>
                                   <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '120px'}}>Client Name</th>
                                   <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', minWidth: '100px'}}>Parent Task</th>
@@ -12838,6 +12885,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                   return (
                                     <tr key={task.id} style={{background: reportFilters.rmDetailView === 'overdue' ? '#fef2f2' : idx % 2 === 0 ? '#fff' : '#f0fdf4'}}>
                                       <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{idx + 1}</td>
+                                      <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '11px'}}>{task.taskCode || '-'}</td>
                                       <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151', fontSize: '10px'}}>{client?.fileNo || '-'}</td>
                                       <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.clientName || task.client || '-'}</td>
                                       <td style={{padding: '8px', border: '1px solid #dcfce7', color: '#374151'}}>{task.parentTask || '-'}</td>
@@ -13382,6 +13430,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <div className="detail-card-new">
                     <h4><CheckCircle size={18} /> Task Configuration</h4>
                     <div className="detail-rows">
+                      <div className="detail-row-new">
+                        <span className="label-new">Task ID</span>
+                        <span className="value-new">{taskFormData.taskCode || '-'}</span>
+                      </div>
                       <div className="detail-row-new">
                         <span className="label-new">Parent Task</span>
                         <span className="value-new">{taskFormData.parentTask}</span>
@@ -20114,7 +20166,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                       return (
                                       <tr key={task.id} style={{background: idx % 2 === 0 ? '#fff' : '#f0fdf4', borderBottom: '1px solid #e2e8f0', opacity: hasPendingApproval ? 0.6 : 1}}>
                                         <td style={{padding: '10px'}}>
-                                          <span style={{fontFamily: 'monospace', fontSize: '11px', fontWeight: '600', color: '#7c3aed', background: '#f3e8ff', padding: '2px 6px', borderRadius: '4px'}}>{task.taskCode || '-'}</span>
+                                          <span style={{fontSize: '12px', color: '#1e293b'}}>{task.taskCode || '-'}</span>
                                         </td>
                                         <td style={{padding: '10px'}}>
                                           <div style={{fontWeight: '600', color: '#065f46'}}>{task.clientName}</div>
@@ -23810,7 +23862,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             </td>
                             <td style={{padding: '10px 8px', textAlign: 'center', color: '#64748b', borderRight: '1px solid #e2e8f0', fontSize: '12px'}}>{idx + 1}</td>
                             <td style={{padding: '10px 8px', borderRight: '1px solid #e2e8f0'}}>
-                              <span style={{fontFamily: 'monospace', fontSize: '11px', fontWeight: '600', color: '#7c3aed', background: '#f3e8ff', padding: '2px 6px', borderRadius: '4px'}}>{task.taskCode || '-'}</span>
+                              <span style={{fontSize: '12px', color: '#1e293b'}}>{task.taskCode || '-'}</span>
                             </td>
                             <td style={{padding: '10px 8px', fontWeight: '600', color: '#4f46e5', borderRight: '1px solid #e2e8f0', fontSize: '12px', fontFamily: 'monospace'}}>{task.fileNo || '-'}</td>
                             <td style={{padding: '10px 8px', fontWeight: '500', color: '#1e293b', borderRight: '1px solid #e2e8f0', fontSize: '12px'}}>{task.clientName}</td>
@@ -23921,20 +23973,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       <div style={{fontSize: '11px', color: '#7c3aed', fontWeight: '600', marginBottom: '8px'}}>TASK INFORMATION</div>
                       <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
                         <div>
-                          <div style={{fontSize: '10px', color: '#64748b'}}>Parent Task</div>
-                          <div style={{fontSize: '13px', fontWeight: '600', color: '#8b5cf6'}}>{viewingUnbilledTask.parentTask}</div>
-                        </div>
-                        <div>
-                          <div style={{fontSize: '10px', color: '#64748b'}}>Child Task</div>
-                          <div style={{fontSize: '13px', fontWeight: '600'}}>{viewingUnbilledTask.childTask}</div>
-                        </div>
-                        <div>
-                          <div style={{fontSize: '10px', color: '#64748b'}}>Financial Year</div>
-                          <div style={{fontSize: '13px', fontWeight: '500'}}>{viewingUnbilledTask.financialYear}</div>
-                        </div>
-                        <div>
-                          <div style={{fontSize: '10px', color: '#64748b'}}>Period</div>
-                          <div style={{fontSize: '13px', fontWeight: '500'}}>{viewingUnbilledTask.period || '-'}</div>
+                          <div style={{fontSize: '10px', color: '#64748b'}}>Task ID</div>
+                          <div style={{fontSize: '13px', fontWeight: '600'}}>{viewingUnbilledTask.taskCode || '-'}</div>
                         </div>
                         <div>
                           <div style={{fontSize: '10px', color: '#64748b'}}>Status</div>
@@ -23952,8 +23992,28 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           </div>
                         </div>
                         <div>
+                          <div style={{fontSize: '10px', color: '#64748b'}}>Parent Task</div>
+                          <div style={{fontSize: '13px', fontWeight: '600', color: '#8b5cf6'}}>{viewingUnbilledTask.parentTask}</div>
+                        </div>
+                        <div>
+                          <div style={{fontSize: '10px', color: '#64748b'}}>Child Task</div>
+                          <div style={{fontSize: '13px', fontWeight: '600'}}>{viewingUnbilledTask.childTask}</div>
+                        </div>
+                        <div>
+                          <div style={{fontSize: '10px', color: '#64748b'}}>Financial Year</div>
+                          <div style={{fontSize: '13px', fontWeight: '500'}}>{viewingUnbilledTask.financialYear}</div>
+                        </div>
+                        <div>
+                          <div style={{fontSize: '10px', color: '#64748b'}}>Period</div>
+                          <div style={{fontSize: '13px', fontWeight: '500'}}>{viewingUnbilledTask.period || '-'}</div>
+                        </div>
+                        <div>
+                          <div style={{fontSize: '10px', color: '#64748b'}}>Task Manager</div>
+                          <div style={{fontSize: '13px', fontWeight: '500'}}>{viewingUnbilledTask.taskManager || '-'}</div>
+                        </div>
+                        <div>
                           <div style={{fontSize: '10px', color: '#64748b'}}>Assigned To</div>
-                          <div style={{fontSize: '13px', fontWeight: '500'}}>{viewingUnbilledTask.assignedTo || '-'}</div>
+                          <div style={{fontSize: '13px', fontWeight: '500'}}>{viewingUnbilledTask.assignedTo || viewingUnbilledTask.primaryAssignedUser || '-'}</div>
                         </div>
                       </div>
                     </div>
