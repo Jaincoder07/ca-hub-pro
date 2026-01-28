@@ -16622,7 +16622,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         setEditingInvoiceData({
           ...viewingInvoice,
           amount: viewingInvoice.amount?.toString() || '',
-          discount: viewingInvoice.discount?.toString() || '0'
+          discount: viewingInvoice.discount?.toString() || '0',
+          _originalOrganizationId: viewingInvoice.organizationId // Track original org for counter update
         });
         setShowEditInvoiceModal(true);
       }
@@ -16686,7 +16687,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         igst,
         totalAmount,
         amountInWords: numberToWords(Math.round(totalAmount)) + ' Only.',
-        // Update org details if organization changed
+        // Update org details if organization changed - include all fields including logo and signature
         ...(selectedOrg && {
           orgName: selectedOrg.name,
           orgAddress: selectedOrg.address,
@@ -16694,38 +16695,67 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           orgGstin: selectedOrg.gstin,
           orgPan: selectedOrg.panNo,
           orgPhone: selectedOrg.phoneNo,
-          orgMobile: selectedOrg.mobileNo,
-          orgEmail: selectedOrg.emailId,
+          orgMobile: selectedOrg.mobileNo || selectedOrg.mobile,
+          orgEmail: selectedOrg.emailId || selectedOrg.email,
           orgWebsite: selectedOrg.website,
           orgBankName: selectedOrg.bankName,
           orgBankAccount: selectedOrg.bankAccountNo,
           orgBankIfsc: selectedOrg.bankIfsc,
           orgBankBranch: selectedOrg.bankBranch,
           orgSignatory: selectedOrg.authorizedSignatory,
+          orgLogo: selectedOrg.logo || null,
+          orgSignature: selectedOrg.signatureImage || null,
           supplierStateCode: STATE_CODES[selectedOrg.state] || ''
         })
       };
       
       // Check if needs approval
       if (currentUser?.isSuperAdmin) {
-        // Direct save - Superadmin
-        setData(prev => ({
-          ...prev,
-          invoices: prev.invoices.map(inv => 
-            inv.id === updatedInvoice.id ? updatedInvoice : inv
-          )
-        }));
+        // Check if organization was changed - need to update org's invoice counter
+        const orgChanged = editingInvoiceData._originalOrganizationId && 
+          String(editingInvoiceData._originalOrganizationId) !== String(updatedInvoice.organizationId);
         
-        const org = data.organizations.find(o => o.id === updatedInvoice.organizationId);
-        setViewingInvoice({
-          ...updatedInvoice,
-          orgLogo: org?.logo || null,
-          orgSignature: org?.signatureImage || null
+        // Direct save - Superadmin
+        setData(prev => {
+          let updatedOrganizations = prev.organizations;
+          
+          // If organization changed, increment the new organization's invoice counter
+          if (orgChanged && selectedOrg) {
+            updatedOrganizations = prev.organizations.map(o => 
+              o.id === selectedOrg.id 
+                ? { ...o, invoiceCurrentNo: (updatedInvoice.invoiceCurrentNo || selectedOrg.invoiceCurrentNo || 1) + 1 }
+                : o
+            );
+          }
+          
+          return {
+            ...prev,
+            invoices: prev.invoices.map(inv => 
+              inv.id === updatedInvoice.id ? updatedInvoice : inv
+            ),
+            latestGeneratedInvoices: (prev.latestGeneratedInvoices || []).map(inv => 
+              inv.id === updatedInvoice.id ? updatedInvoice : inv
+            ),
+            organizations: updatedOrganizations
+          };
         });
+        
+        const org = data.organizations.find(o => String(o.id) === String(updatedInvoice.organizationId));
+        // updatedInvoice already has orgLogo and orgSignature from selectedOrg above
+        // Only add them if not already present (for backwards compatibility)
+        const updatedInvoiceWithOrg = {
+          ...updatedInvoice,
+          orgLogo: updatedInvoice.orgLogo || org?.logo || null,
+          orgSignature: updatedInvoice.orgSignature || org?.signatureImage || null
+        };
+        
+        // Update all invoice viewing states
+        setViewingInvoice(updatedInvoiceWithOrg);
+        setGeneratedInvoice(updatedInvoiceWithOrg); // Also update Bill Register view
         
         setShowEditInvoiceModal(false);
         setEditingInvoiceData(null);
-        alert('✅ Invoice updated successfully!');
+        alert('✅ Invoice updated successfully!' + (orgChanged ? ' Organization invoice counter updated.' : ''));
       } else {
         // Create approval request for edit
         const approval = createApprovalRequest('invoice-edit', updatedInvoice, `Edit Invoice ${updatedInvoice.invoiceNo} for ${updatedInvoice.clientName} - ₹${updatedInvoice.totalAmount.toLocaleString('en-IN')}`);
@@ -16737,6 +16767,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           setShowEditInvoiceModal(false);
           setEditingInvoiceData(null);
           setViewingInvoice(null);
+          setGeneratedInvoice(null);
           alert(`📋 Invoice edit request sent for Superadmin approval.\nInvoice No: ${updatedInvoice.invoiceNo}`);
         }
       }
@@ -18945,7 +18976,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                             </button>
                                             <button 
                                               onClick={() => {
-                                                setEditingInvoiceData(inv);
+                                                setEditingInvoiceData({
+                                                  ...inv,
+                                                  _originalOrganizationId: inv.organizationId
+                                                });
                                                 setShowEditInvoiceModal(true);
                                               }}
                                               style={{padding: '3px 6px', background: '#fef3c7', color: '#d97706', border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '9px', fontWeight: '500'}}
@@ -19496,18 +19530,18 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             const showGst = gstApplicable && invoiceFormat !== 'billOfSupply';
                             
                             const displayOrg = {
-                              name: currentOrg.name || generatedInvoice.orgName || generatedInvoice.organizationName,
-                              address: currentOrg.address || generatedInvoice.orgAddress,
-                              mobile: currentOrg.mobile || generatedInvoice.orgMobile,
-                              email: currentOrg.email || generatedInvoice.orgEmail,
-                              gstin: currentOrg.gstin || generatedInvoice.orgGstin,
-                              pan: currentOrg.pan || generatedInvoice.orgPan,
-                              logo: currentOrg.logo || generatedInvoice.orgLogo,
-                              signature: currentOrg.signature || generatedInvoice.orgSignature,
-                              signatory: currentOrg.signatory || generatedInvoice.orgSignatory,
-                              bankName: currentOrg.bankName || generatedInvoice.orgBankName,
-                              bankAccount: currentOrg.bankAccount || generatedInvoice.orgBankAccount,
-                              bankIfsc: currentOrg.bankIfsc || generatedInvoice.orgBankIfsc,
+                              name: generatedInvoice.orgName || generatedInvoice.organizationName || currentOrg.name,
+                              address: generatedInvoice.orgAddress || currentOrg.address,
+                              mobile: generatedInvoice.orgMobile || currentOrg.mobile,
+                              email: generatedInvoice.orgEmail || currentOrg.email,
+                              gstin: generatedInvoice.orgGstin || currentOrg.gstin,
+                              pan: generatedInvoice.orgPan || currentOrg.pan,
+                              logo: generatedInvoice.orgLogo || currentOrg.logo,
+                              signature: generatedInvoice.orgSignature || currentOrg.signature,
+                              signatory: generatedInvoice.orgSignatory || currentOrg.signatory,
+                              bankName: generatedInvoice.orgBankName || currentOrg.bankName,
+                              bankAccount: generatedInvoice.orgBankAccount || currentOrg.bankAccount,
+                              bankIfsc: generatedInvoice.orgBankIfsc || currentOrg.bankIfsc,
                             };
                             
                             const displayClient = {
@@ -22976,21 +23010,21 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           
                           const showGst = gstApplicable && invoiceFormat !== 'billOfSupply' && invoiceFormat !== 'billOfSupplyBlue';
                           
-                          // Use current org data for display (reflects changes)
+                          // Use invoice stored org data for display (reflects changes from edit)
                           const displayOrg = {
-                            name: currentOrg.name || generatedInvoice.orgName,
-                            address: currentOrg.address || generatedInvoice.orgAddress,
-                            mobile: currentOrg.mobile || generatedInvoice.orgMobile,
-                            email: currentOrg.email || generatedInvoice.orgEmail,
-                            gstin: currentOrg.gstin || generatedInvoice.orgGstin,
-                            pan: currentOrg.pan || generatedInvoice.orgPan,
-                            logo: currentOrg.logo || generatedInvoice.orgLogo,
-                            signature: currentOrg.signature || generatedInvoice.orgSignature,
-                            signatory: currentOrg.signatory || generatedInvoice.orgSignatory,
-                            bankName: currentOrg.bankName || generatedInvoice.orgBankName,
-                            bankAccount: currentOrg.bankAccount || generatedInvoice.orgBankAccount,
-                            bankIfsc: currentOrg.bankIfsc || generatedInvoice.orgBankIfsc,
-                            bankBranch: currentOrg.bankBranch || generatedInvoice.orgBankBranch,
+                            name: generatedInvoice.orgName || currentOrg.name,
+                            address: generatedInvoice.orgAddress || currentOrg.address,
+                            mobile: generatedInvoice.orgMobile || currentOrg.mobile,
+                            email: generatedInvoice.orgEmail || currentOrg.email,
+                            gstin: generatedInvoice.orgGstin || currentOrg.gstin,
+                            pan: generatedInvoice.orgPan || currentOrg.pan,
+                            logo: generatedInvoice.orgLogo || currentOrg.logo,
+                            signature: generatedInvoice.orgSignature || currentOrg.signature,
+                            signatory: generatedInvoice.orgSignatory || currentOrg.signatory,
+                            bankName: generatedInvoice.orgBankName || currentOrg.bankName,
+                            bankAccount: generatedInvoice.orgBankAccount || currentOrg.bankAccount,
+                            bankIfsc: generatedInvoice.orgBankIfsc || currentOrg.bankIfsc,
+                            bankBranch: generatedInvoice.orgBankBranch || currentOrg.bankBranch,
                           };
                           
                           return (
@@ -23304,8 +23338,42 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           <div>
                             <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Organization</label>
                             <select value={editingGeneratedInvoice.organizationId} onChange={(e) => {
-                              const org = (data.organizations || []).find(o => o.id === e.target.value);
-                              setEditingGeneratedInvoice(p => ({...p, organizationId: e.target.value, orgId: e.target.value, orgName: org?.name || '', orgAddress: org?.address || '', orgState: org?.state || '', orgGstin: org?.gstin || ''}));
+                              const newOrgId = e.target.value;
+                              const org = (data.organizations || []).find(o => String(o.id) === String(newOrgId));
+                              if (org && String(newOrgId) !== String(editingGeneratedInvoice.organizationId)) {
+                                // Use the organization's defined invoice number settings
+                                const currentNo = org.invoiceCurrentNo || org.invoiceStartNo || 1;
+                                const prefix = org.invoicePrefix || 'INV';
+                                const digits = org.invoiceDigits || 4;
+                                const suffix = org.invoiceSuffix || '';
+                                const newInvoiceNo = `${prefix}${String(currentNo).padStart(digits, '0')}${suffix}`;
+                                setEditingGeneratedInvoice(p => ({
+                                  ...p, 
+                                  organizationId: newOrgId, 
+                                  orgId: newOrgId, 
+                                  invoiceNo: newInvoiceNo,
+                                  invoiceCurrentNo: currentNo,
+                                  orgName: org.name || '', 
+                                  orgAddress: org.address || '', 
+                                  orgState: org.state || '', 
+                                  orgGstin: org.gstin || '',
+                                  orgPan: org.panNo || '',
+                                  orgPhone: org.phoneNo || '',
+                                  orgMobile: org.mobileNo || org.mobile || '',
+                                  orgEmail: org.emailId || org.email || '',
+                                  orgBankName: org.bankName || '',
+                                  orgBankAccount: org.bankAccountNo || '',
+                                  orgBankIfsc: org.bankIfsc || '',
+                                  orgBankBranch: org.bankBranch || '',
+                                  orgSignatory: org.authorizedSignatory || '',
+                                  orgLogo: org.logo || '',
+                                  orgSignature: org.signatureImage || '',
+                                  gstApplicable: org.gstApplicable === 'yes',
+                                  invoiceFormat: org.gstApplicable === 'yes' ? 'taxInvoice' : 'billOfSupply'
+                                }));
+                              } else {
+                                setEditingGeneratedInvoice(p => ({...p, organizationId: newOrgId, orgId: newOrgId}));
+                              }
                             }} style={{width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px'}}>
                               <option value="">Select</option>
                               {(data.organizations || []).map(org => <option key={org.id} value={org.id}>{org.name}</option>)}
@@ -23425,14 +23493,33 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           <button onClick={() => setEditingGeneratedInvoice(null)} style={{padding: '10px 20px', background: '#e2e8f0', color: '#64748b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600'}}>Cancel</button>
                           <button onClick={() => {
                             if (currentUser?.isSuperAdmin) {
+                              // Check if organization was changed
+                              const orgChanged = editingGeneratedInvoice._originalOrganizationId && 
+                                String(editingGeneratedInvoice._originalOrganizationId) !== String(editingGeneratedInvoice.organizationId);
+                              const newOrg = (data.organizations || []).find(o => String(o.id) === String(editingGeneratedInvoice.organizationId));
+                              
                               // Direct save for Superadmin
-                              setData(prev => ({
-                                ...prev,
-                                invoices: (prev.invoices || []).map(inv => inv.id === editingGeneratedInvoice.id ? editingGeneratedInvoice : inv),
-                                latestGeneratedInvoices: (prev.latestGeneratedInvoices || []).map(inv => inv.id === editingGeneratedInvoice.id ? editingGeneratedInvoice : inv)
-                              }));
+                              setData(prev => {
+                                let updatedOrganizations = prev.organizations;
+                                
+                                // If organization changed, increment the new organization's invoice counter
+                                if (orgChanged && newOrg) {
+                                  updatedOrganizations = (prev.organizations || []).map(o => 
+                                    String(o.id) === String(newOrg.id) 
+                                      ? { ...o, invoiceCurrentNo: (editingGeneratedInvoice.invoiceCurrentNo || newOrg.invoiceCurrentNo || 1) + 1 }
+                                      : o
+                                  );
+                                }
+                                
+                                return {
+                                  ...prev,
+                                  invoices: (prev.invoices || []).map(inv => inv.id === editingGeneratedInvoice.id ? editingGeneratedInvoice : inv),
+                                  latestGeneratedInvoices: (prev.latestGeneratedInvoices || []).map(inv => inv.id === editingGeneratedInvoice.id ? editingGeneratedInvoice : inv),
+                                  organizations: updatedOrganizations
+                                };
+                              });
                               setEditingGeneratedInvoice(null);
-                              alert('✅ Invoice updated successfully!');
+                              alert('✅ Invoice updated successfully!' + (orgChanged ? ' Organization invoice counter updated.' : ''));
                             } else {
                               // Create approval request
                               const approval = createApprovalRequest('invoice-edit', editingGeneratedInvoice, `Edit Invoice ${editingGeneratedInvoice.invoiceNo} for ${editingGeneratedInvoice.clientName} - ₹${(editingGeneratedInvoice.totalAmount || 0).toLocaleString('en-IN')}`);
@@ -23512,7 +23599,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                       <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
                                         <button onClick={() => { setGeneratedInvoice(invoice); setShowInvoicePreview(true); }} title="View" style={{padding: '5px 8px', background: '#eff6ff', color: '#3b82f6', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Eye size={14} /></button>
                                         <button onClick={() => downloadInvoicePDF(invoice, data.organizations, data.clients)} title="Download" style={{padding: '5px 8px', background: '#f0fdf4', color: '#10b981', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Download size={14} /></button>
-                                        <button onClick={() => setEditingGeneratedInvoice({...invoice})} title="Edit" style={{padding: '5px 8px', background: '#fef3c7', color: '#d97706', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Edit size={14} /></button>
+                                        <button onClick={() => setEditingGeneratedInvoice({...invoice, _originalOrganizationId: invoice.organizationId})} title="Edit" style={{padding: '5px 8px', background: '#fef3c7', color: '#d97706', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Edit size={14} /></button>
                                         <button onClick={() => {
                                           if (!window.confirm(`Delete invoice ${invoice.invoiceNo}?\n\nThis will also unbill associated tasks.`)) return;
                                           
@@ -27208,13 +27295,57 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '8px', color: '#166534'}}>Organization</label>
                   <select
                     value={editingInvoiceData.organizationId}
-                    onChange={(e) => setEditingInvoiceData({...editingInvoiceData, organizationId: e.target.value})}
+                    onChange={(e) => {
+                      const newOrgId = e.target.value;
+                      const newOrg = (data.organizations || []).find(o => String(o.id) === String(newOrgId));
+                      
+                      if (newOrg && String(newOrgId) !== String(editingInvoiceData.organizationId)) {
+                        // Use the organization's defined invoice number settings
+                        const currentNo = newOrg.invoiceCurrentNo || newOrg.invoiceStartNo || 1;
+                        const prefix = newOrg.invoicePrefix || 'INV';
+                        const digits = newOrg.invoiceDigits || 4;
+                        const suffix = newOrg.invoiceSuffix || '';
+                        const newInvoiceNo = `${prefix}${String(currentNo).padStart(digits, '0')}${suffix}`;
+                        
+                        setEditingInvoiceData({
+                          ...editingInvoiceData, 
+                          organizationId: newOrgId,
+                          invoiceNo: newInvoiceNo,
+                          invoiceCurrentNo: currentNo,
+                          orgId: newOrg.id,
+                          orgName: newOrg.name,
+                          orgAddress: newOrg.address,
+                          orgState: newOrg.state,
+                          orgGstin: newOrg.gstin,
+                          orgPan: newOrg.panNo,
+                          orgPhone: newOrg.phoneNo,
+                          orgMobile: newOrg.mobileNo || newOrg.mobile,
+                          orgEmail: newOrg.emailId || newOrg.email,
+                          orgWebsite: newOrg.website,
+                          orgBankName: newOrg.bankName,
+                          orgBankAccount: newOrg.bankAccountNo,
+                          orgBankIfsc: newOrg.bankIfsc,
+                          orgBankBranch: newOrg.bankBranch,
+                          orgSignatory: newOrg.authorizedSignatory,
+                          orgLogo: newOrg.logo,
+                          orgSignature: newOrg.signatureImage,
+                          // Update GST applicability based on new org
+                          gstApplicable: newOrg.gstApplicable === 'yes',
+                          invoiceFormat: newOrg.gstApplicable === 'yes' ? 'taxInvoice' : 'billOfSupply'
+                        });
+                      } else {
+                        setEditingInvoiceData({...editingInvoiceData, organizationId: newOrgId});
+                      }
+                    }}
                     style={{width: '100%', padding: '10px 12px', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '13px', background: '#fff'}}
                   >
                     {(data.organizations || []).map(org => (
                       <option key={org.id} value={org.id}>{org.name} - {org.state}</option>
                     ))}
                   </select>
+                  <div style={{fontSize: '11px', color: '#059669', marginTop: '6px'}}>
+                    Invoice No: <strong>{editingInvoiceData.invoiceNo}</strong> (auto-updates when organization changes)
+                  </div>
                 </div>
                 
                 {/* Service Description */}
