@@ -245,8 +245,11 @@ const PracticeManagementApp = () => {
     return 'green';
   });
   
-  // Theme colors based on appTheme
+  // Theme colors based on appTheme - Complete color swap
+  // In GREEN theme: primary=green, secondary=blue
+  // In BLUE theme: primary=blue, secondary=green (swapped)
   const themeColors = appTheme === 'blue' ? {
+    // Primary becomes Blue
     primary: '#3b82f6',
     primaryDark: '#1d4ed8',
     primaryLight: '#dbeafe',
@@ -256,9 +259,15 @@ const PracticeManagementApp = () => {
     gradientHover: 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)',
     border: '#93c5fd',
     shadow: 'rgba(59, 130, 246, 0.3)',
-    success: '#10b981',
-    successLight: '#dcfce7'
+    // Secondary becomes Green (swapped)
+    secondary: '#10b981',
+    secondaryDark: '#059669',
+    secondaryLight: '#dcfce7',
+    secondaryLighter: '#f0fdf4',
+    secondaryGradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+    secondaryShadow: 'rgba(16, 185, 129, 0.3)'
   } : {
+    // Primary is Green
     primary: '#10b981',
     primaryDark: '#059669',
     primaryLight: '#dcfce7',
@@ -268,8 +277,13 @@ const PracticeManagementApp = () => {
     gradientHover: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
     border: '#6ee7b7',
     shadow: 'rgba(16, 185, 129, 0.3)',
-    success: '#10b981',
-    successLight: '#dcfce7'
+    // Secondary is Blue
+    secondary: '#3b82f6',
+    secondaryDark: '#1d4ed8',
+    secondaryLight: '#dbeafe',
+    secondaryLighter: '#eff6ff',
+    secondaryGradient: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+    secondaryShadow: 'rgba(59, 130, 246, 0.3)'
   };
   
   // Save theme to localStorage when it changes
@@ -1223,7 +1237,7 @@ const PracticeManagementApp = () => {
             </div>
             
             {/* Info Box */}
-            <div style={{ marginTop: '16px', padding: '12px', background: themeColors.primaryLighter, borderRadius: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}` }}>
+            <div style={{ marginTop: '16px', padding: '12px', background: themeColors.primaryLighter, borderRadius: '8px', border: `1px solid ${themeColors.border}` }}>
               <div style={{ fontSize: '13px', color: '#166534' }}>
                 <strong>🔥 Firebase Powered</strong><br/>
                 Your data is securely stored in the cloud. Create an account to get started!
@@ -1469,8 +1483,8 @@ const PracticeManagementApp = () => {
         primaryColor = '#8b5cf6'; // Purple
         lightBg = '#ede9fe';
       } else {
-        primaryColor = '#3b82f6'; // Blue
-        lightBg = '#dbeafe';
+        primaryColor = themeColors.secondary; // Blue
+        lightBg = themeColors.secondaryLight;
       }
       invoiceTitle = 'BILL OF SUPPLY';
     } else if (isProforma) {
@@ -2340,7 +2354,7 @@ const PracticeManagementApp = () => {
               padding: '12px 16px',
               cursor: 'pointer',
               color: invoicingExpanded || currentView.startsWith('invoicing') ? themeColors.primary : '#94a3b8',
-              background: invoicingExpanded ? (appTheme === 'blue' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(16, 185, 129, 0.1)') : 'transparent',
+              background: invoicingExpanded ? `rgba(${appTheme === 'blue' ? '59, 130, 246' : '16, 185, 129'}, 0.1)` : 'transparent',
               borderRadius: '8px',
               margin: '4px 8px',
               transition: 'all 0.15s'
@@ -2477,7 +2491,7 @@ const PracticeManagementApp = () => {
             title={`Switch to ${appTheme === 'green' ? 'Blue' : 'Green'} Theme`}
             style={{
               padding: '8px',
-              background: appTheme === 'green' ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : themeColors.gradient,
+              background: themeColors.secondaryGradient,
               border: 'none',
               borderRadius: '8px',
               cursor: 'pointer',
@@ -2777,7 +2791,7 @@ const PracticeManagementApp = () => {
               <div style={{
                 width: `${maxValue > 0 ? (item.value / maxValue) * 100 : 0}%`,
                 height: '100%',
-                background: item[colorKey] || '#3b82f6',
+                background: item[colorKey] || themeColors.secondary,
                 borderRadius: '4px',
                 display: 'flex',
                 alignItems: 'center',
@@ -3016,7 +3030,7 @@ const PracticeManagementApp = () => {
               >
                 🗑️ Clear All Data
               </button>
-              <button className="btn-primary" onClick={() => setShowTimesheetModal(true)} style={{background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', display: 'flex', alignItems: 'center', gap: '8px'}}>
+              <button className="btn-primary" onClick={() => setShowTimesheetModal(true)} style={{background: themeColors.secondaryGradient, display: 'flex', alignItems: 'center', gap: '8px'}}>
                 <Clock size={20} /> Timesheet
               </button>
               <button className="btn-primary" onClick={() => setShowExpenseModal(true)} style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', display: 'flex', alignItems: 'center', gap: '8px'}}>
@@ -3030,21 +3044,21 @@ const PracticeManagementApp = () => {
 
           {/* KPI Cards Row 1 - Tasks */}
           <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '20px'}}>
-            <div className="dashboard-card" style={{background: 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #bfdbfe', transition: 'all 0.3s ease', cursor: 'pointer'}} 
+            <div className="dashboard-card" style={{background: themeColors.secondaryLight, borderRadius: '12px', padding: '20px', border: '1px solid #bfdbfe', transition: 'all 0.3s ease', cursor: 'pointer'}} 
               onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(59, 130, 246, 0.25)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                 <div>
-                  <div style={{fontSize: '13px', color: '#3b82f6', fontWeight: '600', marginBottom: '4px'}}>Total Tasks</div>
+                  <div style={{fontSize: '13px', color: themeColors.secondary, fontWeight: '600', marginBottom: '4px'}}>Total Tasks</div>
                   <div style={{fontSize: '28px', fontWeight: '700', color: '#1e40af'}}>{kpis.totalTasks}</div>
                 </div>
-                <div style={{width: '40px', height: '40px', background: '#3b82f6', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform 0.3s ease'}} className="card-icon">
+                <div style={{width: '40px', height: '40px', background: themeColors.secondary, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform 0.3s ease'}} className="card-icon">
                   <FileText size={20} style={{color: '#fff'}} />
                 </div>
               </div>
               <div style={{fontSize: '13px', color: '#64748b', marginTop: '8px'}}>{kpis.openTasks} open • {kpis.inProgressTasks} in progress</div>
             </div>
-            <div className="dashboard-card" style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '12px', padding: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, transition: 'all 0.3s ease', cursor: 'pointer'}}
+            <div className="dashboard-card" style={{background: themeColors.primaryLight, borderRadius: '12px', padding: '20px', border: `1px solid ${themeColors.border}`, transition: 'all 0.3s ease', cursor: 'pointer'}}
               onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(16, 185, 129, 0.25)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
@@ -3112,8 +3126,8 @@ const PracticeManagementApp = () => {
                   <div style={{fontSize: '13px', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px'}}>Total Billed</div>
                   <div style={{fontSize: '24px', fontWeight: '700', color: '#1e293b'}}>₹{billingKpis.totalBilled.toLocaleString('en-IN')}</div>
                 </div>
-                <div style={{width: '40px', height: '40px', background: '#dbeafe', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                  <FileText size={20} style={{color: '#3b82f6'}} />
+                <div style={{width: '40px', height: '40px', background: themeColors.secondaryLight, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                  <FileText size={20} style={{color: themeColors.secondary}} />
                 </div>
               </div>
               <div style={{fontSize: '13px', color: themeColors.primary, marginTop: '8px'}}>₹{billingKpis.thisMonthBilling.toLocaleString('en-IN')} this month</div>
@@ -3202,7 +3216,7 @@ const PracticeManagementApp = () => {
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
               <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', color: '#1e293b'}}>Staff Workload (Pending)</h3>
               <SimpleBarChart 
-                data={teamWorkloadData.slice(0, 6).map((d, i) => ({name: d.name, value: d.pending, color: d.overdue > 0 ? '#fca5a5' : ['#86efac', '#93c5fd', '#c4b5fd', '#fcd34d', '#a5f3fc', '#fda4af'][i % 6]}))} 
+                data={teamWorkloadData.slice(0, 6).map((d, i) => ({name: d.name, value: d.pending, color: d.overdue > 0 ? '#fca5a5' : ['#86efac', themeColors.secondaryLight, '#c4b5fd', '#fcd34d', '#a5f3fc', '#fda4af'][i % 6]}))} 
                 maxValue={Math.max(...teamWorkloadData.map(d => d.pending), 1)} 
               />
             </div>
@@ -3471,7 +3485,7 @@ const PracticeManagementApp = () => {
                   <option key={member.id} value={member.id}>{member.name}</option>
                 ))}
               </select>
-              <button className="btn-primary" onClick={() => setShowTimesheetModal(true)} style={{background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', display: 'flex', alignItems: 'center', gap: '8px'}}>
+              <button className="btn-primary" onClick={() => setShowTimesheetModal(true)} style={{background: themeColors.secondaryGradient, display: 'flex', alignItems: 'center', gap: '8px'}}>
                 <Clock size={20} /> Timesheet
               </button>
               <button className="btn-primary" onClick={() => setShowExpenseModal(true)} style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', display: 'flex', alignItems: 'center', gap: '8px'}}>
@@ -3487,13 +3501,13 @@ const PracticeManagementApp = () => {
 
           {/* KPI Cards */}
           <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '24px'}}>
-            <div style={{background: 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #bfdbfe'}}>
+            <div style={{background: themeColors.secondaryLight, borderRadius: '12px', padding: '20px', border: '1px solid #bfdbfe'}}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                 <div>
                   <div style={{fontSize: '28px', fontWeight: '700', color: '#1e40af'}}>{kpis.totalTasks}</div>
-                  <div style={{fontSize: '12px', color: '#3b82f6', fontWeight: '600'}}>Total Tasks</div>
+                  <div style={{fontSize: '12px', color: themeColors.secondary, fontWeight: '600'}}>Total Tasks</div>
                 </div>
-                <div style={{width: '36px', height: '36px', background: '#3b82f6', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                <div style={{width: '36px', height: '36px', background: themeColors.secondary, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
                   <FileText size={18} style={{color: '#fff'}} />
                 </div>
               </div>
@@ -3511,7 +3525,7 @@ const PracticeManagementApp = () => {
               </div>
               <div style={{fontSize: '13px', color: '#64748b', marginTop: '8px'}}>{kpis.openTasks} open • {kpis.inProgressTasks} in progress</div>
             </div>
-            <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '12px', padding: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+            <div style={{background: themeColors.primaryLight, borderRadius: '12px', padding: '20px', border: `1px solid ${themeColors.border}`}}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                 <div>
                   <div style={{fontSize: '28px', fontWeight: '700', color: '#166534'}}>{kpis.completedTasks}</div>
@@ -3889,7 +3903,7 @@ const PracticeManagementApp = () => {
             <p className="view-subtitle">Your personal task overview • {currentUser?.role}</p>
           </div>
           <div style={{display: 'flex', gap: '12px'}}>
-            <button className="btn-primary" onClick={() => setShowTimesheetModal(true)} style={{background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', display: 'flex', alignItems: 'center', gap: '8px'}}>
+            <button className="btn-primary" onClick={() => setShowTimesheetModal(true)} style={{background: themeColors.secondaryGradient, display: 'flex', alignItems: 'center', gap: '8px'}}>
               <Clock size={20} /> Fill Timesheet
             </button>
             <button className="btn-primary" onClick={() => setShowExpenseModal(true)} style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', display: 'flex', alignItems: 'center', gap: '8px'}}>
@@ -3905,13 +3919,13 @@ const PracticeManagementApp = () => {
 
         {/* Personal KPI Cards */}
         <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px'}}>
-          <div style={{background: 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)', borderRadius: '16px', padding: '24px', border: '1px solid #bfdbfe'}}>
+          <div style={{background: themeColors.secondaryLight, borderRadius: '16px', padding: '24px', border: '1px solid #bfdbfe'}}>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
               <div>
                 <div style={{fontSize: '36px', fontWeight: '700', color: '#1e40af'}}>{kpis.totalTasks}</div>
-                <div style={{fontSize: '14px', color: '#3b82f6', marginTop: '4px'}}>My Total Tasks</div>
+                <div style={{fontSize: '14px', color: themeColors.secondary, marginTop: '4px'}}>My Total Tasks</div>
               </div>
-              <div style={{width: '48px', height: '48px', background: '#3b82f6', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+              <div style={{width: '48px', height: '48px', background: themeColors.secondary, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
                 <CheckCircle size={24} style={{color: '#fff'}} />
               </div>
             </div>
@@ -3938,7 +3952,7 @@ const PracticeManagementApp = () => {
             </div>
           </div>
 
-          <div style={{background: kpis.overdueTasks > 0 ? 'linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%)' : (appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)'), borderRadius: '16px', padding: '24px', border: kpis.overdueTasks > 0 ? '1px solid #fecaca' : `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+          <div style={{background: kpis.overdueTasks > 0 ? 'linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%)' : (themeColors.primaryLight), borderRadius: '16px', padding: '24px', border: kpis.overdueTasks > 0 ? '1px solid #fecaca' : `1px solid ${themeColors.border}`}}>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
               <div>
                 <div style={{fontSize: '36px', fontWeight: '700', color: kpis.overdueTasks > 0 ? '#b91c1c' : '#166534'}}>{kpis.overdueTasks}</div>
@@ -3955,7 +3969,7 @@ const PracticeManagementApp = () => {
             )}
           </div>
 
-          <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '16px', padding: '24px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+          <div style={{background: themeColors.primaryLight, borderRadius: '16px', padding: '24px', border: `1px solid ${themeColors.border}`}}>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
               <div>
                 <div style={{fontSize: '36px', fontWeight: '700', color: '#166534'}}>{kpis.efficiency}%</div>
@@ -4028,8 +4042,8 @@ const PracticeManagementApp = () => {
                             borderRadius: '12px',
                             fontSize: '13px',
                             fontWeight: '600',
-                            background: task.status === 'In Progress' ? '#fef3c7' : '#dbeafe',
-                            color: task.status === 'In Progress' ? '#92400e' : '#1d4ed8'
+                            background: task.status === 'In Progress' ? '#fef3c7' : themeColors.secondaryLight,
+                            color: task.status === 'In Progress' ? '#92400e' : themeColors.secondaryDark
                           }}>{task.status || 'Open'}</span>
                         </td>
                         <td style={{padding: '12px', textAlign: 'center'}}>
@@ -4067,14 +4081,14 @@ const PracticeManagementApp = () => {
                   }}
                   style={{
                     padding: '16px',
-                    background: count > 0 ? '#eff6ff' : '#f8fafc',
+                    background: count > 0 ? themeColors.secondaryLighter : '#f8fafc',
                     borderRadius: '10px',
                     cursor: 'pointer',
                     border: count > 0 ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
                     transition: 'all 0.2s'
                   }}
                 >
-                  <div style={{fontSize: '20px', fontWeight: '700', color: count > 0 ? '#3b82f6' : '#94a3b8'}}>{count}</div>
+                  <div style={{fontSize: '20px', fontWeight: '700', color: count > 0 ? themeColors.secondary : '#94a3b8'}}>{count}</div>
                   <div style={{fontSize: '12px', color: '#64748b', marginTop: '4px'}}>{parent}</div>
                 </div>
               );
@@ -4697,7 +4711,7 @@ const PracticeManagementApp = () => {
                         </label>
                         <button
                           onClick={selectAllSubPeriods}
-                          style={{fontSize: '12px', color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer'}}
+                          style={{fontSize: '12px', color: themeColors.secondary, background: 'none', border: 'none', cursor: 'pointer'}}
                         >
                           {recurringData.subPeriods.length === getSubPeriodOptions(recurringData.period).length ? 'Deselect All' : 'Select All'}
                         </button>
@@ -4963,7 +4977,7 @@ const PracticeManagementApp = () => {
                         <label style={{
                           display: 'inline-block',
                           padding: '10px 20px',
-                          background: '#3b82f6',
+                          background: themeColors.secondary,
                           color: '#fff',
                           borderRadius: '6px',
                           cursor: 'pointer',
@@ -5232,7 +5246,7 @@ const PracticeManagementApp = () => {
             <div 
               onClick={() => setActiveStatusFilter(activeStatusFilter === 'InProgress' ? '' : 'InProgress')}
               style={{
-                background: activeStatusFilter === 'InProgress' ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
+                background: activeStatusFilter === 'InProgress' ? themeColors.secondaryGradient : themeColors.secondaryLight,
                 color: activeStatusFilter === 'InProgress' ? '#fff' : '#1e40af',
                 padding: '8px 12px',
                 borderRadius: '10px',
@@ -5406,11 +5420,11 @@ const PracticeManagementApp = () => {
                   ))}
                 </tr>
                 <tr style={{background: themeColors.primaryLight}}>
-                  <th style={{padding: '4px 8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, fontSize: '8px'}}></th>
+                  <th style={{padding: '4px 8px', border: `1px solid ${themeColors.border}`, fontSize: '8px'}}></th>
                   {years.map(fy => (
                     <React.Fragment key={fy}>
-                      <th style={{padding: '4px 4px', textAlign: 'center', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, color: '#dc2626', fontWeight: '700', fontSize: '8px'}}>P</th>
-                      <th style={{padding: '4px 4px', textAlign: 'center', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, color: '#16a34a', fontWeight: '700', fontSize: '8px'}}>D</th>
+                      <th style={{padding: '4px 4px', textAlign: 'center', border: `1px solid ${themeColors.border}`, color: '#dc2626', fontWeight: '700', fontSize: '8px'}}>P</th>
+                      <th style={{padding: '4px 4px', textAlign: 'center', border: `1px solid ${themeColors.border}`, color: '#16a34a', fontWeight: '700', fontSize: '8px'}}>D</th>
                     </React.Fragment>
                   ))}
                 </tr>
@@ -5489,7 +5503,7 @@ const PracticeManagementApp = () => {
             
             {/* Bulk Action Buttons - Show when tasks are selected */}
             {selectedTasks.length > 0 && (
-              <div style={{display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: themeColors.primaryLighter, borderRadius: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: themeColors.primaryLighter, borderRadius: '8px', border: `1px solid ${themeColors.border}`}}>
                 <span style={{fontSize: '13px', fontWeight: '500', color: '#166534'}}>
                   {selectedTasks.length} task{selectedTasks.length > 1 ? 's' : ''} selected
                 </span>
@@ -5497,7 +5511,7 @@ const PracticeManagementApp = () => {
                   onClick={() => setShowBulkUpdateModal(true)}
                   style={{
                     padding: '6px 12px',
-                    background: '#3b82f6',
+                    background: themeColors.secondary,
                     color: '#fff',
                     border: 'none',
                     borderRadius: '6px',
@@ -6253,7 +6267,7 @@ const PracticeManagementApp = () => {
                         
                         {/* New Group Info inline */}
                         {clientData.groupMode === 'new' && (
-                          <span style={{padding: '8px 14px', background: themeColors.primaryLighter, borderRadius: '6px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, fontSize: '12px', color: '#166534'}}>
+                          <span style={{padding: '8px 14px', background: themeColors.primaryLighter, borderRadius: '6px', border: `1px solid ${themeColors.border}`, fontSize: '12px', color: '#166534'}}>
                             <strong>New Group No.: {getNextNewGroup()}</strong>
                           </span>
                         )}
@@ -7012,7 +7026,7 @@ const PracticeManagementApp = () => {
                                     link.click();
                                     document.body.removeChild(link);
                                   }}
-                                  style={{padding: '4px 8px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '3px'}}
+                                  style={{padding: '4px 8px', background: themeColors.secondary, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '3px'}}
                                 >
                                   <Download size={12} /> Download
                                 </button>
@@ -7638,7 +7652,7 @@ const PracticeManagementApp = () => {
                                 className="edit-icon-btn" 
                                 onClick={() => { setViewingClient(client); setClientViewTab('basic'); }}
                                 title="View Details"
-                                style={{background: '#3b82f6', color: '#fff', padding: '4px', borderRadius: '4px', border: 'none', cursor: 'pointer'}}
+                                style={{background: themeColors.secondary, color: '#fff', padding: '4px', borderRadius: '4px', border: 'none', cursor: 'pointer'}}
                               >
                                 <Eye size={14} />
                               </button>
@@ -7713,7 +7727,7 @@ const PracticeManagementApp = () => {
                               <div style={{display: 'flex', gap: '8px'}}>
                                 <button 
                                   onClick={() => setViewingClient(client)}
-                                  style={{padding: '5px 10px', fontSize: '13px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'}}
+                                  style={{padding: '5px 10px', fontSize: '13px', background: themeColors.secondary, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'}}
                                 >
                                   <Eye size={12} /> View
                                 </button>
@@ -7926,7 +7940,7 @@ const PracticeManagementApp = () => {
                       {/* Basic Info Section */}
                       <div style={{marginBottom: '24px'}}>
                         <h3 style={{fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                          <span style={{width: '4px', height: '18px', background: '#3b82f6', borderRadius: '2px'}}></span>
+                          <span style={{width: '4px', height: '18px', background: themeColors.secondary, borderRadius: '2px'}}></span>
                           Basic Information
                         </h3>
                         <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px'}}>
@@ -8021,7 +8035,7 @@ const PracticeManagementApp = () => {
                   {clientViewTab === 'credentials' && (
                     <div>
                       <h3 style={{fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                        <span style={{width: '4px', height: '18px', background: '#3b82f6', borderRadius: '2px'}}></span>
+                        <span style={{width: '4px', height: '18px', background: themeColors.secondary, borderRadius: '2px'}}></span>
                         Portal Credentials
                       </h3>
                       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -8093,7 +8107,7 @@ const PracticeManagementApp = () => {
                         )}
                         {viewingClient.secondaryOwner?.name && (
                           <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px' }}>
-                            <div style={{ fontSize: '12px', color: '#3b82f6', fontWeight: '600', marginBottom: '8px' }}>SECONDARY OWNER</div>
+                            <div style={{ fontSize: '12px', color: themeColors.secondary, fontWeight: '600', marginBottom: '8px' }}>SECONDARY OWNER</div>
                             <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>{viewingClient.secondaryOwner.name}</div>
                             {viewingClient.secondaryOwner.contact1 && <div style={{ fontSize: '13px', color: '#64748b' }}>📞 {viewingClient.secondaryOwner.contact1}</div>}
                             {viewingClient.secondaryOwner.email1 && <div style={{ fontSize: '13px', color: '#64748b' }}>Email:  {viewingClient.secondaryOwner.email1}</div>}
@@ -8142,7 +8156,7 @@ const PracticeManagementApp = () => {
                               <td style={{ padding: '12px' }}>{fee.childTask || '-'}</td>
                               <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: themeColors.primary }}>₹{parseFloat(fee.fee || 0).toLocaleString('en-IN')}</td>
                               <td style={{ padding: '12px', textAlign: 'center' }}>
-                                <span style={{ padding: '4px 10px', background: '#dbeafe', color: '#1d4ed8', borderRadius: '12px', fontSize: '12px' }}>
+                                <span style={{ padding: '4px 10px', background: themeColors.secondaryLight, color: themeColors.secondaryDark, borderRadius: '12px', fontSize: '12px' }}>
                                   {fee.frequency || '-'}
                                 </span>
                               </td>
@@ -8211,7 +8225,7 @@ const PracticeManagementApp = () => {
                                         link.click();
                                         document.body.removeChild(link);
                                       }}
-                                      style={{padding: '4px 8px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '3px'}}
+                                      style={{padding: '4px 8px', background: themeColors.secondary, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '3px'}}
                                     >
                                       <Download size={12} /> Download
                                     </button>
@@ -8251,8 +8265,8 @@ const PracticeManagementApp = () => {
                           const totalBilled = data.invoices?.filter(inv => inv.clientId === viewingClient.id).reduce((sum, inv) => sum + (parseFloat(inv.totalAmount) || 0), 0) || 0;
                           return (
                             <>
-                              <div style={{background: '#eff6ff', padding: '16px', borderRadius: '8px', textAlign: 'center'}}>
-                                <div style={{fontSize: '24px', fontWeight: '700', color: '#3b82f6'}}>{clientTasks.length}</div>
+                              <div style={{background: themeColors.secondaryLighter, padding: '16px', borderRadius: '8px', textAlign: 'center'}}>
+                                <div style={{fontSize: '24px', fontWeight: '700', color: themeColors.secondary}}>{clientTasks.length}</div>
                                 <div style={{fontSize: '13px', color: '#64748b', marginTop: '4px'}}>Total Tasks</div>
                               </div>
                               <div style={{background: '#fef3c7', padding: '16px', borderRadius: '8px', textAlign: 'center'}}>
@@ -9060,7 +9074,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     padding: '14px 24px',
                     background: activePermissionTab === tab.id ? '#fff' : 'transparent',
                     border: 'none',
-                    borderBottom: activePermissionTab === tab.id ? '3px solid #3b82f6' : '3px solid transparent',
+                    borderBottom: activePermissionTab === tab.id ? `3px solid ${themeColors.secondary}` : '3px solid transparent',
                     cursor: 'pointer',
                     fontWeight: activePermissionTab === tab.id ? '600' : '500',
                     color: activePermissionTab === tab.id ? '#1e293b' : '#64748b',
@@ -9119,7 +9133,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 e.stopPropagation();
                                 toggleParentAndChildren(menuId, menu);
                               }} 
-                              style={{width: '20px', height: '20px', cursor: 'pointer', accentColor: '#3b82f6'}} 
+                              style={{width: '20px', height: '20px', cursor: 'pointer', accentColor: themeColors.secondary}} 
                             />
                           </td>
                         </tr>
@@ -9136,7 +9150,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                   e.stopPropagation();
                                   togglePermission(sub.id);
                                 }} 
-                                style={{width: '18px', height: '18px', cursor: 'pointer', accentColor: '#3b82f6'}} 
+                                style={{width: '18px', height: '18px', cursor: 'pointer', accentColor: themeColors.secondary}} 
                               />
                             </td>
                           </tr>
@@ -9159,7 +9173,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     });
                     return (
                       <div key={parent} style={{marginBottom: '16px', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden'}}>
-                        <div style={{padding: '12px 16px', background: themeColors.primaryLighter, borderBottom: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                        <div style={{padding: '12px 16px', background: themeColors.primaryLighter, borderBottom: `1px solid ${themeColors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
                           <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
                             <input
                               type="checkbox"
@@ -9191,7 +9205,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                     e.stopPropagation();
                                     togglePermission(childId);
                                   }} 
-                                  style={{width: '16px', height: '16px', cursor: 'pointer', accentColor: '#3b82f6'}} 
+                                  style={{width: '16px', height: '16px', cursor: 'pointer', accentColor: themeColors.secondary}} 
                                 />
                                 <span style={{fontSize: '13px', color: '#475569'}}>{child}</span>
                               </div>
@@ -9250,7 +9264,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 e.stopPropagation();
                                 togglePermission(`perm_${perm.id}`);
                               }} 
-                              style={{width: '18px', height: '18px', cursor: 'pointer', accentColor: '#3b82f6'}} 
+                              style={{width: '18px', height: '18px', cursor: 'pointer', accentColor: themeColors.secondary}} 
                             />
                           </td>
                         </tr>
@@ -9286,7 +9300,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         width: '40px',
                         height: '40px',
                         borderRadius: '10px',
-                        background: role === 'Admin' ? '#fef3c7' : role === 'Manager' ? '#dbeafe' : role === 'Reporting Manager' ? themeColors.primaryLight : role === 'Team Lead' ? '#fce7f3' : '#f1f5f9',
+                        background: role === 'Admin' ? '#fef3c7' : role === 'Manager' ? themeColors.secondaryLight : role === 'Reporting Manager' ? themeColors.primaryLight : role === 'Team Lead' ? '#fce7f3' : '#f1f5f9',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -9303,7 +9317,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     </div>
                     <button
                       onClick={() => alert(`Configure ${role} default permissions - Coming Soon`)}
-                      style={{width: '100%', padding: '10px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', color: '#3b82f6'}}
+                      style={{width: '100%', padding: '10px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', color: themeColors.secondary}}
                     >
                       Configure Defaults
                     </button>
@@ -9984,30 +9998,30 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               )}
 
               {/* Info Bar - Green Theme */}
-              <div style={{display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '12px', marginBottom: '20px', padding: '16px', background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '10px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '12px', marginBottom: '20px', padding: '16px', background: themeColors.primaryLighter, borderRadius: '10px', border: `1px solid ${themeColors.border}`}}>
                 <div>
                   <label style={{fontSize: '12px', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '4px', textTransform: 'uppercase'}}>Status</label>
                   <select value={attendanceStatus} onChange={(e) => setAttendanceStatus(e.target.value)}
-                    style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, borderRadius: '6px', fontSize: '12px', fontWeight: '600', background: attendanceStatus === 'Present' ? themeColors.primaryLight : '#fee2e2', color: attendanceStatus === 'Present' ? '#166534' : '#dc2626'}}>
+                    style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px', fontWeight: '600', background: attendanceStatus === 'Present' ? themeColors.primaryLight : '#fee2e2', color: attendanceStatus === 'Present' ? '#166534' : '#dc2626'}}>
                     <option value="Present">Present</option>
                     <option value="Full Day Leave">Full Day Leave</option>
                   </select>
                 </div>
                 <div>
                   <label style={{fontSize: '12px', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '4px', textTransform: 'uppercase'}}>Employee</label>
-                  <div style={{padding: '8px', background: '#fff', borderRadius: '6px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '12px', fontWeight: '600', color: themeColors.primary}}>{selectedEmployee}</div>
+                  <div style={{padding: '8px', background: '#fff', borderRadius: '6px', border: `1px solid ${themeColors.border}`, fontSize: '12px', fontWeight: '600', color: themeColors.primary}}>{selectedEmployee}</div>
                 </div>
                 <div>
                   <label style={{fontSize: '12px', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '4px', textTransform: 'uppercase'}}>Date</label>
-                  <input type="date" value={timesheetDate} onChange={(e) => setTimesheetDate(e.target.value)} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}} />
+                  <input type="date" value={timesheetDate} onChange={(e) => setTimesheetDate(e.target.value)} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}} />
                 </div>
                 <div>
                   <label style={{fontSize: '12px', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '4px', textTransform: 'uppercase'}}>Min. Hours</label>
-                  <div style={{padding: '8px', background: '#fff', borderRadius: '6px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '12px', fontWeight: '600', color: '#64748b'}}>{MINIMUM_HOURS} Hrs</div>
+                  <div style={{padding: '8px', background: '#fff', borderRadius: '6px', border: `1px solid ${themeColors.border}`, fontSize: '12px', fontWeight: '600', color: '#64748b'}}>{MINIMUM_HOURS} Hrs</div>
                 </div>
                 <div>
                   <label style={{fontSize: '12px', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '4px', textTransform: 'uppercase'}}>Posted</label>
-                  <div style={{padding: '8px', background: '#3b82f6', borderRadius: '6px', fontSize: '12px', fontWeight: '700', color: '#fff', textAlign: 'center'}}>{totalHoursPosted.toFixed(2)} Hrs</div>
+                  <div style={{padding: '8px', background: themeColors.secondary, borderRadius: '6px', fontSize: '12px', fontWeight: '700', color: '#fff', textAlign: 'center'}}>{totalHoursPosted.toFixed(2)} Hrs</div>
                 </div>
                 <div>
                   <label style={{fontSize: '12px', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '4px', textTransform: 'uppercase'}}>Billable</label>
@@ -10059,7 +10073,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                   style={{padding: '6px 8px', border: hasOverlapError ? '2px solid #ef4444' : '1px solid #e2e8f0', borderRadius: '4px', fontSize: '12px', width: '100%'}}
                                   onChange={(e) => handleTimeChange(entry.id, 'endTime', e.target.value)} />
                               </td>
-                              <td style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', color: hasOverlapError ? '#ef4444' : '#3b82f6'}}>
+                              <td style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', color: hasOverlapError ? '#ef4444' : themeColors.secondary}}>
                                 {totalTime > 0 ? totalTime.toFixed(2) : '-'}
                                 {hasOverlapError && <div style={{fontSize: '11px', color: '#ef4444', fontWeight: '700'}}>OVERLAP</div>}
                               </td>
@@ -10129,7 +10143,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 <button 
                                   onClick={() => openDescriptionDialog(entry.id, entry.description)}
                                   title={entry.description || 'Add description'}
-                                  style={{padding: '5px 10px', background: entry.description ? '#dbeafe' : '#f1f5f9', color: entry.description ? '#1d4ed8' : '#64748b', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center', width: '100%'}}
+                                  style={{padding: '5px 10px', background: entry.description ? themeColors.secondaryLight : '#f1f5f9', color: entry.description ? themeColors.secondaryDark : '#64748b', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center', width: '100%'}}
                                 >
                                   {entry.description ? (
                                     <><MessageSquare size={10} /> {entry.description.length > 10 ? entry.description.substring(0, 10) + '...' : entry.description}</>
@@ -10195,14 +10209,14 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           {activeTab === 'view' && !viewingTimesheet && (
             <div style={{padding: '16px'}}>
               {/* Filters */}
-              <div style={{display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '12px', padding: '10px 14px', background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
+              <div style={{display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '12px', padding: '10px 14px', background: themeColors.primaryLighter, borderRadius: '8px', border: `1px solid ${themeColors.border}`}}>
                 <div>
                   <label style={{fontSize: '12px', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '3px', textTransform: 'uppercase'}}>Employee</label>
-                  <div style={{padding: '6px 12px', background: '#fff', borderRadius: '5px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '12px', fontWeight: '600', color: '#374151'}}>{viewEmployee}</div>
+                  <div style={{padding: '6px 12px', background: '#fff', borderRadius: '5px', border: `1px solid ${themeColors.border}`, fontSize: '12px', fontWeight: '600', color: '#374151'}}>{viewEmployee}</div>
                 </div>
                 <div>
                   <label style={{fontSize: '12px', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '3px', textTransform: 'uppercase'}}>Month</label>
-                  <input type="month" value={viewMonth} onChange={(e) => setViewMonth(e.target.value)} style={{padding: '6px 10px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, borderRadius: '5px', fontSize: '12px', background: '#fff'}} />
+                  <input type="month" value={viewMonth} onChange={(e) => setViewMonth(e.target.value)} style={{padding: '6px 10px', border: `1px solid ${themeColors.border}`, borderRadius: '5px', fontSize: '12px', background: '#fff'}} />
                 </div>
               </div>
 
@@ -10264,7 +10278,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             <td style={{padding: '6px 4px', textAlign: 'center'}}>
                               {ts ? (
                                 <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
-                                  <button onClick={() => setViewingTimesheet(ts)} style={{padding: '3px 8px', background: '#dbeafe', color: '#1d4ed8', border: 'none', borderRadius: '3px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>View</button>
+                                  <button onClick={() => setViewingTimesheet(ts)} style={{padding: '3px 8px', background: themeColors.secondaryLight, color: themeColors.secondaryDark, border: 'none', borderRadius: '3px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>View</button>
                                   <button onClick={() => handleEditFromView(ts)} style={{padding: '3px 8px', background: '#fef3c7', color: '#92400e', border: 'none', borderRadius: '3px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>Edit</button>
                                 </div>
                               ) : (
@@ -10279,7 +10293,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 </div>
                 
                 {/* Summary Row */}
-                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr', background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderTop: `2px solid ${themeColors.primary}`, padding: '8px 0'}}>
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr', background: themeColors.primaryLighter, borderTop: `2px solid ${themeColors.primary}`, padding: '8px 0'}}>
                   <div style={{textAlign: 'center', fontSize: '13px', fontWeight: '700', color: '#166534', gridColumn: 'span 3'}}>Monthly Total</div>
                   <div style={{textAlign: 'center', fontSize: '13px', fontWeight: '700', color: '#374151'}}>{daysInMonth.reduce((sum, d) => sum + (getTimesheetForDate(d.date)?.billableHours || 0), 0).toFixed(1)}</div>
                   <div style={{textAlign: 'center', fontSize: '13px', fontWeight: '700', color: '#374151'}}>{daysInMonth.reduce((sum, d) => sum + (getTimesheetForDate(d.date)?.nonBillableHours || 0), 0).toFixed(1)}</div>
@@ -10303,8 +10317,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           {activeTab === 'view' && viewingTimesheet && (
             <div style={{padding: '20px'}}>
               {/* Header */}
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: '12px 16px', background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '10px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
-                <button onClick={() => setViewingTimesheet(null)} style={{padding: '6px 12px', background: '#fff', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, borderRadius: '6px', fontSize: '12px', fontWeight: '500', color: '#166534', cursor: 'pointer'}}>← Back</button>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: '12px 16px', background: themeColors.primaryLighter, borderRadius: '10px', border: `1px solid ${themeColors.border}`}}>
+                <button onClick={() => setViewingTimesheet(null)} style={{padding: '6px 12px', background: '#fff', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px', fontWeight: '500', color: '#166534', cursor: 'pointer'}}>← Back</button>
                 <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#166534'}}>📅 Timesheet: {viewingTimesheet.date}</h3>
                 <button onClick={() => handleEditFromView(viewingTimesheet)} style={{padding: '6px 12px', background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '6px', fontSize: '12px', fontWeight: '500', color: '#92400e', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'}}>
                   <Edit size={12} /> Edit
@@ -10324,7 +10338,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     color: viewingTimesheet.attendanceStatus === 'Present' ? '#166534' : '#dc2626'
                   }}>{viewingTimesheet.attendanceStatus}</span>
                 </div>
-                <div style={{background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', borderRadius: '8px', padding: '12px', textAlign: 'center', color: '#fff'}}>
+                <div style={{background: themeColors.secondaryGradient, borderRadius: '8px', padding: '12px', textAlign: 'center', color: '#fff'}}>
                   <div style={{fontSize: '12px', opacity: 0.9, fontWeight: '500', marginBottom: '4px'}}>Total</div>
                   <div style={{fontSize: '18px', fontWeight: '700'}}>{viewingTimesheet.totalHours?.toFixed(2) || 0} Hrs</div>
                 </div>
@@ -10362,7 +10376,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         <tr key={idx} style={{borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#fafafa'}}>
                           <td style={{padding: '10px', textAlign: 'center', fontWeight: '500'}}>{entry.startTime}</td>
                           <td style={{padding: '10px', textAlign: 'center', fontWeight: '500'}}>{entry.endTime}</td>
-                          <td style={{padding: '10px', textAlign: 'center', fontWeight: '700', color: '#3b82f6'}}>{calculateTotalTime(entry.startTime, entry.endTime).toFixed(2)}</td>
+                          <td style={{padding: '10px', textAlign: 'center', fontWeight: '700', color: themeColors.secondary}}>{calculateTotalTime(entry.startTime, entry.endTime).toFixed(2)}</td>
                           <td style={{padding: '10px', textAlign: 'center'}}>
                             <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '12px', fontWeight: '600', 
                               background: entry.type === 'Billable' ? themeColors.primaryLight : '#fef3c7',
@@ -10375,7 +10389,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             {entry.description ? (
                               <button 
                                 onClick={() => openViewDescriptionDialog(entry.description, entry.startTime, entry.endTime)}
-                                style={{padding: '4px 8px', background: '#dbeafe', color: '#1d4ed8', border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'}}
+                                style={{padding: '4px 8px', background: themeColors.secondaryLight, color: themeColors.secondaryDark, border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'}}
                               >
                                 <Eye size={10} /> {entry.description.length > 15 ? entry.description.substring(0, 15) + '...' : entry.description}
                               </button>
@@ -10435,7 +10449,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           {viewDescriptionDialog.open && (
             <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center'}} onClick={() => setViewDescriptionDialog({ open: false, value: '', startTime: '', endTime: '' })}>
               <div style={{background: '#fff', borderRadius: '12px', width: '500px', maxWidth: '90%', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'}} onClick={(e) => e.stopPropagation()}>
-                <div style={{padding: '16px 20px', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <div style={{padding: '16px 20px', background: themeColors.secondaryGradient, color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                   <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}><MessageSquare size={16} /> Work Description</h3>
                   <button onClick={() => setViewDescriptionDialog({ open: false, value: '', startTime: '', endTime: '' })} style={{background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '4px', padding: '4px 8px', color: '#fff', cursor: 'pointer'}}><X size={16} /></button>
                 </div>
@@ -10450,7 +10464,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <div style={{fontSize: '13px', color: '#64748b', marginTop: '8px', textAlign: 'right'}}>{viewDescriptionDialog.value.length} characters</div>
                 </div>
                 <div style={{padding: '12px 20px', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0'}}>
-                  <button onClick={() => setViewDescriptionDialog({ open: false, value: '', startTime: '', endTime: '' })} style={{padding: '8px 20px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>Close</button>
+                  <button onClick={() => setViewDescriptionDialog({ open: false, value: '', startTime: '', endTime: '' })} style={{padding: '8px 20px', background: themeColors.secondary, color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>Close</button>
                 </div>
               </div>
             </div>
@@ -10716,11 +10730,11 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
 
         {/* Summary Cards - Pastel Colors */}
         <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '20px'}}>
-          <div style={{background: '#dbeafe', borderRadius: '10px', padding: '16px', border: '1px solid #93c5fd'}}>
+          <div style={{background: themeColors.secondaryLight, borderRadius: '10px', padding: '16px', border: '1px solid #93c5fd'}}>
             <div style={{fontSize: '13px', color: '#1e40af', fontWeight: '600'}}>Total Hours</div>
             <div style={{fontSize: '26px', fontWeight: '700', color: '#1e40af', marginTop: '4px'}}>{totalSummary.totalHours.toFixed(1)}</div>
           </div>
-          <div style={{background: themeColors.primaryLight, borderRadius: '10px', padding: '16px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
+          <div style={{background: themeColors.primaryLight, borderRadius: '10px', padding: '16px', border: `1px solid ${themeColors.border}`}}>
             <div style={{fontSize: '13px', color: '#166534', fontWeight: '600'}}>Billable Hours</div>
             <div style={{fontSize: '26px', fontWeight: '700', color: '#166534', marginTop: '4px'}}>{totalSummary.billableHours.toFixed(1)}</div>
           </div>
@@ -11177,7 +11191,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             <div style={{
               width: '100%',
               height: `${maxVal > 0 ? (item.value / maxVal) * 50 : 0}px`,
-              background: item.color || '#3b82f6',
+              background: item.color || themeColors.secondary,
               borderRadius: '4px 4px 0 0',
               minHeight: item.value > 0 ? '4px' : '0'
             }}></div>
@@ -11194,7 +11208,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       <div style={{padding: '24px', background: themeColors.primaryLighter, minHeight: '100vh'}}>
         
         {/* Report Tabs */}
-        <div style={{display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap', background: '#fff', padding: '14px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+        <div style={{display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap', background: '#fff', padding: '14px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: `1px solid ${themeColors.border}`}}>
           {reportTabs.map(tab => (
             <button
               key={tab.id}
@@ -11234,7 +11248,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     type="date" 
                     value={reportFilters.snapshotDate || new Date().toISOString().split('T')[0]} 
                     onChange={(e) => setReportFilters({...reportFilters, snapshotDate: e.target.value})} 
-                    style={{padding: '8px 12px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px'}} 
+                    style={{padding: '8px 12px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px'}} 
                   />
                   <button 
                     onClick={() => setReportFilters({...reportFilters, snapshotDate: new Date().toISOString().split('T')[0]})}
@@ -11325,8 +11339,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 <>
                   {/* Summary Cards */}
                   <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '24px'}}>
-                    <div style={{background: 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #bfdbfe'}}>
-                      <div style={{fontSize: '13px', color: '#3b82f6', fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px'}}>📋 Tasks Created</div>
+                    <div style={{background: themeColors.secondaryLight, borderRadius: '12px', padding: '20px', border: '1px solid #bfdbfe'}}>
+                      <div style={{fontSize: '13px', color: themeColors.secondary, fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px'}}>📋 Tasks Created</div>
                       <div style={{fontSize: '32px', fontWeight: '700', color: '#1e40af'}}>{tasksCreated.length}</div>
                       <div style={{fontSize: '13px', color: '#64748b', marginTop: '4px'}}>{tasksCompleted.length} completed</div>
                     </div>
@@ -11340,7 +11354,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       <div style={{fontSize: '32px', fontWeight: '700', color: '#7c3aed'}}>{clientsCreated.length}</div>
                       <div style={{fontSize: '13px', color: '#64748b', marginTop: '4px'}}>{clientsDisabled.length} disabled</div>
                     </div>
-                    <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '12px', padding: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+                    <div style={{background: themeColors.primaryLight, borderRadius: '12px', padding: '20px', border: `1px solid ${themeColors.border}`}}>
                       <div style={{fontSize: '13px', color: '#16a34a', fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px'}}>📄 Billing</div>
                       <div style={{fontSize: '32px', fontWeight: '700', color: '#166534'}}>{invoicesCreated.length}</div>
                       <div style={{fontSize: '13px', color: '#16a34a', marginTop: '4px'}}>₹{totalInvoiceAmount.toLocaleString('en-IN')}</div>
@@ -11433,7 +11447,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                     <td style={{padding: '8px', border: '1px solid #fecaca', color: '#374151'}}>{task.deletedBy || '-'}</td>
                                     <td style={{padding: '8px', border: '1px solid #fecaca', textAlign: 'center'}}>
                                       <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
-                                        <button onClick={() => { setSelectedTask({...task, deleted: false}); setShowTaskManageModal(true); }} title="View Task" style={{padding: '4px', background: 'transparent', color: '#3b82f6', border: 'none', cursor: 'pointer'}}><Eye size={14} /></button>
+                                        <button onClick={() => { setSelectedTask({...task, deleted: false}); setShowTaskManageModal(true); }} title="View Task" style={{padding: '4px', background: 'transparent', color: themeColors.secondary, border: 'none', cursor: 'pointer'}}><Eye size={14} /></button>
                                         <button onClick={() => {
                                           if (window.confirm('Are you sure you want to restore this task?')) {
                                             setData(prev => ({
@@ -11459,7 +11473,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   {/* Row 2 - Tasks Completed */}
                   <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px'}}>
                     {/* Tasks Completed */}
-                    <div style={{background: '#fff', borderRadius: '10px', padding: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+                    <div style={{background: '#fff', borderRadius: '10px', padding: '20px', border: `1px solid ${themeColors.border}`, boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
                       <h3 style={{margin: '0 0 16px', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', color: '#166534'}}>
                         <span style={{width: '10px', height: '10px', background: themeColors.primary, borderRadius: '50%'}}></span>
                         Tasks Completed ({tasksCompleted.length})
@@ -11645,11 +11659,11 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         Quick Stats
                       </h3>
                       <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
-                        <div style={{padding: '12px', background: 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)', borderRadius: '8px', textAlign: 'center', border: '1px solid #bfdbfe'}}>
-                          <div style={{fontSize: '20px', fontWeight: '700', color: '#1d4ed8'}}>{allTasks.length}</div>
-                          <div style={{fontSize: '12px', color: '#3b82f6', fontWeight: '500'}}>Total Tasks</div>
+                        <div style={{padding: '12px', background: themeColors.secondaryLight, borderRadius: '8px', textAlign: 'center', border: '1px solid #bfdbfe'}}>
+                          <div style={{fontSize: '20px', fontWeight: '700', color: themeColors.secondaryDark}}>{allTasks.length}</div>
+                          <div style={{fontSize: '12px', color: themeColors.secondary, fontWeight: '500'}}>Total Tasks</div>
                         </div>
-                        <div style={{padding: '12px', background: appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '8px', textAlign: 'center', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+                        <div style={{padding: '12px', background: themeColors.primaryLight, borderRadius: '8px', textAlign: 'center', border: `1px solid ${themeColors.border}`}}>
                           <div style={{fontSize: '20px', fontWeight: '700', color: '#166534'}}>{allTasks.filter(t => t.status === 'Completed' || t.completedCheck).length}</div>
                           <div style={{fontSize: '12px', color: '#16a34a', fontWeight: '500'}}>Completed</div>
                         </div>
@@ -11689,22 +11703,22 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '12px'}}>
                 <div>
                   <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Date From</label>
-                  <input type="date" value={reportFilters.dateFrom} onChange={(e) => setReportFilters({...reportFilters, dateFrom: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px'}} />
+                  <input type="date" value={reportFilters.dateFrom} onChange={(e) => setReportFilters({...reportFilters, dateFrom: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px'}} />
                 </div>
                 <div>
                   <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Date To</label>
-                  <input type="date" value={reportFilters.dateTo} onChange={(e) => setReportFilters({...reportFilters, dateTo: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px'}} />
+                  <input type="date" value={reportFilters.dateTo} onChange={(e) => setReportFilters({...reportFilters, dateTo: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px'}} />
                 </div>
                 <div>
                   <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Client</label>
-                  <select value={reportFilters.client} onChange={(e) => setReportFilters({...reportFilters, client: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px'}}>
+                  <select value={reportFilters.client} onChange={(e) => setReportFilters({...reportFilters, client: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px'}}>
                     <option value="">All Clients</option>
                     {uniqueClients.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div>
                   <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Parent Task</label>
-                  <select value={reportFilters.parentTask} onChange={(e) => setReportFilters({...reportFilters, parentTask: e.target.value, childTask: ''})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px'}}>
+                  <select value={reportFilters.parentTask} onChange={(e) => setReportFilters({...reportFilters, parentTask: e.target.value, childTask: ''})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px'}}>
                     <option value="">All Parent Tasks</option>
                     {uniqueParentTasks.map(p => <option key={p} value={p}>{p}</option>)}
                   </select>
@@ -11713,14 +11727,14 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px'}}>
                 <div>
                   <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Child Task</label>
-                  <select value={reportFilters.childTask} onChange={(e) => setReportFilters({...reportFilters, childTask: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px'}}>
+                  <select value={reportFilters.childTask} onChange={(e) => setReportFilters({...reportFilters, childTask: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px'}}>
                     <option value="">All Child Tasks</option>
                     {(reportFilters.parentTask ? (PARENT_CHILD_TASKS[reportFilters.parentTask] || []) : [...new Set(data.tasks.map(t => t.childTask).filter(Boolean))]).map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div>
                   <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Manager</label>
-                  <select value={reportFilters.reportingManager} onChange={(e) => setReportFilters({...reportFilters, reportingManager: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px'}}>
+                  <select value={reportFilters.reportingManager} onChange={(e) => setReportFilters({...reportFilters, reportingManager: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px'}}>
                     <option value="">All Managers</option>
                     {[...new Set([
                       ...data.staff.filter(s => s.role === 'Manager' || s.role === 'Partner' || s.role === 'Superadmin').map(s => s.name),
@@ -11730,7 +11744,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 </div>
                 <div>
                   <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Billing Status</label>
-                  <select value={reportFilters.billingStatus || ''} onChange={(e) => setReportFilters({...reportFilters, billingStatus: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px'}}>
+                  <select value={reportFilters.billingStatus || ''} onChange={(e) => setReportFilters({...reportFilters, billingStatus: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px'}}>
                     <option value="">All</option>
                     <option value="Billed">Billed</option>
                     <option value="Unbilled">Unbilled</option>
@@ -11738,7 +11752,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 </div>
                 <div>
                   <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Status</label>
-                  <select value={reportFilters.status} onChange={(e) => setReportFilters({...reportFilters, status: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px'}}>
+                  <select value={reportFilters.status} onChange={(e) => setReportFilters({...reportFilters, status: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px'}}>
                     <option value="">All Status</option>
                     <option value="Open">Open</option>
                     <option value="In Progress">In Progress</option>
@@ -11752,18 +11766,18 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '20px'}}>
               <div 
                 onClick={() => setReportFilters({...reportFilters, taskCardFilter: reportFilters.taskCardFilter === 'total' ? '' : 'total'})}
-                style={{background: reportFilters.taskCardFilter === 'total' ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)', borderRadius: '10px', padding: '16px', border: reportFilters.taskCardFilter === 'total' ? '2px solid #1d4ed8' : '1px solid #bfdbfe', cursor: 'pointer', transition: 'all 0.2s', transform: reportFilters.taskCardFilter === 'total' ? 'scale(1.02)' : 'scale(1)'}}>
-                <div style={{fontSize: '28px', fontWeight: '700', color: reportFilters.taskCardFilter === 'total' ? '#fff' : '#1d4ed8'}}>{filteredTasks.filter(t => {
+                style={{background: reportFilters.taskCardFilter === 'total' ? themeColors.secondaryGradient : themeColors.secondaryLight, borderRadius: '10px', padding: '16px', border: reportFilters.taskCardFilter === 'total' ? '2px solid #1d4ed8' : '1px solid #bfdbfe', cursor: 'pointer', transition: 'all 0.2s', transform: reportFilters.taskCardFilter === 'total' ? 'scale(1.02)' : 'scale(1)'}}>
+                <div style={{fontSize: '28px', fontWeight: '700', color: reportFilters.taskCardFilter === 'total' ? '#fff' : themeColors.secondaryDark}}>{filteredTasks.filter(t => {
                   if (reportFilters.reportingManager && (t.taskManager !== reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager)) return false;
                   if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
                   if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
                   return true;
                 }).length}</div>
-                <div style={{fontSize: '12px', color: reportFilters.taskCardFilter === 'total' ? 'rgba(255,255,255,0.9)' : '#3b82f6', fontWeight: '500'}}>Total Tasks</div>
+                <div style={{fontSize: '12px', color: reportFilters.taskCardFilter === 'total' ? 'rgba(255,255,255,0.9)' : themeColors.secondary, fontWeight: '500'}}>Total Tasks</div>
               </div>
               <div 
                 onClick={() => setReportFilters({...reportFilters, taskCardFilter: reportFilters.taskCardFilter === 'completed' ? '' : 'completed'})}
-                style={{background: reportFilters.taskCardFilter === 'completed' ? themeColors.gradient : (appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)'), borderRadius: '10px', padding: '16px', border: reportFilters.taskCardFilter === 'completed' ? `2px solid ${themeColors.primaryDark}` : `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, cursor: 'pointer', transition: 'all 0.2s', transform: reportFilters.taskCardFilter === 'completed' ? 'scale(1.02)' : 'scale(1)'}}>
+                style={{background: reportFilters.taskCardFilter === 'completed' ? themeColors.gradient : (themeColors.primaryLight), borderRadius: '10px', padding: '16px', border: reportFilters.taskCardFilter === 'completed' ? `2px solid ${themeColors.primaryDark}` : `1px solid ${themeColors.border}`, cursor: 'pointer', transition: 'all 0.2s', transform: reportFilters.taskCardFilter === 'completed' ? 'scale(1.02)' : 'scale(1)'}}>
                 <div style={{fontSize: '28px', fontWeight: '700', color: reportFilters.taskCardFilter === 'completed' ? '#fff' : '#166534'}}>{filteredTasks.filter(t => {
                   if (reportFilters.reportingManager && (t.taskManager !== reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager)) return false;
                   if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
@@ -11863,12 +11877,12 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600', background: task.billed ? themeColors.primaryLight : '#fef3c7', color: task.billed ? '#166534' : '#92400e'}}>{task.billed ? 'Billed' : 'Unbilled'}</span>
                           </td>
                           <td style={{padding: '8px', border: `1px solid ${themeColors.primaryLight}`, textAlign: 'center'}}>
-                            <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600', background: task.status === 'Completed' || task.completedCheck ? themeColors.primaryLight : task.status === 'In Progress' ? '#fef3c7' : '#dbeafe', color: task.status === 'Completed' || task.completedCheck ? '#166534' : task.status === 'In Progress' ? '#92400e' : '#1d4ed8'}}>{task.status === 'Completed' || task.completedCheck ? 'Completed' : task.status === 'In Progress' ? 'In Progress' : 'Open'}</span>
+                            <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600', background: task.status === 'Completed' || task.completedCheck ? themeColors.primaryLight : task.status === 'In Progress' ? '#fef3c7' : themeColors.secondaryLight, color: task.status === 'Completed' || task.completedCheck ? '#166534' : task.status === 'In Progress' ? '#92400e' : themeColors.secondaryDark}}>{task.status === 'Completed' || task.completedCheck ? 'Completed' : task.status === 'In Progress' ? 'In Progress' : 'Open'}</span>
                           </td>
                           <td style={{padding: '8px', border: `1px solid ${themeColors.primaryLight}`, textAlign: 'center'}}>
                             <div style={{display: 'flex', gap: '2px', justifyContent: 'center'}}>
                               <button onClick={() => { setSelectedTask(task); setShowTaskManageModal(true); }} title="View" style={{padding: '3px', background: 'transparent', color: themeColors.primary, border: 'none', cursor: 'pointer'}}><Eye size={14} /></button>
-                              <button onClick={() => { setSelectedItem(task); setFormData(task); setModalType('tasks'); setShowModal(true); }} title="Edit" style={{padding: '3px', background: 'transparent', color: '#3b82f6', border: 'none', cursor: 'pointer'}}><Edit size={14} /></button>
+                              <button onClick={() => { setSelectedItem(task); setFormData(task); setModalType('tasks'); setShowModal(true); }} title="Edit" style={{padding: '3px', background: 'transparent', color: themeColors.secondary, border: 'none', cursor: 'pointer'}}><Edit size={14} /></button>
                               <button onClick={() => handleDeleteTask(task.id)} title={canDelete ? "Delete" : "Cannot delete - Task has billing/receipts or is not Open"} style={{padding: '3px', background: 'transparent', color: canDelete ? '#ef4444' : '#d1d5db', border: 'none', cursor: canDelete ? 'pointer' : 'not-allowed', opacity: canDelete ? 1 : 0.5}}><Trash2 size={14} /></button>
                             </div>
                           </td>
@@ -11890,7 +11904,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   if (new Date(t.dueDate.split('-').reverse().join('-')) >= today) return false;
                 }
                 return true;
-              }).length > 100 && <div style={{padding: '12px', textAlign: 'center', background: themeColors.primaryLighter, fontSize: '12px', color: '#166534', borderTop: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>Showing 100 of {filteredTasks.filter(t => {
+              }).length > 100 && <div style={{padding: '12px', textAlign: 'center', background: themeColors.primaryLighter, fontSize: '12px', color: '#166534', borderTop: `1px solid ${themeColors.border}`}}>Showing 100 of {filteredTasks.filter(t => {
                 if (reportFilters.reportingManager && (t.taskManager !== reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager)) return false;
                 if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
                 if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
@@ -11945,7 +11959,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     
                     return (
                       <>
-                        <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '12px', padding: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+                        <div style={{background: themeColors.primaryLight, borderRadius: '12px', padding: '20px', border: `1px solid ${themeColors.border}`}}>
                           <div style={{fontSize: '13px', color: '#16a34a', fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px'}}>🏆 Best Performer</div>
                           <div style={{fontSize: '18px', fontWeight: '700', color: '#166534'}}>{bestPerformer?.name || '-'}</div>
                           <div style={{fontSize: '12px', color: '#16a34a', marginTop: '4px'}}>{Math.round(bestPerformer?.completionRate || 0)}% completion</div>
@@ -11955,10 +11969,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           <div style={{fontSize: '18px', fontWeight: '700', color: '#b91c1c'}}>{lowPerformer?.name || '-'}</div>
                           <div style={{fontSize: '12px', color: '#dc2626', marginTop: '4px'}}>{Math.round(lowPerformer?.completionRate || 0)}% completion</div>
                         </div>
-                        <div style={{background: 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #bfdbfe'}}>
-                          <div style={{fontSize: '13px', color: '#3b82f6', fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px'}}>📋 Most Tasks</div>
+                        <div style={{background: themeColors.secondaryLight, borderRadius: '12px', padding: '20px', border: '1px solid #bfdbfe'}}>
+                          <div style={{fontSize: '13px', color: themeColors.secondary, fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px'}}>📋 Most Tasks</div>
                           <div style={{fontSize: '18px', fontWeight: '700', color: '#1e40af'}}>{mostTasks?.name || '-'}</div>
-                          <div style={{fontSize: '12px', color: '#3b82f6', marginTop: '4px'}}>{mostTasks?.tasks || 0} tasks</div>
+                          <div style={{fontSize: '12px', color: themeColors.secondary, marginTop: '4px'}}>{mostTasks?.tasks || 0} tasks</div>
                         </div>
                         <div style={{background: 'linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #fde68a'}}>
                           <div style={{fontSize: '13px', color: '#d97706', fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px'}}>🔴 Most Overdue</div>
@@ -12060,7 +12074,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 
                 {/* All Staff Performance Table - Green Theme */}
                 <div style={{background: '#fff', borderRadius: '10px', border: `1px solid ${themeColors.primary}`, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
-                  <div style={{padding: '16px 20px', borderBottom: `1px solid ${themeColors.primary}`, background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}}>
+                  <div style={{padding: '16px 20px', borderBottom: `1px solid ${themeColors.primary}`, background: themeColors.primaryLighter}}>
                     <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#166534'}}>👥 All Staff Performance</h3>
                   </div>
                   <div style={{maxHeight: '500px', overflowY: 'auto', overflowX: 'auto'}}>
@@ -12130,7 +12144,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             {reportFilters.staff && (
               <>
                 {/* Filters Bar - Green Theme */}
-                <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '12px', padding: '20px', marginBottom: '20px', border: `1px solid ${themeColors.primary}`}}>
+                <div style={{background: themeColors.primaryLighter, borderRadius: '12px', padding: '20px', marginBottom: '20px', border: `1px solid ${themeColors.primary}`}}>
                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
                     <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
                       <button onClick={() => setReportFilters({...reportFilters, staff: '', parentTask: '', childTask: ''})} style={{padding: '8px 16px', background: '#fff', border: `1px solid ${themeColors.primary}`, borderRadius: '6px', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', color: '#166534', fontWeight: '500'}}>← Back to Dashboard</button>
@@ -12155,21 +12169,21 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <div style={{display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px'}}>
                     <div>
                       <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Parent Task</label>
-                      <select value={reportFilters.parentTask} onChange={(e) => setReportFilters({...reportFilters, parentTask: e.target.value, childTask: ''})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
+                      <select value={reportFilters.parentTask} onChange={(e) => setReportFilters({...reportFilters, parentTask: e.target.value, childTask: ''})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
                         <option value="">All Parent Tasks</option>
                         {uniqueParentTasks.map(p => <option key={p} value={p}>{p}</option>)}
                       </select>
                     </div>
                     <div>
                       <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Child Task</label>
-                      <select value={reportFilters.childTask} onChange={(e) => setReportFilters({...reportFilters, childTask: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
+                      <select value={reportFilters.childTask} onChange={(e) => setReportFilters({...reportFilters, childTask: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
                         <option value="">All Child Tasks</option>
                         {(reportFilters.parentTask ? (PARENT_CHILD_TASKS[reportFilters.parentTask] || []) : [...new Set(data.tasks.map(t => t.childTask).filter(Boolean))]).map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
                     <div>
                       <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Status</label>
-                      <select value={reportFilters.status} onChange={(e) => setReportFilters({...reportFilters, status: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
+                      <select value={reportFilters.status} onChange={(e) => setReportFilters({...reportFilters, status: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
                         <option value="">All Status</option>
                         <option value="Open">Open</option>
                         <option value="In Progress">In Progress</option>
@@ -12178,20 +12192,20 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     </div>
                     <div>
                       <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Financial Year</label>
-                      <select value={reportFilters.financialYear} onChange={(e) => setReportFilters({...reportFilters, financialYear: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
+                      <select value={reportFilters.financialYear} onChange={(e) => setReportFilters({...reportFilters, financialYear: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
                         <option value="">All FY</option>
                         {uniqueFYs.map(fy => <option key={fy} value={fy}>{fy}</option>)}
                       </select>
                     </div>
                     <div>
                       <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Client</label>
-                      <select value={reportFilters.client} onChange={(e) => setReportFilters({...reportFilters, client: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
+                      <select value={reportFilters.client} onChange={(e) => setReportFilters({...reportFilters, client: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
                         <option value="">All Clients</option>
                         {uniqueClients.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
                     <div style={{display: 'flex', alignItems: 'flex-end'}}>
-                      <button onClick={() => setReportFilters({...reportFilters, parentTask: '', childTask: '', status: '', financialYear: '', client: ''})} style={{padding: '8px 14px', background: '#fff', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', color: '#166534'}}>Clear Filters</button>
+                      <button onClick={() => setReportFilters({...reportFilters, parentTask: '', childTask: '', status: '', financialYear: '', client: ''})} style={{padding: '8px 14px', background: '#fff', border: `1px solid ${themeColors.border}`, borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', color: '#166534'}}>Clear Filters</button>
                     </div>
                   </div>
                 </div>
@@ -12248,7 +12262,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                       <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600', background: task.billed ? themeColors.primaryLight : '#fef3c7', color: task.billed ? '#166534' : '#92400e'}}>{task.billed ? 'Billed' : 'Unbilled'}</span>
                                     </td>
                                     <td style={{padding: '8px', border: `1px solid ${themeColors.primaryLight}`, textAlign: 'center'}}>
-                                      <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600', background: task.status === 'Completed' || task.completedCheck ? themeColors.primaryLight : task.status === 'In Progress' ? '#fef3c7' : '#dbeafe', color: task.status === 'Completed' || task.completedCheck ? '#166534' : task.status === 'In Progress' ? '#92400e' : '#1d4ed8'}}>{task.status === 'Completed' || task.completedCheck ? 'Completed' : task.status === 'In Progress' ? 'In Progress' : 'Open'}</span>
+                                      <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600', background: task.status === 'Completed' || task.completedCheck ? themeColors.primaryLight : task.status === 'In Progress' ? '#fef3c7' : themeColors.secondaryLight, color: task.status === 'Completed' || task.completedCheck ? '#166534' : task.status === 'In Progress' ? '#92400e' : themeColors.secondaryDark}}>{task.status === 'Completed' || task.completedCheck ? 'Completed' : task.status === 'In Progress' ? 'In Progress' : 'Open'}</span>
                                     </td>
                                     <td style={{padding: '8px', border: `1px solid ${themeColors.primaryLight}`, textAlign: 'center'}}>
                                       <button onClick={() => { setSelectedTask(task); setShowTaskManageModal(true); }} title="View Task" style={{padding: '3px', background: 'transparent', color: themeColors.primary, border: 'none', cursor: 'pointer'}}><Eye size={14} /></button>
@@ -12299,12 +12313,12 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 <>
                   {/* Top KPI Cards */}
                   <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '20px'}}>
-                    <div style={{background: 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #bfdbfe'}}>
-                      <div style={{fontSize: '13px', color: '#3b82f6', fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px'}}>💰 Top Billed Client</div>
+                    <div style={{background: themeColors.secondaryLight, borderRadius: '12px', padding: '20px', border: '1px solid #bfdbfe'}}>
+                      <div style={{fontSize: '13px', color: themeColors.secondary, fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px'}}>💰 Top Billed Client</div>
                       <div style={{fontSize: '16px', fontWeight: '700', color: '#1e40af'}}>{topBilledClients[0]?.name || '-'}</div>
-                      <div style={{fontSize: '12px', color: '#3b82f6', marginTop: '4px'}}>₹{Math.round(topBilledClients[0]?.totalInvoiced || 0).toLocaleString('en-IN')}</div>
+                      <div style={{fontSize: '12px', color: themeColors.secondary, marginTop: '4px'}}>₹{Math.round(topBilledClients[0]?.totalInvoiced || 0).toLocaleString('en-IN')}</div>
                     </div>
-                    <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '12px', padding: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+                    <div style={{background: themeColors.primaryLight, borderRadius: '12px', padding: '20px', border: `1px solid ${themeColors.border}`}}>
                       <div style={{fontSize: '13px', color: '#16a34a', fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px'}}>🏆 Top Receipt</div>
                       <div style={{fontSize: '16px', fontWeight: '700', color: '#166534'}}>{topReceiptClients[0]?.name || '-'}</div>
                       <div style={{fontSize: '12px', color: '#16a34a', marginTop: '4px'}}>₹{Math.round(topReceiptClients[0]?.totalReceived || 0).toLocaleString('en-IN')}</div>
@@ -12334,7 +12348,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     </div>
                     <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: '1px solid #e2e8f0'}}>
                       <div style={{fontSize: '13px', color: '#64748b', marginBottom: '4px'}}>Total Invoiced</div>
-                      <div style={{fontSize: '20px', fontWeight: '700', color: '#3b82f6'}}>₹{totalBilled.toLocaleString('en-IN')}</div>
+                      <div style={{fontSize: '20px', fontWeight: '700', color: themeColors.secondary}}>₹{totalBilled.toLocaleString('en-IN')}</div>
                     </div>
                     <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: '1px solid #e2e8f0'}}>
                       <div style={{fontSize: '13px', color: '#64748b', marginBottom: '4px'}}>Total Received</div>
@@ -12451,35 +12465,35 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               <div style={{display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px'}}>
                 <div>
                   <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Financial Year</label>
-                  <select value={reportFilters.financialYear || ''} onChange={(e) => setReportFilters({...reportFilters, financialYear: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px'}}>
+                  <select value={reportFilters.financialYear || ''} onChange={(e) => setReportFilters({...reportFilters, financialYear: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px'}}>
                     <option value="">All FY</option>
                     {uniqueFYs.map(fy => <option key={fy} value={fy}>{fy}</option>)}
                   </select>
                 </div>
                 <div>
                   <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Client</label>
-                  <select value={reportFilters.client} onChange={(e) => setReportFilters({...reportFilters, client: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px'}}>
+                  <select value={reportFilters.client} onChange={(e) => setReportFilters({...reportFilters, client: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px'}}>
                     <option value="">All Clients</option>
                     {data.clients.filter(c => !c.disabled).sort((a, b) => a.name.localeCompare(b.name)).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                   </select>
                 </div>
                 <div>
                   <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Client Group</label>
-                  <select value={reportFilters.clientGroup || ''} onChange={(e) => setReportFilters({...reportFilters, clientGroup: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px'}}>
+                  <select value={reportFilters.clientGroup || ''} onChange={(e) => setReportFilters({...reportFilters, clientGroup: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px'}}>
                     <option value="">All Groups</option>
                     {[...new Set(data.clients.map(c => c.fileNo ? c.fileNo.split('.')[0] : '').filter(Boolean))].sort().map(g => <option key={g} value={g}>{g}</option>)}
                   </select>
                 </div>
                 <div>
                   <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Reporting Manager</label>
-                  <select value={reportFilters.reportingManager || ''} onChange={(e) => setReportFilters({...reportFilters, reportingManager: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px'}}>
+                  <select value={reportFilters.reportingManager || ''} onChange={(e) => setReportFilters({...reportFilters, reportingManager: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px'}}>
                     <option value="">All RMs</option>
                     {reportingManagers.map(rm => <option key={rm} value={rm}>{rm}</option>)}
                   </select>
                 </div>
                 <div>
                   <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Show Only</label>
-                  <select value={reportFilters.debtorFilter || ''} onChange={(e) => setReportFilters({...reportFilters, debtorFilter: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px'}}>
+                  <select value={reportFilters.debtorFilter || ''} onChange={(e) => setReportFilters({...reportFilters, debtorFilter: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px'}}>
                     <option value="">All Clients</option>
                     <option value="outstanding">With Outstanding</option>
                     <option value="nil">Nil Balance</option>
@@ -12488,7 +12502,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 </div>
                 <div>
                   <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Sort By</label>
-                  <select value={reportFilters.sortBy || 'name'} onChange={(e) => setReportFilters({...reportFilters, sortBy: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px'}}>
+                  <select value={reportFilters.sortBy || 'name'} onChange={(e) => setReportFilters({...reportFilters, sortBy: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px'}}>
                     <option value="name">Client Name</option>
                     <option value="outstanding-desc">Outstanding (High to Low)</option>
                     <option value="outstanding-asc">Outstanding (Low to High)</option>
@@ -12685,12 +12699,12 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     <>
                       {/* Top KPI Cards */}
                       <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '20px'}}>
-                        <div style={{background: 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #bfdbfe'}}>
-                          <div style={{fontSize: '13px', color: '#3b82f6', fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px'}}>🏆 Most Tasks</div>
+                        <div style={{background: themeColors.secondaryLight, borderRadius: '12px', padding: '20px', border: '1px solid #bfdbfe'}}>
+                          <div style={{fontSize: '13px', color: themeColors.secondary, fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px'}}>🏆 Most Tasks</div>
                           <div style={{fontSize: '16px', fontWeight: '700', color: '#1e40af'}}>{topTaskClients[0]?.name || '-'}</div>
-                          <div style={{fontSize: '12px', color: '#3b82f6', marginTop: '4px'}}>{topTaskClients[0]?.tasks || 0} tasks</div>
+                          <div style={{fontSize: '12px', color: themeColors.secondary, marginTop: '4px'}}>{topTaskClients[0]?.tasks || 0} tasks</div>
                         </div>
-                        <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '12px', padding: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+                        <div style={{background: themeColors.primaryLight, borderRadius: '12px', padding: '20px', border: `1px solid ${themeColors.border}`}}>
                           <div style={{fontSize: '13px', color: '#16a34a', fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px'}}>💰 Highest Billed</div>
                           <div style={{fontSize: '16px', fontWeight: '700', color: '#166534'}}>{topBilledClients[0]?.name || '-'}</div>
                           <div style={{fontSize: '12px', color: '#16a34a', marginTop: '4px'}}>₹{Math.round(topBilledClients[0]?.totalBilled || 0).toLocaleString('en-IN')}</div>
@@ -12777,7 +12791,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 
                 {/* Client Selection Table */}
                 <div style={{background: '#fff', borderRadius: '10px', border: `1px solid ${themeColors.primary}`, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
-                  <div style={{padding: '16px 20px', borderBottom: `1px solid ${themeColors.primary}`, background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}}>
+                  <div style={{padding: '16px 20px', borderBottom: `1px solid ${themeColors.primary}`, background: themeColors.primaryLighter}}>
                     <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                       <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#166534'}}>🏢 All Clients</h3>
                       <input 
@@ -12785,7 +12799,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         placeholder="Search clients..." 
                         value={reportFilters.clientSearch || ''} 
                         onChange={(e) => setReportFilters({...reportFilters, clientSearch: e.target.value})} 
-                        style={{width: '250px', padding: '8px 14px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}} 
+                        style={{width: '250px', padding: '8px 14px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}} 
                       />
                     </div>
                   </div>
@@ -12878,7 +12892,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   return (
                     <>
                       {/* Header with Back Button - Green Theme */}
-                      <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '12px', padding: '20px', marginBottom: '20px', border: `1px solid ${themeColors.primary}`}}>
+                      <div style={{background: themeColors.primaryLighter, borderRadius: '12px', padding: '20px', marginBottom: '20px', border: `1px solid ${themeColors.primary}`}}>
                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
                           <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
                             <button onClick={() => setReportFilters({...reportFilters, client: '', parentTask: '', childTask: '', status: '', financialYear: ''})} style={{padding: '8px 16px', background: '#fff', border: `1px solid ${themeColors.primary}`, borderRadius: '6px', cursor: 'pointer', fontSize: '12px', color: '#166534', fontWeight: '500'}}>← Back to Dashboard</button>
@@ -12908,21 +12922,21 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         <div style={{display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px'}}>
                           <div>
                             <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Parent Task</label>
-                            <select value={reportFilters.parentTask} onChange={(e) => setReportFilters({...reportFilters, parentTask: e.target.value, childTask: ''})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
+                            <select value={reportFilters.parentTask} onChange={(e) => setReportFilters({...reportFilters, parentTask: e.target.value, childTask: ''})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
                               <option value="">All Parent Tasks</option>
                               {uniqueParentTasks.map(p => <option key={p} value={p}>{p}</option>)}
                             </select>
                           </div>
                           <div>
                             <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Child Task</label>
-                            <select value={reportFilters.childTask} onChange={(e) => setReportFilters({...reportFilters, childTask: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
+                            <select value={reportFilters.childTask} onChange={(e) => setReportFilters({...reportFilters, childTask: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
                               <option value="">All Child Tasks</option>
                               {(reportFilters.parentTask ? (PARENT_CHILD_TASKS[reportFilters.parentTask] || []) : [...new Set(clientTasks.map(t => t.childTask).filter(Boolean))]).map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
                           </div>
                           <div>
                             <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Status</label>
-                            <select value={reportFilters.status} onChange={(e) => setReportFilters({...reportFilters, status: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
+                            <select value={reportFilters.status} onChange={(e) => setReportFilters({...reportFilters, status: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
                               <option value="">All Status</option>
                               <option value="Open">Open</option>
                               <option value="In Progress">In Progress</option>
@@ -12931,20 +12945,20 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           </div>
                           <div>
                             <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Financial Year</label>
-                            <select value={reportFilters.financialYear} onChange={(e) => setReportFilters({...reportFilters, financialYear: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
+                            <select value={reportFilters.financialYear} onChange={(e) => setReportFilters({...reportFilters, financialYear: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
                               <option value="">All FY</option>
                               {uniqueFYs.map(fy => <option key={fy} value={fy}>{fy}</option>)}
                             </select>
                           </div>
                           <div style={{display: 'flex', alignItems: 'flex-end'}}>
-                            <button onClick={() => setReportFilters({...reportFilters, parentTask: '', childTask: '', status: '', financialYear: ''})} style={{padding: '8px 14px', background: '#fff', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', color: '#166534'}}>Clear Filters</button>
+                            <button onClick={() => setReportFilters({...reportFilters, parentTask: '', childTask: '', status: '', financialYear: ''})} style={{padding: '8px 14px', background: '#fff', border: `1px solid ${themeColors.border}`, borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', color: '#166534'}}>Clear Filters</button>
                           </div>
                         </div>
                       </div>
                       
                       {/* Tasks Table - Green Theme like main table */}
                       <div style={{background: '#fff', borderRadius: '10px', border: `1px solid ${themeColors.primary}`, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
-                        <div style={{padding: '16px 20px', borderBottom: `1px solid ${themeColors.primary}`, background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}}>
+                        <div style={{padding: '16px 20px', borderBottom: `1px solid ${themeColors.primary}`, background: themeColors.primaryLighter}}>
                           <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#166534'}}>📋 All Tasks ({clientTasks.length})</h3>
                         </div>
                         <div style={{maxHeight: '500px', overflowY: 'auto', overflowX: 'auto'}}>
@@ -12981,7 +12995,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                     <td style={{padding: '8px', border: `1px solid ${themeColors.primaryLight}`, color: '#374151', fontSize: '12px'}}>{task.startDate || '-'}</td>
                                     <td style={{padding: '8px', border: `1px solid ${themeColors.primaryLight}`, color: '#374151', textAlign: 'center', fontSize: '12px'}}>{task.financialYear || '-'}</td>
                                     <td style={{padding: '8px', border: `1px solid ${themeColors.primaryLight}`, textAlign: 'center'}}>
-                                      <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600', background: task.status === 'Completed' || task.completedCheck ? themeColors.primaryLight : task.status === 'In Progress' ? '#fef3c7' : '#dbeafe', color: task.status === 'Completed' || task.completedCheck ? '#166534' : task.status === 'In Progress' ? '#92400e' : '#1d4ed8'}}>{task.status === 'Completed' || task.completedCheck ? 'Completed' : task.status === 'In Progress' ? 'In Progress' : 'Open'}</span>
+                                      <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600', background: task.status === 'Completed' || task.completedCheck ? themeColors.primaryLight : task.status === 'In Progress' ? '#fef3c7' : themeColors.secondaryLight, color: task.status === 'Completed' || task.completedCheck ? '#166534' : task.status === 'In Progress' ? '#92400e' : themeColors.secondaryDark}}>{task.status === 'Completed' || task.completedCheck ? 'Completed' : task.status === 'In Progress' ? 'In Progress' : 'Open'}</span>
                                     </td>
                                     <td style={{padding: '8px', border: `1px solid ${themeColors.primaryLight}`, textAlign: 'center'}}>
                                       <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600', background: task.billed ? themeColors.primaryLight : '#fef3c7', color: task.billed ? '#166534' : '#92400e'}}>{task.billed ? 'Billed' : 'Unbilled'}</span>
@@ -12993,7 +13007,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                       <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
                                         <button onClick={() => { setSelectedTask(task); setShowTaskManageModal(true); }} title="View Task" style={{padding: '3px', background: 'transparent', color: themeColors.primary, border: 'none', cursor: 'pointer'}}><Eye size={14} /></button>
                                         {taskInvoice && (
-                                          <button onClick={() => { setSelectedInvoice(taskInvoice); setShowInvoiceModal(true); }} title="View Invoice" style={{padding: '3px', background: 'transparent', color: '#3b82f6', border: 'none', cursor: 'pointer'}}><FileText size={14} /></button>
+                                          <button onClick={() => { setSelectedInvoice(taskInvoice); setShowInvoiceModal(true); }} title="View Invoice" style={{padding: '3px', background: 'transparent', color: themeColors.secondary, border: 'none', cursor: 'pointer'}}><FileText size={14} /></button>
                                         )}
                                         {taskReceipt && (
                                           <button onClick={() => { setSelectedReceipt(taskReceipt); setShowReceiptModal(true); }} title="View Receipt" style={{padding: '3px', background: 'transparent', color: '#8b5cf6', border: 'none', cursor: 'pointer'}}><IndianRupee size={14} /></button>
@@ -13020,7 +13034,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         {activeReportTab === 'rmReport' && (
           <div>
             {/* Filters & Header - Green Theme */}
-            <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '12px', padding: '20px', marginBottom: '20px', border: `1px solid ${themeColors.primary}`}}>
+            <div style={{background: themeColors.primaryLighter, borderRadius: '12px', padding: '20px', marginBottom: '20px', border: `1px solid ${themeColors.primary}`}}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
                 <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
                   {reportFilters.selectedRM && (
@@ -13051,14 +13065,14 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px'}}>
                   <div>
                     <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Reporting Manager</label>
-                    <select value={reportFilters.reportingManager} onChange={(e) => setReportFilters({...reportFilters, reportingManager: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
+                    <select value={reportFilters.reportingManager} onChange={(e) => setReportFilters({...reportFilters, reportingManager: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
                       <option value="">All Reporting Managers</option>
                       {reportingManagers.map(rm => <option key={rm} value={rm}>{rm}</option>)}
                     </select>
                   </div>
                   <div>
                     <label style={{fontSize: '13px', color: '#166534', fontWeight: '600', display: 'block', marginBottom: '4px'}}>Financial Year</label>
-                    <select value={reportFilters.financialYear} onChange={(e) => setReportFilters({...reportFilters, financialYear: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
+                    <select value={reportFilters.financialYear} onChange={(e) => setReportFilters({...reportFilters, financialYear: e.target.value})} style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}>
                       <option value="">All FY</option>
                       {uniqueFYs.map(fy => <option key={fy} value={fy}>{fy}</option>)}
                     </select>
@@ -13209,7 +13223,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       
                       {/* Detail Table based on selected view */}
                       <div style={{background: '#fff', borderRadius: '10px', border: `1px solid ${themeColors.primary}`, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
-                        <div style={{padding: '16px 20px', borderBottom: `1px solid ${themeColors.primary}`, background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}}>
+                        <div style={{padding: '16px 20px', borderBottom: `1px solid ${themeColors.primary}`, background: themeColors.primaryLighter}}>
                           <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#166534'}}>
                             {reportFilters.rmDetailView === 'clients' && '🏢 Clients Mapped to ' + rm.name}
                             {reportFilters.rmDetailView === 'completed' && '✅ Completed Tasks'}
@@ -13436,7 +13450,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         {activeReportTab === 'receiptReport' && (
           <div>
             {/* Header & Filters */}
-            <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '12px', padding: '20px', marginBottom: '20px', border: `1px solid ${themeColors.primary}`}}>
+            <div style={{background: themeColors.primaryLighter, borderRadius: '12px', padding: '20px', marginBottom: '20px', border: `1px solid ${themeColors.primary}`}}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
                 <h3 style={{margin: 0, fontSize: '16px', fontWeight: '700', color: '#166534'}}>🧾 Receipt Report - Billing vs Collection Analysis</h3>
                 <button 
@@ -13454,7 +13468,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <select 
                     value={receiptReportFilters.parentTask} 
                     onChange={(e) => setReceiptReportFilters({...receiptReportFilters, parentTask: e.target.value, childTask: ''})}
-                    style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}
+                    style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}
                   >
                     <option value="">Select Parent Task</option>
                     {Object.keys(PARENT_CHILD_TASKS).map(p => <option key={p} value={p}>{p}</option>)}
@@ -13465,7 +13479,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <select 
                     value={receiptReportFilters.childTask} 
                     onChange={(e) => setReceiptReportFilters({...receiptReportFilters, childTask: e.target.value})}
-                    style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}
+                    style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}
                     disabled={!receiptReportFilters.parentTask}
                   >
                     <option value="">Select Child Task</option>
@@ -13477,7 +13491,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <select 
                     value={receiptReportFilters.financialYear} 
                     onChange={(e) => setReceiptReportFilters({...receiptReportFilters, financialYear: e.target.value})}
-                    style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}
+                    style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}
                   >
                     <option value="">All FY</option>
                     {FINANCIAL_YEARS.map(fy => <option key={fy} value={fy}>{fy}</option>)}
@@ -13488,7 +13502,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <select 
                     value={receiptReportFilters.period} 
                     onChange={(e) => setReceiptReportFilters({...receiptReportFilters, period: e.target.value})}
-                    style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}
+                    style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}
                   >
                     <option value="">All Periods</option>
                     <option value="Monthly">Monthly</option>
@@ -13502,7 +13516,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <select 
                     value={receiptReportFilters.reportingManager} 
                     onChange={(e) => setReceiptReportFilters({...receiptReportFilters, reportingManager: e.target.value})}
-                    style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}
+                    style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}
                   >
                     <option value="">All RMs</option>
                     {reportingManagers.map(rm => <option key={rm} value={rm}>{rm}</option>)}
@@ -13513,7 +13527,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <select 
                     value={receiptReportFilters.client} 
                     onChange={(e) => setReceiptReportFilters({...receiptReportFilters, client: e.target.value})}
-                    style={{width: '100%', padding: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}
+                    style={{width: '100%', padding: '8px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '12px', background: '#fff'}}
                   >
                     <option value="">All Clients</option>
                     {data.clients.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
@@ -13628,19 +13642,19 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 <>
                   {/* Summary Cards */}
                   <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '20px'}}>
-                    <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+                    <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: `1px solid ${themeColors.border}`}}>
                       <div style={{fontSize: '13px', color: '#64748b', fontWeight: '600', marginBottom: '4px'}}>Total Tasks</div>
                       <div style={{fontSize: '24px', fontWeight: '700', color: themeColors.primary}}>{filteredTasks.length}</div>
                     </div>
-                    <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+                    <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: `1px solid ${themeColors.border}`}}>
                       <div style={{fontSize: '13px', color: '#64748b', fontWeight: '600', marginBottom: '4px'}}>Total Billing</div>
-                      <div style={{fontSize: '24px', fontWeight: '700', color: '#3b82f6'}}>₹{grandTotalBilling.toLocaleString('en-IN')}</div>
+                      <div style={{fontSize: '24px', fontWeight: '700', color: themeColors.secondary}}>₹{grandTotalBilling.toLocaleString('en-IN')}</div>
                     </div>
-                    <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+                    <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: `1px solid ${themeColors.border}`}}>
                       <div style={{fontSize: '13px', color: '#64748b', fontWeight: '600', marginBottom: '4px'}}>Total Receipt</div>
                       <div style={{fontSize: '24px', fontWeight: '700', color: themeColors.primary}}>₹{grandTotalReceipt.toLocaleString('en-IN')}</div>
                     </div>
-                    <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+                    <div style={{background: '#fff', borderRadius: '10px', padding: '16px', border: `1px solid ${themeColors.border}`}}>
                       <div style={{fontSize: '13px', color: '#64748b', fontWeight: '600', marginBottom: '4px'}}>Outstanding</div>
                       <div style={{fontSize: '24px', fontWeight: '700', color: grandTotalBilling - grandTotalReceipt > 0 ? '#ef4444' : themeColors.primary}}>₹{(grandTotalBilling - grandTotalReceipt).toLocaleString('en-IN')}</div>
                     </div>
@@ -13694,11 +13708,11 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             <th style={{padding: '6px 8px', textAlign: 'left', fontWeight: '600', color: '#64748b', border: `1px solid ${themeColors.primaryLight}`, position: 'sticky', left: 0, background: '#f8fafc', fontSize: '12px'}}></th>
                             {sortedSubPeriods.map(sp => (
                               <React.Fragment key={sp + '-sub'}>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#3b82f6', border: `1px solid ${themeColors.primaryLight}`, fontSize: '12px'}}>Billing</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: themeColors.secondary, border: `1px solid ${themeColors.primaryLight}`, fontSize: '12px'}}>Billing</th>
                                 <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: themeColors.primary, border: `1px solid ${themeColors.primaryLight}`, fontSize: '12px'}}>Receipt</th>
                               </React.Fragment>
                             ))}
-                            <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#3b82f6', border: `1px solid ${themeColors.primaryLight}`, background: themeColors.primaryLighter, fontSize: '12px'}}>Billing</th>
+                            <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: themeColors.secondary, border: `1px solid ${themeColors.primaryLight}`, background: themeColors.primaryLighter, fontSize: '12px'}}>Billing</th>
                             <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: themeColors.primary, border: `1px solid ${themeColors.primaryLight}`, background: themeColors.primaryLighter, fontSize: '12px'}}>Receipt</th>
                             <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#ef4444', border: `1px solid ${themeColors.primaryLight}`, background: themeColors.primaryLighter, fontSize: '12px'}}></th>
                           </tr>
@@ -14233,7 +14247,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       <div className="detail-row-new">
                         <span className="label-new">Priority</span>
                         <span className="value-new priority-badge" style={{
-                          background: taskFormData.priority === 'High' ? '#fee2e2' : taskFormData.priority === 'Medium' ? '#fef3c7' : '#dbeafe',
+                          background: taskFormData.priority === 'High' ? '#fee2e2' : taskFormData.priority === 'Medium' ? '#fef3c7' : themeColors.secondaryLight,
                           color: taskFormData.priority === 'High' ? '#991b1b' : taskFormData.priority === 'Medium' ? '#92400e' : '#1e3a8a',
                           padding: '4px 10px',
                           borderRadius: '12px',
@@ -15226,7 +15240,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               onClick={() => { setActiveMode('bulk'); setShowQuickClientForm(false); }}
               style={{
                 padding: '10px 20px',
-                background: activeMode === 'bulk' ? '#3b82f6' : '#f1f5f9',
+                background: activeMode === 'bulk' ? themeColors.secondary : '#f1f5f9',
                 color: activeMode === 'bulk' ? '#fff' : '#475569',
                 border: activeMode === 'bulk' ? 'none' : '1px solid #e2e8f0',
                 borderRadius: '8px',
@@ -15375,7 +15389,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     padding: '10px 12px',
                     background: themeColors.primaryLighter,
                     borderRadius: '8px',
-                    border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`
+                    border: `1px solid ${themeColors.border}`
                   }}>
                     <h4 style={{ margin: 0, color: '#166534', fontSize: '14px' }}>
                       📋 Preview: {bulkPreview.length} tasks ready
@@ -18134,7 +18148,7 @@ ${invoiceHtml}
         if (isPurple) {
           primaryColor = '#8b5cf6'; // Purple
         } else {
-          primaryColor = '#3b82f6'; // Blue
+          primaryColor = themeColors.secondary; // Blue
         }
         invoiceTitle = 'BILL OF SUPPLY';
       } else if (isProforma) {
@@ -18809,13 +18823,13 @@ ${invoiceHtml}
                     </div>
                     
                     {/* Total Collection Card */}
-                    <div style={{background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', borderRadius: '16px', padding: '20px', border: '1px solid #93c5fd', position: 'relative', overflow: 'hidden'}}>
-                      <div style={{position: 'absolute', top: '12px', right: '12px', background: '#3b82f6', borderRadius: '10px', padding: '8px'}}>
+                    <div style={{background: themeColors.secondaryLighter, borderRadius: '16px', padding: '20px', border: '1px solid #93c5fd', position: 'relative', overflow: 'hidden'}}>
+                      <div style={{position: 'absolute', top: '12px', right: '12px', background: themeColors.secondary, borderRadius: '10px', padding: '8px'}}>
                         <DollarSign size={20} color="#fff" />
                       </div>
                       <div style={{fontSize: '12px', color: '#1e40af', fontWeight: '600', marginBottom: '6px'}}>Total Collection</div>
-                      <div style={{fontSize: '24px', fontWeight: '700', color: '#1d4ed8'}}>₹ {totalReceipts.toLocaleString('en-IN')}</div>
-                      <div style={{fontSize: '12px', color: '#2563eb', marginTop: '6px'}}>{fyReceipts.length} receipts</div>
+                      <div style={{fontSize: '24px', fontWeight: '700', color: themeColors.secondaryDark}}>₹ {totalReceipts.toLocaleString('en-IN')}</div>
+                      <div style={{fontSize: '12px', color: themeColors.secondaryDark, marginTop: '6px'}}>{fyReceipts.length} receipts</div>
                     </div>
                     
                     {/* TDS & Discount Card */}
@@ -18872,7 +18886,7 @@ ${invoiceHtml}
                     <div>
                       {/* Organization Wise */}
                       <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: '20px', border: '1px solid #e5e7eb'}}>
-                        <div style={{padding: '14px 18px', borderBottom: '1px solid #e5e7eb', background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}}>
+                        <div style={{padding: '14px 18px', borderBottom: '1px solid #e5e7eb', background: themeColors.primaryLighter}}>
                           <h3 style={{margin: 0, fontSize: '15px', fontWeight: '700', color: '#065f46'}}>🏢 Organization Wise Billing & Collection</h3>
                         </div>
                         <div style={{overflowX: 'auto'}}>
@@ -18887,13 +18901,13 @@ ${invoiceHtml}
                               </tr>
                               {/* Sub-Headers Row */}
                               <tr style={{background: '#d1fae5'}}>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '12px'}}>Amount</th>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '12px'}}>GST</th>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '12px'}}>Total</th>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '12px'}}>Amount</th>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '12px'}}>TDS</th>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '12px'}}>Discount</th>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '12px'}}>Total</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Amount</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>GST</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Total</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Amount</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>TDS</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Discount</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Total</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -18927,7 +18941,7 @@ ${invoiceHtml}
                                       <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: '1px solid #e5e7eb', fontSize: '13px'}}>₹{org.receiptAmount.toLocaleString('en-IN')}</td>
                                       <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: '1px solid #e5e7eb', fontSize: '13px'}}>₹{org.tdsAmount.toLocaleString('en-IN')}</td>
                                       <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: '1px solid #e5e7eb', fontSize: '13px'}}>₹{org.discountAmount.toLocaleString('en-IN')}</td>
-                                      <td style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#2563eb', border: '1px solid #e5e7eb', fontSize: '13px'}}>₹{org.collection.toLocaleString('en-IN')}</td>
+                                      <td style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: themeColors.secondaryDark, border: '1px solid #e5e7eb', fontSize: '13px'}}>₹{org.collection.toLocaleString('en-IN')}</td>
                                       {/* Outstanding */}
                                       <td style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: org.billing - org.collection > 0 ? '#dc2626' : themeColors.primaryDark, border: '1px solid #e5e7eb', fontSize: '13px'}}>
                                         ₹{(org.billing - org.collection).toLocaleString('en-IN')}
@@ -18936,15 +18950,15 @@ ${invoiceHtml}
                                   ))}
                                   {/* Totals Row */}
                                   <tr style={{background: themeColors.primaryLight, fontWeight: '700'}}>
-                                    <td style={{padding: '8px 12px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontWeight: '700', color: '#065f46'}}>Total</td>
-                                    <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '13px'}}>₹{orgBreakdown.reduce((s, o) => s + o.billingNetAmount, 0).toLocaleString('en-IN')}</td>
-                                    <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '13px'}}>₹{orgBreakdown.reduce((s, o) => s + o.billingGstAmount, 0).toLocaleString('en-IN')}</td>
-                                    <td style={{padding: '6px 8px', textAlign: 'right', fontWeight: '700', color: themeColors.primaryDark, border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '13px'}}>₹{orgBreakdown.reduce((s, o) => s + o.billing, 0).toLocaleString('en-IN')}</td>
-                                    <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '13px'}}>₹{orgBreakdown.reduce((s, o) => s + o.receiptAmount, 0).toLocaleString('en-IN')}</td>
-                                    <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '13px'}}>₹{orgBreakdown.reduce((s, o) => s + o.tdsAmount, 0).toLocaleString('en-IN')}</td>
-                                    <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '13px'}}>₹{orgBreakdown.reduce((s, o) => s + o.discountAmount, 0).toLocaleString('en-IN')}</td>
-                                    <td style={{padding: '6px 8px', textAlign: 'right', fontWeight: '700', color: '#2563eb', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '13px'}}>₹{orgBreakdown.reduce((s, o) => s + o.collection, 0).toLocaleString('en-IN')}</td>
-                                    <td style={{padding: '6px 8px', textAlign: 'right', fontWeight: '700', color: '#dc2626', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '13px'}}>₹{orgBreakdown.reduce((s, o) => s + (o.billing - o.collection), 0).toLocaleString('en-IN')}</td>
+                                    <td style={{padding: '8px 12px', border: `1px solid ${themeColors.border}`, fontWeight: '700', color: '#065f46'}}>Total</td>
+                                    <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: `1px solid ${themeColors.border}`, fontSize: '13px'}}>₹{orgBreakdown.reduce((s, o) => s + o.billingNetAmount, 0).toLocaleString('en-IN')}</td>
+                                    <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: `1px solid ${themeColors.border}`, fontSize: '13px'}}>₹{orgBreakdown.reduce((s, o) => s + o.billingGstAmount, 0).toLocaleString('en-IN')}</td>
+                                    <td style={{padding: '6px 8px', textAlign: 'right', fontWeight: '700', color: themeColors.primaryDark, border: `1px solid ${themeColors.border}`, fontSize: '13px'}}>₹{orgBreakdown.reduce((s, o) => s + o.billing, 0).toLocaleString('en-IN')}</td>
+                                    <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: `1px solid ${themeColors.border}`, fontSize: '13px'}}>₹{orgBreakdown.reduce((s, o) => s + o.receiptAmount, 0).toLocaleString('en-IN')}</td>
+                                    <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: `1px solid ${themeColors.border}`, fontSize: '13px'}}>₹{orgBreakdown.reduce((s, o) => s + o.tdsAmount, 0).toLocaleString('en-IN')}</td>
+                                    <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: `1px solid ${themeColors.border}`, fontSize: '13px'}}>₹{orgBreakdown.reduce((s, o) => s + o.discountAmount, 0).toLocaleString('en-IN')}</td>
+                                    <td style={{padding: '6px 8px', textAlign: 'right', fontWeight: '700', color: themeColors.secondaryDark, border: `1px solid ${themeColors.border}`, fontSize: '13px'}}>₹{orgBreakdown.reduce((s, o) => s + o.collection, 0).toLocaleString('en-IN')}</td>
+                                    <td style={{padding: '6px 8px', textAlign: 'right', fontWeight: '700', color: '#dc2626', border: `1px solid ${themeColors.border}`, fontSize: '13px'}}>₹{orgBreakdown.reduce((s, o) => s + (o.billing - o.collection), 0).toLocaleString('en-IN')}</td>
                                   </tr>
                                 </>
                               )}
@@ -18955,7 +18969,7 @@ ${invoiceHtml}
                       
                       {/* Child Task Wise Breakdown */}
                       <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb'}}>
-                        <div style={{padding: '14px 18px', borderBottom: '1px solid #e5e7eb', background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}}>
+                        <div style={{padding: '14px 18px', borderBottom: '1px solid #e5e7eb', background: themeColors.primaryLighter}}>
                           <h3 style={{margin: 0, fontSize: '15px', fontWeight: '700', color: '#065f46'}}>📋 Task Type Wise Billing & Collection</h3>
                         </div>
                         <div style={{overflowX: 'auto'}}>
@@ -18972,13 +18986,13 @@ ${invoiceHtml}
                               </tr>
                               {/* Sub-Headers Row */}
                               <tr style={{background: '#d1fae5'}}>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '12px'}}>Amount</th>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '12px'}}>GST</th>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '12px'}}>Total</th>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '12px'}}>Amount</th>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '12px'}}>TDS</th>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '12px'}}>Discount</th>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '12px'}}>Total</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Amount</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>GST</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Total</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Amount</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>TDS</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Discount</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Total</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -19087,7 +19101,7 @@ ${invoiceHtml}
                                         <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: '1px solid #e5e7eb', fontSize: '13px'}}>₹{task.receiptAmount.toLocaleString('en-IN')}</td>
                                         <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: '1px solid #e5e7eb', fontSize: '13px'}}>₹{task.tdsAmount.toLocaleString('en-IN')}</td>
                                         <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: '1px solid #e5e7eb', fontSize: '13px'}}>₹{task.discountAmount.toLocaleString('en-IN')}</td>
-                                        <td style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#2563eb', border: '1px solid #e5e7eb', fontSize: '13px'}}>₹{task.collection.toLocaleString('en-IN')}</td>
+                                        <td style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: themeColors.secondaryDark, border: '1px solid #e5e7eb', fontSize: '13px'}}>₹{task.collection.toLocaleString('en-IN')}</td>
                                         {/* Outstanding */}
                                         <td style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: task.billing - task.collection > 0 ? '#dc2626' : themeColors.primaryDark, border: '1px solid #e5e7eb', fontSize: '13px'}}>
                                           ₹{(task.billing - task.collection).toLocaleString('en-IN')}
@@ -19096,16 +19110,16 @@ ${invoiceHtml}
                                     ))}
                                     {/* Totals Row */}
                                     <tr style={{background: themeColors.primaryLight, fontWeight: '700'}}>
-                                      <td colSpan={2} style={{padding: '8px 12px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontWeight: '700', color: '#065f46'}}>Total</td>
-                                      <td style={{padding: '6px 8px', textAlign: 'center', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontWeight: '600'}}>{taskList.reduce((s, t) => s + t.invoiceCount, 0)}</td>
-                                      <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '13px'}}>₹{taskList.reduce((s, t) => s + t.billingNetAmount, 0).toLocaleString('en-IN')}</td>
-                                      <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '13px'}}>₹{taskList.reduce((s, t) => s + t.billingGstAmount, 0).toLocaleString('en-IN')}</td>
-                                      <td style={{padding: '6px 8px', textAlign: 'right', fontWeight: '700', color: themeColors.primaryDark, border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '13px'}}>₹{taskList.reduce((s, t) => s + t.billing, 0).toLocaleString('en-IN')}</td>
-                                      <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '13px'}}>₹{taskList.reduce((s, t) => s + t.receiptAmount, 0).toLocaleString('en-IN')}</td>
-                                      <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '13px'}}>₹{taskList.reduce((s, t) => s + t.tdsAmount, 0).toLocaleString('en-IN')}</td>
-                                      <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '13px'}}>₹{taskList.reduce((s, t) => s + t.discountAmount, 0).toLocaleString('en-IN')}</td>
-                                      <td style={{padding: '6px 8px', textAlign: 'right', fontWeight: '700', color: '#2563eb', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '13px'}}>₹{taskList.reduce((s, t) => s + t.collection, 0).toLocaleString('en-IN')}</td>
-                                      <td style={{padding: '6px 8px', textAlign: 'right', fontWeight: '700', color: '#dc2626', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '13px'}}>₹{taskList.reduce((s, t) => s + (t.billing - t.collection), 0).toLocaleString('en-IN')}</td>
+                                      <td colSpan={2} style={{padding: '8px 12px', border: `1px solid ${themeColors.border}`, fontWeight: '700', color: '#065f46'}}>Total</td>
+                                      <td style={{padding: '6px 8px', textAlign: 'center', border: `1px solid ${themeColors.border}`, fontWeight: '600'}}>{taskList.reduce((s, t) => s + t.invoiceCount, 0)}</td>
+                                      <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: `1px solid ${themeColors.border}`, fontSize: '13px'}}>₹{taskList.reduce((s, t) => s + t.billingNetAmount, 0).toLocaleString('en-IN')}</td>
+                                      <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: `1px solid ${themeColors.border}`, fontSize: '13px'}}>₹{taskList.reduce((s, t) => s + t.billingGstAmount, 0).toLocaleString('en-IN')}</td>
+                                      <td style={{padding: '6px 8px', textAlign: 'right', fontWeight: '700', color: themeColors.primaryDark, border: `1px solid ${themeColors.border}`, fontSize: '13px'}}>₹{taskList.reduce((s, t) => s + t.billing, 0).toLocaleString('en-IN')}</td>
+                                      <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: `1px solid ${themeColors.border}`, fontSize: '13px'}}>₹{taskList.reduce((s, t) => s + t.receiptAmount, 0).toLocaleString('en-IN')}</td>
+                                      <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: `1px solid ${themeColors.border}`, fontSize: '13px'}}>₹{taskList.reduce((s, t) => s + t.tdsAmount, 0).toLocaleString('en-IN')}</td>
+                                      <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: `1px solid ${themeColors.border}`, fontSize: '13px'}}>₹{taskList.reduce((s, t) => s + t.discountAmount, 0).toLocaleString('en-IN')}</td>
+                                      <td style={{padding: '6px 8px', textAlign: 'right', fontWeight: '700', color: themeColors.secondaryDark, border: `1px solid ${themeColors.border}`, fontSize: '13px'}}>₹{taskList.reduce((s, t) => s + t.collection, 0).toLocaleString('en-IN')}</td>
+                                      <td style={{padding: '6px 8px', textAlign: 'right', fontWeight: '700', color: '#dc2626', border: `1px solid ${themeColors.border}`, fontSize: '13px'}}>₹{taskList.reduce((s, t) => s + (t.billing - t.collection), 0).toLocaleString('en-IN')}</td>
                                     </tr>
                                   </>
                                 );
@@ -19203,7 +19217,7 @@ ${invoiceHtml}
                                 setGeneratedInvoice(selectedInvoices[0]);
                                 setShowInvoicePreview(true);
                               }
-                            }} style={{padding: '6px 12px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px'}}>
+                            }} style={{padding: '6px 12px', background: themeColors.secondary, color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px'}}>
                               <Eye size={12} /> View Selected
                             </button>
                             <button onClick={() => setSelectedBillIds([])} style={{padding: '6px 12px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px'}}>
@@ -19378,7 +19392,7 @@ ${invoiceHtml}
                                                 setGeneratedInvoice(inv);
                                                 setShowInvoicePreview(true);
                                               }}
-                                              style={{padding: '3px 6px', background: '#eff6ff', color: '#2563eb', border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}
+                                              style={{padding: '3px 6px', background: themeColors.secondaryLighter, color: themeColors.secondaryDark, border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}
                                               title="View Invoice"
                                             >
                                               <Eye size={10} />
@@ -19491,7 +19505,7 @@ ${invoiceHtml}
                                 setBulkDownloadType('receipts');
                                 setShowBulkDownloadModal(true);
                               }
-                            }} style={{padding: '6px 12px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px'}}>
+                            }} style={{padding: '6px 12px', background: themeColors.secondary, color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px'}}>
                               <Download size={12} /> Download Selected
                             </button>
                             <button onClick={() => setSelectedReceiptIds([])} style={{padding: '6px 12px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px'}}>
@@ -19505,8 +19519,8 @@ ${invoiceHtml}
                       <div style={{overflowX: 'auto'}}>
                         <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
                           <thead>
-                            <tr style={{background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'}}>
-                              <th style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #2563eb', width: '30px'}}>
+                            <tr style={{background: themeColors.secondaryGradient}}>
+                              <th style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.secondaryDark}`, width: '30px'}}>
                                 <input type="checkbox" onChange={(e) => {
                                   // Get FY-filtered receipts for select all
                                   const fyStartYear = parseInt(dashboardFY.split(' ')[1].split('-')[0]);
@@ -19523,18 +19537,18 @@ ${invoiceHtml}
                                   }
                                 }} checked={selectedReceiptIds.length > 0} style={{cursor: 'pointer'}} />
                               </th>
-                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #2563eb'}}>S.No</th>
-                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #2563eb'}}>Receipt No</th>
-                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #2563eb'}}>Date</th>
-                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #2563eb'}}>Client Code</th>
-                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #2563eb'}}>Client Name</th>
-                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #2563eb'}}>Invoice No</th>
-                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #2563eb'}}>Organization</th>
-                              <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #2563eb'}}>Amount</th>
-                              <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #2563eb'}}>TDS</th>
-                              <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #2563eb'}}>Discount</th>
-                              <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: '1px solid #2563eb'}}>Total</th>
-                              <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: '1px solid #2563eb'}}>Action</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.secondaryDark}`}}>S.No</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.secondaryDark}`}}>Receipt No</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.secondaryDark}`}}>Date</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.secondaryDark}`}}>Client Code</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.secondaryDark}`}}>Client Name</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.secondaryDark}`}}>Invoice No</th>
+                              <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.secondaryDark}`}}>Organization</th>
+                              <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.secondaryDark}`}}>Amount</th>
+                              <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.secondaryDark}`}}>TDS</th>
+                              <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.secondaryDark}`}}>Discount</th>
+                              <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.secondaryDark}`}}>Total</th>
+                              <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.secondaryDark}`}}>Action</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -19582,7 +19596,7 @@ ${invoiceHtml}
                                 <>
                                   {filtered.sort((a,b) => new Date(b.receiptDate || b.createdAt) - new Date(a.receiptDate || a.createdAt)).map((r, idx) => {
                                     return (
-                                      <tr key={r.id} style={{background: idx % 2 === 0 ? '#fff' : '#eff6ff'}}>
+                                      <tr key={r.id} style={{background: idx % 2 === 0 ? '#fff' : themeColors.secondaryLighter}}>
                                         <td style={{padding: '6px', textAlign: 'center', border: '1px solid #e5e7eb'}}>
                                           <input type="checkbox" checked={selectedReceiptIds.includes(r.id)} onChange={(e) => {
                                             if (e.target.checked) {
@@ -19593,7 +19607,7 @@ ${invoiceHtml}
                                           }} style={{cursor: 'pointer'}} />
                                         </td>
                                         <td style={{padding: '6px 10px', border: '1px solid #e5e7eb'}}>{idx + 1}</td>
-                                        <td style={{padding: '6px 10px', fontWeight: '500', color: '#3b82f6', border: '1px solid #e5e7eb'}}>{r.receiptNo}</td>
+                                        <td style={{padding: '6px 10px', fontWeight: '500', color: themeColors.secondary, border: '1px solid #e5e7eb'}}>{r.receiptNo}</td>
                                         <td style={{padding: '6px 10px', border: '1px solid #e5e7eb'}}>{new Date(r.receiptDate || r.createdAt).toLocaleDateString('en-IN')}</td>
                                         <td style={{padding: '6px 10px', fontSize: '12px', color: '#6366f1', fontWeight: '500', border: '1px solid #e5e7eb'}}>{r.clientCode || '-'}</td>
                                         <td style={{padding: '6px 10px', border: '1px solid #e5e7eb'}}>{r.clientName}</td>
@@ -19607,7 +19621,7 @@ ${invoiceHtml}
                                           <div style={{display: 'flex', gap: '3px', justifyContent: 'center'}}>
                                             <button 
                                               onClick={() => setViewingReceipt(r)}
-                                              style={{padding: '3px 6px', background: '#eff6ff', color: '#2563eb', border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}
+                                              style={{padding: '3px 6px', background: themeColors.secondaryLighter, color: themeColors.secondaryDark, border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}
                                               title="View Receipt"
                                             >
                                               <Eye size={10} />
@@ -19648,7 +19662,7 @@ ${invoiceHtml}
                                       </tr>
                                     );
                                   })}
-                                  <tr style={{background: '#dbeafe', fontWeight: '700'}}>
+                                  <tr style={{background: themeColors.secondaryLight, fontWeight: '700'}}>
                                     <td colSpan={8} style={{padding: '8px 10px', border: '1px solid #e5e7eb'}}>Total ({filtered.length} receipts)</td>
                                     <td style={{padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb'}}>₹{totalAmount.toLocaleString('en-IN')}</td>
                                     <td style={{padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb'}}>₹{totalTDS.toLocaleString('en-IN')}</td>
@@ -19761,13 +19775,13 @@ ${invoiceHtml}
                                     <div style={{fontWeight: '600'}}>{viewingDashboardReceipt.narration || '-'}</div>
                                   </div>
                                 </div>
-                                <div style={{background: '#eff6ff', borderRadius: '8px', padding: '16px'}}>
+                                <div style={{background: themeColors.secondaryLighter, borderRadius: '8px', padding: '16px'}}>
                                   <table style={{width: '100%', fontSize: '13px'}}>
                                     <tbody>
                                       <tr><td style={{padding: '8px 0'}}>Amount Received</td><td style={{textAlign: 'right', fontWeight: '500'}}>₹{(parseFloat(viewingDashboardReceipt.amount) || 0).toLocaleString('en-IN')}</td></tr>
                                       {parseFloat(viewingDashboardReceipt.tds) > 0 && <tr><td style={{padding: '8px 0'}}>TDS Deducted</td><td style={{textAlign: 'right'}}>₹{parseFloat(viewingDashboardReceipt.tds).toLocaleString('en-IN')}</td></tr>}
                                       {parseFloat(viewingDashboardReceipt.discount) > 0 && <tr><td style={{padding: '8px 0'}}>Discount</td><td style={{textAlign: 'right'}}>₹{parseFloat(viewingDashboardReceipt.discount).toLocaleString('en-IN')}</td></tr>}
-                                      <tr style={{borderTop: '2px solid #bfdbfe'}}><td style={{padding: '12px 0', fontWeight: '700', fontSize: '16px'}}>Total Settlement</td><td style={{textAlign: 'right', fontWeight: '700', fontSize: '16px', color: '#2563eb'}}>₹{((parseFloat(viewingDashboardReceipt.amount) || 0) + (parseFloat(viewingDashboardReceipt.tds) || 0) + (parseFloat(viewingDashboardReceipt.discount) || 0)).toLocaleString('en-IN')}</td></tr>
+                                      <tr style={{borderTop: '2px solid #bfdbfe'}}><td style={{padding: '12px 0', fontWeight: '700', fontSize: '16px'}}>Total Settlement</td><td style={{textAlign: 'right', fontWeight: '700', fontSize: '16px', color: themeColors.secondaryDark}}>₹{((parseFloat(viewingDashboardReceipt.amount) || 0) + (parseFloat(viewingDashboardReceipt.tds) || 0) + (parseFloat(viewingDashboardReceipt.discount) || 0)).toLocaleString('en-IN')}</td></tr>
                                     </tbody>
                                   </table>
                                 </div>
@@ -19835,7 +19849,7 @@ ${invoiceHtml}
                                 setBulkDownloadItems([]);
                                 setSelectedBillIds([]);
                               }}
-                              style={{padding: '16px 20px', background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'flex-start'}}
+                              style={{padding: '16px 20px', background: themeColors.secondaryGradient, color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'flex-start'}}
                             >
                               <span style={{background: 'rgba(255,255,255,0.2)', padding: '8px', borderRadius: '8px'}}>📑</span>
                               <div style={{textAlign: 'left'}}>
@@ -20040,7 +20054,7 @@ ${invoiceHtml}
                             <div style={{display: 'flex', gap: '6px', justifyContent: 'center'}}>
                               <button
                                 onClick={() => editOrganization(org)}
-                                style={{padding: '6px 8px', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+                                style={{padding: '6px 8px', background: themeColors.secondaryGradient, color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'}}
                                 title="Edit"
                               >
                                 <Edit size={13} />
@@ -20086,11 +20100,11 @@ ${invoiceHtml}
                   display: 'flex',
                   gap: '0',
                   marginBottom: '24px',
-                  background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                  background: themeColors.primaryLighter,
                   borderRadius: '12px',
                   overflow: 'hidden',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                  border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`
+                  border: `1px solid ${themeColors.border}`
                 }}>
                   {[
                     { id: 'single', label: '📝 Single Task', icon: '📝' },
@@ -20107,7 +20121,7 @@ ${invoiceHtml}
                         background: billingMode === mode.id ? themeColors.gradient : 'transparent',
                         color: billingMode === mode.id ? '#fff' : '#065f46',
                         border: 'none',
-                        borderRight: idx < 3 ? `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}` : 'none',
+                        borderRight: idx < 3 ? `1px solid ${themeColors.border}` : 'none',
                         cursor: 'pointer',
                         fontSize: '14px',
                         fontWeight: '600',
@@ -20407,7 +20421,7 @@ ${invoiceHtml}
                                   setSearchedTasks(allUnbilled);
                                   setHasSearched(true);
                                 }}
-                                style={{padding: '10px 20px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600'}}
+                                style={{padding: '10px 20px', background: themeColors.secondary, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600'}}
                               >
                                 Show All Unbilled ({(data.tasks || []).filter(t => !t.billed && !t.markedFree && !hasTaskPendingInvoiceApproval(t.id)).length})
                               </button>
@@ -20781,7 +20795,7 @@ ${invoiceHtml}
                         </div>
                         
                         {/* Client Selection Section */}
-                        <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', padding: '20px', borderRadius: '12px', marginBottom: '24px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
+                        <div style={{background: themeColors.primaryLighter, padding: '20px', borderRadius: '12px', marginBottom: '24px', border: `1px solid ${themeColors.border}`}}>
                           <h4 style={{margin: '0 0 16px 0', fontSize: '14px', fontWeight: '600', color: '#065f46'}}>📋 Client Selection</h4>
                           <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px'}}>
                             {/* Group No. with Typeahead */}
@@ -20977,7 +20991,7 @@ ${invoiceHtml}
                         </div>
                         
                         {/* Summary & Actions */}
-                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', padding: '16px 20px', borderRadius: '12px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: themeColors.primaryLighter, padding: '16px 20px', borderRadius: '12px', border: `1px solid ${themeColors.border}`}}>
                           <div>
                             {(() => {
                               const amount = parseFloat(withoutTaskForm.amount) || 0;
@@ -21160,7 +21174,7 @@ ${invoiceHtml}
                           <p style={{margin: '8px 0 0', fontSize: '13px', color: '#64748b'}}>Select a group to view all clients with unbilled tasks</p>
                         </div>
                         
-                        <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
+                        <div style={{background: themeColors.primaryLighter, padding: '20px', borderRadius: '12px', marginBottom: '20px', border: `1px solid ${themeColors.border}`}}>
                           <h4 style={{margin: '0 0 16px 0', fontSize: '14px', fontWeight: '600', color: '#065f46'}}>📋 Select Group No.</h4>
                           <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', alignItems: 'end'}}>
                             <div>
@@ -21426,7 +21440,7 @@ ${invoiceHtml}
                             </h3>
                             <p style={{margin: '4px 0 0', fontSize: '13px', color: '#64748b'}}>
                               {multipleTaskSelectedClients.length} client(s) selected | 
-                              <span style={{marginLeft: '8px', padding: '2px 8px', borderRadius: '4px', background: multipleTaskFilters.invoiceType === 'taskWise' ? '#fef3c7' : '#dbeafe', color: multipleTaskFilters.invoiceType === 'taskWise' ? '#92400e' : '#1e40af', fontWeight: '600', fontSize: '13px'}}>
+                              <span style={{marginLeft: '8px', padding: '2px 8px', borderRadius: '4px', background: multipleTaskFilters.invoiceType === 'taskWise' ? '#fef3c7' : themeColors.secondaryLight, color: multipleTaskFilters.invoiceType === 'taskWise' ? '#92400e' : '#1e40af', fontWeight: '600', fontSize: '13px'}}>
                                 {multipleTaskFilters.invoiceType === 'taskWise' ? 'Task Wise' : 'Combined'}
                               </span>
                             </p>
@@ -22251,11 +22265,11 @@ ${invoiceHtml}
                     {multipleTaskClient && !multipleTaskClient.groupMode && multipleTaskSelectedTasks.length === 0 && (
                       <div style={{background: '#fff', padding: '28px', borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', border: '1px solid #e2e8f0'}}>
                         {/* Client Info Header - Green Theme */}
-                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '16px 20px', background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '12px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '16px 20px', background: themeColors.primaryLighter, borderRadius: '12px', border: `1px solid ${themeColors.border}`}}>
                           <div>
                             <h3 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: '#065f46'}}>{multipleTaskClient.name}</h3>
                             <div style={{fontSize: '13px', color: '#047857', marginTop: '4px'}}>
-                              Code: {multipleTaskClient.fileNo} | Group: {multipleTaskClient.groupName} | Invoice Type: <span style={{fontWeight: '700', padding: '2px 8px', borderRadius: '4px', background: multipleTaskFilters.invoiceType === 'taskWise' ? '#fef3c7' : '#dbeafe', color: multipleTaskFilters.invoiceType === 'taskWise' ? '#92400e' : '#1e40af'}}>{multipleTaskFilters.invoiceType === 'taskWise' ? 'Task Wise' : 'Combined Task'}</span>
+                              Code: {multipleTaskClient.fileNo} | Group: {multipleTaskClient.groupName} | Invoice Type: <span style={{fontWeight: '700', padding: '2px 8px', borderRadius: '4px', background: multipleTaskFilters.invoiceType === 'taskWise' ? '#fef3c7' : themeColors.secondaryLight, color: multipleTaskFilters.invoiceType === 'taskWise' ? '#92400e' : '#1e40af'}}>{multipleTaskFilters.invoiceType === 'taskWise' ? 'Task Wise' : 'Combined Task'}</span>
                             </div>
                           </div>
                           <button
@@ -23075,7 +23089,7 @@ ${invoiceHtml}
                                           <td style={{padding: '16px', textAlign: 'center'}}>
                                             <button
                                               onClick={() => setViewingBulkBatch(batch)}
-                                              style={{background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', color: '#fff', border: 'none', borderRadius: '20px', padding: '8px 18px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 2px 6px rgba(59,130,246,0.3)'}}
+                                              style={{background: themeColors.secondaryGradient, color: '#fff', border: 'none', borderRadius: '20px', padding: '8px 18px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 2px 6px rgba(59,130,246,0.3)'}}
                                             >
                                               {batch.invoiceCount || batchInvoices.length} invoices
                                             </button>
@@ -23085,7 +23099,7 @@ ${invoiceHtml}
                                           </td>
                                           <td style={{padding: '16px', textAlign: 'center'}}>
                                             <div style={{display: 'flex', gap: '8px', justifyContent: 'center'}}>
-                                              <button onClick={() => setViewingBulkBatch(batch)} style={{padding: '8px 14px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px'}}>
+                                              <button onClick={() => setViewingBulkBatch(batch)} style={{padding: '8px 14px', background: themeColors.secondaryLighter, color: themeColors.secondaryDark, border: '1px solid #bfdbfe', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px'}}>
                                                 <Eye size={14} /> View
                                               </button>
                                               <button
@@ -23123,7 +23137,7 @@ ${invoiceHtml}
                                 </button>
                                 
                                 {/* Batch Header */}
-                                <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', padding: '20px', borderRadius: '16px', marginBottom: '20px', border: '2px solid #86efac'}}>
+                                <div style={{background: themeColors.primaryLighter, padding: '20px', borderRadius: '16px', marginBottom: '20px', border: '2px solid #86efac'}}>
                                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                                     <div>
                                       <h4 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: '#065f46'}}>
@@ -23221,7 +23235,7 @@ ${invoiceHtml}
                                 })()}
                                 
                                 {/* Summary */}
-                                <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', padding: '16px 20px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
+                                <div style={{background: themeColors.primaryLighter, padding: '16px 20px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: `1px solid ${themeColors.border}`}}>
                                   <div style={{fontSize: '14px', color: '#065f46'}}>
                                     <strong>Total Invoices:</strong> {viewingBulkBatch.invoiceCount || (data.invoices || []).filter(inv => viewingBulkBatch.invoiceIds?.includes(inv.id)).length}
                                   </div>
@@ -23274,7 +23288,7 @@ ${invoiceHtml}
                         alignItems: 'center'
                       }}>
                         <div style={{color: '#1e293b', fontSize: '14px', fontWeight: '600'}}>
-                          Preview: <span style={{color: generatedInvoice.gstApplicable !== false ? themeColors.primary : '#3b82f6'}}>{generatedInvoice.invoiceNo}</span>
+                          Preview: <span style={{color: generatedInvoice.gstApplicable !== false ? themeColors.primary : themeColors.secondary}}>{generatedInvoice.invoiceNo}</span>
                         </div>
                         <div style={{flex: 1}} />
                         <button
@@ -23631,11 +23645,11 @@ ${invoiceHtml}
                         <>
                           {/* Summary Row */}
                           <div style={{display: 'flex', gap: '16px', marginBottom: '16px'}}>
-                            <div style={{flex: 1, background: themeColors.primaryLighter, padding: '12px 16px', borderRadius: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
+                            <div style={{flex: 1, background: themeColors.primaryLighter, padding: '12px 16px', borderRadius: '8px', border: `1px solid ${themeColors.border}`}}>
                               <div style={{fontSize: '13px', color: '#065f46', fontWeight: '600'}}>Showing</div>
                               <div style={{fontSize: '20px', fontWeight: '700', color: themeColors.primary}}>{filteredInvoices.length} <span style={{fontSize: '12px', fontWeight: '400', color: '#64748b'}}>of {(data.latestGeneratedInvoices || []).length}</span></div>
                             </div>
-                            <div style={{flex: 1, background: themeColors.primaryLighter, padding: '12px 16px', borderRadius: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
+                            <div style={{flex: 1, background: themeColors.primaryLighter, padding: '12px 16px', borderRadius: '8px', border: `1px solid ${themeColors.border}`}}>
                               <div style={{fontSize: '13px', color: '#065f46', fontWeight: '600'}}>Filtered Total</div>
                               <div style={{fontSize: '20px', fontWeight: '700', color: themeColors.primary}}>₹{filteredInvoices.reduce((s, i) => s + (i.totalAmount || 0), 0).toLocaleString('en-IN')}</div>
                             </div>
@@ -23676,7 +23690,7 @@ ${invoiceHtml}
                                     <td style={{padding: '10px', textAlign: 'right', fontWeight: '700', color: themeColors.primary, fontSize: '12px'}}>₹{(invoice.totalAmount || 0).toLocaleString('en-IN')}</td>
                                     <td style={{padding: '8px 10px', textAlign: 'center'}}>
                                       <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
-                                        <button onClick={() => { setGeneratedInvoice(invoice); setShowInvoicePreview(true); }} title="View" style={{padding: '5px 8px', background: '#eff6ff', color: '#3b82f6', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Eye size={14} /></button>
+                                        <button onClick={() => { setGeneratedInvoice(invoice); setShowInvoicePreview(true); }} title="View" style={{padding: '5px 8px', background: themeColors.secondaryLighter, color: themeColors.secondary, border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Eye size={14} /></button>
                                         <button onClick={() => downloadInvoicePDF(invoice, data.organizations, data.clients)} title="Download" style={{padding: '5px 8px', background: themeColors.primaryLighter, color: themeColors.primary, border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Download size={14} /></button>
                                         <button onClick={() => setEditingGeneratedInvoice({...invoice, _originalOrganizationId: invoice.organizationId})} title="Edit" style={{padding: '5px 8px', background: '#fef3c7', color: '#d97706', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Edit size={14} /></button>
                                         <button onClick={() => {
@@ -24046,7 +24060,7 @@ ${invoiceHtml}
                                 borderRadius: '12px', 
                                 fontSize: '13px', 
                                 fontWeight: '600',
-                                background: taskStatus === 'Completed' ? themeColors.primaryLight : taskStatus === 'In Progress' ? '#fef3c7' : '#dbeafe',
+                                background: taskStatus === 'Completed' ? themeColors.primaryLight : taskStatus === 'In Progress' ? '#fef3c7' : themeColors.secondaryLight,
                                 color: taskStatus === 'Completed' ? '#166534' : taskStatus === 'In Progress' ? '#92400e' : '#1e40af'
                               }}>
                                 {taskStatus}
@@ -24060,7 +24074,7 @@ ${invoiceHtml}
                                 <button
                                   onClick={() => { setSelectedTask(task); setShowTaskManageModal(true); }}
                                   title="View Task Details"
-                                  style={{padding: '5px 8px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px'}}
+                                  style={{padding: '5px 8px', background: themeColors.secondary, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px'}}
                                 >
                                   <Eye size={12} /> View
                                 </button>
@@ -24190,7 +24204,7 @@ ${invoiceHtml}
                     </div>
                     
                     {/* Billing Info */}
-                    <div style={{marginBottom: '20px', padding: '16px', background: themeColors.primaryLighter, borderRadius: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+                    <div style={{marginBottom: '20px', padding: '16px', background: themeColors.primaryLighter, borderRadius: '8px', border: `1px solid ${themeColors.border}`}}>
                       <div style={{fontSize: '13px', color: '#166534', fontWeight: '600', marginBottom: '8px'}}>BILLING INFORMATION</div>
                       <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
                         <div>
@@ -24305,7 +24319,7 @@ ${invoiceHtml}
                               <div style={{display: 'flex', gap: '6px', justifyContent: 'center'}}>
                                 <button
                                   onClick={() => setViewingUnbilledTask(task)}
-                                  style={{padding: '4px 10px', background: '#eff6ff', color: '#2563eb', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '500'}}
+                                  style={{padding: '4px 10px', background: themeColors.secondaryLighter, color: themeColors.secondaryDark, border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '500'}}
                                 >
                                   View
                                 </button>
@@ -24361,7 +24375,7 @@ ${invoiceHtml}
                     </div>
                     
                     {/* Apply to All Row */}
-                    <div style={{marginBottom: '16px', padding: '14px 16px', background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', borderRadius: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap'}}>
+                    <div style={{marginBottom: '16px', padding: '14px 16px', background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', borderRadius: '8px', border: `1px solid ${themeColors.border}`, display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap'}}>
                       <span style={{fontSize: '12px', fontWeight: '700', color: '#065f46'}}>⚡ Quick Apply to All:</span>
                       <select
                         onChange={(e) => {
@@ -24898,7 +24912,7 @@ ${invoiceHtml}
             <div>
               {/* Summary Cards */}
               <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '20px'}}>
-                <div style={{background: '#dbeafe', borderRadius: '12px', padding: '20px', border: '1px solid #93c5fd'}}>
+                <div style={{background: themeColors.secondaryLight, borderRadius: '12px', padding: '20px', border: '1px solid #93c5fd'}}>
                   <div style={{fontSize: '12px', color: '#1e40af', fontWeight: '600'}}>Total Expenses</div>
                   <div style={{fontSize: '28px', fontWeight: '700', color: '#1e40af'}}>{filteredExpenses.length}</div>
                 </div>
@@ -24906,7 +24920,7 @@ ${invoiceHtml}
                   <div style={{fontSize: '12px', color: '#92400e', fontWeight: '600'}}>Unbilled Amount</div>
                   <div style={{fontSize: '28px', fontWeight: '700', color: '#92400e'}}>₹{totalUnbilled.toLocaleString()}</div>
                 </div>
-                <div style={{background: themeColors.primaryLight, borderRadius: '12px', padding: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
+                <div style={{background: themeColors.primaryLight, borderRadius: '12px', padding: '20px', border: `1px solid ${themeColors.border}`}}>
                   <div style={{fontSize: '12px', color: '#166534', fontWeight: '600'}}>Billed Amount</div>
                   <div style={{fontSize: '28px', fontWeight: '700', color: '#166534'}}>₹{totalBilled.toLocaleString()}</div>
                 </div>
@@ -25012,7 +25026,7 @@ ${invoiceHtml}
                         <td style={{padding: '8px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>{exp.clientName}</td>
                         <td style={{padding: '8px', color: '#374151', fontSize: '13px'}}>{exp.parentTask} → {exp.childTask}</td>
                         <td style={{padding: '8px'}}>
-                          <span style={{padding: '2px 6px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', background: exp.expenseType === 'Travel & Conveyance' ? '#dbeafe' : exp.expenseType === 'Income Tax' ? themeColors.primaryLight : exp.expenseType === 'GST' ? '#fef3c7' : '#ede9fe', color: exp.expenseType === 'Travel & Conveyance' ? '#1e40af' : exp.expenseType === 'Income Tax' ? '#166534' : exp.expenseType === 'GST' ? '#92400e' : '#5b21b6'}}>{exp.expenseType}</span>
+                          <span style={{padding: '2px 6px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', background: exp.expenseType === 'Travel & Conveyance' ? themeColors.secondaryLight : exp.expenseType === 'Income Tax' ? themeColors.primaryLight : exp.expenseType === 'GST' ? '#fef3c7' : '#ede9fe', color: exp.expenseType === 'Travel & Conveyance' ? '#1e40af' : exp.expenseType === 'Income Tax' ? '#166534' : exp.expenseType === 'GST' ? '#92400e' : '#5b21b6'}}>{exp.expenseType}</span>
                         </td>
                         <td style={{padding: '8px', textAlign: 'right', fontWeight: '700', color: '#374151'}}>₹{(exp.amount || 0).toLocaleString()}</td>
                         <td style={{padding: '8px', color: '#374151', fontSize: '13px'}}>{exp.enteredBy}</td>
@@ -25026,7 +25040,7 @@ ${invoiceHtml}
                                 const inv = data.invoices?.find(i => i.id === exp.invoiceId);
                                 if (inv) setViewingExpenseInvoice(inv);
                               }}
-                              style={{padding: '3px 8px', background: '#dbeafe', color: '#1e40af', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '500'}}
+                              style={{padding: '3px 8px', background: themeColors.secondaryLight, color: '#1e40af', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '500'}}
                             >
                               {exp.invoiceNumber}
                             </button>
@@ -25184,7 +25198,7 @@ ${invoiceHtml}
                 // Determine colors for action bar
                 const isBillOfSupply = !expInv.gstApplicable || expInv.gstApplicable === false || 
                                        (org.gstApplicable !== 'yes' && org.gstApplicable !== true);
-                const barColor = isBillOfSupply ? '#3b82f6' : themeColors.primary;
+                const barColor = isBillOfSupply ? themeColors.secondary : themeColors.primary;
                 
                 // Mark as expense reimbursement
                 const invoiceWithType = { ...expInv, invoiceType: 'Expense Reimbursement' };
@@ -25444,7 +25458,7 @@ ${invoiceHtml}
                                 <td style={{padding: '8px', textAlign: 'center'}}>
                                   <button
                                     onClick={(e) => { e.stopPropagation(); setInvoicePreviewModal(inv); }}
-                                    style={{padding: '4px 8px', background: '#dbeafe', color: '#1d4ed8', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}}
+                                    style={{padding: '4px 8px', background: themeColors.secondaryLight, color: themeColors.secondaryDark, border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}}
                                     title="View Invoice"
                                   >
                                     <Eye size={12} />
@@ -25458,7 +25472,7 @@ ${invoiceHtml}
                     </div>
                     {/* Selection Action Bar */}
                     {selectedInvoicesForReceipt.length > 0 && (
-                      <div style={{padding: '12px 20px', background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', borderTop: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                      <div style={{padding: '12px 20px', background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', borderTop: `1px solid ${themeColors.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                         <span style={{fontSize: '13px', fontWeight: '600', color: '#065f46'}}>
                           ✓ {selectedInvoicesForReceipt.length} invoice(s) selected
                         </span>
@@ -25481,7 +25495,7 @@ ${invoiceHtml}
                 {selectedClientsForReceipt.length > 0 && selectedInvoicesForReceipt.length > 0 && (
                   <div>
                     {/* Receipt Header - Green Theme */}
-                    <div style={{background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', borderRadius: '10px', padding: '14px 20px', marginBottom: '14px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
+                    <div style={{background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', borderRadius: '10px', padding: '14px 20px', marginBottom: '14px', border: `1px solid ${themeColors.border}`}}>
                       <h3 style={{margin: '0 0 10px 0', fontSize: '13px', fontWeight: '600', color: '#065f46', display: 'flex', alignItems: 'center', gap: '8px'}}>
                         <span style={{background: themeColors.primary, color: '#fff', width: '20px', height: '20px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px'}}>2</span>
                         Receipt Details (One Receipt per Client)
@@ -25558,7 +25572,7 @@ ${invoiceHtml}
                                   <th style={{padding: '10px 6px', textAlign: 'right', fontWeight: '600', borderBottom: '2px solid #86efac', color: '#dc2626'}}>Due</th>
                                   <th style={{padding: '10px 6px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #86efac', background: themeColors.primaryLight}}>Receipt Amt</th>
                                   <th style={{padding: '10px 6px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #86efac', background: '#fef3c7'}}>TDS</th>
-                                  <th style={{padding: '10px 6px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #86efac', background: '#dbeafe'}}>Discount</th>
+                                  <th style={{padding: '10px 6px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #86efac', background: themeColors.secondaryLight}}>Discount</th>
                                   <th style={{padding: '10px 6px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #86efac'}}>Mode</th>
                                   <th style={{padding: '10px 6px', textAlign: 'center', fontWeight: '600', borderBottom: '2px solid #86efac'}}>View</th>
                                 </tr>
@@ -25591,7 +25605,7 @@ ${invoiceHtml}
                                         style={{width: '60px', padding: '6px 8px', border: '1px solid #fde68a', borderRadius: '4px', fontSize: '12px', textAlign: 'right'}}
                                       />
                                     </td>
-                                    <td style={{padding: '6px', background: '#eff6ff'}}>
+                                    <td style={{padding: '6px', background: themeColors.secondaryLighter}}>
                                       <input
                                         type="number"
                                         value={invoiceReceiptAmounts[inv.id]?.discount || ''}
@@ -25615,7 +25629,7 @@ ${invoiceHtml}
                                     <td style={{padding: '4px', textAlign: 'center'}}>
                                       <button
                                         onClick={() => setInvoicePreviewModal(inv)}
-                                        style={{padding: '4px 8px', background: '#dbeafe', color: '#1d4ed8', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}}
+                                        style={{padding: '4px 8px', background: themeColors.secondaryLight, color: themeColors.secondaryDark, border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}}
                                         title="View Invoice"
                                       >
                                         <Eye size={12} />
@@ -25648,7 +25662,7 @@ ${invoiceHtml}
                           </div>
                           <div>
                             <div style={{fontSize: '12px', color: '#64748b'}}>Total Discount</div>
-                            <div style={{fontSize: '16px', fontWeight: '700', color: '#3b82f6'}}>
+                            <div style={{fontSize: '16px', fontWeight: '700', color: themeColors.secondary}}>
                               ₹{Object.values(invoiceReceiptAmounts).reduce((s, a) => s + parseFloat(a?.discount || 0), 0).toLocaleString('en-IN')}
                             </div>
                           </div>
@@ -25954,13 +25968,13 @@ ${invoiceHtml}
                                   {receiptInvoices.length > 0 && (
                                     <button 
                                       onClick={() => setInvoicePreviewModal(receiptInvoices[0])} 
-                                      style={{padding: '4px 6px', background: themeColors.primaryLighter, color: themeColors.primaryDark, border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}}
+                                      style={{padding: '4px 6px', background: themeColors.primaryLighter, color: themeColors.primaryDark, border: `1px solid ${themeColors.border}`, borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}}
                                       title="View Invoice"
                                     >
                                       Inv
                                     </button>
                                   )}
-                                  <button onClick={() => setViewingReceipt(r)} style={{padding: '4px 6px', background: '#dbeafe', color: '#1d4ed8', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}} title="View Receipt"><Eye size={12} /></button>
+                                  <button onClick={() => setViewingReceipt(r)} style={{padding: '4px 6px', background: themeColors.secondaryLight, color: themeColors.secondaryDark, border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}} title="View Receipt"><Eye size={12} /></button>
                                   <button onClick={() => { setEditingReceipt({...r}); setShowEditReceiptModal(true); }} style={{padding: '4px 6px', background: '#fef3c7', color: '#92400e', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}}>Edit</button>
                                   <button onClick={() => { if (window.confirm('Delete this receipt?')) setData(prev => ({...prev, receipts: prev.receipts.filter(x => x.id !== r.id)})); }} style={{padding: '4px 6px', background: '#fef2f2', color: '#dc2626', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}}>Del</button>
                                 </div>
@@ -26072,7 +26086,7 @@ ${invoiceHtml}
                     </div>
                     <div style={{fontSize: '13px', color: '#64748b', marginTop: '8px'}}>Need follow-up</div>
                   </div>
-                  <div className="dashboard-card" style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '12px', padding: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, transition: 'all 0.3s ease', cursor: 'pointer'}}
+                  <div className="dashboard-card" style={{background: themeColors.primaryLight, borderRadius: '12px', padding: '20px', border: `1px solid ${themeColors.border}`, transition: 'all 0.3s ease', cursor: 'pointer'}}
                     onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(16, 185, 129, 0.25)'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
                     <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
@@ -26355,7 +26369,7 @@ ${invoiceHtml}
                             .client-info strong { color: #1e293b; }
                             .section { margin-bottom: 20px; page-break-inside: avoid; }
                             .section-title { font-size: 13px; font-weight: 700; margin: 0 0 8px; padding: 8px 10px; background: ${themeColors.gradient}; color: #fff; border-radius: 4px; }
-                            .section-title.blue { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+                            .section-title.blue { background: ${themeColors.secondaryGradient}; }
                             .section-title.orange { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
                             table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px; }
                             th { background: #f1f5f9; padding: 6px 8px; text-align: left; font-weight: 600; border: 1px solid #e2e8f0; color: #166534; }
@@ -26661,12 +26675,12 @@ ${invoiceHtml}
                             .section { margin-bottom: 15px; }
                             .section-title { font-size: 11px; font-weight: 700; margin: 0 0 6px; padding: 6px 8px; color: #fff; border-radius: 3px; }
                             .section-title.green { background: ${themeColors.gradient}; }
-                            .section-title.blue { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+                            .section-title.blue { background: ${themeColors.secondaryGradient}; }
                             .section-title.orange { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
                             table { width: 100%; border-collapse: collapse; font-size: 9px; }
                             th { padding: 5px 6px; text-align: left; font-weight: 600; border: 1px solid #d1d5db; }
                             th.green { background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); color: #166534; }
-                            th.blue { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); color: #1e40af; }
+                            th.blue { background: ${themeColors.secondaryLight}; color: #1e40af; }
                             th.orange { background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%); color: #9a3412; }
                             td { padding: 4px 6px; border: 1px solid #e5e7eb; color: #374151; }
                             .text-right { text-align: right; }
@@ -26942,15 +26956,15 @@ ${invoiceHtml}
                           <div style={{fontSize: '22px', fontWeight: '700', color: '#475569'}}>₹{openingBalance.toLocaleString('en-IN')}</div>
                           <div style={{fontSize: '12px', color: '#94a3b8', marginTop: '2px'}}>{fyFilter ? 'As on FY start' : 'Not applicable'}</div>
                         </div>
-                        <div style={{background: themeColors.primaryLighter, borderRadius: '10px', padding: '14px 16px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+                        <div style={{background: themeColors.primaryLighter, borderRadius: '10px', padding: '14px 16px', border: `1px solid ${themeColors.border}`}}>
                           <div style={{fontSize: '13px', color: '#16a34a', fontWeight: '500', marginBottom: '4px'}}>Total Invoices</div>
                           <div style={{fontSize: '22px', fontWeight: '700', color: '#166534'}}>₹{totalInvoiced.toLocaleString('en-IN')}</div>
                           <div style={{fontSize: '12px', color: '#86efac', marginTop: '2px'}}>{clientInvoices.length} invoice(s)</div>
                         </div>
-                        <div style={{background: '#eff6ff', borderRadius: '10px', padding: '14px 16px', border: '1px solid #bfdbfe'}}>
-                          <div style={{fontSize: '13px', color: '#2563eb', fontWeight: '500', marginBottom: '4px'}}>Total Receipts</div>
-                          <div style={{fontSize: '22px', fontWeight: '700', color: '#1d4ed8'}}>₹{totalReceived.toLocaleString('en-IN')}</div>
-                          <div style={{fontSize: '12px', color: '#93c5fd', marginTop: '2px'}}>{clientReceipts.length} receipt(s)</div>
+                        <div style={{background: themeColors.secondaryLighter, borderRadius: '10px', padding: '14px 16px', border: '1px solid #bfdbfe'}}>
+                          <div style={{fontSize: '13px', color: themeColors.secondaryDark, fontWeight: '500', marginBottom: '4px'}}>Total Receipts</div>
+                          <div style={{fontSize: '22px', fontWeight: '700', color: themeColors.secondaryDark}}>₹{totalReceived.toLocaleString('en-IN')}</div>
+                          <div style={{fontSize: '12px', color: themeColors.secondaryLight, marginTop: '2px'}}>{clientReceipts.length} receipt(s)</div>
                         </div>
                         <div style={{background: closingBalance > 0 ? '#fff7ed' : themeColors.primaryLighter, borderRadius: '10px', padding: '14px 16px', border: `1px solid ${closingBalance > 0 ? '#fed7aa' : '#bbf7d0'}`}}>
                           <div style={{fontSize: '13px', color: closingBalance > 0 ? '#ea580c' : '#16a34a', fontWeight: '500', marginBottom: '4px'}}>Outstanding</div>
@@ -27063,7 +27077,7 @@ ${invoiceHtml}
 
                   {/* 2. RECEIPTS TABLE - Blue */}
                   <div style={{background: '#fff', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: '16px', border: '1px solid #e2e8f0'}}>
-                    <div style={{padding: '10px 14px', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'}}>
+                    <div style={{padding: '10px 14px', background: themeColors.secondaryGradient}}>
                       <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#fff', display: 'flex', alignItems: 'center', gap: '6px'}}>
                         <DollarSign size={16} /> Receipts / Payments
                       </h3>
@@ -27071,7 +27085,7 @@ ${invoiceHtml}
                     <div style={{overflowX: 'auto'}}>
                       <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                         <thead>
-                          <tr style={{background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)'}}>
+                          <tr style={{background: themeColors.secondaryLight}}>
                             <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#1e40af', borderBottom: '2px solid #93c5fd'}}>Date</th>
                             <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#1e40af', borderBottom: '2px solid #93c5fd'}}>Receipt No</th>
                             <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#1e40af', borderBottom: '2px solid #93c5fd'}}>Against Invoice</th>
@@ -27413,7 +27427,7 @@ ${invoiceHtml}
                   gap: '12px',
                   marginBottom: '20px',
                   padding: '16px 20px',
-                  background: (viewingInvoice.invoiceFormat === 'billOfSupplyBlue' ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : themeColors.gradient),
+                  background: (viewingInvoice.invoiceFormat === 'billOfSupplyBlue' ? themeColors.secondaryGradient : themeColors.gradient),
                   borderRadius: '12px'
                 }}>
                   <button
@@ -27454,7 +27468,7 @@ ${invoiceHtml}
                     <>
                       <button
                         onClick={startEditInvoice}
-                        style={{padding: '10px 20px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'}}
+                        style={{padding: '10px 20px', background: themeColors.secondary, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'}}
                       >
                         ✏️ Edit
                       </button>
@@ -27550,19 +27564,19 @@ ${invoiceHtml}
           <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000, overflow: 'auto', padding: '20px'}}>
             <div style={{maxWidth: '650px', margin: '0 auto'}}>
               {/* Compact Action Bar - Blue Theme */}
-              <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', padding: '10px 16px', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', borderRadius: '8px'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', padding: '10px 16px', background: themeColors.secondaryGradient, borderRadius: '8px'}}>
                 <button onClick={() => setViewingReceipt(null)} style={{padding: '6px 12px', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', color: '#fff'}}>✕ Close</button>
                 <div style={{flex: 1, color: '#fff'}}>
                   <span style={{fontSize: '12px', opacity: 0.8}}>Receipt</span>
                   <span style={{fontSize: '16px', fontWeight: '700', marginLeft: '6px'}}>{viewingReceipt.receiptNo}</span>
                 </div>
-                <button onClick={() => window.print()} style={{padding: '6px 14px', background: '#fff', color: '#3b82f6', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600'}}>🖨️ Print</button>
+                <button onClick={() => window.print()} style={{padding: '6px 14px', background: '#fff', color: themeColors.secondary, border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600'}}>🖨️ Print</button>
               </div>
 
               {/* Compact Receipt Card - Blue Theme */}
               <div style={{background: '#fff', borderRadius: '10px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', overflow: 'hidden', border: '1px solid #e2e8f0'}} className="print-receipt">
                 {/* Header Row - Compact */}
-                <div style={{background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', padding: '16px 20px', color: '#fff'}}>
+                <div style={{background: themeColors.secondaryGradient, padding: '16px 20px', color: '#fff'}}>
                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                     <div>
                       <div style={{fontSize: '18px', fontWeight: '700', letterSpacing: '0.5px'}}>RECEIPT</div>
@@ -27587,7 +27601,7 @@ ${invoiceHtml}
                   </div>
                   <div style={{textAlign: 'right'}}>
                     <div style={{fontSize: '12px', color: '#64748b', fontWeight: '600', marginBottom: '4px'}}>AGAINST INVOICE(S)</div>
-                    <div style={{fontSize: '13px', fontWeight: '600', color: '#3b82f6'}}>{viewingReceipt.invoiceNo}</div>
+                    <div style={{fontSize: '13px', fontWeight: '600', color: themeColors.secondary}}>{viewingReceipt.invoiceNo}</div>
                     <div style={{fontSize: '13px', color: '#64748b', marginTop: '2px'}}>Invoice Amt: ₹{(viewingReceipt.invoiceAmount || 0).toLocaleString('en-IN')}</div>
                   </div>
                 </div>
@@ -27609,11 +27623,11 @@ ${invoiceHtml}
                       <tbody>
                         {viewingReceipt.invoiceEntries.map((entry, idx) => (
                           <tr key={idx} style={{borderBottom: '1px solid #f1f5f9'}}>
-                            <td style={{padding: '6px 8px', color: '#3b82f6', fontWeight: '500'}}>{entry.invoiceNo}</td>
+                            <td style={{padding: '6px 8px', color: themeColors.secondary, fontWeight: '500'}}>{entry.invoiceNo}</td>
                             <td style={{padding: '6px 8px', textAlign: 'right'}}>₹{(entry.invoiceAmount || 0).toLocaleString('en-IN')}</td>
                             <td style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: themeColors.primaryDark}}>₹{(entry.amount || 0).toLocaleString('en-IN')}</td>
                             <td style={{padding: '6px 8px', textAlign: 'right', color: '#f59e0b'}}>{entry.tds > 0 ? `₹${entry.tds}` : '-'}</td>
-                            <td style={{padding: '6px 8px', textAlign: 'right', color: '#3b82f6'}}>{entry.discount > 0 ? `₹${entry.discount}` : '-'}</td>
+                            <td style={{padding: '6px 8px', textAlign: 'right', color: themeColors.secondary}}>{entry.discount > 0 ? `₹${entry.discount}` : '-'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -27642,12 +27656,12 @@ ${invoiceHtml}
                       {viewingReceipt.discount > 0 && (
                         <tr style={{borderBottom: '1px solid #f1f5f9'}}>
                           <td style={{padding: '8px 0', color: '#64748b'}}>Discount</td>
-                          <td style={{padding: '8px 0', textAlign: 'right', fontWeight: '600', color: '#3b82f6'}}>₹{(viewingReceipt.discount || 0).toLocaleString('en-IN')}</td>
+                          <td style={{padding: '8px 0', textAlign: 'right', fontWeight: '600', color: themeColors.secondary}}>₹{(viewingReceipt.discount || 0).toLocaleString('en-IN')}</td>
                         </tr>
                       )}
-                      <tr style={{background: '#eff6ff'}}>
+                      <tr style={{background: themeColors.secondaryLighter}}>
                         <td style={{padding: '10px 8px', fontWeight: '700', color: '#1e40af'}}>Total Settlement</td>
-                        <td style={{padding: '10px 8px', textAlign: 'right', fontWeight: '700', color: '#1d4ed8', fontSize: '16px'}}>₹{((viewingReceipt.amount || 0) + (viewingReceipt.tds || 0) + (viewingReceipt.discount || 0)).toLocaleString('en-IN')}</td>
+                        <td style={{padding: '10px 8px', textAlign: 'right', fontWeight: '700', color: themeColors.secondaryDark, fontSize: '16px'}}>₹{((viewingReceipt.amount || 0) + (viewingReceipt.tds || 0) + (viewingReceipt.discount || 0)).toLocaleString('en-IN')}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -27703,7 +27717,7 @@ ${invoiceHtml}
               
               <div style={{padding: '24px'}}>
                 {/* Organization Selection */}
-                <div style={{marginBottom: '20px', padding: '16px', background: themeColors.primaryLighter, borderRadius: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+                <div style={{marginBottom: '20px', padding: '16px', background: themeColors.primaryLighter, borderRadius: '8px', border: `1px solid ${themeColors.border}`}}>
                   <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '8px', color: '#166534'}}>Organization</label>
                   <select
                     value={editingInvoiceData.organizationId}
@@ -27749,7 +27763,7 @@ ${invoiceHtml}
                         setEditingInvoiceData({...editingInvoiceData, organizationId: newOrgId});
                       }
                     }}
-                    style={{width: '100%', padding: '10px 12px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '6px', fontSize: '13px', background: '#fff'}}
+                    style={{width: '100%', padding: '10px 12px', border: `1px solid ${themeColors.border}`, borderRadius: '6px', fontSize: '13px', background: '#fff'}}
                   >
                     {(data.organizations || []).map(org => (
                       <option key={org.id} value={org.id}>{org.name} - {org.state}</option>
@@ -28012,7 +28026,7 @@ ${invoiceHtml}
           // Determine colors for action bar
           const isBillOfSupply = inv.invoiceFormat === 'billOfSupply' || inv.gstApplicable === false || 
                                  (org.gstApplicable !== 'yes' && org.gstApplicable !== true && !inv.gstApplicable);
-          const barColor = isBillOfSupply ? '#3b82f6' : themeColors.primary;
+          const barColor = isBillOfSupply ? themeColors.secondary : themeColors.primary;
           
           return (
             <div className="print-area" style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 3000, overflow: 'auto', padding: '20px'}}>
@@ -28941,7 +28955,7 @@ ${invoiceHtml}
             </tbody>
           </table>
           
-          <div style={{marginTop: '16px', padding: '16px', background: themeColors.primaryLighter, borderRadius: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
+          <div style={{marginTop: '16px', padding: '16px', background: themeColors.primaryLighter, borderRadius: '8px', border: `1px solid ${themeColors.border}`}}>
             <div style={{fontSize: '13px', fontWeight: '600', color: '#166534', marginBottom: '12px'}}>AMOUNT BREAKDOWN</div>
             <table style={{width: '100%', fontSize: '12px'}}>
               <tbody>
@@ -29048,16 +29062,16 @@ ${invoiceHtml}
           const originalInv = getOriginalInvoice(d.id);
           return (
             <div>
-              <div style={{marginBottom: '16px', padding: '12px', background: '#eff6ff', borderRadius: '8px', border: '1px solid #93c5fd'}}>
+              <div style={{marginBottom: '16px', padding: '12px', background: themeColors.secondaryLighter, borderRadius: '8px', border: '1px solid #93c5fd'}}>
                 <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                  <Edit size={18} color="#2563eb" />
-                  <span style={{fontWeight: '600', color: '#1d4ed8'}}>Invoice Edit Request</span>
+                  <Edit size={18} color={themeColors.secondaryDark} />
+                  <span style={{fontWeight: '600', color: themeColors.secondaryDark}}>Invoice Edit Request</span>
                 </div>
                 <div style={{fontSize: '12px', color: '#64748b', marginTop: '4px'}}>Compare original vs proposed changes below</div>
               </div>
               <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
                 {originalInv && renderInvoiceDetails(originalInv, '📋 CURRENT (Before)', '#64748b')}
-                {renderInvoiceDetails(d, '✏️ PROPOSED (After)', '#2563eb')}
+                {renderInvoiceDetails(d, '✏️ PROPOSED (After)', themeColors.secondaryDark)}
               </div>
               {originalInv && (
                 <div style={{marginTop: '16px', padding: '16px', background: '#fef3c7', borderRadius: '8px', border: '1px solid #fcd34d'}}>
@@ -29119,15 +29133,15 @@ ${invoiceHtml}
           const originalRec = (data.receipts || []).find(r => r.id === d.id);
           return (
             <div>
-              <div style={{marginBottom: '16px', padding: '12px', background: '#eff6ff', borderRadius: '8px', border: '1px solid #93c5fd'}}>
+              <div style={{marginBottom: '16px', padding: '12px', background: themeColors.secondaryLighter, borderRadius: '8px', border: '1px solid #93c5fd'}}>
                 <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                  <Edit size={18} color="#2563eb" />
-                  <span style={{fontWeight: '600', color: '#1d4ed8'}}>Receipt Edit Request</span>
+                  <Edit size={18} color={themeColors.secondaryDark} />
+                  <span style={{fontWeight: '600', color: themeColors.secondaryDark}}>Receipt Edit Request</span>
                 </div>
               </div>
               <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
                 {originalRec && renderReceiptDetails(originalRec, '📋 CURRENT (Before)', '#64748b')}
-                {renderReceiptDetails(d, '✏️ PROPOSED (After)', '#2563eb')}
+                {renderReceiptDetails(d, '✏️ PROPOSED (After)', themeColors.secondaryDark)}
               </div>
             </div>
           );
@@ -29297,7 +29311,7 @@ ${invoiceHtml}
           <td style={{padding: '12px 16px'}}>{getStatusBadge(approval.status)}</td>
           <td style={{padding: '12px 16px'}}>
             <div style={{display: 'flex', gap: '6px', justifyContent: 'center'}}>
-              <button onClick={() => setViewingApproval(approval)} style={{padding: '6px 10px', background: '#eff6ff', color: '#3b82f6', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500'}}>
+              <button onClick={() => setViewingApproval(approval)} style={{padding: '6px 10px', background: themeColors.secondaryLighter, color: themeColors.secondary, border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500'}}>
                 <Eye size={14} />
               </button>
               {showActions && approval.status === 'pending' && (
@@ -29354,8 +29368,8 @@ ${invoiceHtml}
             <div style={{fontSize: '28px', fontWeight: '700', color: '#d97706'}}>{stats.pending}</div>
             <div style={{fontSize: '13px', color: '#64748b'}}>Pending Your Review</div>
           </div>
-          <div style={{background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: '4px solid #3b82f6'}}>
-            <div style={{fontSize: '28px', fontWeight: '700', color: '#3b82f6'}}>{stats.myPending}</div>
+          <div style={{background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: `4px solid ${themeColors.secondary}`}}>
+            <div style={{fontSize: '28px', fontWeight: '700', color: themeColors.secondary}}>{stats.myPending}</div>
             <div style={{fontSize: '13px', color: '#64748b'}}>My Pending Requests</div>
           </div>
           <div style={{background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: '4px solid #16a34a'}}>
@@ -29374,7 +29388,7 @@ ${invoiceHtml}
           <div style={{display: 'flex', borderBottom: '1px solid #e5e7eb'}}>
             {[
               {id: 'pending', label: 'Pending Review', count: stats.pending, color: '#d97706'},
-              {id: 'myRequests', label: 'My Requests', count: myRequests.length, color: '#3b82f6'},
+              {id: 'myRequests', label: 'My Requests', count: myRequests.length, color: themeColors.secondary},
               {id: 'all', label: 'All History', count: allApprovals.length, color: '#64748b'}
             ].map(tab => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
@@ -29567,7 +29581,7 @@ ${invoiceHtml}
                         }} style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
                       </div>
                     </div>
-                    <div style={{padding: '16px', background: themeColors.primaryLighter, borderRadius: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
+                    <div style={{padding: '16px', background: themeColors.primaryLighter, borderRadius: '8px', border: `1px solid ${themeColors.border}`}}>
                       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                         <span style={{fontWeight: '600', color: '#166534'}}>Total Amount</span>
                         <span style={{fontSize: '24px', fontWeight: '700', color: '#16a34a'}}>₹{(editedData.totalAmount || 0).toLocaleString('en-IN')}</span>
@@ -30011,10 +30025,10 @@ ${invoiceHtml}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
           <div 
             onClick={() => { setDscStatusFilter('all'); setDscExpiryFilter('all'); }}
-            style={{ background: dscStatusFilter === 'all' && dscExpiryFilter === 'all' ? '#eff6ff' : '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: dscStatusFilter === 'all' && dscExpiryFilter === 'all' ? '2px solid #3b82f6' : '1px solid #e2e8f0', cursor: 'pointer', transition: 'all 0.2s' }}>
+            style={{ background: dscStatusFilter === 'all' && dscExpiryFilter === 'all' ? themeColors.secondaryLighter : '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: dscStatusFilter === 'all' && dscExpiryFilter === 'all' ? `2px solid ${themeColors.secondary}` : '1px solid #e2e8f0', cursor: 'pointer', transition: 'all 0.2s' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Key size={24} color="#3b82f6" />
+              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: themeColors.secondaryLighter, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Key size={24} color={themeColors.secondary} />
               </div>
               <div>
                 <div style={{ fontSize: '28px', fontWeight: '700', color: '#0f172a' }}>{totalDsc}</div>
@@ -30344,10 +30358,10 @@ ${invoiceHtml}
                         <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                           <button
                             onClick={() => setViewingDsc(dsc)}
-                            style={{ padding: '5px', background: '#eff6ff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                            style={{ padding: '5px', background: themeColors.secondaryLighter, border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                             title="View Details"
                           >
-                            <Eye size={14} color="#3b82f6" />
+                            <Eye size={14} color={themeColors.secondary} />
                           </button>
                           <button
                             onClick={() => handleEditDsc(dsc)}
@@ -30780,7 +30794,7 @@ ${invoiceHtml}
               {/* Modal Header */}
               <div style={{
                 padding: '20px 24px',
-                background: '#3b82f6',
+                background: themeColors.secondary,
                 color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
@@ -31273,7 +31287,7 @@ ${invoiceHtml}
           <div 
             onClick={() => setPackageFilter('billed')}
             style={{
-              background: packageFilter === 'billed' ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
+              background: packageFilter === 'billed' ? themeColors.secondaryGradient : themeColors.secondaryLight,
               color: packageFilter === 'billed' ? '#fff' : '#1e40af',
               padding: '16px 20px',
               borderRadius: '12px',
@@ -31436,7 +31450,7 @@ ${invoiceHtml}
                               </button>
                               <button
                                 onClick={() => handleRenew(pkg)}
-                                style={{padding: '4px 8px', background: '#dbeafe', color: '#2563eb', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}}
+                                style={{padding: '4px 8px', background: themeColors.secondaryLight, color: themeColors.secondaryDark, border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}}
                                 title="Renew"
                               >
                                 <RefreshCw size={12} />
@@ -31894,7 +31908,7 @@ ${invoiceHtml}
                             )
                           }));
                         }}
-                        style={{background: themeColors.primaryLighter, border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, borderRadius: '4px', padding: '4px 8px', fontSize: '12px', color: '#166534', cursor: 'pointer', fontWeight: '500'}}
+                        style={{background: themeColors.primaryLighter, border: `1px solid ${themeColors.border}`, borderRadius: '4px', padding: '4px 8px', fontSize: '12px', color: '#166534', cursor: 'pointer', fontWeight: '500'}}
                       >
                         Mark all read
                       </button>
@@ -31992,10 +32006,10 @@ ${invoiceHtml}
                         display: 'flex',
                         gap: '12px',
                         alignItems: 'flex-start',
-                        background: !approval.seenByRequester ? '#eff6ff' : '#fff'
+                        background: !approval.seenByRequester ? themeColors.secondaryLighter : '#fff'
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = !approval.seenByRequester ? '#dbeafe' : '#f8fafc'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = !approval.seenByRequester ? '#eff6ff' : '#fff'}
+                      onMouseEnter={(e) => e.currentTarget.style.background = !approval.seenByRequester ? themeColors.secondaryLight : '#f8fafc'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = !approval.seenByRequester ? themeColors.secondaryLighter : '#fff'}
                     >
                       <div style={{
                         width: '36px',
@@ -32051,7 +32065,7 @@ ${invoiceHtml}
                       style={{
                         background: 'none',
                         border: 'none',
-                        color: '#3b82f6',
+                        color: themeColors.secondary,
                         fontSize: '13px',
                         fontWeight: '600',
                         cursor: 'pointer'
@@ -32413,7 +32427,7 @@ ${invoiceHtml}
                                   <td style={{padding: '8px 10px', color: '#374151'}}>{task.subPeriod || task.period || '-'}</td>
                                   <td style={{padding: '8px 10px', color: '#64748b'}}>{task.primaryAssignedTo || '-'}</td>
                                   <td style={{padding: '8px 10px'}}>
-                                    <span style={{padding: '2px 6px', borderRadius: '6px', fontSize: '12px', fontWeight: '500', background: task.status === 'Completed' ? themeColors.primaryLight : task.status === 'In Progress' ? '#dbeafe' : '#fef3c7', color: task.status === 'Completed' ? '#166534' : task.status === 'In Progress' ? '#1e40af' : '#92400e'}}>{task.status}</span>
+                                    <span style={{padding: '2px 6px', borderRadius: '6px', fontSize: '12px', fontWeight: '500', background: task.status === 'Completed' ? themeColors.primaryLight : task.status === 'In Progress' ? themeColors.secondaryLight : '#fef3c7', color: task.status === 'Completed' ? '#166534' : task.status === 'In Progress' ? '#1e40af' : '#92400e'}}>{task.status}</span>
                                   </td>
                                   <td style={{padding: '8px 10px', textAlign: 'center'}}>
                                     {expenseFormData.taskId === task.id ? <CheckCircle size={16} color="#f59e0b" /> : <div style={{width: '16px', height: '16px', border: '2px solid #e2e8f0', borderRadius: '50%'}}></div>}
@@ -32546,7 +32560,7 @@ ${invoiceHtml}
                   <>
                     {/* Summary */}
                     <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '16px'}}>
-                      <div style={{background: '#dbeafe', padding: '12px', borderRadius: '8px', textAlign: 'center'}}>
+                      <div style={{background: themeColors.secondaryLight, padding: '12px', borderRadius: '8px', textAlign: 'center'}}>
                         <div style={{fontSize: '20px', fontWeight: '700', color: '#1e40af'}}>{myExpenses.length}</div>
                         <div style={{fontSize: '13px', color: '#1e40af'}}>Total Posted</div>
                       </div>
@@ -32934,7 +32948,7 @@ ${invoiceHtml}
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center',
-                            background: taskConfigSelectedParent === parent ? '#3b82f6' : '#f8fafc',
+                            background: taskConfigSelectedParent === parent ? themeColors.secondary : '#f8fafc',
                             color: taskConfigSelectedParent === parent ? '#fff' : '#374151',
                             fontSize: '13px',
                             fontWeight: taskConfigSelectedParent === parent ? '600' : '500'
@@ -32991,7 +33005,7 @@ ${invoiceHtml}
                   <div style={{flex: 1}}>
                     <div style={{marginBottom: '16px'}}>
                       <h3 style={{fontSize: '14px', fontWeight: '600', marginBottom: '12px', color: '#374151'}}>
-                        Child Tasks for: <span style={{color: '#3b82f6'}}>{taskConfigSelectedParent || 'Select a parent'}</span>
+                        Child Tasks for: <span style={{color: themeColors.secondary}}>{taskConfigSelectedParent || 'Select a parent'}</span>
                         {taskConfigSelectedParent && ` (${PARENT_CHILD_TASKS[taskConfigSelectedParent]?.length || 0})`}
                       </h3>
                       {taskConfigSelectedParent && (
@@ -33446,7 +33460,7 @@ ${invoiceHtml}
                           <ChevronLeft size={16} /> Back
                         </button>
                         <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600'}}>
-                          Batch: <span style={{color: '#3b82f6'}}>{selectedBatch.name}</span>
+                          Batch: <span style={{color: themeColors.secondary}}>{selectedBatch.name}</span>
                         </h3>
                         <button
                           onClick={() => {
@@ -33602,7 +33616,7 @@ ${invoiceHtml}
                                     <td style={{padding: '10px'}}>{client?.fileNo || '-'}</td>
                                     <td style={{padding: '10px', fontWeight: '500'}}>{client?.name || 'Unknown'}</td>
                                     <td style={{padding: '10px', color: '#64748b'}}>{client?.groupName || client?.name || '-'}</td>
-                                    <td style={{padding: '10px', color: '#3b82f6'}}>{clientData.primaryAssignedUser || '-'}</td>
+                                    <td style={{padding: '10px', color: themeColors.secondary}}>{clientData.primaryAssignedUser || '-'}</td>
                                   </tr>
                                 );
                               })}
@@ -33645,7 +33659,7 @@ ${invoiceHtml}
                                 width: '28px',
                                 height: '28px',
                                 borderRadius: '50%',
-                                background: batchFormStep > idx + 1 ? themeColors.primary : batchFormStep === idx + 1 ? '#3b82f6' : '#e2e8f0',
+                                background: batchFormStep > idx + 1 ? themeColors.primary : batchFormStep === idx + 1 ? themeColors.secondary : '#e2e8f0',
                                 color: batchFormStep >= idx + 1 ? '#fff' : '#64748b',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -33852,7 +33866,7 @@ ${invoiceHtml}
                               }}
                               style={{
                                 padding: '12px 24px',
-                                background: '#3b82f6',
+                                background: themeColors.secondary,
                                 color: '#fff',
                                 border: 'none',
                                 borderRadius: '8px',
@@ -33939,7 +33953,7 @@ ${invoiceHtml}
                                     {filteredClients.map(client => {
                                       const isSelected = batchFormData.clients?.some(c => c.clientId === client.id);
                                       return (
-                                        <tr key={client.id} style={{borderBottom: '1px solid #f1f5f9', background: isSelected ? '#eff6ff' : 'transparent'}}>
+                                        <tr key={client.id} style={{borderBottom: '1px solid #f1f5f9', background: isSelected ? themeColors.secondaryLighter : 'transparent'}}>
                                           <td style={{padding: '10px', textAlign: 'center'}}>
                                             <input
                                               type="checkbox"
@@ -33982,7 +33996,7 @@ ${invoiceHtml}
                               }}
                               style={{
                                 padding: '12px 24px',
-                                background: '#3b82f6',
+                                background: themeColors.secondary,
                                 color: '#fff',
                                 border: 'none',
                                 borderRadius: '8px',
@@ -34682,7 +34696,7 @@ ${invoiceHtml}
                   onClick={() => setShowTaskConfigModal(false)}
                   style={{
                     padding: '10px 20px',
-                    background: '#3b82f6',
+                    background: themeColors.secondary,
                     color: '#fff',
                     border: 'none',
                     borderRadius: '8px',
@@ -34782,19 +34796,19 @@ ${invoiceHtml}
           <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, overflow: 'auto', padding: '20px'}}>
             <div style={{maxWidth: '650px', margin: '0 auto'}}>
               {/* Compact Action Bar - Blue Theme */}
-              <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', padding: '10px 16px', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', borderRadius: '8px'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', padding: '10px 16px', background: themeColors.secondaryGradient, borderRadius: '8px'}}>
                 <button onClick={() => setAppViewReceipt(null)} style={{padding: '6px 12px', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', color: '#fff'}}>✕ Close</button>
                 <div style={{flex: 1, color: '#fff'}}>
                   <span style={{fontSize: '12px', opacity: 0.8}}>Receipt</span>
                   <span style={{fontSize: '16px', fontWeight: '700', marginLeft: '6px'}}>{appViewReceipt.receiptNo}</span>
                 </div>
-                <button onClick={() => window.print()} style={{padding: '6px 14px', background: '#fff', color: '#3b82f6', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600'}}>🖨️ Print</button>
+                <button onClick={() => window.print()} style={{padding: '6px 14px', background: '#fff', color: themeColors.secondary, border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600'}}>🖨️ Print</button>
               </div>
 
               {/* Compact Receipt Card - Blue Theme */}
               <div style={{background: '#fff', borderRadius: '10px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', overflow: 'hidden', border: '1px solid #e2e8f0'}}>
                 {/* Header Row - Compact */}
-                <div style={{background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', padding: '16px 20px', color: '#fff'}}>
+                <div style={{background: themeColors.secondaryGradient, padding: '16px 20px', color: '#fff'}}>
                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                     <div>
                       <div style={{fontSize: '18px', fontWeight: '700', letterSpacing: '0.5px'}}>RECEIPT</div>
@@ -34819,7 +34833,7 @@ ${invoiceHtml}
                   </div>
                   <div style={{textAlign: 'right'}}>
                     <div style={{fontSize: '12px', color: '#64748b', fontWeight: '600', marginBottom: '4px'}}>AGAINST INVOICE(S)</div>
-                    <div style={{fontSize: '13px', fontWeight: '600', color: '#3b82f6'}}>{appViewReceipt.invoiceNo}</div>
+                    <div style={{fontSize: '13px', fontWeight: '600', color: themeColors.secondary}}>{appViewReceipt.invoiceNo}</div>
                     <div style={{fontSize: '13px', color: '#64748b', marginTop: '2px'}}>Invoice Amt: ₹{(appViewReceipt.invoiceAmount || 0).toLocaleString('en-IN')}</div>
                   </div>
                 </div>
@@ -34841,11 +34855,11 @@ ${invoiceHtml}
                       <tbody>
                         {appViewReceipt.invoiceEntries.map((entry, idx) => (
                           <tr key={idx} style={{borderBottom: '1px solid #f1f5f9'}}>
-                            <td style={{padding: '6px 8px', color: '#3b82f6', fontWeight: '500'}}>{entry.invoiceNo}</td>
+                            <td style={{padding: '6px 8px', color: themeColors.secondary, fontWeight: '500'}}>{entry.invoiceNo}</td>
                             <td style={{padding: '6px 8px', textAlign: 'right'}}>₹{(entry.invoiceAmount || 0).toLocaleString('en-IN')}</td>
                             <td style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: themeColors.primaryDark}}>₹{(entry.amount || 0).toLocaleString('en-IN')}</td>
                             <td style={{padding: '6px 8px', textAlign: 'right', color: '#f59e0b'}}>{entry.tds > 0 ? `₹${entry.tds}` : '-'}</td>
-                            <td style={{padding: '6px 8px', textAlign: 'right', color: '#3b82f6'}}>{entry.discount > 0 ? `₹${entry.discount}` : '-'}</td>
+                            <td style={{padding: '6px 8px', textAlign: 'right', color: themeColors.secondary}}>{entry.discount > 0 ? `₹${entry.discount}` : '-'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -34874,12 +34888,12 @@ ${invoiceHtml}
                       {appViewReceipt.discount > 0 && (
                         <tr style={{borderBottom: '1px solid #f1f5f9'}}>
                           <td style={{padding: '8px 0', color: '#64748b'}}>Discount</td>
-                          <td style={{padding: '8px 0', textAlign: 'right', fontWeight: '600', color: '#3b82f6'}}>₹{(appViewReceipt.discount || 0).toLocaleString('en-IN')}</td>
+                          <td style={{padding: '8px 0', textAlign: 'right', fontWeight: '600', color: themeColors.secondary}}>₹{(appViewReceipt.discount || 0).toLocaleString('en-IN')}</td>
                         </tr>
                       )}
-                      <tr style={{background: '#eff6ff'}}>
+                      <tr style={{background: themeColors.secondaryLighter}}>
                         <td style={{padding: '10px 8px', fontWeight: '700', color: '#1e40af'}}>Total Settlement</td>
-                        <td style={{padding: '10px 8px', textAlign: 'right', fontWeight: '700', color: '#1d4ed8', fontSize: '16px'}}>₹{((appViewReceipt.amount || 0) + (appViewReceipt.tds || 0) + (appViewReceipt.discount || 0)).toLocaleString('en-IN')}</td>
+                        <td style={{padding: '10px 8px', textAlign: 'right', fontWeight: '700', color: themeColors.secondaryDark, fontSize: '16px'}}>₹{((appViewReceipt.amount || 0) + (appViewReceipt.tds || 0) + (appViewReceipt.discount || 0)).toLocaleString('en-IN')}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -34914,6 +34928,10 @@ ${invoiceHtml}
           --theme-primary-lighter: ${themeColors.primaryLighter};
           --theme-gradient: ${themeColors.gradient};
           --theme-shadow: ${themeColors.shadow};
+          --theme-secondary: ${themeColors.secondary};
+          --theme-secondary-dark: ${themeColors.secondaryDark};
+          --theme-secondary-light: ${themeColors.secondaryLight};
+          --theme-secondary-lighter: ${themeColors.secondaryLighter};
         }
         
         @import url('https://fonts.googleapis.com/css2?family=Product+Sans:wght@400;500;700&display=swap');
@@ -35344,7 +35362,7 @@ ${invoiceHtml}
         }
 
         .stat-card.accent .stat-icon {
-          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+          background: ${themeColors.secondaryGradient};
           color: white;
         }
 
@@ -35709,7 +35727,7 @@ ${invoiceHtml}
         }
 
         .status-badge-table.status-in-progress {
-          background: #dbeafe;
+          background: var(--theme-secondary-light);
           color: #1e40af;
         }
 
@@ -36148,8 +36166,8 @@ ${invoiceHtml}
         }
 
         .csv-col.required {
-          background: #dbeafe;
-          color: #1d4ed8;
+          background: var(--theme-secondary-light);
+          color: var(--theme-secondary-dark);
         }
 
         .hint {
@@ -36177,9 +36195,9 @@ ${invoiceHtml}
         }
 
         .upload-dropzone:hover {
-          border-color: #3b82f6;
+          border-color: var(--theme-secondary);
           background: #eff6ff;
-          color: #3b82f6;
+          color: var(--theme-secondary);
         }
 
         .upload-dropzone span {
@@ -36291,7 +36309,7 @@ ${invoiceHtml}
         }
 
         .role-badge.role-partner { background: #fef3c7; color: #92400e; }
-        .role-badge.role-manager { background: #dbeafe; color: #1e40af; }
+        .role-badge.role-manager { background: var(--theme-secondary-light); color: #1e40af; }
         .role-badge.role-senior-associate { background: #f3e8ff; color: #7c3aed; }
         .role-badge.role-articles { background: #d1fae5; color: #065f46; }
 
@@ -36344,8 +36362,8 @@ ${invoiceHtml}
         }
 
         .btn-secondary:hover {
-          border-color: #3b82f6;
-          color: #3b82f6;
+          border-color: var(--theme-secondary);
+          color: var(--theme-secondary);
           background: #eff6ff;
         }
 
@@ -37494,7 +37512,7 @@ ${invoiceHtml}
           color: #065f46;
           margin: 0 0 18px 0;
           padding: 10px 14px;
-          background: ${appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'};
+          background: ${themeColors.primaryLighter};
           border-radius: 8px;
           display: flex;
           align-items: center;
@@ -38265,7 +38283,7 @@ ${invoiceHtml}
         }
 
         .compact-detail-row .value.priority-low {
-          color: #3b82f6;
+          color: var(--theme-secondary);
           font-weight: 600;
         }
 
@@ -39187,7 +39205,7 @@ ${invoiceHtml}
           display: flex;
           justify-content: space-between;
           align-items: center;
-          border-bottom: 3px solid #3b82f6;
+          border-bottom: 3px solid var(--theme-secondary);
           position: sticky;
           top: 0;
           z-index: 10;
@@ -39257,7 +39275,7 @@ ${invoiceHtml}
         .info-value-select:focus,
         .info-value-date:focus {
           outline: none;
-          border-color: #3b82f6;
+          border-color: var(--theme-secondary);
           box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
         }
 
@@ -39384,7 +39402,7 @@ ${invoiceHtml}
         .timesheet-input-select:focus,
         .timesheet-input-text:focus {
           outline: none;
-          border-color: #3b82f6;
+          border-color: var(--theme-secondary);
           box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
         }
 
@@ -39789,8 +39807,8 @@ ${invoiceHtml}
           align-items: center;
           gap: 10px;
           padding: 10px 16px;
-          background: #dbeafe;
-          border: 1px solid #3b82f6;
+          background: var(--theme-secondary-light);
+          border: 1px solid var(--theme-secondary);
           border-radius: 6px;
           margin-bottom: 16px;
           color: #1e40af;
@@ -39925,16 +39943,16 @@ ${invoiceHtml}
         .btn-edit-small {
           padding: 4px 10px;
           background: #fff;
-          border: 1px solid #3b82f6;
+          border: 1px solid var(--theme-secondary);
           border-radius: 4px;
-          color: #3b82f6;
+          color: var(--theme-secondary);
           font-size: 11px;
           font-weight: 600;
           cursor: pointer;
         }
 
         .btn-edit-small:hover {
-          background: #3b82f6;
+          background: var(--theme-secondary);
           color: #fff;
         }
 
@@ -39958,7 +39976,7 @@ ${invoiceHtml}
           align-items: center;
           gap: 6px;
           padding: 8px 16px;
-          background: #3b82f6;
+          background: var(--theme-secondary);
           color: #fff;
           border: none;
           border-radius: 6px;
@@ -39969,7 +39987,7 @@ ${invoiceHtml}
         }
 
         .btn-edit-detail:hover {
-          background: #2563eb;
+          background: var(--theme-secondary-dark);
         }
 
         /* Leave Notice */
@@ -40696,7 +40714,7 @@ ${invoiceHtml}
 
         .ts-summary-card.billable { border-left-color: var(--theme-primary); }
         .ts-summary-card.nonbillable { border-left-color: #f59e0b; }
-        .ts-summary-card.entries { border-left-color: #3b82f6; }
+        .ts-summary-card.entries { border-left-color: var(--theme-secondary); }
 
         .ts-summary-icon {
           width: 48px;
@@ -40711,7 +40729,7 @@ ${invoiceHtml}
 
         .ts-summary-card.billable .ts-summary-icon { background: #d1fae5; color: var(--theme-primary-dark); }
         .ts-summary-card.nonbillable .ts-summary-icon { background: #fef3c7; color: #d97706; }
-        .ts-summary-card.entries .ts-summary-icon { background: #dbeafe; color: #2563eb; }
+        .ts-summary-card.entries .ts-summary-icon { background: var(--theme-secondary-light); color: var(--theme-secondary-dark); }
 
         .ts-summary-info {
           display: flex;
