@@ -292,6 +292,7 @@ const PracticeManagementApp = () => {
   
   // Expense Management State
   const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [expenseModalTab, setExpenseModalTab] = useState('add'); // 'add' or 'posted'
   const [expenseFormData, setExpenseFormData] = useState({
     clientName: '',
     parentTask: '',
@@ -15829,6 +15830,30 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const [bulkDownloadItems, setBulkDownloadItems] = useState([]);
     const [bulkDownloadType, setBulkDownloadType] = useState('bills'); // 'bills' or 'receipts'
     
+    // Expense Management States
+    const [expenseFilters, setExpenseFilters] = useState({
+      clientName: '',
+      parentTask: '',
+      childTask: '',
+      expenseType: '',
+      status: 'Unbilled',
+      dateFrom: '',
+      dateTo: '',
+      enteredBy: ''
+    });
+    const [selectedExpenses, setSelectedExpenses] = useState([]);
+    const [showExpenseInvoiceModal, setShowExpenseInvoiceModal] = useState(false);
+    const [expenseInvoiceOrg, setExpenseInvoiceOrg] = useState('');
+    const [expenseInvoiceDate, setExpenseInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
+    
+    // Expense Report States
+    const [expenseReportType, setExpenseReportType] = useState('byClient');
+    const [expenseReportFilters, setExpenseReportFilters] = useState({
+      dateFrom: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+      dateTo: new Date().toISOString().split('T')[0],
+      status: ''
+    });
+    
     // Unbilled Tasks States
     const [unbilledTasksTab, setUnbilledTasksTab] = useState('unbilled'); // 'unbilled', 'free'
     const [unbilledFilters, setUnbilledFilters] = useState({
@@ -25071,19 +25096,6 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
 
         {/* Expenses Tab */}
         {activeTab === 'expenses' && (() => {
-          const [expenseFilters, setExpenseFilters] = React.useState({
-            clientName: '',
-            parentTask: '',
-            childTask: '',
-            expenseType: '',
-            status: 'Unbilled',
-            dateFrom: '',
-            dateTo: '',
-            enteredBy: ''
-          });
-          const [selectedExpenses, setSelectedExpenses] = React.useState([]);
-          const [showExpenseInvoiceModal, setShowExpenseInvoiceModal] = React.useState(false);
-          
           const allExpenses = data.expenses || [];
           
           const filteredExpenses = allExpenses.filter(exp => {
@@ -25124,7 +25136,6 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               alert('Please select at least one expense to invoice');
               return;
             }
-            // Check all selected are same client
             const selectedItems = allExpenses.filter(e => selectedExpenses.includes(e.id));
             const clients = [...new Set(selectedItems.map(e => e.clientName))];
             if (clients.length > 1) {
@@ -25132,6 +25143,60 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               return;
             }
             setShowExpenseInvoiceModal(true);
+          };
+          
+          const handleCreateExpenseInvoice = () => {
+            if (!expenseInvoiceOrg) {
+              alert('Please select an organization');
+              return;
+            }
+            const selectedItems = allExpenses.filter(e => selectedExpenses.includes(e.id));
+            const clientName = selectedItems[0]?.clientName;
+            const client = data.clients.find(c => c.name === clientName);
+            const totalAmount = selectedItems.reduce((s, e) => s + e.amount, 0);
+            const org = data.organizations.find(o => o.id === expenseInvoiceOrg);
+            const invoiceNumber = `${org?.invoicePrefix || 'INV'}-${String((data.invoices?.length || 0) + 1).padStart(4, '0')}`;
+            
+            const newInvoice = {
+              id: `INV-${Date.now()}`,
+              invoiceNo: invoiceNumber,
+              invoiceDate: expenseInvoiceDate,
+              clientId: client?.id,
+              clientName,
+              organizationId: expenseInvoiceOrg,
+              orgName: org?.name,
+              invoiceType: 'Expense Reimbursement',
+              serviceDescription: selectedItems.map(exp => `${exp.expenseType} - ${exp.parentTask} → ${exp.childTask}`).join('; '),
+              lineItems: selectedItems.map(exp => ({
+                description: `${exp.expenseType} - ${exp.parentTask} → ${exp.childTask}${exp.description ? ` (${exp.description})` : ''}`,
+                amount: exp.amount,
+                expenseId: exp.id
+              })),
+              amount: totalAmount,
+              netAmount: totalAmount,
+              gstApplicable: false,
+              taxAmount: 0,
+              totalAmount,
+              status: 'Generated',
+              createdAt: new Date().toISOString()
+            };
+            
+            const updatedExpenses = (data.expenses || []).map(exp => 
+              selectedExpenses.includes(exp.id) 
+                ? {...exp, status: 'Billed', invoiceId: newInvoice.id, invoiceDate: expenseInvoiceDate, invoiceNumber}
+                : exp
+            );
+            
+            setData(prev => ({
+              ...prev,
+              invoices: [...(prev.invoices || []), newInvoice],
+              expenses: updatedExpenses
+            }));
+            
+            setShowExpenseInvoiceModal(false);
+            setSelectedExpenses([]);
+            setExpenseInvoiceOrg('');
+            alert(`✅ Invoice ${invoiceNumber} created for ₹${totalAmount.toLocaleString()}`);
           };
           
           return (
@@ -25285,56 +25350,6 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 const client = data.clients.find(c => c.name === clientName);
                 const totalAmount = selectedItems.reduce((s, e) => s + e.amount, 0);
                 
-                const [selectedOrg, setSelectedOrg] = React.useState(data.organizations?.[0]?.id || '');
-                const [invoiceDate, setInvoiceDate] = React.useState(new Date().toISOString().split('T')[0]);
-                
-                const handleCreateExpenseInvoice = () => {
-                  if (!selectedOrg) {
-                    alert('Please select an organization');
-                    return;
-                  }
-                  const org = data.organizations.find(o => o.id === selectedOrg);
-                  const invoiceNumber = `${org?.invoicePrefix || 'INV'}-${String((data.invoices?.length || 0) + 1).padStart(4, '0')}`;
-                  
-                  const newInvoice = {
-                    id: `INV-${Date.now()}`,
-                    invoiceNumber,
-                    invoiceDate,
-                    clientId: client?.id,
-                    clientName,
-                    organizationId: selectedOrg,
-                    invoiceType: 'Expense Reimbursement',
-                    items: selectedItems.map(exp => ({
-                      description: `${exp.expenseType} - ${exp.parentTask} → ${exp.childTask}${exp.description ? ` (${exp.description})` : ''}`,
-                      amount: exp.amount,
-                      expenseId: exp.id
-                    })),
-                    subtotal: totalAmount,
-                    gstRate: 0,
-                    gstAmount: 0,
-                    totalAmount,
-                    status: 'Unpaid',
-                    createdAt: new Date().toISOString()
-                  };
-                  
-                  // Update expenses as billed
-                  const updatedExpenses = (data.expenses || []).map(exp => 
-                    selectedExpenses.includes(exp.id) 
-                      ? {...exp, status: 'Billed', invoiceId: newInvoice.id, invoiceDate, invoiceNumber}
-                      : exp
-                  );
-                  
-                  setData(prev => ({
-                    ...prev,
-                    invoices: [...(prev.invoices || []), newInvoice],
-                    expenses: updatedExpenses
-                  }));
-                  
-                  setShowExpenseInvoiceModal(false);
-                  setSelectedExpenses([]);
-                  alert(`✅ Invoice ${invoiceNumber} created for ₹${totalAmount.toLocaleString()}`);
-                };
-                
                 return (
                   <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000}}>
                     <div style={{background: '#fff', borderRadius: '16px', width: '90%', maxWidth: '700px', maxHeight: '85vh', overflow: 'hidden'}}>
@@ -25351,14 +25366,14 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
                             <div>
                               <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', fontSize: '13px'}}>Organization *</label>
-                              <select value={selectedOrg} onChange={(e) => setSelectedOrg(e.target.value)} style={{width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px'}}>
+                              <select value={expenseInvoiceOrg} onChange={(e) => setExpenseInvoiceOrg(e.target.value)} style={{width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px'}}>
                                 <option value="">Select Organization</option>
                                 {data.organizations?.map(org => <option key={org.id} value={org.id}>{org.name}</option>)}
                               </select>
                             </div>
                             <div>
                               <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', fontSize: '13px'}}>Invoice Date *</label>
-                              <input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} style={{width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px'}} />
+                              <input type="date" value={expenseInvoiceDate} onChange={(e) => setExpenseInvoiceDate(e.target.value)} style={{width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px'}} />
                             </div>
                           </div>
                           <div>
@@ -25404,19 +25419,12 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
 
         {/* Expense Report Tab */}
         {activeTab === 'expenseReport' && (() => {
-          const [reportType, setReportType] = React.useState('byClient');
-          const [reportFilters, setReportFilters] = React.useState({
-            dateFrom: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-            dateTo: new Date().toISOString().split('T')[0],
-            status: ''
-          });
-          
           const allExpenses = data.expenses || [];
           
           const filteredExpenses = allExpenses.filter(exp => {
-            if (reportFilters.dateFrom && exp.expenseDate < reportFilters.dateFrom) return false;
-            if (reportFilters.dateTo && exp.expenseDate > reportFilters.dateTo) return false;
-            if (reportFilters.status && exp.status !== reportFilters.status) return false;
+            if (expenseReportFilters.dateFrom && exp.expenseDate < expenseReportFilters.dateFrom) return false;
+            if (expenseReportFilters.dateTo && exp.expenseDate > expenseReportFilters.dateTo) return false;
+            if (expenseReportFilters.status && exp.status !== expenseReportFilters.status) return false;
             return true;
           });
           
@@ -25458,7 +25466,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             byUser[exp.enteredBy].expenses.push(exp);
           });
           
-          const reportData = reportType === 'byClient' ? byClient : reportType === 'byTask' ? byTask : byUser;
+          const reportData = expenseReportType === 'byClient' ? byClient : expenseReportType === 'byTask' ? byTask : byUser;
           
           return (
             <div>
@@ -25487,15 +25495,15 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 <div style={{display: 'flex', gap: '16px', alignItems: 'end'}}>
                   <div>
                     <label style={{fontSize: '11px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px'}}>From Date</label>
-                    <input type="date" value={reportFilters.dateFrom} onChange={(e) => setReportFilters({...reportFilters, dateFrom: e.target.value})} style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}} />
+                    <input type="date" value={expenseReportFilters.dateFrom} onChange={(e) => setExpenseReportFilters({...expenseReportFilters, dateFrom: e.target.value})} style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}} />
                   </div>
                   <div>
                     <label style={{fontSize: '11px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px'}}>To Date</label>
-                    <input type="date" value={reportFilters.dateTo} onChange={(e) => setReportFilters({...reportFilters, dateTo: e.target.value})} style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}} />
+                    <input type="date" value={expenseReportFilters.dateTo} onChange={(e) => setExpenseReportFilters({...expenseReportFilters, dateTo: e.target.value})} style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}} />
                   </div>
                   <div>
                     <label style={{fontSize: '11px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px'}}>Status</label>
-                    <select value={reportFilters.status} onChange={(e) => setReportFilters({...reportFilters, status: e.target.value})} style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}>
+                    <select value={expenseReportFilters.status} onChange={(e) => setExpenseReportFilters({...expenseReportFilters, status: e.target.value})} style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}>
                       <option value="">All</option>
                       <option value="Unbilled">Unbilled</option>
                       <option value="Billed">Billed</option>
@@ -25513,12 +25521,12 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 ].map(tab => (
                   <button
                     key={tab.id}
-                    onClick={() => setReportType(tab.id)}
+                    onClick={() => setExpenseReportType(tab.id)}
                     style={{
                       padding: '10px 20px',
-                      background: reportType === tab.id ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : '#fff',
-                      color: reportType === tab.id ? '#fff' : '#374151',
-                      border: reportType === tab.id ? 'none' : '1px solid #e2e8f0',
+                      background: expenseReportType === tab.id ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : '#fff',
+                      color: expenseReportType === tab.id ? '#fff' : '#374151',
+                      border: expenseReportType === tab.id ? 'none' : '1px solid #e2e8f0',
                       borderRadius: '8px',
                       cursor: 'pointer',
                       fontSize: '13px',
@@ -25538,7 +25546,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                   <thead>
                     <tr style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'}}>
-                      <th style={{padding: '12px 14px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>{reportType === 'byClient' ? 'Client' : reportType === 'byTask' ? 'Task' : 'User'}</th>
+                      <th style={{padding: '12px 14px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>{expenseReportType === 'byClient' ? 'Client' : expenseReportType === 'byTask' ? 'Task' : 'User'}</th>
                       <th style={{padding: '12px 14px', textAlign: 'center', color: '#fff', fontWeight: '600'}}>Count</th>
                       <th style={{padding: '12px 14px', textAlign: 'right', color: '#fff', fontWeight: '600'}}>Total</th>
                       <th style={{padding: '12px 14px', textAlign: 'right', color: '#fff', fontWeight: '600'}}>Unbilled</th>
@@ -25548,13 +25556,13 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <tbody>
                     {Object.keys(reportData).length === 0 ? (
                       <tr><td colSpan="5" style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>No expenses found</td></tr>
-                    ) : Object.entries(reportData).sort((a, b) => b[1].total - a[1].total).map(([name, data], idx) => (
+                    ) : Object.entries(reportData).sort((a, b) => b[1].total - a[1].total).map(([name, rowData], idx) => (
                       <tr key={name} style={{borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? '#fff' : '#fafafa'}}>
                         <td style={{padding: '12px 14px', fontWeight: '600', color: '#374151'}}>{name}</td>
-                        <td style={{padding: '12px 14px', textAlign: 'center', color: '#374151'}}>{data.count}</td>
-                        <td style={{padding: '12px 14px', textAlign: 'right', fontWeight: '700', color: '#374151'}}>₹{data.total.toLocaleString()}</td>
-                        <td style={{padding: '12px 14px', textAlign: 'right', color: '#92400e', fontWeight: '600'}}>₹{data.unbilled.toLocaleString()}</td>
-                        <td style={{padding: '12px 14px', textAlign: 'right', color: '#166534', fontWeight: '600'}}>₹{data.billed.toLocaleString()}</td>
+                        <td style={{padding: '12px 14px', textAlign: 'center', color: '#374151'}}>{rowData.count}</td>
+                        <td style={{padding: '12px 14px', textAlign: 'right', fontWeight: '700', color: '#374151'}}>₹{rowData.total.toLocaleString()}</td>
+                        <td style={{padding: '12px 14px', textAlign: 'right', color: '#92400e', fontWeight: '600'}}>₹{rowData.unbilled.toLocaleString()}</td>
+                        <td style={{padding: '12px 14px', textAlign: 'right', color: '#166534', fontWeight: '600'}}>₹{rowData.billed.toLocaleString()}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -32776,193 +32784,361 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       )}
 
       {/* Expense Management Modal */}
-      {showExpenseModal && (
+      {showExpenseModal && (() => {
+        // Get clients where user is Primary Assigned, Task Manager, or Task Leader
+        const userTasks = data.tasks.filter(t => 
+          !t.deleted && 
+          (t.primaryAssignedTo === currentUser?.name || 
+           t.taskManager === currentUser?.name || 
+           t.taskLeader === currentUser?.name ||
+           currentUser?.isSuperAdmin)
+        );
+        
+        // Get unique client names from user's tasks
+        const assignedClientNames = [...new Set(userTasks.map(t => t.clientName))].filter(Boolean);
+        const assignedClients = data.clients.filter(c => !c.deleted && assignedClientNames.includes(c.name));
+        
+        // Get tasks for selected client
+        const clientTasks = expenseFormData.clientName 
+          ? userTasks.filter(t => t.clientName === expenseFormData.clientName)
+          : [];
+        
+        // Get unique parent tasks for selected client
+        const clientParentTasks = [...new Set(clientTasks.map(t => t.parentTask))].filter(Boolean);
+        
+        // Get child tasks for selected parent
+        const clientChildTasks = expenseFormData.parentTask 
+          ? [...new Set(clientTasks.filter(t => t.parentTask === expenseFormData.parentTask).map(t => t.childTask))].filter(Boolean)
+          : [];
+        
+        // Get actual task options for selection
+        const selectableTasks = expenseFormData.parentTask && expenseFormData.childTask
+          ? clientTasks.filter(t => t.parentTask === expenseFormData.parentTask && t.childTask === expenseFormData.childTask)
+          : [];
+        
+        // My posted expenses
+        const myExpenses = (data.expenses || []).filter(e => e.enteredBy === currentUser?.name);
+        
+        return (
         <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000}} onClick={() => setShowExpenseModal(false)}>
-          <div style={{background: '#fff', borderRadius: '16px', width: '95%', maxWidth: '600px', maxHeight: '90vh', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'}} onClick={(e) => e.stopPropagation()}>
+          <div style={{background: '#fff', borderRadius: '16px', width: '95%', maxWidth: '750px', maxHeight: '90vh', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'}} onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', padding: '20px 24px', color: '#fff'}}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                 <h2 style={{margin: 0, fontSize: '20px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '10px'}}>
-                  <Receipt size={24} /> Add Expense
+                  <Receipt size={24} /> Expense Management
                 </h2>
                 <button onClick={() => setShowExpenseModal(false)} style={{background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer', color: '#fff'}}>
                   <X size={20} />
                 </button>
               </div>
-              <p style={{margin: '8px 0 0', fontSize: '13px', opacity: 0.9}}>Record expenses paid on behalf of clients</p>
             </div>
             
-            {/* Form */}
-            <div style={{padding: '24px', maxHeight: 'calc(90vh - 180px)', overflowY: 'auto'}}>
-              <div style={{display: 'grid', gap: '16px'}}>
-                {/* Client Selection */}
-                <div>
-                  <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>Client *</label>
-                  <select
-                    value={expenseFormData.clientName}
-                    onChange={(e) => {
-                      setExpenseFormData({...expenseFormData, clientName: e.target.value, parentTask: '', childTask: '', taskId: ''});
+            {/* Tabs */}
+            <div style={{display: 'flex', borderBottom: '1px solid #e2e8f0', background: '#f8fafc'}}>
+              <button
+                onClick={() => setExpenseModalTab('add')}
+                style={{
+                  padding: '12px 24px',
+                  border: 'none',
+                  background: expenseModalTab === 'add' ? '#fff' : 'transparent',
+                  color: expenseModalTab === 'add' ? '#f59e0b' : '#64748b',
+                  fontWeight: expenseModalTab === 'add' ? '600' : '500',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  borderBottom: expenseModalTab === 'add' ? '2px solid #f59e0b' : '2px solid transparent'
+                }}
+              >
+                ➕ Add Expense
+              </button>
+              <button
+                onClick={() => setExpenseModalTab('posted')}
+                style={{
+                  padding: '12px 24px',
+                  border: 'none',
+                  background: expenseModalTab === 'posted' ? '#fff' : 'transparent',
+                  color: expenseModalTab === 'posted' ? '#f59e0b' : '#64748b',
+                  fontWeight: expenseModalTab === 'posted' ? '600' : '500',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  borderBottom: expenseModalTab === 'posted' ? '2px solid #f59e0b' : '2px solid transparent'
+                }}
+              >
+                📋 My Posted Expenses ({myExpenses.length})
+              </button>
+            </div>
+            
+            {/* Add Expense Tab */}
+            {expenseModalTab === 'add' && (
+              <>
+                <div style={{padding: '24px', maxHeight: 'calc(90vh - 220px)', overflowY: 'auto'}}>
+                  <div style={{display: 'grid', gap: '16px'}}>
+                    {/* Client Selection - Only assigned clients */}
+                    <div>
+                      <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>Client * (Your assigned clients only)</label>
+                      <select
+                        value={expenseFormData.clientName}
+                        onChange={(e) => {
+                          setExpenseFormData({...expenseFormData, clientName: e.target.value, parentTask: '', childTask: '', taskId: ''});
+                        }}
+                        style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
+                      >
+                        <option value="">Select Client</option>
+                        {assignedClients.map(c => (
+                          <option key={c.id} value={c.name}>{c.name}</option>
+                        ))}
+                      </select>
+                      {assignedClients.length === 0 && (
+                        <div style={{marginTop: '6px', fontSize: '12px', color: '#dc2626'}}>No clients assigned to you yet</div>
+                      )}
+                    </div>
+                    
+                    {/* Parent & Child Task - Only from client's tasks */}
+                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
+                      <div>
+                        <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>Parent Task *</label>
+                        <select
+                          value={expenseFormData.parentTask}
+                          onChange={(e) => setExpenseFormData({...expenseFormData, parentTask: e.target.value, childTask: '', taskId: ''})}
+                          style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
+                          disabled={!expenseFormData.clientName}
+                        >
+                          <option value="">Select Parent Task</option>
+                          {clientParentTasks.map(pt => (
+                            <option key={pt} value={pt}>{pt}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>Child Task *</label>
+                        <select
+                          value={expenseFormData.childTask}
+                          onChange={(e) => setExpenseFormData({...expenseFormData, childTask: e.target.value, taskId: ''})}
+                          style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
+                          disabled={!expenseFormData.parentTask}
+                        >
+                          <option value="">Select Child Task</option>
+                          {clientChildTasks.map(ct => (
+                            <option key={ct} value={ct}>{ct}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    
+                    {/* Task Selection - Show list of matching tasks */}
+                    {selectableTasks.length > 0 && (
+                      <div>
+                        <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>Select Task *</label>
+                        <div style={{border: '1px solid #e2e8f0', borderRadius: '8px', maxHeight: '150px', overflowY: 'auto'}}>
+                          {selectableTasks.map(task => (
+                            <div
+                              key={task.id}
+                              onClick={() => setExpenseFormData({...expenseFormData, taskId: task.id})}
+                              style={{
+                                padding: '10px 14px',
+                                cursor: 'pointer',
+                                borderBottom: '1px solid #f1f5f9',
+                                background: expenseFormData.taskId === task.id ? '#fef3c7' : '#fff',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center'
+                              }}
+                            >
+                              <div>
+                                <div style={{fontSize: '13px', fontWeight: '500', color: '#374151'}}>{task.taskId || task.id.slice(0, 8)}</div>
+                                <div style={{fontSize: '11px', color: '#64748b'}}>{task.financialYear} • {task.subPeriod || task.period}</div>
+                              </div>
+                              {expenseFormData.taskId === task.id && <CheckCircle size={16} color="#f59e0b" />}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Task Reference Info */}
+                    {expenseFormData.taskId && (
+                      <div style={{padding: '10px 14px', background: '#dcfce7', borderRadius: '8px', fontSize: '12px', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <CheckCircle size={14} />
+                        Linked to Task: {data.tasks.find(t => t.id === expenseFormData.taskId)?.taskId || expenseFormData.taskId}
+                      </div>
+                    )}
+                    
+                    {/* Expense Type and Amount */}
+                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
+                      <div>
+                        <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>Expense Type *</label>
+                        <select
+                          value={expenseFormData.expenseType}
+                          onChange={(e) => setExpenseFormData({...expenseFormData, expenseType: e.target.value})}
+                          style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
+                        >
+                          <option value="">Select Type</option>
+                          <option value="Travel & Conveyance">🚗 Travel & Conveyance</option>
+                          <option value="Income Tax">💰 Income Tax</option>
+                          <option value="GST">📋 GST</option>
+                          <option value="MCA">🏛️ MCA</option>
+                          <option value="Other Fees/Tax">📄 Other Fees/Tax</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>Amount (₹) *</label>
+                        <input
+                          type="number"
+                          value={expenseFormData.amount}
+                          onChange={(e) => setExpenseFormData({...expenseFormData, amount: e.target.value})}
+                          placeholder="Enter amount"
+                          style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Date */}
+                    <div>
+                      <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>Expense Date *</label>
+                      <input
+                        type="date"
+                        value={expenseFormData.expenseDate}
+                        onChange={(e) => setExpenseFormData({...expenseFormData, expenseDate: e.target.value})}
+                        style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
+                      />
+                    </div>
+                    
+                    {/* Description */}
+                    <div>
+                      <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>Description</label>
+                      <textarea
+                        value={expenseFormData.description}
+                        onChange={(e) => setExpenseFormData({...expenseFormData, description: e.target.value})}
+                        placeholder="Enter expense details, receipt reference, etc."
+                        rows={3}
+                        style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', resize: 'vertical'}}
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Footer */}
+                <div style={{padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: '#f8fafc'}}>
+                  <button
+                    onClick={() => {
+                      setShowExpenseModal(false);
+                      setExpenseFormData({clientName: '', parentTask: '', childTask: '', taskId: '', expenseType: '', amount: '', expenseDate: new Date().toISOString().split('T')[0], description: ''});
                     }}
-                    style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
+                    style={{padding: '10px 20px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer'}}
                   >
-                    <option value="">Select Client</option>
-                    {data.clients.filter(c => !c.deleted).map(c => (
-                      <option key={c.id} value={c.name}>{c.name}</option>
-                    ))}
-                  </select>
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!expenseFormData.clientName || !expenseFormData.parentTask || !expenseFormData.childTask || !expenseFormData.taskId || !expenseFormData.expenseType || !expenseFormData.amount) {
+                        alert('Please fill all required fields and select a task');
+                        return;
+                      }
+                      const newExpense = {
+                        id: `EXP-${Date.now()}`,
+                        clientName: expenseFormData.clientName,
+                        parentTask: expenseFormData.parentTask,
+                        childTask: expenseFormData.childTask,
+                        taskId: expenseFormData.taskId,
+                        expenseType: expenseFormData.expenseType,
+                        amount: parseFloat(expenseFormData.amount),
+                        expenseDate: expenseFormData.expenseDate,
+                        description: expenseFormData.description,
+                        enteredBy: currentUser?.name,
+                        enteredAt: new Date().toISOString(),
+                        invoiceId: null,
+                        invoiceDate: null,
+                        invoiceNumber: null,
+                        status: 'Unbilled'
+                      };
+                      setData(prev => ({...prev, expenses: [...(prev.expenses || []), newExpense]}));
+                      setExpenseFormData({clientName: '', parentTask: '', childTask: '', taskId: '', expenseType: '', amount: '', expenseDate: new Date().toISOString().split('T')[0], description: ''});
+                      alert('✅ Expense recorded successfully!');
+                    }}
+                    style={{padding: '10px 24px', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer'}}
+                  >
+                    Save Expense
+                  </button>
                 </div>
-                
-                {/* Parent Task */}
-                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
-                  <div>
-                    <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>Parent Task *</label>
-                    <select
-                      value={expenseFormData.parentTask}
-                      onChange={(e) => setExpenseFormData({...expenseFormData, parentTask: e.target.value, childTask: '', taskId: ''})}
-                      style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
-                      disabled={!expenseFormData.clientName}
-                    >
-                      <option value="">Select Parent Task</option>
-                      {Object.keys(PARENT_CHILD_TASKS).map(pt => (
-                        <option key={pt} value={pt}>{pt}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>Child Task *</label>
-                    <select
-                      value={expenseFormData.childTask}
-                      onChange={(e) => {
-                        const ct = e.target.value;
-                        // Find matching task
-                        const matchingTask = data.tasks.find(t => 
-                          t.clientName === expenseFormData.clientName && 
-                          t.parentTask === expenseFormData.parentTask && 
-                          t.childTask === ct && 
-                          !t.deleted
-                        );
-                        setExpenseFormData({...expenseFormData, childTask: ct, taskId: matchingTask?.id || ''});
-                      }}
-                      style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
-                      disabled={!expenseFormData.parentTask}
-                    >
-                      <option value="">Select Child Task</option>
-                      {expenseFormData.parentTask && PARENT_CHILD_TASKS[expenseFormData.parentTask]?.map(ct => (
-                        <option key={ct} value={ct}>{ct}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                
-                {/* Task Reference Info */}
-                {expenseFormData.taskId && (
-                  <div style={{padding: '10px 14px', background: '#dcfce7', borderRadius: '8px', fontSize: '12px', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px'}}>
-                    <CheckCircle size={14} />
-                    Linked to Task: {data.tasks.find(t => t.id === expenseFormData.taskId)?.taskId || expenseFormData.taskId}
-                  </div>
-                )}
-                
-                {/* Expense Type and Amount */}
-                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
-                  <div>
-                    <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>Expense Type *</label>
-                    <select
-                      value={expenseFormData.expenseType}
-                      onChange={(e) => setExpenseFormData({...expenseFormData, expenseType: e.target.value})}
-                      style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
-                    >
-                      <option value="">Select Type</option>
-                      <option value="Travel & Conveyance">🚗 Travel & Conveyance</option>
-                      <option value="Income Tax">💰 Income Tax</option>
-                      <option value="GST">📋 GST</option>
-                      <option value="MCA">🏛️ MCA</option>
-                      <option value="Other Fees/Tax">📄 Other Fees/Tax</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>Amount (₹) *</label>
-                    <input
-                      type="number"
-                      value={expenseFormData.amount}
-                      onChange={(e) => setExpenseFormData({...expenseFormData, amount: e.target.value})}
-                      placeholder="Enter amount"
-                      style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
-                    />
-                  </div>
-                </div>
-                
-                {/* Date */}
-                <div>
-                  <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>Expense Date *</label>
-                  <input
-                    type="date"
-                    value={expenseFormData.expenseDate}
-                    onChange={(e) => setExpenseFormData({...expenseFormData, expenseDate: e.target.value})}
-                    style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
-                  />
-                </div>
-                
-                {/* Description */}
-                <div>
-                  <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>Description</label>
-                  <textarea
-                    value={expenseFormData.description}
-                    onChange={(e) => setExpenseFormData({...expenseFormData, description: e.target.value})}
-                    placeholder="Enter expense details, receipt reference, etc."
-                    rows={3}
-                    style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', resize: 'vertical'}}
-                  />
-                </div>
-              </div>
-            </div>
+              </>
+            )}
             
-            {/* Footer */}
-            <div style={{padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: '#f8fafc'}}>
-              <button
-                onClick={() => {
-                  setShowExpenseModal(false);
-                  setExpenseFormData({clientName: '', parentTask: '', childTask: '', taskId: '', expenseType: '', amount: '', expenseDate: new Date().toISOString().split('T')[0], description: ''});
-                }}
-                style={{padding: '10px 20px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer'}}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  if (!expenseFormData.clientName || !expenseFormData.parentTask || !expenseFormData.childTask || !expenseFormData.expenseType || !expenseFormData.amount) {
-                    alert('Please fill all required fields');
-                    return;
-                  }
-                  const newExpense = {
-                    id: `EXP-${Date.now()}`,
-                    clientName: expenseFormData.clientName,
-                    parentTask: expenseFormData.parentTask,
-                    childTask: expenseFormData.childTask,
-                    taskId: expenseFormData.taskId,
-                    expenseType: expenseFormData.expenseType,
-                    amount: parseFloat(expenseFormData.amount),
-                    expenseDate: expenseFormData.expenseDate,
-                    description: expenseFormData.description,
-                    enteredBy: currentUser?.name,
-                    enteredAt: new Date().toISOString(),
-                    invoiceId: null,
-                    invoiceDate: null,
-                    invoiceNumber: null,
-                    status: 'Unbilled'
-                  };
-                  setData(prev => ({...prev, expenses: [...(prev.expenses || []), newExpense]}));
-                  setShowExpenseModal(false);
-                  setExpenseFormData({clientName: '', parentTask: '', childTask: '', taskId: '', expenseType: '', amount: '', expenseDate: new Date().toISOString().split('T')[0], description: ''});
-                  alert('✅ Expense recorded successfully!');
-                }}
-                style={{padding: '10px 24px', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer'}}
-              >
-                Save Expense
-              </button>
-            </div>
+            {/* Posted Expenses Tab */}
+            {expenseModalTab === 'posted' && (
+              <div style={{padding: '20px 24px', maxHeight: 'calc(90vh - 160px)', overflowY: 'auto'}}>
+                {myExpenses.length === 0 ? (
+                  <div style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>
+                    <Receipt size={40} style={{opacity: 0.3, marginBottom: '12px'}} />
+                    <div>No expenses posted yet</div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Summary */}
+                    <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '16px'}}>
+                      <div style={{background: '#dbeafe', padding: '12px', borderRadius: '8px', textAlign: 'center'}}>
+                        <div style={{fontSize: '20px', fontWeight: '700', color: '#1e40af'}}>{myExpenses.length}</div>
+                        <div style={{fontSize: '11px', color: '#1e40af'}}>Total Posted</div>
+                      </div>
+                      <div style={{background: '#fef3c7', padding: '12px', borderRadius: '8px', textAlign: 'center'}}>
+                        <div style={{fontSize: '20px', fontWeight: '700', color: '#92400e'}}>₹{myExpenses.filter(e => e.status === 'Unbilled').reduce((s, e) => s + e.amount, 0).toLocaleString()}</div>
+                        <div style={{fontSize: '11px', color: '#92400e'}}>Unbilled</div>
+                      </div>
+                      <div style={{background: '#dcfce7', padding: '12px', borderRadius: '8px', textAlign: 'center'}}>
+                        <div style={{fontSize: '20px', fontWeight: '700', color: '#166534'}}>₹{myExpenses.filter(e => e.status === 'Billed').reduce((s, e) => s + e.amount, 0).toLocaleString()}</div>
+                        <div style={{fontSize: '11px', color: '#166534'}}>Billed</div>
+                      </div>
+                    </div>
+                    
+                    {/* Expenses Table */}
+                    <div style={{border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden'}}>
+                      <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                        <thead>
+                          <tr style={{background: '#f8fafc'}}>
+                            <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Date</th>
+                            <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Client</th>
+                            <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Type</th>
+                            <th style={{padding: '10px 8px', textAlign: 'right', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Amount</th>
+                            <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Status</th>
+                            <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {myExpenses.slice().reverse().map((exp, idx) => (
+                            <tr key={exp.id} style={{borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#fafafa'}}>
+                              <td style={{padding: '8px'}}>{exp.expenseDate}</td>
+                              <td style={{padding: '8px', fontWeight: '500'}}>{exp.clientName}</td>
+                              <td style={{padding: '8px'}}>{exp.expenseType}</td>
+                              <td style={{padding: '8px', textAlign: 'right', fontWeight: '600'}}>₹{(exp.amount || 0).toLocaleString()}</td>
+                              <td style={{padding: '8px', textAlign: 'center'}}>
+                                <span style={{padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: '600', background: exp.status === 'Billed' ? '#dcfce7' : '#fef3c7', color: exp.status === 'Billed' ? '#166534' : '#92400e'}}>{exp.status}</span>
+                              </td>
+                              <td style={{padding: '8px', textAlign: 'center'}}>
+                                {exp.status === 'Unbilled' && (
+                                  <button
+                                    onClick={() => {
+                                      if (window.confirm('Delete this expense?')) {
+                                        setData(prev => ({...prev, expenses: prev.expenses.filter(e => e.id !== exp.id)}));
+                                      }
+                                    }}
+                                    style={{padding: '3px 8px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}
+                                  >
+                                    Delete
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Task Close Expense Modal */}
       {showTaskCloseExpenseModal && taskCloseExpenseData && (
