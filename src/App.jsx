@@ -846,6 +846,9 @@ const PracticeManagementApp = () => {
               recurringBatches: firebaseData.recurringBatches || prev.recurringBatches || [],
               checklists: firebaseData.checklists || prev.checklists || [],
               pendingApprovals: firebaseData.pendingApprovals || prev.pendingApprovals || [],
+              pendingTaskEntries: firebaseData.pendingTaskEntries || prev.pendingTaskEntries || [],
+              pendingClientEntries: firebaseData.pendingClientEntries || prev.pendingClientEntries || [],
+              pendingTeamMemberEntries: firebaseData.pendingTeamMemberEntries || prev.pendingTeamMemberEntries || [],
               dscRegister: firebaseData.dscRegister || prev.dscRegister || [],
               bulkBatches: firebaseData.bulkBatches || prev.bulkBatches || [],
               latestGeneratedInvoices: firebaseData.latestGeneratedInvoices || prev.latestGeneratedInvoices || [],
@@ -1005,6 +1008,9 @@ const PracticeManagementApp = () => {
         recurringBatches: deepClean(dataObj.recurringBatches) || [],
         checklists: deepClean(dataObj.checklists) || [],
         pendingApprovals: deepClean(dataObj.pendingApprovals) || [],
+        pendingTaskEntries: deepClean(dataObj.pendingTaskEntries) || [],
+        pendingClientEntries: deepClean(dataObj.pendingClientEntries) || [],
+        pendingTeamMemberEntries: deepClean(dataObj.pendingTeamMemberEntries) || [],
         dscRegister: deepClean(dataObj.dscRegister) || [],
         bulkBatches: deepClean(dataObj.bulkBatches) || [],
         latestGeneratedInvoices: deepClean(dataObj.latestGeneratedInvoices) || [],
@@ -28847,7 +28853,12 @@ ${invoiceHtml}
   const NewEntriesView = () => {
     const [activeTab, setActiveTab] = useState('tasks');
     const [selectedItems, setSelectedItems] = useState([]);
-    const [editModal, setEditModal] = useState(null);
+    
+    // Store search terms keyed by entry ID - this persists across renders
+    const [clientSearchTerms, setClientSearchTerms] = useState({});
+    const [clientDropdowns, setClientDropdowns] = useState({});
+    const [taskSearchTerms, setTaskSearchTerms] = useState({});
+    const [taskDropdowns, setTaskDropdowns] = useState({});
     
     const userRole = getCurrentUserRole();
     const canApprove = currentUser?.isSuperAdmin || userRole === 'Superadmin' || userRole === 'Reporting Manager';
@@ -28904,15 +28915,30 @@ ${invoiceHtml}
       return [];
     };
     
+    // Search helpers
+    const searchClients = (term) => {
+      if (!term || term.length < 2) return [];
+      const t = term.toLowerCase();
+      return data.clients.filter(c => !c.disabled && (c.name?.toLowerCase().includes(t) || c.fileNo?.toLowerCase().includes(t))).slice(0, 10);
+    };
+    
+    const searchTasks = (term) => {
+      if (!term || term.length < 2) return [];
+      const t = term.toLowerCase();
+      return data.tasks.filter(x => x.taskCode?.toLowerCase().includes(t) || x.clientName?.toLowerCase().includes(t)).slice(0, 10);
+    };
+    
     // ===== ADD FUNCTIONS =====
     const addTask = () => {
+      const id = generateId();
       const entry = {
-        id: generateId(), status: 'draft', createdBy: currentUser?.name,
+        id, status: 'draft', createdBy: currentUser?.name,
         clientId: '', clientName: '', fileNo: '', groupName: '',
         parentTask: '', childTask: '', financialYear: 'FY 2024-25', period: '', subPeriod: '',
         taskLeader: '', taskManager: '', assignedUser: '', teamMembers: [], description: ''
       };
       setData(p => ({...p, pendingTaskEntries: [...(p.pendingTaskEntries||[]), entry]}));
+      setClientSearchTerms(p => ({...p, [id]: ''}));
     };
     
     const addClient = () => {
@@ -28926,15 +28952,17 @@ ${invoiceHtml}
     };
     
     const addTeamMember = () => {
+      const id = generateId();
       const entry = {
-        id: generateId(), status: 'draft', createdBy: currentUser?.name,
+        id, status: 'draft', createdBy: currentUser?.name,
         taskId: '', taskCode: '', clientName: '', currentPrimary: '',
         changePrimary: false, newPrimary: '', addMembers: []
       };
       setData(p => ({...p, pendingTeamMemberEntries: [...(p.pendingTeamMemberEntries||[]), entry]}));
+      setTaskSearchTerms(p => ({...p, [id]: ''}));
     };
     
-    // ===== UPDATE FUNCTIONS =====
+    // ===== UPDATE FUNCTIONS - Using functional updates to avoid stale state =====
     const updateTask = (id, field, val) => {
       setData(p => ({
         ...p,
@@ -28942,7 +28970,7 @@ ${invoiceHtml}
           if (e.id !== id) return e;
           const u = {...e, [field]: val};
           if (field === 'clientId' && val) {
-            const c = data.clients.find(x => x.id === val);
+            const c = p.clients.find(x => x.id === val);
             if (c) { u.clientName = c.name; u.fileNo = c.fileNo; u.groupName = c.groupName || c.name; }
           }
           if (field === 'parentTask') u.childTask = '';
@@ -28954,8 +28982,30 @@ ${invoiceHtml}
     
     const updateClient = (id, field, val) => {
       setData(p => {
-        const groups = getGroups();
-        const ng = getNextGroup();
+        // Calculate groups inside the updater
+        const groups = [];
+        p.clients.forEach(c => {
+          if (c.fileNo) {
+            const parts = c.fileNo.split('.');
+            if (parts.length === 2) {
+              const g = parseInt(parts[0]);
+              if (!isNaN(g) && !groups.includes(g)) groups.push(g);
+            }
+          }
+        });
+        groups.sort((a,b) => a-b);
+        
+        const pendingGroups = (p.pendingClientEntries||[]).filter(e => e.groupMode === 'new' && e.groupNo).map(e => parseInt(e.groupNo));
+        const allGroups = [...groups, ...pendingGroups];
+        const nextGroup = allGroups.length === 0 ? 1 : Math.max(...allGroups) + 1;
+        
+        const calcNextCode = (grp) => {
+          const existing = p.clients.filter(c => c.fileNo?.startsWith(grp + '.')).map(c => parseInt(c.fileNo.split('.')[1]) || 0);
+          const pending = (p.pendingClientEntries||[]).filter(e => e.groupNo === String(grp)).map(e => parseInt((e.fileNo || '').split('.')[1]) || 0);
+          const max = Math.max(0, ...existing, ...pending);
+          return `${grp}.${String(max + 1).padStart(2, '0')}`;
+        };
+        
         return {
           ...p,
           pendingClientEntries: (p.pendingClientEntries||[]).map(e => {
@@ -28963,15 +29013,15 @@ ${invoiceHtml}
             const u = {...e, [field]: val};
             if (field === 'groupMode') {
               if (val === 'new') {
-                u.groupNo = String(ng); u.fileNo = `${ng}.01`; u.selectedGroup = '';
+                u.groupNo = String(nextGroup); u.fileNo = `${nextGroup}.01`; u.selectedGroup = '';
               } else {
                 const first = groups[0] || '';
                 u.selectedGroup = String(first); u.groupNo = String(first);
-                u.fileNo = first ? getNextCode(first) : '';
+                u.fileNo = first ? calcNextCode(first) : '';
               }
             }
             if (field === 'selectedGroup' && val) {
-              u.groupNo = val; u.fileNo = getNextCode(val);
+              u.groupNo = val; u.fileNo = calcNextCode(val);
             }
             return u;
           })
@@ -28986,7 +29036,7 @@ ${invoiceHtml}
           if (e.id !== id) return e;
           const u = {...e, [field]: val};
           if (field === 'taskId' && val) {
-            const t = data.tasks.find(x => x.id === val);
+            const t = p.tasks.find(x => x.id === val);
             if (t) { u.taskCode = t.taskCode; u.clientName = t.clientName; u.currentPrimary = t.primaryAssignedUser || t.assignedTo; }
           }
           return u;
@@ -29054,98 +29104,23 @@ ${invoiceHtml}
     
     // Styles
     const th = {padding: '10px 8px', background: themeColors.gradient, color: '#fff', fontSize: '12px', fontWeight: '600', textAlign: 'left'};
-    const td = {padding: '8px', fontSize: '13px', borderBottom: '1px solid #e5e7eb'};
+    const td = {padding: '8px', fontSize: '13px', borderBottom: '1px solid #e5e7eb', verticalAlign: 'top'};
     const inp = {width: '100%', padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '12px'};
-    const btn = (bg) => ({padding: '4px 8px', background: bg, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px'});
-    
-    // Client Search Component
-    const ClientSearch = ({entry}) => {
-      const [search, setSearch] = useState(entry.clientName ? `${entry.fileNo} - ${entry.clientName}` : '');
-      const [open, setOpen] = useState(false);
-      
-      const results = search.length >= 2 
-        ? data.clients.filter(c => !c.disabled && (c.name?.toLowerCase().includes(search.toLowerCase()) || c.fileNo?.includes(search))).slice(0, 10)
-        : [];
-      
-      return (
-        <div style={{position: 'relative'}}>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setOpen(e.target.value.length >= 2); }}
-            onFocus={() => search.length >= 2 && setOpen(true)}
-            onBlur={() => setTimeout(() => setOpen(false), 150)}
-            placeholder="Type 2+ letters..."
-            style={inp}
-          />
-          {open && results.length > 0 && (
-            <div style={{position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #ddd', borderRadius: '4px', maxHeight: '180px', overflowY: 'auto', zIndex: 999, boxShadow: '0 4px 8px rgba(0,0,0,0.1)'}}>
-              {results.map(c => (
-                <div
-                  key={c.id}
-                  style={{padding: '8px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0'}}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    setSearch(`${c.fileNo} - ${c.name}`);
-                    updateTask(entry.id, 'clientId', c.id);
-                    setOpen(false);
-                  }}
-                  onMouseEnter={(e) => e.target.style.background = '#f5f5f5'}
-                  onMouseLeave={(e) => e.target.style.background = '#fff'}
-                >
-                  <div style={{fontWeight: '500'}}>{c.name}</div>
-                  <div style={{fontSize: '11px', color: '#666'}}>{c.fileNo}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      );
+    const btn = (bg, disabled) => ({padding: '4px 8px', background: disabled ? '#ccc' : bg, color: '#fff', border: 'none', borderRadius: '4px', cursor: disabled ? 'not-allowed' : 'pointer', fontSize: '11px'});
+    const badge = (status) => ({padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', background: status === 'draft' ? '#f1f5f9' : status === 'pending' ? '#fef3c7' : '#dcfce7', color: status === 'draft' ? '#64748b' : status === 'pending' ? '#d97706' : '#16a34a'});
+
+    // Handle client selection
+    const selectClient = (entryId, client) => {
+      updateTask(entryId, 'clientId', client.id);
+      setClientSearchTerms(p => ({...p, [entryId]: `${client.fileNo} - ${client.name}`}));
+      setClientDropdowns(p => ({...p, [entryId]: false}));
     };
     
-    // Task Search Component
-    const TaskSearch = ({entry}) => {
-      const [search, setSearch] = useState(entry.taskCode ? `${entry.taskCode} - ${entry.clientName}` : '');
-      const [open, setOpen] = useState(false);
-      
-      const results = search.length >= 2 
-        ? data.tasks.filter(t => t.taskCode?.toLowerCase().includes(search.toLowerCase()) || t.clientName?.toLowerCase().includes(search.toLowerCase())).slice(0, 10)
-        : [];
-      
-      return (
-        <div style={{position: 'relative'}}>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setOpen(e.target.value.length >= 2); }}
-            onFocus={() => search.length >= 2 && setOpen(true)}
-            onBlur={() => setTimeout(() => setOpen(false), 150)}
-            placeholder="Type task code or client..."
-            style={inp}
-          />
-          {open && results.length > 0 && (
-            <div style={{position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #ddd', borderRadius: '4px', maxHeight: '180px', overflowY: 'auto', zIndex: 999, boxShadow: '0 4px 8px rgba(0,0,0,0.1)'}}>
-              {results.map(t => (
-                <div
-                  key={t.id}
-                  style={{padding: '8px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0'}}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    setSearch(`${t.taskCode} - ${t.clientName}`);
-                    updateTeam(entry.id, 'taskId', t.id);
-                    setOpen(false);
-                  }}
-                  onMouseEnter={(e) => e.target.style.background = '#f5f5f5'}
-                  onMouseLeave={(e) => e.target.style.background = '#fff'}
-                >
-                  <div style={{fontWeight: '500', color: themeColors.primary}}>{t.taskCode}</div>
-                  <div style={{fontSize: '11px'}}>{t.clientName} - {t.childTask}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      );
+    // Handle task selection
+    const selectTask = (entryId, task) => {
+      updateTeam(entryId, 'taskId', task.id);
+      setTaskSearchTerms(p => ({...p, [entryId]: `${task.taskCode} - ${task.clientName}`}));
+      setTaskDropdowns(p => ({...p, [entryId]: false}));
     };
 
     return (
@@ -29158,7 +29133,7 @@ ${invoiceHtml}
           {['tasks', 'clients', 'teamMembers'].map(t => (
             <button key={t} onClick={() => setActiveTab(t)}
               style={{padding: '10px 20px', background: activeTab === t ? themeColors.primary : '#f1f5f9', color: activeTab === t ? '#fff' : '#666', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600'}}>
-              {t === 'tasks' ? 'New Tasks' : t === 'clients' ? 'New Clients' : 'Team Members'}
+              {t === 'tasks' ? `New Tasks (${taskEntries.length})` : t === 'clients' ? `New Clients (${clientEntries.length})` : `Team Members (${teamEntries.length})`}
             </button>
           ))}
         </div>
@@ -29172,156 +29147,253 @@ ${invoiceHtml}
         {/* TASKS TABLE */}
         {activeTab === 'tasks' && (
           <div style={{background: '#fff', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb'}}>
-            <table style={{width: '100%', borderCollapse: 'collapse'}}>
-              <thead>
-                <tr>
-                  <th style={th}>#</th>
-                  <th style={{...th, minWidth: '180px'}}>Client</th>
-                  <th style={th}>Parent Task</th>
-                  <th style={th}>Child Task</th>
-                  <th style={th}>FY</th>
-                  <th style={th}>Period</th>
-                  <th style={th}>Sub-Period</th>
-                  <th style={th}>Leader</th>
-                  <th style={th}>Manager</th>
-                  <th style={th}>Assigned</th>
-                  <th style={th}>Status</th>
-                  <th style={th}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {taskEntries.length === 0 ? (
-                  <tr><td colSpan={12} style={{padding: '40px', textAlign: 'center', color: '#999'}}>No entries yet</td></tr>
-                ) : taskEntries.map((e, i) => (
-                  <tr key={e.id} style={{background: i % 2 ? '#f9fafb' : '#fff'}}>
-                    <td style={td}>{i + 1}</td>
-                    <td style={td}>{e.status === 'draft' ? <ClientSearch entry={e} /> : `${e.fileNo} - ${e.clientName}`}</td>
-                    <td style={td}>{e.status === 'draft' ? <select value={e.parentTask} onChange={(x) => updateTask(e.id, 'parentTask', x.target.value)} style={inp}><option value="">Select</option>{Object.keys(TASKS).map(p => <option key={p}>{p}</option>)}</select> : e.parentTask}</td>
-                    <td style={td}>{e.status === 'draft' ? <select value={e.childTask} onChange={(x) => updateTask(e.id, 'childTask', x.target.value)} style={inp} disabled={!e.parentTask}><option value="">Select</option>{(TASKS[e.parentTask]||[]).map(c => <option key={c}>{c}</option>)}</select> : e.childTask}</td>
-                    <td style={td}>{e.status === 'draft' ? <select value={e.financialYear} onChange={(x) => updateTask(e.id, 'financialYear', x.target.value)} style={inp}>{FYs.map(f => <option key={f}>{f}</option>)}</select> : e.financialYear}</td>
-                    <td style={td}>{e.status === 'draft' ? <select value={e.period} onChange={(x) => updateTask(e.id, 'period', x.target.value)} style={inp}><option value="">Select</option>{PERIODS.map(p => <option key={p}>{p}</option>)}</select> : e.period}</td>
-                    <td style={td}>{e.status === 'draft' && getSubPeriods(e.period).length > 0 ? <select value={e.subPeriod} onChange={(x) => updateTask(e.id, 'subPeriod', x.target.value)} style={inp}><option value="">Select</option>{getSubPeriods(e.period).map(s => <option key={s}>{s}</option>)}</select> : e.subPeriod || '-'}</td>
-                    <td style={td}>{e.status === 'draft' ? <select value={e.taskLeader} onChange={(x) => updateTask(e.id, 'taskLeader', x.target.value)} style={inp}><option value="">Select</option>{superAdmins.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : e.taskLeader || '-'}</td>
-                    <td style={td}>{e.status === 'draft' ? <select value={e.taskManager} onChange={(x) => updateTask(e.id, 'taskManager', x.target.value)} style={inp}><option value="">Select</option>{rms.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : e.taskManager || '-'}</td>
-                    <td style={td}>{e.status === 'draft' ? <select value={e.assignedUser} onChange={(x) => updateTask(e.id, 'assignedUser', x.target.value)} style={inp}><option value="">Select</option>{staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : e.assignedUser || '-'}</td>
-                    <td style={td}><span style={{padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', background: e.status === 'draft' ? '#f1f5f9' : e.status === 'pending' ? '#fef3c7' : '#dcfce7', color: e.status === 'draft' ? '#64748b' : e.status === 'pending' ? '#d97706' : '#16a34a'}}>{e.status}</span></td>
-                    <td style={td}>
-                      {e.status === 'draft' && <><button onClick={() => saveEntry('task', e.id)} disabled={!e.clientId || !e.parentTask || !e.childTask} style={btn(e.clientId && e.parentTask && e.childTask ? themeColors.primary : '#ccc')}>Save</button> <button onClick={() => deleteEntry('task', e.id)} style={btn('#ef4444')}>×</button></>}
-                      {e.status === 'pending' && canApprove && <button onClick={() => approveTask(e)} style={btn('#16a34a')}>Approve</button>}
-                      {e.status === 'approved' && <span style={{color: '#16a34a', fontWeight: '600'}}>✓</span>}
-                    </td>
+            <div style={{overflowX: 'auto'}}>
+              <table style={{width: '100%', borderCollapse: 'collapse', minWidth: '1200px'}}>
+                <thead>
+                  <tr>
+                    <th style={{...th, width: '40px'}}>#</th>
+                    <th style={{...th, width: '200px'}}>Client (Search)</th>
+                    <th style={{...th, width: '120px'}}>Parent Task</th>
+                    <th style={{...th, width: '120px'}}>Child Task</th>
+                    <th style={{...th, width: '100px'}}>FY</th>
+                    <th style={{...th, width: '100px'}}>Period</th>
+                    <th style={{...th, width: '100px'}}>Sub-Period</th>
+                    <th style={{...th, width: '100px'}}>Leader</th>
+                    <th style={{...th, width: '100px'}}>Manager</th>
+                    <th style={{...th, width: '100px'}}>Assigned</th>
+                    <th style={{...th, width: '70px'}}>Status</th>
+                    <th style={{...th, width: '100px'}}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {taskEntries.length === 0 ? (
+                    <tr><td colSpan={12} style={{padding: '40px', textAlign: 'center', color: '#999'}}>No entries. Click "+ Add Task" to create one.</td></tr>
+                  ) : taskEntries.map((e, i) => (
+                    <tr key={e.id} style={{background: i % 2 ? '#f9fafb' : '#fff'}}>
+                      <td style={td}>{i + 1}</td>
+                      <td style={{...td, position: 'relative'}}>
+                        {e.status === 'draft' ? (
+                          <>
+                            <input
+                              type="text"
+                              value={clientSearchTerms[e.id] !== undefined ? clientSearchTerms[e.id] : (e.clientName ? `${e.fileNo} - ${e.clientName}` : '')}
+                              onChange={(ev) => {
+                                const val = ev.target.value;
+                                setClientSearchTerms(p => ({...p, [e.id]: val}));
+                                setClientDropdowns(p => ({...p, [e.id]: val.length >= 2}));
+                              }}
+                              onFocus={() => {
+                                const val = clientSearchTerms[e.id] || '';
+                                if (val.length >= 2) setClientDropdowns(p => ({...p, [e.id]: true}));
+                              }}
+                              onBlur={() => setTimeout(() => setClientDropdowns(p => ({...p, [e.id]: false})), 200)}
+                              placeholder="Type 2+ letters..."
+                              style={inp}
+                            />
+                            {clientDropdowns[e.id] && searchClients(clientSearchTerms[e.id]).length > 0 && (
+                              <div style={{position: 'absolute', top: '100%', left: 8, right: 8, background: '#fff', border: '1px solid #ddd', borderRadius: '4px', maxHeight: '200px', overflowY: 'auto', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'}}>
+                                {searchClients(clientSearchTerms[e.id]).map(c => (
+                                  <div key={c.id} 
+                                    onMouseDown={(ev) => { ev.preventDefault(); selectClient(e.id, c); }}
+                                    style={{padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0'}}
+                                    onMouseEnter={(ev) => ev.currentTarget.style.background = '#f5f5f5'}
+                                    onMouseLeave={(ev) => ev.currentTarget.style.background = '#fff'}>
+                                    <div style={{fontWeight: '500', fontSize: '13px'}}>{c.name}</div>
+                                    <div style={{fontSize: '11px', color: '#666'}}>{c.fileNo} | {c.pan || 'No PAN'}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        ) : <span style={{fontSize: '12px'}}>{e.fileNo} - {e.clientName}</span>}
+                      </td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.parentTask} onChange={(x) => updateTask(e.id, 'parentTask', x.target.value)} style={inp}><option value="">Select</option>{Object.keys(TASKS).map(p => <option key={p}>{p}</option>)}</select> : e.parentTask}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.childTask} onChange={(x) => updateTask(e.id, 'childTask', x.target.value)} style={inp} disabled={!e.parentTask}><option value="">Select</option>{(TASKS[e.parentTask]||[]).map(c => <option key={c}>{c}</option>)}</select> : e.childTask}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.financialYear} onChange={(x) => updateTask(e.id, 'financialYear', x.target.value)} style={inp}>{FYs.map(f => <option key={f}>{f}</option>)}</select> : e.financialYear}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.period} onChange={(x) => updateTask(e.id, 'period', x.target.value)} style={inp}><option value="">Select</option>{PERIODS.map(p => <option key={p}>{p}</option>)}</select> : e.period}</td>
+                      <td style={td}>{e.status === 'draft' && getSubPeriods(e.period).length > 0 ? <select value={e.subPeriod} onChange={(x) => updateTask(e.id, 'subPeriod', x.target.value)} style={inp}><option value="">Select</option>{getSubPeriods(e.period).map(s => <option key={s}>{s}</option>)}</select> : (e.subPeriod || '-')}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.taskLeader} onChange={(x) => updateTask(e.id, 'taskLeader', x.target.value)} style={inp}><option value="">Select</option>{superAdmins.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.taskLeader || '-')}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.taskManager} onChange={(x) => updateTask(e.id, 'taskManager', x.target.value)} style={inp}><option value="">Select</option>{rms.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.taskManager || '-')}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.assignedUser} onChange={(x) => updateTask(e.id, 'assignedUser', x.target.value)} style={inp}><option value="">Select</option>{staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.assignedUser || '-')}</td>
+                      <td style={td}><span style={badge(e.status)}>{e.status}</span></td>
+                      <td style={td}>
+                        {e.status === 'draft' && (
+                          <div style={{display: 'flex', gap: '4px'}}>
+                            <button onClick={() => saveEntry('task', e.id)} disabled={!e.clientId || !e.parentTask || !e.childTask} style={btn(themeColors.primary, !e.clientId || !e.parentTask || !e.childTask)}>Save</button>
+                            <button onClick={() => deleteEntry('task', e.id)} style={btn('#ef4444', false)}>×</button>
+                          </div>
+                        )}
+                        {e.status === 'pending' && canApprove && <button onClick={() => approveTask(e)} style={btn('#16a34a', false)}>Approve</button>}
+                        {e.status === 'approved' && <span style={{color: '#16a34a', fontWeight: '600'}}>✓</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
         
         {/* CLIENTS TABLE */}
         {activeTab === 'clients' && (
           <div style={{background: '#fff', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb'}}>
-            <table style={{width: '100%', borderCollapse: 'collapse'}}>
-              <thead>
-                <tr>
-                  <th style={th}>#</th>
-                  <th style={th}>Group Type</th>
-                  <th style={th}>Group No</th>
-                  <th style={th}>Client Code</th>
-                  <th style={{...th, minWidth: '150px'}}>Name *</th>
-                  <th style={th}>PAN</th>
-                  <th style={th}>GSTIN</th>
-                  <th style={th}>Phone</th>
-                  <th style={th}>Type</th>
-                  <th style={th}>State</th>
-                  <th style={th}>RM</th>
-                  <th style={th}>Status</th>
-                  <th style={th}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {clientEntries.length === 0 ? (
-                  <tr><td colSpan={13} style={{padding: '40px', textAlign: 'center', color: '#999'}}>No entries yet</td></tr>
-                ) : clientEntries.map((e, i) => (
-                  <tr key={e.id} style={{background: i % 2 ? '#f9fafb' : '#fff'}}>
-                    <td style={td}>{i + 1}</td>
-                    <td style={td}>
-                      {e.status === 'draft' ? (
-                        <div style={{display: 'flex', gap: '8px'}}>
-                          <label style={{fontSize: '11px', cursor: 'pointer'}}><input type="radio" name={`gm${e.id}`} checked={e.groupMode === 'new'} onChange={() => updateClient(e.id, 'groupMode', 'new')} /> New</label>
-                          <label style={{fontSize: '11px', cursor: 'pointer'}}><input type="radio" name={`gm${e.id}`} checked={e.groupMode === 'existing'} onChange={() => updateClient(e.id, 'groupMode', 'existing')} /> Existing</label>
-                        </div>
-                      ) : e.groupMode}
-                    </td>
-                    <td style={td}>
-                      {e.status === 'draft' && e.groupMode === 'existing' ? (
-                        <select value={e.selectedGroup} onChange={(x) => updateClient(e.id, 'selectedGroup', x.target.value)} style={{...inp, width: '80px'}}>
-                          <option value="">Select</option>
-                          {getGroups().map(g => <option key={g} value={g}>Grp {g} ({getGroupCount(g)})</option>)}
-                        </select>
-                      ) : e.groupNo}
-                    </td>
-                    <td style={{...td, fontWeight: '600', color: themeColors.primary}}>{e.fileNo}</td>
-                    <td style={td}>{e.status === 'draft' ? <input value={e.name} onChange={(x) => updateClient(e.id, 'name', x.target.value)} placeholder="Name *" style={inp} /> : e.name}</td>
-                    <td style={td}>{e.status === 'draft' ? <input value={e.pan} onChange={(x) => updateClient(e.id, 'pan', x.target.value.toUpperCase())} maxLength={10} style={{...inp, width: '90px', textTransform: 'uppercase'}} /> : e.pan || '-'}</td>
-                    <td style={td}>{e.status === 'draft' ? <input value={e.gstin} onChange={(x) => updateClient(e.id, 'gstin', x.target.value.toUpperCase())} maxLength={15} style={{...inp, width: '120px', textTransform: 'uppercase'}} /> : e.gstin || '-'}</td>
-                    <td style={td}>{e.status === 'draft' ? <input value={e.phone} onChange={(x) => updateClient(e.id, 'phone', x.target.value)} style={{...inp, width: '90px'}} /> : e.phone || '-'}</td>
-                    <td style={td}>{e.status === 'draft' ? <select value={e.typeOfClient} onChange={(x) => updateClient(e.id, 'typeOfClient', x.target.value)} style={inp}><option value="">Select</option>{TYPES.map(t => <option key={t}>{t}</option>)}</select> : e.typeOfClient || '-'}</td>
-                    <td style={td}>{e.status === 'draft' ? <select value={e.state} onChange={(x) => updateClient(e.id, 'state', x.target.value)} style={inp}><option value="">Select</option>{STATES.map(s => <option key={s}>{s}</option>)}</select> : e.state || '-'}</td>
-                    <td style={td}>{e.status === 'draft' ? <select value={e.reportingManager} onChange={(x) => updateClient(e.id, 'reportingManager', x.target.value)} style={inp}><option value="">Select</option>{rms.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}</select> : e.reportingManager || '-'}</td>
-                    <td style={td}><span style={{padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', background: e.status === 'draft' ? '#f1f5f9' : e.status === 'pending' ? '#fef3c7' : '#dcfce7', color: e.status === 'draft' ? '#64748b' : e.status === 'pending' ? '#d97706' : '#16a34a'}}>{e.status}</span></td>
-                    <td style={td}>
-                      {e.status === 'draft' && <><button onClick={() => saveEntry('client', e.id)} disabled={!e.name} style={btn(e.name ? themeColors.primary : '#ccc')}>Save</button> <button onClick={() => deleteEntry('client', e.id)} style={btn('#ef4444')}>×</button></>}
-                      {e.status === 'pending' && canApprove && <button onClick={() => approveClient(e)} style={btn('#16a34a')}>Approve</button>}
-                      {e.status === 'approved' && <span style={{color: '#16a34a', fontWeight: '600'}}>✓ {e.generatedFileNo}</span>}
-                    </td>
+            <div style={{overflowX: 'auto'}}>
+              <table style={{width: '100%', borderCollapse: 'collapse', minWidth: '1100px'}}>
+                <thead>
+                  <tr>
+                    <th style={{...th, width: '40px'}}>#</th>
+                    <th style={{...th, width: '110px'}}>Group Type</th>
+                    <th style={{...th, width: '100px'}}>Group No</th>
+                    <th style={{...th, width: '80px'}}>Code</th>
+                    <th style={{...th, width: '160px'}}>Name *</th>
+                    <th style={{...th, width: '100px'}}>PAN</th>
+                    <th style={{...th, width: '130px'}}>GSTIN</th>
+                    <th style={{...th, width: '100px'}}>Phone</th>
+                    <th style={{...th, width: '100px'}}>Type</th>
+                    <th style={{...th, width: '100px'}}>State</th>
+                    <th style={{...th, width: '100px'}}>RM</th>
+                    <th style={{...th, width: '70px'}}>Status</th>
+                    <th style={{...th, width: '100px'}}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {clientEntries.length === 0 ? (
+                    <tr><td colSpan={13} style={{padding: '40px', textAlign: 'center', color: '#999'}}>No entries. Click "+ Add Client" to create one.</td></tr>
+                  ) : clientEntries.map((e, i) => (
+                    <tr key={e.id} style={{background: i % 2 ? '#f9fafb' : '#fff'}}>
+                      <td style={td}>{i + 1}</td>
+                      <td style={td}>
+                        {e.status === 'draft' ? (
+                          <div style={{display: 'flex', gap: '6px'}}>
+                            <label style={{display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px', cursor: 'pointer'}}>
+                              <input type="radio" name={`grp_${e.id}`} checked={e.groupMode === 'new'} onChange={() => updateClient(e.id, 'groupMode', 'new')} style={{margin: 0}} />
+                              New
+                            </label>
+                            <label style={{display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px', cursor: 'pointer'}}>
+                              <input type="radio" name={`grp_${e.id}`} checked={e.groupMode === 'existing'} onChange={() => updateClient(e.id, 'groupMode', 'existing')} style={{margin: 0}} />
+                              Existing
+                            </label>
+                          </div>
+                        ) : (e.groupMode === 'new' ? 'New' : 'Existing')}
+                      </td>
+                      <td style={td}>
+                        {e.status === 'draft' && e.groupMode === 'existing' ? (
+                          <select value={e.selectedGroup || ''} onChange={(x) => updateClient(e.id, 'selectedGroup', x.target.value)} style={{...inp, width: '85px'}}>
+                            <option value="">Select</option>
+                            {getGroups().map(g => <option key={g} value={g}>Grp {g} ({getGroupCount(g)})</option>)}
+                          </select>
+                        ) : <span style={{fontWeight: '500'}}>{e.groupNo}</span>}
+                      </td>
+                      <td style={{...td, fontWeight: '600', color: themeColors.primary}}>{e.fileNo}</td>
+                      <td style={td}>{e.status === 'draft' ? <input value={e.name || ''} onChange={(x) => updateClient(e.id, 'name', x.target.value)} placeholder="Client Name *" style={inp} /> : e.name}</td>
+                      <td style={td}>{e.status === 'draft' ? <input value={e.pan || ''} onChange={(x) => updateClient(e.id, 'pan', x.target.value.toUpperCase())} maxLength={10} placeholder="PAN" style={{...inp, textTransform: 'uppercase'}} /> : (e.pan || '-')}</td>
+                      <td style={td}>{e.status === 'draft' ? <input value={e.gstin || ''} onChange={(x) => updateClient(e.id, 'gstin', x.target.value.toUpperCase())} maxLength={15} placeholder="GSTIN" style={{...inp, textTransform: 'uppercase'}} /> : (e.gstin || '-')}</td>
+                      <td style={td}>{e.status === 'draft' ? <input value={e.phone || ''} onChange={(x) => updateClient(e.id, 'phone', x.target.value)} placeholder="Phone" style={inp} /> : (e.phone || '-')}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.typeOfClient || ''} onChange={(x) => updateClient(e.id, 'typeOfClient', x.target.value)} style={inp}><option value="">Select</option>{TYPES.map(t => <option key={t}>{t}</option>)}</select> : (e.typeOfClient || '-')}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.state || ''} onChange={(x) => updateClient(e.id, 'state', x.target.value)} style={inp}><option value="">Select</option>{STATES.map(s => <option key={s}>{s}</option>)}</select> : (e.state || '-')}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.reportingManager || ''} onChange={(x) => updateClient(e.id, 'reportingManager', x.target.value)} style={inp}><option value="">Select</option>{rms.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}</select> : (e.reportingManager || '-')}</td>
+                      <td style={td}><span style={badge(e.status)}>{e.status}</span></td>
+                      <td style={td}>
+                        {e.status === 'draft' && (
+                          <div style={{display: 'flex', gap: '4px'}}>
+                            <button onClick={() => saveEntry('client', e.id)} disabled={!e.name} style={btn(themeColors.primary, !e.name)}>Save</button>
+                            <button onClick={() => deleteEntry('client', e.id)} style={btn('#ef4444', false)}>×</button>
+                          </div>
+                        )}
+                        {e.status === 'pending' && canApprove && <button onClick={() => approveClient(e)} style={btn('#16a34a', false)}>Approve</button>}
+                        {e.status === 'approved' && <span style={{color: '#16a34a', fontWeight: '600'}}>✓ {e.generatedFileNo}</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
         
         {/* TEAM MEMBERS TABLE */}
         {activeTab === 'teamMembers' && (
           <div style={{background: '#fff', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb'}}>
-            <table style={{width: '100%', borderCollapse: 'collapse'}}>
-              <thead>
-                <tr>
-                  <th style={th}>#</th>
-                  <th style={{...th, minWidth: '200px'}}>Task</th>
-                  <th style={th}>Task Code</th>
-                  <th style={th}>Client</th>
-                  <th style={th}>Current Primary</th>
-                  <th style={th}>Change?</th>
-                  <th style={th}>New Primary</th>
-                  <th style={{...th, minWidth: '140px'}}>Add Members</th>
-                  <th style={th}>Status</th>
-                  <th style={th}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {teamEntries.length === 0 ? (
-                  <tr><td colSpan={10} style={{padding: '40px', textAlign: 'center', color: '#999'}}>No entries yet</td></tr>
-                ) : teamEntries.map((e, i) => (
-                  <tr key={e.id} style={{background: i % 2 ? '#f9fafb' : '#fff'}}>
-                    <td style={td}>{i + 1}</td>
-                    <td style={td}>{e.status === 'draft' ? <TaskSearch entry={e} /> : `${e.taskCode} - ${e.clientName}`}</td>
-                    <td style={{...td, fontWeight: '600', color: themeColors.primary}}>{e.taskCode || '-'}</td>
-                    <td style={td}>{e.clientName || '-'}</td>
-                    <td style={td}>{e.currentPrimary || '-'}</td>
-                    <td style={td}>{e.status === 'draft' && e.taskId ? <input type="checkbox" checked={e.changePrimary} onChange={(x) => updateTeam(e.id, 'changePrimary', x.target.checked)} /> : e.changePrimary ? 'Yes' : 'No'}</td>
-                    <td style={td}>{e.status === 'draft' && e.changePrimary ? <select value={e.newPrimary} onChange={(x) => updateTeam(e.id, 'newPrimary', x.target.value)} style={inp}><option value="">Select</option>{staff.filter(s => s.name !== e.currentPrimary).map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : e.newPrimary || '-'}</td>
-                    <td style={td}>{e.status === 'draft' && e.taskId ? <select multiple value={e.addMembers||[]} onChange={(x) => updateTeam(e.id, 'addMembers', Array.from(x.target.selectedOptions, o => o.value))} style={{...inp, height: '60px'}}>{staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.addMembers?.join(', ') || '-')}</td>
-                    <td style={td}><span style={{padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', background: e.status === 'draft' ? '#f1f5f9' : e.status === 'pending' ? '#fef3c7' : '#dcfce7', color: e.status === 'draft' ? '#64748b' : e.status === 'pending' ? '#d97706' : '#16a34a'}}>{e.status}</span></td>
-                    <td style={td}>
-                      {e.status === 'draft' && <><button onClick={() => saveEntry('team', e.id)} disabled={!e.taskId || (!e.changePrimary && !e.addMembers?.length)} style={btn(e.taskId && (e.changePrimary || e.addMembers?.length) ? themeColors.primary : '#ccc')}>Save</button> <button onClick={() => deleteEntry('team', e.id)} style={btn('#ef4444')}>×</button></>}
-                      {e.status === 'pending' && canApprove && <button onClick={() => approveTeam(e)} style={btn('#16a34a')}>Approve</button>}
-                      {e.status === 'approved' && <span style={{color: '#16a34a', fontWeight: '600'}}>✓</span>}
-                    </td>
+            <div style={{overflowX: 'auto'}}>
+              <table style={{width: '100%', borderCollapse: 'collapse', minWidth: '900px'}}>
+                <thead>
+                  <tr>
+                    <th style={{...th, width: '40px'}}>#</th>
+                    <th style={{...th, width: '220px'}}>Task (Search)</th>
+                    <th style={{...th, width: '100px'}}>Task Code</th>
+                    <th style={{...th, width: '140px'}}>Client</th>
+                    <th style={{...th, width: '120px'}}>Current Primary</th>
+                    <th style={{...th, width: '70px'}}>Change?</th>
+                    <th style={{...th, width: '120px'}}>New Primary</th>
+                    <th style={{...th, width: '150px'}}>Add Members</th>
+                    <th style={{...th, width: '70px'}}>Status</th>
+                    <th style={{...th, width: '100px'}}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {teamEntries.length === 0 ? (
+                    <tr><td colSpan={10} style={{padding: '40px', textAlign: 'center', color: '#999'}}>No entries. Click "+ Add Team Member" to modify team assignments.</td></tr>
+                  ) : teamEntries.map((e, i) => (
+                    <tr key={e.id} style={{background: i % 2 ? '#f9fafb' : '#fff'}}>
+                      <td style={td}>{i + 1}</td>
+                      <td style={{...td, position: 'relative'}}>
+                        {e.status === 'draft' ? (
+                          <>
+                            <input
+                              type="text"
+                              value={taskSearchTerms[e.id] !== undefined ? taskSearchTerms[e.id] : (e.taskCode ? `${e.taskCode} - ${e.clientName}` : '')}
+                              onChange={(ev) => {
+                                const val = ev.target.value;
+                                setTaskSearchTerms(p => ({...p, [e.id]: val}));
+                                setTaskDropdowns(p => ({...p, [e.id]: val.length >= 2}));
+                              }}
+                              onFocus={() => {
+                                const val = taskSearchTerms[e.id] || '';
+                                if (val.length >= 2) setTaskDropdowns(p => ({...p, [e.id]: true}));
+                              }}
+                              onBlur={() => setTimeout(() => setTaskDropdowns(p => ({...p, [e.id]: false})), 200)}
+                              placeholder="Type task code or client..."
+                              style={inp}
+                            />
+                            {taskDropdowns[e.id] && searchTasks(taskSearchTerms[e.id]).length > 0 && (
+                              <div style={{position: 'absolute', top: '100%', left: 8, right: 8, background: '#fff', border: '1px solid #ddd', borderRadius: '4px', maxHeight: '200px', overflowY: 'auto', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'}}>
+                                {searchTasks(taskSearchTerms[e.id]).map(t => (
+                                  <div key={t.id}
+                                    onMouseDown={(ev) => { ev.preventDefault(); selectTask(e.id, t); }}
+                                    style={{padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0'}}
+                                    onMouseEnter={(ev) => ev.currentTarget.style.background = '#f5f5f5'}
+                                    onMouseLeave={(ev) => ev.currentTarget.style.background = '#fff'}>
+                                    <div style={{fontWeight: '600', color: themeColors.primary, fontSize: '12px'}}>{t.taskCode}</div>
+                                    <div style={{fontSize: '11px'}}>{t.clientName} - {t.childTask}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        ) : <span style={{fontSize: '12px'}}>{e.taskCode} - {e.clientName}</span>}
+                      </td>
+                      <td style={{...td, fontWeight: '600', color: themeColors.primary}}>{e.taskCode || '-'}</td>
+                      <td style={td}>{e.clientName || '-'}</td>
+                      <td style={td}>{e.currentPrimary || '-'}</td>
+                      <td style={{...td, textAlign: 'center'}}>{e.status === 'draft' && e.taskId ? <input type="checkbox" checked={e.changePrimary || false} onChange={(x) => updateTeam(e.id, 'changePrimary', x.target.checked)} /> : (e.changePrimary ? 'Yes' : 'No')}</td>
+                      <td style={td}>{e.status === 'draft' && e.changePrimary ? <select value={e.newPrimary || ''} onChange={(x) => updateTeam(e.id, 'newPrimary', x.target.value)} style={inp}><option value="">Select</option>{staff.filter(s => s.name !== e.currentPrimary).map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.newPrimary || '-')}</td>
+                      <td style={td}>{e.status === 'draft' && e.taskId ? <select multiple value={e.addMembers||[]} onChange={(x) => updateTeam(e.id, 'addMembers', Array.from(x.target.selectedOptions, o => o.value))} style={{...inp, height: '60px', fontSize: '11px'}}>{staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.addMembers?.join(', ') || '-')}</td>
+                      <td style={td}><span style={badge(e.status)}>{e.status}</span></td>
+                      <td style={td}>
+                        {e.status === 'draft' && (
+                          <div style={{display: 'flex', gap: '4px'}}>
+                            <button onClick={() => saveEntry('team', e.id)} disabled={!e.taskId || (!e.changePrimary && !e.addMembers?.length)} style={btn(themeColors.primary, !e.taskId || (!e.changePrimary && !e.addMembers?.length))}>Save</button>
+                            <button onClick={() => deleteEntry('team', e.id)} style={btn('#ef4444', false)}>×</button>
+                          </div>
+                        )}
+                        {e.status === 'pending' && canApprove && <button onClick={() => approveTeam(e)} style={btn('#16a34a', false)}>Approve</button>}
+                        {e.status === 'approved' && <span style={{color: '#16a34a', fontWeight: '600'}}>✓</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
         
