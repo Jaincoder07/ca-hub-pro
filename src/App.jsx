@@ -3114,13 +3114,6 @@ const PracticeManagementApp = () => {
               </div>
             </div>
           </div>
-                <div style={{width: '40px', height: '40px', background: '#ede9fe', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                  <TrendingUp size={20} style={{color: '#8b5cf6'}} />
-                </div>
-              </div>
-              <div style={{fontSize: '13px', color: '#64748b', marginTop: '8px'}}>Of total billing</div>
-            </div>
-          </div>
 
           {/* Charts Row */}
           <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '24px'}}>
