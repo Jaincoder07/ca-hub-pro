@@ -9549,73 +9549,73 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
 
           {/* FILL/EDIT TAB */}
           {activeTab === 'fill' && (
-            <div className="timesheet-fill-content">
+            <div style={{padding: '20px'}}>
               {/* Edit Mode Banner */}
               {isEditMode && (
-                <div className="edit-mode-banner">
-                  <Edit size={16} />
-                  <span>Editing timesheet for {timesheetDate}</span>
-                  <button onClick={handleDeleteTimesheet} className="btn-delete-small">Delete Timesheet</button>
+                <div style={{display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: '#fef3c7', borderRadius: '8px', marginBottom: '16px', border: '1px solid #fcd34d'}}>
+                  <Edit size={16} style={{color: '#d97706'}} />
+                  <span style={{flex: 1, fontSize: '13px', fontWeight: '500', color: '#92400e'}}>Editing timesheet for {timesheetDate}</span>
+                  <button onClick={handleDeleteTimesheet} style={{padding: '6px 12px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer'}}>Delete Timesheet</button>
                 </div>
               )}
 
-              {/* Info Bar */}
-              <div className="timesheet-info-bar">
-                <div className="info-bar-item">
-                  <label>Status</label>
+              {/* Info Bar - Green Theme */}
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '12px', marginBottom: '20px', padding: '16px', background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '10px', border: '1px solid #86efac'}}>
+                <div>
+                  <label style={{fontSize: '10px', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '4px', textTransform: 'uppercase'}}>Status</label>
                   <select value={attendanceStatus} onChange={(e) => setAttendanceStatus(e.target.value)}
-                    className={`status-select ${attendanceStatus === 'Present' ? 'present' : 'leave'}`}>
+                    style={{width: '100%', padding: '8px', border: '1px solid #86efac', borderRadius: '6px', fontSize: '12px', fontWeight: '600', background: attendanceStatus === 'Present' ? '#dcfce7' : '#fee2e2', color: attendanceStatus === 'Present' ? '#166534' : '#dc2626'}}>
                     <option value="Present">Present</option>
                     <option value="Full Day Leave">Full Day Leave</option>
                   </select>
                 </div>
-                <div className="info-bar-item">
-                  <label>Employee</label>
-                  <span className="info-value" style={{ fontWeight: 600, color: '#10b981' }}>{selectedEmployee}</span>
+                <div>
+                  <label style={{fontSize: '10px', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '4px', textTransform: 'uppercase'}}>Employee</label>
+                  <div style={{padding: '8px', background: '#fff', borderRadius: '6px', border: '1px solid #86efac', fontSize: '12px', fontWeight: '600', color: '#10b981'}}>{selectedEmployee}</div>
                 </div>
-                <div className="info-bar-item">
-                  <label>Date</label>
-                  <input type="date" value={timesheetDate} onChange={(e) => setTimesheetDate(e.target.value)} />
+                <div>
+                  <label style={{fontSize: '10px', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '4px', textTransform: 'uppercase'}}>Date</label>
+                  <input type="date" value={timesheetDate} onChange={(e) => setTimesheetDate(e.target.value)} style={{width: '100%', padding: '8px', border: '1px solid #86efac', borderRadius: '6px', fontSize: '12px', background: '#fff'}} />
                 </div>
-                <div className="info-bar-item">
-                  <label>Min. Hours</label>
-                  <span className="info-value">{MINIMUM_HOURS} Hrs</span>
+                <div>
+                  <label style={{fontSize: '10px', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '4px', textTransform: 'uppercase'}}>Min. Hours</label>
+                  <div style={{padding: '8px', background: '#fff', borderRadius: '6px', border: '1px solid #86efac', fontSize: '12px', fontWeight: '600', color: '#64748b'}}>{MINIMUM_HOURS} Hrs</div>
                 </div>
-                <div className="info-bar-item">
-                  <label>Posted</label>
-                  <span className="info-value posted">{totalHoursPosted.toFixed(2)} Hrs</span>
+                <div>
+                  <label style={{fontSize: '10px', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '4px', textTransform: 'uppercase'}}>Posted</label>
+                  <div style={{padding: '8px', background: '#3b82f6', borderRadius: '6px', fontSize: '12px', fontWeight: '700', color: '#fff', textAlign: 'center'}}>{totalHoursPosted.toFixed(2)} Hrs</div>
                 </div>
-                <div className="info-bar-item">
-                  <label>Billable</label>
-                  <span className="info-value billable-val">{billableHours.toFixed(2)} Hrs</span>
+                <div>
+                  <label style={{fontSize: '10px', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '4px', textTransform: 'uppercase'}}>Billable</label>
+                  <div style={{padding: '8px', background: '#10b981', borderRadius: '6px', fontSize: '12px', fontWeight: '700', color: '#fff', textAlign: 'center'}}>{billableHours.toFixed(2)} Hrs</div>
                 </div>
-                <div className="info-bar-item">
-                  <label>Non-Billable</label>
-                  <span className="info-value nonbillable-val">{nonBillableHours.toFixed(2)} Hrs</span>
+                <div>
+                  <label style={{fontSize: '10px', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '4px', textTransform: 'uppercase'}}>Non-Billable</label>
+                  <div style={{padding: '8px', background: '#f59e0b', borderRadius: '6px', fontSize: '12px', fontWeight: '700', color: '#fff', textAlign: 'center'}}>{nonBillableHours.toFixed(2)} Hrs</div>
                 </div>
-                <div className="info-bar-item">
-                  <label>Remaining</label>
-                  <span className={`info-value ${hoursRemaining > 0 ? 'remaining' : 'complete'}`}>
+                <div>
+                  <label style={{fontSize: '10px', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '4px', textTransform: 'uppercase'}}>Remaining</label>
+                  <div style={{padding: '8px', background: hoursRemaining > 0 ? '#ef4444' : '#10b981', borderRadius: '6px', fontSize: '12px', fontWeight: '700', color: '#fff', textAlign: 'center'}}>
                     {hoursRemaining > 0 ? `${hoursRemaining.toFixed(2)} Hrs` : '✓ Done'}
-                  </span>
+                  </div>
                 </div>
               </div>
 
               {attendanceStatus === 'Present' ? (
                 <>
-                  <div className="timesheet-entries-section">
-                    <table className="timesheet-entries-table">
+                  <div style={{background: '#fff', borderRadius: '10px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+                    <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                       <thead>
-                        <tr>
-                          <th>Start</th>
-                          <th>End</th>
-                          <th>Total</th>
-                          <th>Type</th>
-                          <th>Client</th>
-                          <th>Task</th>
-                          <th>Description</th>
-                          <th>Status</th>
-                          <th></th>
+                        <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                          <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', width: '90px'}}>Start</th>
+                          <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', width: '90px'}}>End</th>
+                          <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', width: '70px'}}>Total</th>
+                          <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', width: '110px'}}>Type</th>
+                          <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
+                          <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Task</th>
+                          <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', width: '120px'}}>Description</th>
+                          <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', width: '80px'}}>Status</th>
+                          <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', width: '50px'}}></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -9624,80 +9624,84 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           const hasOverlapError = overlapErrors[entry.id];
                           return (
                             <React.Fragment key={entry.id}>
-                            <tr className={`${entry.saved ? 'row-saved' : ''} ${hasOverlapError ? 'row-error' : ''}`}>
-                              <td>
+                            <tr style={{borderBottom: '1px solid #e2e8f0', background: entry.saved ? '#f0fdf4' : hasOverlapError ? '#fef2f2' : '#fff'}}>
+                              <td style={{padding: '8px 6px', textAlign: 'center'}}>
                                 <input type="time" value={entry.startTime}
-                                  className={hasOverlapError ? 'input-error' : ''}
+                                  style={{padding: '6px 8px', border: hasOverlapError ? '2px solid #ef4444' : '1px solid #e2e8f0', borderRadius: '4px', fontSize: '12px', width: '100%'}}
                                   onChange={(e) => handleTimeChange(entry.id, 'startTime', e.target.value)} />
                               </td>
-                              <td>
+                              <td style={{padding: '8px 6px', textAlign: 'center'}}>
                                 <input type="time" value={entry.endTime}
-                                  className={hasOverlapError ? 'input-error' : ''}
+                                  style={{padding: '6px 8px', border: hasOverlapError ? '2px solid #ef4444' : '1px solid #e2e8f0', borderRadius: '4px', fontSize: '12px', width: '100%'}}
                                   onChange={(e) => handleTimeChange(entry.id, 'endTime', e.target.value)} />
                               </td>
-                              <td className={`total-cell ${hasOverlapError ? 'error-text' : ''}`}>
+                              <td style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', color: hasOverlapError ? '#ef4444' : '#3b82f6'}}>
                                 {totalTime > 0 ? totalTime.toFixed(2) : '-'}
-                                {hasOverlapError && <div className="error-badge">OVERLAP</div>}
+                                {hasOverlapError && <div style={{fontSize: '9px', color: '#ef4444', fontWeight: '700'}}>OVERLAP</div>}
                               </td>
-                              <td>
-                                <select value={entry.type} className={entry.type === 'Billable' ? 'type-billable' : 'type-nonbillable'}
+                              <td style={{padding: '8px 6px'}}>
+                                <select value={entry.type} 
+                                  style={{padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '11px', width: '100%', background: entry.type === 'Billable' ? '#dcfce7' : '#fef3c7', color: entry.type === 'Billable' ? '#166534' : '#92400e', fontWeight: '600'}}
                                   onChange={(e) => setEntries(prev => prev.map(ent => ent.id === entry.id ? { ...ent, type: e.target.value, client: '', task: '', saved: false } : ent))}>
-                                  <option value="Billable">Billable</option>
-                                  <option value="Non-Billable">Non-Billable</option>
+                                  <option value="Billable">💰 Billable</option>
+                                  <option value="Non-Billable">⚡ Non-Billable</option>
                                 </select>
                               </td>
-                              <td>
+                              <td style={{padding: '8px 6px'}}>
                                 {entry.type === 'Billable' ? (
                                   <select value={entry.client || ''}
+                                    style={{padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '11px', width: '100%'}}
                                     onChange={(e) => setEntries(prev => prev.map(ent => ent.id === entry.id ? { ...ent, client: e.target.value, task: '', saved: false } : ent))}>
                                     <option value="">Select Client</option>
                                     {userClients.map(c => (<option key={c.id} value={c.name}>{c.name}</option>))}
                                   </select>
-                                ) : <span className="na-cell">-</span>}
+                                ) : <span style={{color: '#94a3b8', fontSize: '11px'}}>-</span>}
                               </td>
-                              <td>
+                              <td style={{padding: '8px 6px'}}>
                                 {entry.type === 'Billable' ? (
                                   <select value={entry.task || ''} disabled={!entry.client}
+                                    style={{padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '11px', width: '100%', background: !entry.client ? '#f1f5f9' : '#fff'}}
                                     onChange={(e) => setEntries(prev => prev.map(ent => ent.id === entry.id ? { ...ent, task: e.target.value, saved: false } : ent))}>
                                     <option value="">{entry.client ? 'Select Task' : 'Client First'}</option>
                                     {entry.client && getTasksForClient(entry.client).map(t => (<option key={t.id} value={t.childTask}>{t.childTask}</option>))}
                                   </select>
                                 ) : (
                                   <input type="text" placeholder="Activity" value={entry.task || ''}
+                                    style={{padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '11px', width: '100%'}}
                                     onChange={(e) => setEntries(prev => prev.map(ent => ent.id === entry.id ? { ...ent, task: e.target.value, saved: false } : ent))} />
                                 )}
                               </td>
-                              <td>
+                              <td style={{padding: '8px 6px', textAlign: 'center'}}>
                                 <button 
-                                  className={`btn-description ${entry.description ? 'has-content' : ''}`}
                                   onClick={() => openDescriptionDialog(entry.id, entry.description)}
                                   title={entry.description || 'Add description'}
+                                  style={{padding: '5px 10px', background: entry.description ? '#dbeafe' : '#f1f5f9', color: entry.description ? '#1d4ed8' : '#64748b', border: 'none', borderRadius: '4px', fontSize: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center', width: '100%'}}
                                 >
                                   {entry.description ? (
-                                    <><MessageSquare size={12} /> {entry.description.length > 15 ? entry.description.substring(0, 15) + '...' : entry.description}</>
+                                    <><MessageSquare size={10} /> {entry.description.length > 10 ? entry.description.substring(0, 10) + '...' : entry.description}</>
                                   ) : (
-                                    <><Plus size={12} /> Add</>
+                                    <><Plus size={10} /> Add</>
                                   )}
                                 </button>
                               </td>
-                              <td>
+                              <td style={{padding: '8px 6px', textAlign: 'center'}}>
                                 {entry.saved ? (
-                                  <span className="status-saved">✓ Saved</span>
+                                  <span style={{padding: '4px 8px', background: '#dcfce7', color: '#166534', borderRadius: '4px', fontSize: '10px', fontWeight: '600'}}>✓ Saved</span>
                                 ) : entry.startTime && entry.endTime ? (
-                                  <button className="btn-save-entry" onClick={() => saveIndividualEntry(entry.id)}>Save</button>
+                                  <button onClick={() => saveIndividualEntry(entry.id)} style={{padding: '5px 10px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '10px', fontWeight: '600', cursor: 'pointer'}}>Save</button>
                                 ) : (
-                                  <span className="status-pending">-</span>
+                                  <span style={{color: '#94a3b8', fontSize: '10px'}}>-</span>
                                 )}
                               </td>
-                              <td>
-                                <button className="btn-remove" onClick={() => removeEntry(entry.id)}><Trash2 size={14} /></button>
+                              <td style={{padding: '8px 6px', textAlign: 'center'}}>
+                                <button onClick={() => removeEntry(entry.id)} style={{padding: '4px 6px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Trash2 size={12} /></button>
                               </td>
                             </tr>
                             {hasOverlapError && (
-                              <tr className="error-message-row">
-                                <td colSpan="9">
-                                  <div className="overlap-error-message">
-                                    <AlertCircle size={14} />
+                              <tr>
+                                <td colSpan="9" style={{padding: '6px 10px', background: '#fef2f2', borderBottom: '1px solid #fecaca'}}>
+                                  <div style={{display: 'flex', alignItems: 'center', gap: '6px', color: '#dc2626', fontSize: '11px'}}>
+                                    <AlertCircle size={12} />
                                     <span>{hasOverlapError}</span>
                                   </div>
                                 </td>
@@ -9710,22 +9714,22 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     </table>
                   </div>
 
-                  <div className="timesheet-actions-row">
-                    <div className="add-entry-buttons">
-                      <button className="btn-add-billable" onClick={() => addEntry('Billable')}>+ Billable</button>
-                      <button className="btn-add-nonbillable" onClick={() => addEntry('Non-Billable')}>+ Non-Billable</button>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', padding: '12px 16px', background: '#f8fafc', borderRadius: '8px'}}>
+                    <div style={{display: 'flex', gap: '10px'}}>
+                      <button onClick={() => addEntry('Billable')} style={{padding: '8px 16px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>+ Billable</button>
+                      <button onClick={() => addEntry('Non-Billable')} style={{padding: '8px 16px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>+ Non-Billable</button>
                     </div>
-                    <button className="btn-save-timesheet" onClick={handleSaveTimesheet} disabled={filledEntries.length === 0}>
+                    <button onClick={handleSaveTimesheet} disabled={filledEntries.length === 0} style={{padding: '10px 24px', background: filledEntries.length === 0 ? '#94a3b8' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '700', cursor: filledEntries.length === 0 ? 'not-allowed' : 'pointer', boxShadow: filledEntries.length > 0 ? '0 2px 8px rgba(16,185,129,0.4)' : 'none'}}>
                       {isEditMode ? 'Update Timesheet' : 'Save Timesheet'}
                     </button>
                   </div>
                 </>
               ) : (
-                <div className="leave-notice">
-                  <div className="leave-icon">🏖️</div>
-                  <h3>Full Day Leave</h3>
-                  <p>No entries required.</p>
-                  <button className="btn-save-leave" onClick={handleSaveTimesheet}>
+                <div style={{textAlign: 'center', padding: '60px 20px', background: '#f0fdf4', borderRadius: '12px', border: '2px dashed #86efac'}}>
+                  <div style={{fontSize: '60px', marginBottom: '12px'}}>🏖️</div>
+                  <h3 style={{margin: '0 0 8px', fontSize: '18px', fontWeight: '600', color: '#166534'}}>Full Day Leave</h3>
+                  <p style={{margin: '0 0 20px', color: '#64748b', fontSize: '13px'}}>No entries required.</p>
+                  <button onClick={handleSaveTimesheet} style={{padding: '12px 28px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 2px 8px rgba(16,185,129,0.4)'}}>
                     {isEditMode ? 'Update Leave' : 'Record Leave'} for {timesheetDate}
                   </button>
                 </div>
@@ -9733,177 +9737,204 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             </div>
           )}
 
-          {/* VIEW TAB - List */}
+          {/* VIEW TAB - Compact Monthly View */}
           {activeTab === 'view' && !viewingTimesheet && (
-            <div className="timesheet-view-content">
-              <div className="view-filters">
-                <div className="filter-item">
-                  <label>Employee</label>
-                  <span style={{ 
-                    padding: '8px 12px', 
-                    background: '#f0fdf4', 
-                    border: '1px solid #86efac',
-                    borderRadius: '6px',
-                    fontWeight: 600, 
-                    color: '#10b981' 
-                  }}>{viewEmployee}</span>
+            <div style={{padding: '20px'}}>
+              {/* Filters */}
+              <div style={{display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '16px', padding: '12px 16px', background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '10px', border: '1px solid #86efac'}}>
+                <div>
+                  <label style={{fontSize: '10px', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '4px', textTransform: 'uppercase'}}>Employee</label>
+                  <div style={{padding: '8px 14px', background: '#fff', borderRadius: '6px', border: '1px solid #86efac', fontSize: '12px', fontWeight: '600', color: '#10b981'}}>{viewEmployee}</div>
                 </div>
-                <div className="filter-item">
-                  <label>Month</label>
-                  <input type="month" value={viewMonth} onChange={(e) => setViewMonth(e.target.value)} />
+                <div>
+                  <label style={{fontSize: '10px', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '4px', textTransform: 'uppercase'}}>Month</label>
+                  <input type="month" value={viewMonth} onChange={(e) => setViewMonth(e.target.value)} style={{padding: '8px 12px', border: '1px solid #86efac', borderRadius: '6px', fontSize: '12px', background: '#fff'}} />
                 </div>
               </div>
 
-              <div className="timesheet-table-container">
-                <table className="view-timesheet-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Day</th>
-                      <th>Status</th>
-                      <th>Billable</th>
-                      <th>Non-Billable</th>
-                      <th>Total</th>
-                      <th>Min Req.</th>
-                      <th>Short/Excess</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {daysInMonth.map(({ date, dayOfWeek }) => {
-                      const ts = getTimesheetForDate(date);
-                      const isMissing = !ts;
-                      const status = ts?.attendanceStatus || 'Missing';
-                      const minRequired = 8;
-                      const totalPosted = ts?.totalHours || 0;
-                      const difference = totalPosted - minRequired;
-                      const isLeave = ts?.status === 'Leave';
-                      
-                      return (
-                        <tr key={date} className={isMissing ? 'row-missing' : ''}>
-                          <td className="col-date">{date.split('-').reverse().join('-')}</td>
-                          <td>{dayOfWeek}</td>
-                          <td><span className={`status-tag status-${status.toLowerCase().replace(' ', '-')}`}>{status}</span></td>
-                          <td className="col-hours">{ts?.billableHours?.toFixed(2) || '-'}</td>
-                          <td className="col-hours">{ts?.nonBillableHours?.toFixed(2) || '-'}</td>
-                          <td className="col-hours"><strong>{ts?.totalHours?.toFixed(2) || '-'}</strong></td>
-                          <td className="col-hours">{ts ? (isLeave ? '-' : '8') : '8'}</td>
-                          <td className="col-hours">
-                            {isMissing ? (
-                              <span className="hours-short">-8.00 Hrs</span>
-                            ) : isLeave ? (
-                              <span className="hours-neutral">-</span>
-                            ) : difference < 0 ? (
-                              <span className="hours-short">{difference.toFixed(2)} Hrs</span>
-                            ) : difference > 0 ? (
-                              <span className="hours-excess">+{difference.toFixed(2)} Hrs</span>
-                            ) : (
-                              <span className="hours-exact">✓ 0.00</span>
-                            )}
-                          </td>
-                          <td>
-                            {ts ? (
-                              <div className="action-buttons">
-                                <button className="btn-view-details" onClick={() => setViewingTimesheet(ts)}>View</button>
-                                <button className="btn-edit-small" onClick={() => handleEditFromView(ts)}>Edit</button>
-                              </div>
-                            ) : (
-                              <button className="btn-fill-small" onClick={() => { setTimesheetDate(date); setActiveTab('fill'); }}>Fill</button>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              {/* Compact Calendar Grid View */}
+              <div style={{background: '#fff', borderRadius: '10px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
+                <div style={{display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                  {['Date', 'Day', 'Status', 'Bill', 'N-Bill', 'Total', 'Action'].map(h => (
+                    <div key={h} style={{padding: '10px 6px', textAlign: 'center', fontWeight: '600', color: '#fff', fontSize: '11px'}}>{h}</div>
+                  ))}
+                </div>
+                <div style={{maxHeight: '400px', overflow: 'auto'}}>
+                  {daysInMonth.map(({ date, dayOfWeek }, idx) => {
+                    const ts = getTimesheetForDate(date);
+                    const isMissing = !ts;
+                    const status = ts?.attendanceStatus || 'Missing';
+                    const isLeave = ts?.status === 'Leave';
+                    const total = ts?.totalHours || 0;
+                    const isSunday = dayOfWeek === 'Sun';
+                    
+                    return (
+                      <div key={date} style={{display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid #f1f5f9', background: isSunday ? '#fef2f2' : idx % 2 === 0 ? '#fff' : '#fafafa', alignItems: 'center'}}>
+                        <div style={{padding: '8px 6px', textAlign: 'center', fontSize: '11px', fontWeight: '600', color: '#374151'}}>{date.split('-')[2]}</div>
+                        <div style={{padding: '8px 6px', textAlign: 'center', fontSize: '10px', color: isSunday ? '#dc2626' : '#64748b'}}>{dayOfWeek}</div>
+                        <div style={{padding: '8px 6px', textAlign: 'center'}}>
+                          <span style={{padding: '2px 6px', borderRadius: '8px', fontSize: '9px', fontWeight: '600', 
+                            background: status === 'Present' ? '#dcfce7' : status === 'Full Day Leave' ? '#fee2e2' : '#fef3c7',
+                            color: status === 'Present' ? '#166534' : status === 'Full Day Leave' ? '#dc2626' : '#92400e'
+                          }}>{status === 'Full Day Leave' ? 'Leave' : status === 'Present' ? 'P' : 'M'}</span>
+                        </div>
+                        <div style={{padding: '8px 6px', textAlign: 'center', fontSize: '11px', fontWeight: '600', color: '#10b981'}}>{ts?.billableHours?.toFixed(1) || '-'}</div>
+                        <div style={{padding: '8px 6px', textAlign: 'center', fontSize: '11px', fontWeight: '600', color: '#f59e0b'}}>{ts?.nonBillableHours?.toFixed(1) || '-'}</div>
+                        <div style={{padding: '8px 6px', textAlign: 'center', fontSize: '11px', fontWeight: '700', color: total >= 8 ? '#10b981' : total > 0 ? '#3b82f6' : '#94a3b8'}}>{total > 0 ? total.toFixed(1) : '-'}</div>
+                        <div style={{padding: '6px', textAlign: 'center'}}>
+                          {ts ? (
+                            <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
+                              <button onClick={() => setViewingTimesheet(ts)} style={{padding: '3px 8px', background: '#dbeafe', color: '#1d4ed8', border: 'none', borderRadius: '4px', fontSize: '9px', fontWeight: '600', cursor: 'pointer'}}>View</button>
+                              <button onClick={() => handleEditFromView(ts)} style={{padding: '3px 8px', background: '#fef3c7', color: '#92400e', border: 'none', borderRadius: '4px', fontSize: '9px', fontWeight: '600', cursor: 'pointer'}}>Edit</button>
+                            </div>
+                          ) : (
+                            <button onClick={() => { setTimesheetDate(date); setActiveTab('fill'); }} style={{padding: '3px 8px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '9px', fontWeight: '600', cursor: 'pointer'}}>Fill</button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* Summary Row */}
+                <div style={{display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderTop: '2px solid #10b981'}}>
+                  <div style={{padding: '10px 6px', textAlign: 'center', fontSize: '11px', fontWeight: '700', color: '#166534', gridColumn: 'span 3'}}>Monthly Total</div>
+                  <div style={{padding: '10px 6px', textAlign: 'center', fontSize: '12px', fontWeight: '700', color: '#10b981'}}>{daysInMonth.reduce((sum, d) => sum + (getTimesheetForDate(d.date)?.billableHours || 0), 0).toFixed(1)}</div>
+                  <div style={{padding: '10px 6px', textAlign: 'center', fontSize: '12px', fontWeight: '700', color: '#f59e0b'}}>{daysInMonth.reduce((sum, d) => sum + (getTimesheetForDate(d.date)?.nonBillableHours || 0), 0).toFixed(1)}</div>
+                  <div style={{padding: '10px 6px', textAlign: 'center', fontSize: '12px', fontWeight: '700', color: '#3b82f6'}}>{daysInMonth.reduce((sum, d) => sum + (getTimesheetForDate(d.date)?.totalHours || 0), 0).toFixed(1)}</div>
+                  <div></div>
+                </div>
               </div>
             </div>
           )}
 
           {/* VIEW TAB - Detail */}
           {activeTab === 'view' && viewingTimesheet && (
-            <div className="timesheet-detail-content">
-              <div className="detail-header">
-                <button className="btn-back" onClick={() => setViewingTimesheet(null)}>← Back</button>
-                <h3>Timesheet: {viewingTimesheet.date}</h3>
-                <button className="btn-edit-detail" onClick={() => handleEditFromView(viewingTimesheet)}>
-                  <Edit size={14} /> Edit
+            <div style={{padding: '20px'}}>
+              {/* Header */}
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: '12px 16px', background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '10px', border: '1px solid #86efac'}}>
+                <button onClick={() => setViewingTimesheet(null)} style={{padding: '6px 12px', background: '#fff', border: '1px solid #86efac', borderRadius: '6px', fontSize: '12px', fontWeight: '500', color: '#166534', cursor: 'pointer'}}>← Back</button>
+                <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#166534'}}>📅 Timesheet: {viewingTimesheet.date}</h3>
+                <button onClick={() => handleEditFromView(viewingTimesheet)} style={{padding: '6px 12px', background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '6px', fontSize: '12px', fontWeight: '500', color: '#92400e', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'}}>
+                  <Edit size={12} /> Edit
                 </button>
               </div>
 
-              <div className="detail-summary">
-                <div className="summary-box"><label>Employee</label><span>{viewingTimesheet.employee}</span></div>
-                <div className="summary-box"><label>Status</label><span className={`status-tag status-${viewingTimesheet.attendanceStatus?.toLowerCase().replace(' ', '-')}`}>{viewingTimesheet.attendanceStatus}</span></div>
-                <div className="summary-box"><label>Total</label><span>{viewingTimesheet.totalHours?.toFixed(2) || 0} Hrs</span></div>
-                <div className="summary-box"><label>Billable</label><span className="billable">{viewingTimesheet.billableHours?.toFixed(2) || 0} Hrs</span></div>
-                <div className="summary-box"><label>Non-Billable</label><span className="nonbillable">{viewingTimesheet.nonBillableHours?.toFixed(2) || 0} Hrs</span></div>
+              {/* Summary Cards */}
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '20px'}}>
+                <div style={{background: '#fff', borderRadius: '8px', padding: '12px', border: '1px solid #e2e8f0', textAlign: 'center'}}>
+                  <div style={{fontSize: '10px', color: '#64748b', fontWeight: '600', marginBottom: '4px'}}>Employee</div>
+                  <div style={{fontSize: '13px', fontWeight: '600', color: '#374151'}}>{viewingTimesheet.employee}</div>
+                </div>
+                <div style={{background: '#fff', borderRadius: '8px', padding: '12px', border: '1px solid #e2e8f0', textAlign: 'center'}}>
+                  <div style={{fontSize: '10px', color: '#64748b', fontWeight: '600', marginBottom: '4px'}}>Status</div>
+                  <span style={{padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', 
+                    background: viewingTimesheet.attendanceStatus === 'Present' ? '#dcfce7' : '#fee2e2',
+                    color: viewingTimesheet.attendanceStatus === 'Present' ? '#166534' : '#dc2626'
+                  }}>{viewingTimesheet.attendanceStatus}</span>
+                </div>
+                <div style={{background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', borderRadius: '8px', padding: '12px', textAlign: 'center', color: '#fff'}}>
+                  <div style={{fontSize: '10px', opacity: 0.9, fontWeight: '500', marginBottom: '4px'}}>Total</div>
+                  <div style={{fontSize: '18px', fontWeight: '700'}}>{viewingTimesheet.totalHours?.toFixed(2) || 0} Hrs</div>
+                </div>
+                <div style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '8px', padding: '12px', textAlign: 'center', color: '#fff'}}>
+                  <div style={{fontSize: '10px', opacity: 0.9, fontWeight: '500', marginBottom: '4px'}}>Billable</div>
+                  <div style={{fontSize: '18px', fontWeight: '700'}}>{viewingTimesheet.billableHours?.toFixed(2) || 0} Hrs</div>
+                </div>
+                <div style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', borderRadius: '8px', padding: '12px', textAlign: 'center', color: '#fff'}}>
+                  <div style={{fontSize: '10px', opacity: 0.9, fontWeight: '500', marginBottom: '4px'}}>Non-Billable</div>
+                  <div style={{fontSize: '18px', fontWeight: '700'}}>{viewingTimesheet.nonBillableHours?.toFixed(2) || 0} Hrs</div>
+                </div>
               </div>
 
+              {/* Entries Table */}
               {viewingTimesheet.entries?.length > 0 ? (
-                <div className="detail-entries">
-                  <h4>Time Entries</h4>
-                  <table className="entries-detail-table">
+                <div style={{background: '#fff', borderRadius: '10px', overflow: 'hidden', border: '1px solid #e2e8f0'}}>
+                  <div style={{padding: '12px 16px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0'}}>
+                    <h4 style={{margin: 0, fontSize: '13px', fontWeight: '600', color: '#374151'}}>Time Entries ({viewingTimesheet.entries.length})</h4>
+                  </div>
+                  <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
                     <thead>
-                      <tr><th>Start</th><th>End</th><th>Hours</th><th>Type</th><th>Client</th><th>Task</th><th>Description</th><th></th></tr>
+                      <tr style={{background: '#f0fdf4'}}>
+                        <th style={{padding: '10px', textAlign: 'center', fontWeight: '600', color: '#166534'}}>Start</th>
+                        <th style={{padding: '10px', textAlign: 'center', fontWeight: '600', color: '#166534'}}>End</th>
+                        <th style={{padding: '10px', textAlign: 'center', fontWeight: '600', color: '#166534'}}>Hours</th>
+                        <th style={{padding: '10px', textAlign: 'center', fontWeight: '600', color: '#166534'}}>Type</th>
+                        <th style={{padding: '10px', textAlign: 'left', fontWeight: '600', color: '#166534'}}>Client</th>
+                        <th style={{padding: '10px', textAlign: 'left', fontWeight: '600', color: '#166534'}}>Task</th>
+                        <th style={{padding: '10px', textAlign: 'left', fontWeight: '600', color: '#166534'}}>Description</th>
+                        <th style={{padding: '10px', textAlign: 'center', fontWeight: '600', color: '#166534', width: '50px'}}></th>
+                      </tr>
                     </thead>
                     <tbody>
                       {viewingTimesheet.entries.map((entry, idx) => (
-                        <tr key={idx}>
-                          <td>{entry.startTime}</td>
-                          <td>{entry.endTime}</td>
-                          <td>{calculateTotalTime(entry.startTime, entry.endTime).toFixed(2)}</td>
-                          <td><span className={`type-tag ${entry.type === 'Billable' ? 'billable' : 'nonbillable'}`}>{entry.type}</span></td>
-                          <td>{entry.client || '-'}</td>
-                          <td>{entry.task || '-'}</td>
-                          <td>
+                        <tr key={idx} style={{borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#fafafa'}}>
+                          <td style={{padding: '10px', textAlign: 'center', fontWeight: '500'}}>{entry.startTime}</td>
+                          <td style={{padding: '10px', textAlign: 'center', fontWeight: '500'}}>{entry.endTime}</td>
+                          <td style={{padding: '10px', textAlign: 'center', fontWeight: '700', color: '#3b82f6'}}>{calculateTotalTime(entry.startTime, entry.endTime).toFixed(2)}</td>
+                          <td style={{padding: '10px', textAlign: 'center'}}>
+                            <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: '600', 
+                              background: entry.type === 'Billable' ? '#dcfce7' : '#fef3c7',
+                              color: entry.type === 'Billable' ? '#166534' : '#92400e'
+                            }}>{entry.type}</span>
+                          </td>
+                          <td style={{padding: '10px', color: '#374151'}}>{entry.client || '-'}</td>
+                          <td style={{padding: '10px', color: '#374151'}}>{entry.task || '-'}</td>
+                          <td style={{padding: '10px'}}>
                             {entry.description ? (
                               <button 
-                                className="btn-view-description"
                                 onClick={() => openViewDescriptionDialog(entry.description, entry.startTime, entry.endTime)}
-                                title="Click to view full description"
+                                style={{padding: '4px 8px', background: '#dbeafe', color: '#1d4ed8', border: 'none', borderRadius: '4px', fontSize: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'}}
                               >
-                                <Eye size={12} /> {entry.description.length > 20 ? entry.description.substring(0, 20) + '...' : entry.description}
+                                <Eye size={10} /> {entry.description.length > 15 ? entry.description.substring(0, 15) + '...' : entry.description}
                               </button>
                             ) : (
-                              <span className="no-description">-</span>
+                              <span style={{color: '#94a3b8'}}>-</span>
                             )}
                           </td>
-                          <td><button className="btn-delete-entry" onClick={() => handleDeleteEntryFromView(viewingTimesheet.id, idx)}><Trash2 size={12} /></button></td>
+                          <td style={{padding: '10px', textAlign: 'center'}}>
+                            <button onClick={() => handleDeleteEntryFromView(viewingTimesheet.id, idx)} style={{padding: '4px 6px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Trash2 size={12} /></button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               ) : (
-                <div className="no-entries">{viewingTimesheet.attendanceStatus === 'Full Day Leave' ? '🏖️ Full Day Leave' : 'No entries'}</div>
+                <div style={{textAlign: 'center', padding: '40px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0'}}>
+                  <div style={{fontSize: '40px', marginBottom: '8px'}}>{viewingTimesheet.attendanceStatus === 'Full Day Leave' ? '🏖️' : '📝'}</div>
+                  <p style={{margin: 0, color: '#64748b', fontSize: '13px'}}>{viewingTimesheet.attendanceStatus === 'Full Day Leave' ? 'Full Day Leave' : 'No entries'}</p>
+                </div>
               )}
 
-              <div className="detail-actions">
-                <button className="btn-delete-timesheet" onClick={() => handleDeleteFromView(viewingTimesheet.id)}>Delete Timesheet</button>
+              {/* Delete Button */}
+              <div style={{marginTop: '20px', textAlign: 'right'}}>
+                <button onClick={() => handleDeleteFromView(viewingTimesheet.id)} style={{padding: '10px 20px', background: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>Delete Timesheet</button>
               </div>
             </div>
           )}
 
           {/* Description Dialog - Edit Mode (Fill Tab) */}
           {descriptionDialog.open && (
-            <div className="description-dialog-overlay" onClick={() => setDescriptionDialog({ open: false, entryId: null, value: '' })}>
-              <div className="description-dialog" onClick={(e) => e.stopPropagation()}>
-                <div className="description-dialog-header">
-                  <h3><MessageSquare size={18} /> Work Description</h3>
-                  <button onClick={() => setDescriptionDialog({ open: false, entryId: null, value: '' })}><X size={18} /></button>
+            <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center'}} onClick={() => setDescriptionDialog({ open: false, entryId: null, value: '' })}>
+              <div style={{background: '#fff', borderRadius: '12px', width: '500px', maxWidth: '90%', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'}} onClick={(e) => e.stopPropagation()}>
+                <div style={{padding: '16px 20px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                  <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}><MessageSquare size={16} /> Work Description</h3>
+                  <button onClick={() => setDescriptionDialog({ open: false, entryId: null, value: '' })} style={{background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '4px', padding: '4px 8px', color: '#fff', cursor: 'pointer'}}><X size={16} /></button>
                 </div>
-                <div className="description-dialog-body">
+                <div style={{padding: '20px'}}>
                   <textarea
                     placeholder="Enter detailed description of work done..."
                     value={descriptionDialog.value}
                     onChange={(e) => setDescriptionDialog(prev => ({ ...prev, value: e.target.value }))}
                     autoFocus
+                    style={{width: '100%', minHeight: '120px', padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px', resize: 'vertical'}}
                   />
-                  <div className="char-count">{descriptionDialog.value.length} characters</div>
+                  <div style={{fontSize: '11px', color: '#64748b', marginTop: '6px'}}>{descriptionDialog.value.length} characters</div>
                 </div>
-                <div className="description-dialog-footer">
-                  <button className="btn-cancel" onClick={() => setDescriptionDialog({ open: false, entryId: null, value: '' })}>Cancel</button>
-                  <button className="btn-save-desc" onClick={saveDescription}>Save Description</button>
+                <div style={{padding: '12px 20px', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end', gap: '10px', borderTop: '1px solid #e2e8f0'}}>
+                  <button onClick={() => setDescriptionDialog({ open: false, entryId: null, value: '' })} style={{padding: '8px 16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', fontWeight: '500', cursor: 'pointer'}}>Cancel</button>
+                  <button onClick={saveDescription} style={{padding: '8px 16px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>Save Description</button>
                 </div>
               </div>
             </div>
@@ -9911,24 +9942,24 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
 
           {/* Description Dialog - View Mode (Read Only) */}
           {viewDescriptionDialog.open && (
-            <div className="description-dialog-overlay" onClick={() => setViewDescriptionDialog({ open: false, value: '', startTime: '', endTime: '' })}>
-              <div className="description-dialog view-mode" onClick={(e) => e.stopPropagation()}>
-                <div className="description-dialog-header">
-                  <h3><MessageSquare size={18} /> Work Description</h3>
-                  <button onClick={() => setViewDescriptionDialog({ open: false, value: '', startTime: '', endTime: '' })}><X size={18} /></button>
+            <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center'}} onClick={() => setViewDescriptionDialog({ open: false, value: '', startTime: '', endTime: '' })}>
+              <div style={{background: '#fff', borderRadius: '12px', width: '500px', maxWidth: '90%', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'}} onClick={(e) => e.stopPropagation()}>
+                <div style={{padding: '16px 20px', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                  <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}><MessageSquare size={16} /> Work Description</h3>
+                  <button onClick={() => setViewDescriptionDialog({ open: false, value: '', startTime: '', endTime: '' })} style={{background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '4px', padding: '4px 8px', color: '#fff', cursor: 'pointer'}}><X size={16} /></button>
                 </div>
-                <div className="description-dialog-body">
-                  <div className="view-desc-meta">
-                    <span className="meta-label">Time Entry:</span>
-                    <span className="meta-value">{viewDescriptionDialog.startTime} - {viewDescriptionDialog.endTime}</span>
+                <div style={{padding: '20px'}}>
+                  <div style={{display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '12px', padding: '8px 12px', background: '#f0fdf4', borderRadius: '6px'}}>
+                    <span style={{fontSize: '11px', color: '#64748b', fontWeight: '500'}}>Time Entry:</span>
+                    <span style={{fontSize: '12px', color: '#166534', fontWeight: '600'}}>{viewDescriptionDialog.startTime} - {viewDescriptionDialog.endTime}</span>
                   </div>
-                  <div className="view-desc-content">
+                  <div style={{padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', minHeight: '100px', fontSize: '13px', color: '#374151', lineHeight: '1.6'}}>
                     {viewDescriptionDialog.value || 'No description provided'}
                   </div>
-                  <div className="char-count">{viewDescriptionDialog.value.length} characters</div>
+                  <div style={{fontSize: '11px', color: '#64748b', marginTop: '8px', textAlign: 'right'}}>{viewDescriptionDialog.value.length} characters</div>
                 </div>
-                <div className="description-dialog-footer">
-                  <button className="btn-close-dialog" onClick={() => setViewDescriptionDialog({ open: false, value: '', startTime: '', endTime: '' })}>Close</button>
+                <div style={{padding: '12px 20px', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0'}}>
+                  <button onClick={() => setViewDescriptionDialog({ open: false, value: '', startTime: '', endTime: '' })} style={{padding: '8px 20px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>Close</button>
                 </div>
               </div>
             </div>
@@ -9941,10 +9972,18 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
   // Timesheet Reports View - By Client, Task, User
   const TimesheetReportsView = () => {
     const [reportType, setReportType] = useState('byClient'); // byClient, byTask, byUser
-    const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
     const [expandedItem, setExpandedItem] = useState(null);
-    const [dayWiseView, setDayWiseView] = useState(null); // { type, name, entries }
-    const [taskTypeFilter, setTaskTypeFilter] = useState('all'); // all, billable, nonBillable
+    const [dayWiseView, setDayWiseView] = useState(null);
+    const [taskTypeFilter, setTaskTypeFilter] = useState('all');
+    
+    // Enhanced filters
+    const [tsReportFilters, setTsReportFilters] = useState({
+      dateFrom: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+      dateTo: new Date().toISOString().split('T')[0],
+      clientSearch: '',
+      taskSearch: '',
+      userSearch: ''
+    });
 
     // Get current user's staff record for role checking
     const currentStaffRecord = data.staff.find(s => s.name === currentUser?.name);
@@ -9952,64 +9991,37 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const isSuperadmin = userRole === 'Superadmin';
     const isReportingManager = userRole === 'Reporting Manager';
 
-    // Get allowed clients based on user role
-    // - Superadmin: All clients
-    // - Reporting Manager: Clients where they are Task Manager or Task Leader
-    // - Others: Clients where they are Task Leader, Task Manager, or Primary Assigned User
+    // Get allowed clients/users based on role
     const getAllowedClients = () => {
-      if (isSuperadmin) {
-        return data.clients.map(c => c.name);
-      }
-      
+      if (isSuperadmin) return data.clients.map(c => c.name);
       const allowedClientNames = new Set();
       data.tasks.forEach(task => {
-        if (task.taskLeader === currentUser?.name || 
-            task.taskManager === currentUser?.name ||
-            task.primaryAssignedUser === currentUser?.name) {
+        if (task.taskLeader === currentUser?.name || task.taskManager === currentUser?.name || task.primaryAssignedUser === currentUser?.name) {
           allowedClientNames.add(task.clientName);
         }
       });
       return Array.from(allowedClientNames);
     };
 
-    // Get allowed users based on role
-    // - Superadmin: All users
-    // - Reporting Manager: Users mapped under them (reportingManager field)
-    // - Others: Only themselves
     const getAllowedUsers = () => {
-      if (isSuperadmin) {
-        return data.staff.map(s => s.name);
-      }
-      
+      if (isSuperadmin) return data.staff.map(s => s.name);
       if (isReportingManager) {
-        // Get staff mapped under this reporting manager
-        const mappedStaff = data.staff
-          .filter(s => s.reportingManager === currentUser?.name)
-          .map(s => s.name);
-        // Include self
+        const mappedStaff = data.staff.filter(s => s.reportingManager === currentUser?.name).map(s => s.name);
         return [currentUser?.name, ...mappedStaff];
       }
-      
-      // For Seniors/Articles - only themselves
       return [currentUser?.name];
     };
 
     const allowedClients = getAllowedClients();
     const allowedUsers = getAllowedUsers();
 
-    // Filter timesheets by selected month AND user permissions
-    const monthTimesheets = data.timesheets.filter(ts => {
-      // Must be in selected month
-      if (!ts.date.startsWith(selectedMonth)) return false;
-      
-      // Superadmin sees all
-      if (isSuperadmin) return true;
-      
-      // Check if user is allowed to see this timesheet
-      return allowedUsers.includes(ts.employee);
+    // Filter timesheets by date range AND user permissions
+    const filteredTimesheets = data.timesheets.filter(ts => {
+      if (ts.date < tsReportFilters.dateFrom || ts.date > tsReportFilters.dateTo) return false;
+      if (!isSuperadmin && !allowedUsers.includes(ts.employee)) return false;
+      return true;
     });
 
-    // Calculate totals helper
     const calculateTotalTime = (startTime, endTime) => {
       if (!startTime || !endTime) return 0;
       const start = new Date(`2000-01-01 ${startTime}`);
@@ -10018,41 +10030,29 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       return diff > 0 ? diff : 0;
     };
 
-    // Group by Client - filtered by allowed clients
+    // Group by Client
     const getByClientData = () => {
       const clientMap = {};
-      monthTimesheets.forEach(ts => {
+      filteredTimesheets.forEach(ts => {
         if (ts.entries && ts.entries.length > 0) {
           ts.entries.forEach(entry => {
-            // Only include allowed clients (or all if superadmin)
             if (entry.client && (isSuperadmin || allowedClients.includes(entry.client))) {
+              if (tsReportFilters.clientSearch && !entry.client.toLowerCase().includes(tsReportFilters.clientSearch.toLowerCase())) return;
               if (!clientMap[entry.client]) {
-                clientMap[entry.client] = { 
-                  name: entry.client, 
-                  totalHours: 0, 
-                  billableHours: 0, 
-                  nonBillableHours: 0,
-                  entries: [],
-                  tasks: {}
-                };
+                clientMap[entry.client] = { name: entry.client, totalHours: 0, billableHours: 0, nonBillableHours: 0, entries: [], tasks: {}, users: {} };
               }
               const hours = calculateTotalTime(entry.startTime, entry.endTime);
               clientMap[entry.client].totalHours += hours;
-              if (entry.type === 'Billable') {
-                clientMap[entry.client].billableHours += hours;
-              } else {
-                clientMap[entry.client].nonBillableHours += hours;
-              }
+              if (entry.type === 'Billable') clientMap[entry.client].billableHours += hours;
+              else clientMap[entry.client].nonBillableHours += hours;
               clientMap[entry.client].entries.push({ ...entry, date: ts.date, employee: ts.employee });
-              
-              // Track tasks under client
               if (entry.task) {
-                if (!clientMap[entry.client].tasks[entry.task]) {
-                  clientMap[entry.client].tasks[entry.task] = { hours: 0, entries: [] };
-                }
+                if (!clientMap[entry.client].tasks[entry.task]) clientMap[entry.client].tasks[entry.task] = { hours: 0, entries: [] };
                 clientMap[entry.client].tasks[entry.task].hours += hours;
                 clientMap[entry.client].tasks[entry.task].entries.push({ ...entry, date: ts.date, employee: ts.employee });
               }
+              if (!clientMap[entry.client].users[ts.employee]) clientMap[entry.client].users[ts.employee] = 0;
+              clientMap[entry.client].users[ts.employee] += hours;
             }
           });
         }
@@ -10060,42 +10060,24 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
       return Object.values(clientMap).sort((a, b) => b.totalHours - a.totalHours);
     };
 
-    // Group by Task - filtered by allowed clients
+    // Group by Task
     const getByTaskData = () => {
       const taskMap = {};
-      monthTimesheets.forEach(ts => {
+      filteredTimesheets.forEach(ts => {
         if (ts.entries && ts.entries.length > 0) {
           ts.entries.forEach(entry => {
-            // Only include entries for allowed clients
-            if (!isSuperadmin && entry.client && !allowedClients.includes(entry.client)) {
-              return;
-            }
-            
+            if (!isSuperadmin && entry.client && !allowedClients.includes(entry.client)) return;
             const taskName = entry.task || 'Unspecified Task';
+            if (tsReportFilters.taskSearch && !taskName.toLowerCase().includes(tsReportFilters.taskSearch.toLowerCase())) return;
             if (!taskMap[taskName]) {
-              taskMap[taskName] = { 
-                name: taskName, 
-                client: entry.client || '-',
-                totalHours: 0, 
-                billableHours: 0, 
-                nonBillableHours: 0,
-                entries: [],
-                users: {}
-              };
+              taskMap[taskName] = { name: taskName, client: entry.client || '-', totalHours: 0, billableHours: 0, nonBillableHours: 0, entries: [], users: {} };
             }
             const hours = calculateTotalTime(entry.startTime, entry.endTime);
             taskMap[taskName].totalHours += hours;
-            if (entry.type === 'Billable') {
-              taskMap[taskName].billableHours += hours;
-            } else {
-              taskMap[taskName].nonBillableHours += hours;
-            }
+            if (entry.type === 'Billable') taskMap[taskName].billableHours += hours;
+            else taskMap[taskName].nonBillableHours += hours;
             taskMap[taskName].entries.push({ ...entry, date: ts.date, employee: ts.employee });
-            
-            // Track users under task
-            if (!taskMap[taskName].users[ts.employee]) {
-              taskMap[taskName].users[ts.employee] = { hours: 0, entries: [] };
-            }
+            if (!taskMap[taskName].users[ts.employee]) taskMap[taskName].users[ts.employee] = { hours: 0, entries: [] };
             taskMap[taskName].users[ts.employee].hours += hours;
             taskMap[taskName].users[ts.employee].entries.push({ ...entry, date: ts.date, employee: ts.employee });
           });
@@ -10107,36 +10089,19 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     // Group by User
     const getByUserData = () => {
       const userMap = {};
-      monthTimesheets.forEach(ts => {
+      filteredTimesheets.forEach(ts => {
+        if (tsReportFilters.userSearch && !ts.employee.toLowerCase().includes(tsReportFilters.userSearch.toLowerCase())) return;
         if (!userMap[ts.employee]) {
-          userMap[ts.employee] = { 
-            name: ts.employee, 
-            totalHours: 0, 
-            billableHours: 0, 
-            nonBillableHours: 0,
-            presentDays: 0,
-            leaveDays: 0,
-            entries: [],
-            dates: {}
-          };
+          userMap[ts.employee] = { name: ts.employee, totalHours: 0, billableHours: 0, nonBillableHours: 0, presentDays: 0, leaveDays: 0, entries: [], dates: {} };
         }
-        
-        if (ts.status === 'Leave') {
-          userMap[ts.employee].leaveDays += 1;
-        } else {
+        if (ts.status === 'Leave') userMap[ts.employee].leaveDays += 1;
+        else {
           userMap[ts.employee].presentDays += 1;
           userMap[ts.employee].totalHours += ts.totalHours || 0;
           userMap[ts.employee].billableHours += ts.billableHours || 0;
           userMap[ts.employee].nonBillableHours += ts.nonBillableHours || 0;
         }
-        
-        if (ts.entries && ts.entries.length > 0) {
-          ts.entries.forEach(entry => {
-            userMap[ts.employee].entries.push({ ...entry, date: ts.date });
-          });
-        }
-        
-        // Track by date
+        if (ts.entries && ts.entries.length > 0) ts.entries.forEach(entry => userMap[ts.employee].entries.push({ ...entry, date: ts.date }));
         userMap[ts.employee].dates[ts.date] = ts;
       });
       return Object.values(userMap).sort((a, b) => b.totalHours - a.totalHours);
@@ -10146,174 +10111,208 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const byTaskData = getByTaskData();
     const byUserData = getByUserData();
 
-    // Total summary
     const totalSummary = {
-      totalHours: monthTimesheets.reduce((sum, ts) => sum + (ts.totalHours || 0), 0),
-      billableHours: monthTimesheets.reduce((sum, ts) => sum + (ts.billableHours || 0), 0),
-      nonBillableHours: monthTimesheets.reduce((sum, ts) => sum + (ts.nonBillableHours || 0), 0),
-      totalTimesheets: monthTimesheets.length
+      totalHours: filteredTimesheets.reduce((sum, ts) => sum + (ts.totalHours || 0), 0),
+      billableHours: filteredTimesheets.reduce((sum, ts) => sum + (ts.billableHours || 0), 0),
+      nonBillableHours: filteredTimesheets.reduce((sum, ts) => sum + (ts.nonBillableHours || 0), 0),
+      totalTimesheets: filteredTimesheets.length,
+      uniqueUsers: [...new Set(filteredTimesheets.map(ts => ts.employee))].length
     };
 
     const openDayWiseView = (type, name, entries) => {
-      // Group entries by date
       const byDate = {};
       entries.forEach(entry => {
-        if (!byDate[entry.date]) {
-          byDate[entry.date] = [];
-        }
+        if (!byDate[entry.date]) byDate[entry.date] = [];
         byDate[entry.date].push(entry);
       });
       setDayWiseView({ type, name, byDate });
     };
 
     return (
-      <div className="timesheet-reports-view">
-        <div className="view-header">
-          <div>
-            <h1><Clock size={28} /> Timesheet Reports</h1>
-            <p className="view-subtitle">
-              Analyze timesheet data by Client, Task, or User
-              {!isSuperadmin && (
-                <span style={{ 
-                  marginLeft: '12px', 
-                  padding: '4px 10px', 
-                  background: isReportingManager ? '#dbeafe' : '#fef3c7',
-                  color: isReportingManager ? '#1d4ed8' : '#92400e',
-                  borderRadius: '12px',
-                  fontSize: '11px',
-                  fontWeight: 600
-                }}>
-                  {isReportingManager 
-                    ? `Viewing: Your team (${allowedUsers.length} users)` 
-                    : 'Viewing: Your data only'}
-                </span>
-              )}
-              {isSuperadmin && (
-                <span style={{ 
-                  marginLeft: '12px', 
-                  padding: '4px 10px', 
-                  background: '#d1fae5',
-                  color: '#065f46',
-                  borderRadius: '12px',
-                  fontSize: '11px',
-                  fontWeight: 600
-                }}>
-                  Viewing: All Data (Superadmin)
-                </span>
-              )}
-            </p>
+      <div style={{padding: '0'}}>
+        {/* Header */}
+        <div style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '12px', padding: '20px 24px', marginBottom: '20px', color: '#fff'}}>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+            <div>
+              <h2 style={{margin: 0, fontSize: '20px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                <Clock size={24} /> Timesheet Reports
+              </h2>
+              <p style={{margin: '6px 0 0', fontSize: '13px', opacity: 0.9}}>
+                Analyze timesheet data by Client, Task, or User
+                {!isSuperadmin && (
+                  <span style={{marginLeft: '12px', padding: '3px 10px', background: 'rgba(255,255,255,0.2)', borderRadius: '12px', fontSize: '11px'}}>
+                    {isReportingManager ? `Your team (${allowedUsers.length} users)` : 'Your data only'}
+                  </span>
+                )}
+              </p>
+            </div>
+            <button 
+              onClick={() => setTsReportFilters({dateFrom: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0], dateTo: new Date().toISOString().split('T')[0], clientSearch: '', taskSearch: '', userSearch: ''})}
+              style={{padding: '8px 16px', background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500'}}
+            >
+              Reset Filters
+            </button>
           </div>
         </div>
 
-        {/* Filters and Tabs */}
-        <div className="ts-report-controls">
-          <div className="ts-report-tabs">
-            <button 
-              className={`ts-tab ${reportType === 'byClient' ? 'active' : ''}`}
-              onClick={() => { setReportType('byClient'); setExpandedItem(null); setDayWiseView(null); }}
-            >
-              <Briefcase size={16} /> By Client
-            </button>
-            <button 
-              className={`ts-tab ${reportType === 'byTask' ? 'active' : ''}`}
-              onClick={() => { setReportType('byTask'); setExpandedItem(null); setDayWiseView(null); }}
-            >
-              <FileText size={16} /> By Task
-            </button>
-            <button 
-              className={`ts-tab ${reportType === 'byUser' ? 'active' : ''}`}
-              onClick={() => { setReportType('byUser'); setExpandedItem(null); setDayWiseView(null); }}
-            >
-              <User size={16} /> By User
-            </button>
+        {/* Filters */}
+        <div style={{background: '#fff', borderRadius: '10px', padding: '16px 20px', marginBottom: '16px', border: '1px solid #e2e8f0', boxShadow: '0 2px 6px rgba(0,0,0,0.04)'}}>
+          <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', alignItems: 'end'}}>
+            <div>
+              <label style={{fontSize: '11px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px'}}>From Date</label>
+              <input 
+                type="date" 
+                value={tsReportFilters.dateFrom}
+                onChange={(e) => { setTsReportFilters({...tsReportFilters, dateFrom: e.target.value}); setExpandedItem(null); setDayWiseView(null); }}
+                style={{width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
+              />
+            </div>
+            <div>
+              <label style={{fontSize: '11px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px'}}>To Date</label>
+              <input 
+                type="date" 
+                value={tsReportFilters.dateTo}
+                onChange={(e) => { setTsReportFilters({...tsReportFilters, dateTo: e.target.value}); setExpandedItem(null); setDayWiseView(null); }}
+                style={{width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
+              />
+            </div>
+            <div>
+              <label style={{fontSize: '11px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px'}}>Client Search</label>
+              <input 
+                type="text" 
+                placeholder="Search client..."
+                value={tsReportFilters.clientSearch}
+                onChange={(e) => setTsReportFilters({...tsReportFilters, clientSearch: e.target.value})}
+                style={{width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
+              />
+            </div>
+            <div>
+              <label style={{fontSize: '11px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px'}}>Task Search</label>
+              <input 
+                type="text" 
+                placeholder="Search task..."
+                value={tsReportFilters.taskSearch}
+                onChange={(e) => setTsReportFilters({...tsReportFilters, taskSearch: e.target.value})}
+                style={{width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
+              />
+            </div>
+            <div>
+              <label style={{fontSize: '11px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px'}}>User Search</label>
+              <input 
+                type="text" 
+                placeholder="Search user..."
+                value={tsReportFilters.userSearch}
+                onChange={(e) => setTsReportFilters({...tsReportFilters, userSearch: e.target.value})}
+                style={{width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
+              />
+            </div>
           </div>
-          <div className="ts-report-filters">
-            <label>Month:</label>
-            <input 
-              type="month" 
-              value={selectedMonth} 
-              onChange={(e) => { setSelectedMonth(e.target.value); setExpandedItem(null); setDayWiseView(null); }}
-            />
-          </div>
+        </div>
+
+        {/* Report Tabs */}
+        <div style={{display: 'flex', gap: '8px', marginBottom: '16px'}}>
+          {[
+            { id: 'byClient', label: 'By Client', icon: <Briefcase size={14} /> },
+            { id: 'byTask', label: 'By Task', icon: <FileText size={14} /> },
+            { id: 'byUser', label: 'By User', icon: <User size={14} /> }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => { setReportType(tab.id); setExpandedItem(null); setDayWiseView(null); }}
+              style={{
+                padding: '10px 20px',
+                background: reportType === tab.id ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#fff',
+                color: reportType === tab.id ? '#fff' : '#374151',
+                border: reportType === tab.id ? 'none' : '1px solid #e2e8f0',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: reportType === tab.id ? '0 2px 8px rgba(16, 185, 129, 0.4)' : 'none',
+                transition: 'all 0.2s'
+              }}
+            >
+              {tab.icon} {tab.label}
+            </button>
+          ))}
         </div>
 
         {/* Summary Cards */}
-        <div className="ts-summary-cards">
-          <div className="ts-summary-card">
-            <div className="ts-summary-icon"><Clock size={24} /></div>
-            <div className="ts-summary-info">
-              <span className="ts-summary-value">{totalSummary.totalHours.toFixed(1)}</span>
-              <span className="ts-summary-label">Total Hours</span>
-            </div>
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '20px'}}>
+          <div style={{background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', borderRadius: '10px', padding: '16px', color: '#fff'}}>
+            <div style={{fontSize: '11px', opacity: 0.9, fontWeight: '500'}}>Total Hours</div>
+            <div style={{fontSize: '26px', fontWeight: '700', marginTop: '4px'}}>{totalSummary.totalHours.toFixed(1)}</div>
           </div>
-          <div className="ts-summary-card billable">
-            <div className="ts-summary-icon"><DollarSign size={24} /></div>
-            <div className="ts-summary-info">
-              <span className="ts-summary-value">{totalSummary.billableHours.toFixed(1)}</span>
-              <span className="ts-summary-label">Billable Hours</span>
-            </div>
+          <div style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '10px', padding: '16px', color: '#fff'}}>
+            <div style={{fontSize: '11px', opacity: 0.9, fontWeight: '500'}}>Billable Hours</div>
+            <div style={{fontSize: '26px', fontWeight: '700', marginTop: '4px'}}>{totalSummary.billableHours.toFixed(1)}</div>
           </div>
-          <div className="ts-summary-card nonbillable">
-            <div className="ts-summary-icon"><Activity size={24} /></div>
-            <div className="ts-summary-info">
-              <span className="ts-summary-value">{totalSummary.nonBillableHours.toFixed(1)}</span>
-              <span className="ts-summary-label">Non-Billable Hours</span>
-            </div>
+          <div style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', borderRadius: '10px', padding: '16px', color: '#fff'}}>
+            <div style={{fontSize: '11px', opacity: 0.9, fontWeight: '500'}}>Non-Billable</div>
+            <div style={{fontSize: '26px', fontWeight: '700', marginTop: '4px'}}>{totalSummary.nonBillableHours.toFixed(1)}</div>
           </div>
-          <div className="ts-summary-card entries">
-            <div className="ts-summary-icon"><Calendar size={24} /></div>
-            <div className="ts-summary-info">
-              <span className="ts-summary-value">{totalSummary.totalTimesheets}</span>
-              <span className="ts-summary-label">Timesheets</span>
-            </div>
+          <div style={{background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', borderRadius: '10px', padding: '16px', color: '#fff'}}>
+            <div style={{fontSize: '11px', opacity: 0.9, fontWeight: '500'}}>Timesheets</div>
+            <div style={{fontSize: '26px', fontWeight: '700', marginTop: '4px'}}>{totalSummary.totalTimesheets}</div>
+          </div>
+          <div style={{background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)', borderRadius: '10px', padding: '16px', color: '#fff'}}>
+            <div style={{fontSize: '11px', opacity: 0.9, fontWeight: '500'}}>Unique Users</div>
+            <div style={{fontSize: '26px', fontWeight: '700', marginTop: '4px'}}>{totalSummary.uniqueUsers}</div>
           </div>
         </div>
 
         {/* Day Wise View Modal */}
         {dayWiseView && (
-          <div className="daywise-modal-overlay" onClick={() => setDayWiseView(null)}>
-            <div className="daywise-modal" onClick={(e) => e.stopPropagation()}>
-              <div className="daywise-header">
-                <h3>
+          <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'}} onClick={() => setDayWiseView(null)}>
+            <div style={{background: '#fff', borderRadius: '12px', width: '100%', maxWidth: '900px', maxHeight: '85vh', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'}} onClick={(e) => e.stopPropagation()}>
+              <div style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', padding: '16px 20px', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}>
                   {dayWiseView.type === 'client' && <><Briefcase size={18} /> Client: {dayWiseView.name}</>}
                   {dayWiseView.type === 'task' && <><FileText size={18} /> Task: {dayWiseView.name}</>}
                   {dayWiseView.type === 'user' && <><User size={18} /> User: {dayWiseView.name}</>}
                 </h3>
-                <button onClick={() => setDayWiseView(null)}><X size={20} /></button>
+                <button onClick={() => setDayWiseView(null)} style={{background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '6px', padding: '6px 10px', color: '#fff', cursor: 'pointer'}}><X size={18} /></button>
               </div>
-              <div className="daywise-subtitle">Day-wise Timesheet Entries for {selectedMonth}</div>
-              <div className="daywise-content">
+              <div style={{padding: '16px 20px', fontSize: '12px', color: '#64748b', borderBottom: '1px solid #e2e8f0'}}>
+                Day-wise Timesheet Entries ({tsReportFilters.dateFrom} to {tsReportFilters.dateTo})
+              </div>
+              <div style={{maxHeight: '60vh', overflow: 'auto', padding: '16px 20px'}}>
                 {Object.keys(dayWiseView.byDate).sort().map(date => (
-                  <div key={date} className="daywise-date-group">
-                    <div className="daywise-date-header">
-                      <Calendar size={14} />
-                      <span>{date}</span>
-                      <span className="daywise-date-total">
+                  <div key={date} style={{marginBottom: '16px'}}>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: '#f0fdf4', borderRadius: '6px', marginBottom: '8px'}}>
+                      <Calendar size={14} style={{color: '#10b981'}} />
+                      <span style={{fontWeight: '600', color: '#166534'}}>{date}</span>
+                      <span style={{marginLeft: 'auto', fontSize: '12px', color: '#10b981', fontWeight: '600'}}>
                         {dayWiseView.byDate[date].reduce((sum, e) => sum + calculateTotalTime(e.startTime, e.endTime), 0).toFixed(2)} Hrs
                       </span>
                     </div>
-                    <table className="daywise-table">
+                    <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
                       <thead>
-                        <tr>
-                          <th>Time</th>
-                          <th>Hours</th>
-                          <th>Type</th>
-                          {dayWiseView.type !== 'client' && <th>Client</th>}
-                          {dayWiseView.type !== 'task' && <th>Task</th>}
-                          {dayWiseView.type !== 'user' && <th>Employee</th>}
-                          <th>Description</th>
+                        <tr style={{background: '#f8fafc'}}>
+                          <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#64748b', borderBottom: '1px solid #e2e8f0'}}>Time</th>
+                          <th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#64748b', borderBottom: '1px solid #e2e8f0'}}>Hours</th>
+                          <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#64748b', borderBottom: '1px solid #e2e8f0'}}>Type</th>
+                          {dayWiseView.type !== 'client' && <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#64748b', borderBottom: '1px solid #e2e8f0'}}>Client</th>}
+                          {dayWiseView.type !== 'task' && <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#64748b', borderBottom: '1px solid #e2e8f0'}}>Task</th>}
+                          {dayWiseView.type !== 'user' && <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#64748b', borderBottom: '1px solid #e2e8f0'}}>Employee</th>}
+                          <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#64748b', borderBottom: '1px solid #e2e8f0'}}>Description</th>
                         </tr>
                       </thead>
                       <tbody>
                         {dayWiseView.byDate[date].map((entry, idx) => (
-                          <tr key={idx}>
-                            <td>{entry.startTime} - {entry.endTime}</td>
-                            <td className="hours-cell">{calculateTotalTime(entry.startTime, entry.endTime).toFixed(2)}</td>
-                            <td><span className={`type-badge ${entry.type === 'Billable' ? 'billable' : 'nonbillable'}`}>{entry.type}</span></td>
-                            {dayWiseView.type !== 'client' && <td>{entry.client || '-'}</td>}
-                            {dayWiseView.type !== 'task' && <td>{entry.task || '-'}</td>}
-                            {dayWiseView.type !== 'user' && <td>{entry.employee}</td>}
-                            <td className="desc-cell">{entry.description || '-'}</td>
+                          <tr key={idx} style={{borderBottom: '1px solid #f1f5f9'}}>
+                            <td style={{padding: '8px 10px'}}>{entry.startTime} - {entry.endTime}</td>
+                            <td style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#10b981'}}>{calculateTotalTime(entry.startTime, entry.endTime).toFixed(2)}</td>
+                            <td style={{padding: '8px 10px', textAlign: 'center'}}>
+                              <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: '600', background: entry.type === 'Billable' ? '#dcfce7' : '#fef3c7', color: entry.type === 'Billable' ? '#166534' : '#92400e'}}>{entry.type}</span>
+                            </td>
+                            {dayWiseView.type !== 'client' && <td style={{padding: '8px 10px'}}>{entry.client || '-'}</td>}
+                            {dayWiseView.type !== 'task' && <td style={{padding: '8px 10px'}}>{entry.task || '-'}</td>}
+                            {dayWiseView.type !== 'user' && <td style={{padding: '8px 10px'}}>{entry.employee}</td>}
+                            <td style={{padding: '8px 10px', color: '#64748b', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{entry.description || '-'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -10326,67 +10325,59 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         )}
 
         {/* Report Content */}
-        <div className="ts-report-content">
+        <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
           {/* By Client View */}
           {reportType === 'byClient' && (
-            <div className="ts-report-section">
-              <h2><Briefcase size={20} /> Timesheet by Client</h2>
+            <>
+              <div style={{padding: '14px 20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#374151', display: 'flex', alignItems: 'center', gap: '8px'}}><Briefcase size={16} style={{color: '#10b981'}} /> Timesheet by Client ({byClientData.length})</h3>
+              </div>
               {byClientData.length === 0 ? (
-                <div className="no-data">No timesheet data for this month</div>
+                <div style={{padding: '60px', textAlign: 'center', color: '#64748b'}}>No timesheet data for selected period</div>
               ) : (
-                <div className="ts-report-table-container">
-                  <table className="ts-report-table">
+                <div style={{overflowX: 'auto'}}>
+                  <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                     <thead>
-                      <tr>
-                        <th></th>
-                        <th>Client Name</th>
-                        <th>Total Hours</th>
-                        <th>Billable</th>
-                        <th>Non-Billable</th>
-                        <th>Tasks</th>
-                        <th>Actions</th>
+                      <tr style={{background: '#f0fdf4'}}>
+                        <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '700', color: '#166534', width: '40px'}}></th>
+                        <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '700', color: '#166534'}}>Client Name</th>
+                        <th style={{padding: '12px 10px', textAlign: 'right', fontWeight: '700', color: '#166534'}}>Total Hours</th>
+                        <th style={{padding: '12px 10px', textAlign: 'right', fontWeight: '700', color: '#166534'}}>Billable</th>
+                        <th style={{padding: '12px 10px', textAlign: 'right', fontWeight: '700', color: '#166534'}}>Non-Billable</th>
+                        <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '700', color: '#166534'}}>Tasks</th>
+                        <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '700', color: '#166534'}}>Users</th>
+                        <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '700', color: '#166534'}}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {byClientData.map((client, idx) => (
                         <React.Fragment key={idx}>
-                          <tr className="ts-report-row" onClick={() => setExpandedItem(expandedItem === client.name ? null : client.name)}>
-                            <td className="expand-cell">
-                              {expandedItem === client.name ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                            </td>
-                            <td className="name-cell"><Briefcase size={14} /> {client.name}</td>
-                            <td className="hours-cell"><strong>{client.totalHours.toFixed(2)}</strong></td>
-                            <td className="hours-cell billable">{client.billableHours.toFixed(2)}</td>
-                            <td className="hours-cell nonbillable">{client.nonBillableHours.toFixed(2)}</td>
-                            <td>{Object.keys(client.tasks).length}</td>
-                            <td>
-                              <button className="btn-view-daywise" onClick={(e) => { e.stopPropagation(); openDayWiseView('client', client.name, client.entries); }}>
-                                <Eye size={14} /> Day View
-                              </button>
+                          <tr style={{borderBottom: '1px solid #e2e8f0', cursor: 'pointer', background: expandedItem === client.name ? '#f0fdf4' : idx % 2 === 0 ? '#fff' : '#fafafa'}} onClick={() => setExpandedItem(expandedItem === client.name ? null : client.name)}>
+                            <td style={{padding: '10px', textAlign: 'center', color: '#10b981'}}>{expandedItem === client.name ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</td>
+                            <td style={{padding: '10px', fontWeight: '500', color: '#374151'}}><Briefcase size={14} style={{marginRight: '6px', color: '#10b981'}} />{client.name}</td>
+                            <td style={{padding: '10px', textAlign: 'right', fontWeight: '700', color: '#3b82f6'}}>{client.totalHours.toFixed(2)}</td>
+                            <td style={{padding: '10px', textAlign: 'right', color: '#10b981', fontWeight: '600'}}>{client.billableHours.toFixed(2)}</td>
+                            <td style={{padding: '10px', textAlign: 'right', color: '#f59e0b', fontWeight: '600'}}>{client.nonBillableHours.toFixed(2)}</td>
+                            <td style={{padding: '10px', textAlign: 'center'}}><span style={{padding: '3px 10px', background: '#e0e7ff', color: '#4338ca', borderRadius: '10px', fontSize: '11px', fontWeight: '600'}}>{Object.keys(client.tasks).length}</span></td>
+                            <td style={{padding: '10px', textAlign: 'center'}}><span style={{padding: '3px 10px', background: '#fce7f3', color: '#be185d', borderRadius: '10px', fontSize: '11px', fontWeight: '600'}}>{Object.keys(client.users).length}</span></td>
+                            <td style={{padding: '10px', textAlign: 'center'}}>
+                              <button onClick={(e) => { e.stopPropagation(); openDayWiseView('client', client.name, client.entries); }} style={{padding: '5px 10px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}><Eye size={12} /> Day View</button>
                             </td>
                           </tr>
                           {expandedItem === client.name && (
-                            <tr className="expanded-row">
-                              <td colSpan="7">
-                                <div className="expanded-content">
-                                  <h4>Tasks under {client.name}</h4>
-                                  <table className="nested-table">
-                                    <thead>
-                                      <tr><th>Task</th><th>Hours</th><th>Entries</th></tr>
-                                    </thead>
-                                    <tbody>
-                                      {Object.entries(client.tasks).map(([taskName, taskData]) => (
-                                        <tr key={taskName}>
-                                          <td>{taskName}</td>
-                                          <td>{taskData.hours.toFixed(2)}</td>
-                                          <td>{taskData.entries.length}</td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </td>
-                            </tr>
+                            <tr><td colSpan="8" style={{padding: '0', background: '#f8fafc'}}>
+                              <div style={{padding: '16px 20px'}}>
+                                <h4 style={{margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#166534'}}>Tasks under {client.name}</h4>
+                                <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                                  <thead><tr style={{background: '#e2e8f0'}}><th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600'}}>Task</th><th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600'}}>Hours</th><th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600'}}>Entries</th></tr></thead>
+                                  <tbody>
+                                    {Object.entries(client.tasks).sort(([,a], [,b]) => b.hours - a.hours).map(([taskName, taskData]) => (
+                                      <tr key={taskName} style={{borderBottom: '1px solid #e2e8f0'}}><td style={{padding: '8px 10px'}}>{taskName}</td><td style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#10b981'}}>{taskData.hours.toFixed(2)}</td><td style={{padding: '8px 10px', textAlign: 'center'}}>{taskData.entries.length}</td></tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </td></tr>
                           )}
                         </React.Fragment>
                       ))}
@@ -10394,208 +10385,141 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   </table>
                 </div>
               )}
-            </div>
+            </>
           )}
 
           {/* By Task View */}
           {reportType === 'byTask' && (
-            <div className="ts-report-section">
-              <div className="ts-task-header">
-                <h2><FileText size={20} /> Timesheet by Task</h2>
-                <div className="ts-task-type-tabs">
-                  <button 
-                    className={`ts-type-tab ${taskTypeFilter === 'all' ? 'active' : ''}`}
-                    onClick={() => { setTaskTypeFilter('all'); setExpandedItem(null); }}
-                  >
-                    All Tasks
-                  </button>
-                  <button 
-                    className={`ts-type-tab billable ${taskTypeFilter === 'billable' ? 'active' : ''}`}
-                    onClick={() => { setTaskTypeFilter('billable'); setExpandedItem(null); }}
-                  >
-                    <DollarSign size={14} /> Billable
-                  </button>
-                  <button 
-                    className={`ts-type-tab nonbillable ${taskTypeFilter === 'nonBillable' ? 'active' : ''}`}
-                    onClick={() => { setTaskTypeFilter('nonBillable'); setExpandedItem(null); }}
-                  >
-                    <Activity size={14} /> Non-Billable
-                  </button>
+            <>
+              <div style={{padding: '14px 20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#374151', display: 'flex', alignItems: 'center', gap: '8px'}}><FileText size={16} style={{color: '#10b981'}} /> Timesheet by Task</h3>
+                <div style={{display: 'flex', gap: '6px'}}>
+                  {['all', 'billable', 'nonBillable'].map(ft => (
+                    <button key={ft} onClick={() => { setTaskTypeFilter(ft); setExpandedItem(null); }} style={{padding: '6px 12px', background: taskTypeFilter === ft ? '#10b981' : '#fff', color: taskTypeFilter === ft ? '#fff' : '#64748b', border: taskTypeFilter === ft ? 'none' : '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}>
+                      {ft === 'all' ? 'All' : ft === 'billable' ? '💰 Billable' : '⚡ Non-Billable'}
+                    </button>
+                  ))}
                 </div>
               </div>
               {(() => {
-                // Filter tasks based on taskTypeFilter
                 let filteredTasks = byTaskData;
-                if (taskTypeFilter === 'billable') {
-                  filteredTasks = byTaskData.filter(t => t.billableHours > 0).map(t => ({
-                    ...t,
-                    totalHours: t.billableHours,
-                    entries: t.entries.filter(e => e.type === 'Billable')
-                  }));
-                } else if (taskTypeFilter === 'nonBillable') {
-                  filteredTasks = byTaskData.filter(t => t.nonBillableHours > 0).map(t => ({
-                    ...t,
-                    totalHours: t.nonBillableHours,
-                    entries: t.entries.filter(e => e.type === 'Non-Billable')
-                  }));
-                }
-
-                const totalFilteredHours = filteredTasks.reduce((sum, t) => sum + t.totalHours, 0);
-
+                if (taskTypeFilter === 'billable') filteredTasks = byTaskData.filter(t => t.billableHours > 0).map(t => ({...t, totalHours: t.billableHours, entries: t.entries.filter(e => e.type === 'Billable')}));
+                else if (taskTypeFilter === 'nonBillable') filteredTasks = byTaskData.filter(t => t.nonBillableHours > 0).map(t => ({...t, totalHours: t.nonBillableHours, entries: t.entries.filter(e => e.type === 'Non-Billable')}));
                 return filteredTasks.length === 0 ? (
-                  <div className="no-data">
-                    No {taskTypeFilter === 'billable' ? 'billable' : taskTypeFilter === 'nonBillable' ? 'non-billable' : ''} timesheet data for this month
-                  </div>
+                  <div style={{padding: '60px', textAlign: 'center', color: '#64748b'}}>No {taskTypeFilter === 'billable' ? 'billable' : taskTypeFilter === 'nonBillable' ? 'non-billable' : ''} timesheet data</div>
                 ) : (
-                  <>
-                    <div className="ts-task-summary-bar">
-                      <span className="summary-item">
-                        <strong>{filteredTasks.length}</strong> {taskTypeFilter === 'all' ? 'Tasks' : taskTypeFilter === 'billable' ? 'Billable Tasks' : 'Non-Billable Tasks'}
-                      </span>
-                      <span className="summary-item">
-                        Total: <strong className={taskTypeFilter === 'billable' ? 'billable' : taskTypeFilter === 'nonBillable' ? 'nonbillable' : ''}>{totalFilteredHours.toFixed(2)} Hrs</strong>
-                      </span>
-                    </div>
-                    <div className="ts-report-table-container">
-                      <table className="ts-report-table">
-                        <thead>
-                          <tr>
-                            <th></th>
-                            <th>Task Name</th>
-                            <th>Client</th>
-                            <th>Total Hours</th>
-                            {taskTypeFilter === 'all' && <th>Billable</th>}
-                            {taskTypeFilter === 'all' && <th>Non-Billable</th>}
-                            <th>Users</th>
-                            <th>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredTasks.map((task, idx) => (
-                            <React.Fragment key={idx}>
-                              <tr className="ts-report-row" onClick={() => setExpandedItem(expandedItem === task.name ? null : task.name)}>
-                                <td className="expand-cell">
-                                  {expandedItem === task.name ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                                </td>
-                                <td className="name-cell">
-                                  <FileText size={14} /> {task.name}
-                                  {taskTypeFilter !== 'all' && (
-                                    <span className={`type-indicator ${taskTypeFilter}`}>
-                                      {taskTypeFilter === 'billable' ? '💵' : '📊'}
-                                    </span>
-                                  )}
-                                </td>
-                                <td>{task.client}</td>
-                                <td className={`hours-cell ${taskTypeFilter !== 'all' ? taskTypeFilter : ''}`}>
-                                  <strong>{task.totalHours.toFixed(2)}</strong>
-                                </td>
-                                {taskTypeFilter === 'all' && <td className="hours-cell billable">{task.billableHours.toFixed(2)}</td>}
-                                {taskTypeFilter === 'all' && <td className="hours-cell nonbillable">{task.nonBillableHours.toFixed(2)}</td>}
-                                <td>{Object.keys(task.users).length}</td>
-                                <td>
-                                  <button className="btn-view-daywise" onClick={(e) => { e.stopPropagation(); openDayWiseView('task', task.name, task.entries); }}>
-                                    <Eye size={14} /> Day View
-                                  </button>
-                                </td>
-                              </tr>
-                              {expandedItem === task.name && (
-                                <tr className="expanded-row">
-                                  <td colSpan={taskTypeFilter === 'all' ? 8 : 6}>
-                                    <div className="expanded-content">
-                                      <h4>Users working on {task.name}</h4>
-                                      <table className="nested-table">
-                                        <thead>
-                                          <tr><th>User</th><th>Hours</th><th>Entries</th></tr>
-                                        </thead>
-                                        <tbody>
-                                          {Object.entries(task.users).map(([userName, userData]) => (
-                                            <tr key={userName}>
-                                              <td><User size={12} /> {userName}</td>
-                                              <td>{userData.hours.toFixed(2)}</td>
-                                              <td>{userData.entries.length}</td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  </td>
-                                </tr>
-                              )}
-                            </React.Fragment>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </>
+                  <div style={{overflowX: 'auto'}}>
+                    <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+                      <thead>
+                        <tr style={{background: '#f0fdf4'}}>
+                          <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '700', color: '#166534', width: '40px'}}></th>
+                          <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '700', color: '#166534'}}>Task Name</th>
+                          <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '700', color: '#166534'}}>Client</th>
+                          <th style={{padding: '12px 10px', textAlign: 'right', fontWeight: '700', color: '#166534'}}>Total Hours</th>
+                          <th style={{padding: '12px 10px', textAlign: 'right', fontWeight: '700', color: '#166534'}}>Billable</th>
+                          <th style={{padding: '12px 10px', textAlign: 'right', fontWeight: '700', color: '#166534'}}>Non-Billable</th>
+                          <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '700', color: '#166534'}}>Users</th>
+                          <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '700', color: '#166534'}}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredTasks.map((task, idx) => (
+                          <React.Fragment key={idx}>
+                            <tr style={{borderBottom: '1px solid #e2e8f0', cursor: 'pointer', background: expandedItem === task.name ? '#f0fdf4' : idx % 2 === 0 ? '#fff' : '#fafafa'}} onClick={() => setExpandedItem(expandedItem === task.name ? null : task.name)}>
+                              <td style={{padding: '10px', textAlign: 'center', color: '#10b981'}}>{expandedItem === task.name ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</td>
+                              <td style={{padding: '10px', fontWeight: '500', color: '#374151'}}><FileText size={14} style={{marginRight: '6px', color: '#10b981'}} />{task.name}</td>
+                              <td style={{padding: '10px', color: '#64748b'}}>{task.client}</td>
+                              <td style={{padding: '10px', textAlign: 'right', fontWeight: '700', color: '#3b82f6'}}>{task.totalHours.toFixed(2)}</td>
+                              <td style={{padding: '10px', textAlign: 'right', color: '#10b981', fontWeight: '600'}}>{task.billableHours.toFixed(2)}</td>
+                              <td style={{padding: '10px', textAlign: 'right', color: '#f59e0b', fontWeight: '600'}}>{task.nonBillableHours.toFixed(2)}</td>
+                              <td style={{padding: '10px', textAlign: 'center'}}><span style={{padding: '3px 10px', background: '#fce7f3', color: '#be185d', borderRadius: '10px', fontSize: '11px', fontWeight: '600'}}>{Object.keys(task.users).length}</span></td>
+                              <td style={{padding: '10px', textAlign: 'center'}}>
+                                <button onClick={(e) => { e.stopPropagation(); openDayWiseView('task', task.name, task.entries); }} style={{padding: '5px 10px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}><Eye size={12} /> Day View</button>
+                              </td>
+                            </tr>
+                            {expandedItem === task.name && (
+                              <tr><td colSpan="8" style={{padding: '0', background: '#f8fafc'}}>
+                                <div style={{padding: '16px 20px'}}>
+                                  <h4 style={{margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#166534'}}>Users working on {task.name}</h4>
+                                  <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                                    <thead><tr style={{background: '#e2e8f0'}}><th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600'}}>User</th><th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600'}}>Hours</th><th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600'}}>Entries</th></tr></thead>
+                                    <tbody>
+                                      {Object.entries(task.users).sort(([,a], [,b]) => b.hours - a.hours).map(([userName, userData]) => (
+                                        <tr key={userName} style={{borderBottom: '1px solid #e2e8f0'}}><td style={{padding: '8px 10px'}}>{userName}</td><td style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600', color: '#10b981'}}>{userData.hours.toFixed(2)}</td><td style={{padding: '8px 10px', textAlign: 'center'}}>{userData.entries.length}</td></tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </td></tr>
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 );
               })()}
-            </div>
+            </>
           )}
 
           {/* By User View */}
           {reportType === 'byUser' && (
-            <div className="ts-report-section">
-              <h2><User size={20} /> Timesheet by User</h2>
+            <>
+              <div style={{padding: '14px 20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0'}}>
+                <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#374151', display: 'flex', alignItems: 'center', gap: '8px'}}><User size={16} style={{color: '#10b981'}} /> Timesheet by User ({byUserData.length})</h3>
+              </div>
               {byUserData.length === 0 ? (
-                <div className="no-data">No timesheet data for this month</div>
+                <div style={{padding: '60px', textAlign: 'center', color: '#64748b'}}>No timesheet data for selected period</div>
               ) : (
-                <div className="ts-report-table-container">
-                  <table className="ts-report-table">
+                <div style={{overflowX: 'auto'}}>
+                  <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                     <thead>
-                      <tr>
-                        <th></th>
-                        <th>User Name</th>
-                        <th>Total Hours</th>
-                        <th>Billable</th>
-                        <th>Non-Billable</th>
-                        <th>Present Days</th>
-                        <th>Leave Days</th>
-                        <th>Actions</th>
+                      <tr style={{background: '#f0fdf4'}}>
+                        <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '700', color: '#166534', width: '40px'}}></th>
+                        <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '700', color: '#166534'}}>User Name</th>
+                        <th style={{padding: '12px 10px', textAlign: 'right', fontWeight: '700', color: '#166534'}}>Total Hours</th>
+                        <th style={{padding: '12px 10px', textAlign: 'right', fontWeight: '700', color: '#166534'}}>Billable</th>
+                        <th style={{padding: '12px 10px', textAlign: 'right', fontWeight: '700', color: '#166534'}}>Non-Billable</th>
+                        <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '700', color: '#166534'}}>Present</th>
+                        <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '700', color: '#166534'}}>Leave</th>
+                        <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '700', color: '#166534'}}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {byUserData.map((user, idx) => (
                         <React.Fragment key={idx}>
-                          <tr className="ts-report-row" onClick={() => setExpandedItem(expandedItem === user.name ? null : user.name)}>
-                            <td className="expand-cell">
-                              {expandedItem === user.name ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                            </td>
-                            <td className="name-cell"><User size={14} /> {user.name}</td>
-                            <td className="hours-cell"><strong>{user.totalHours.toFixed(2)}</strong></td>
-                            <td className="hours-cell billable">{user.billableHours.toFixed(2)}</td>
-                            <td className="hours-cell nonbillable">{user.nonBillableHours.toFixed(2)}</td>
-                            <td className="present-cell">{user.presentDays}</td>
-                            <td className="leave-cell">{user.leaveDays}</td>
-                            <td>
-                              <button className="btn-view-daywise" onClick={(e) => { e.stopPropagation(); openDayWiseView('user', user.name, user.entries); }}>
-                                <Eye size={14} /> Day View
-                              </button>
+                          <tr style={{borderBottom: '1px solid #e2e8f0', cursor: 'pointer', background: expandedItem === user.name ? '#f0fdf4' : idx % 2 === 0 ? '#fff' : '#fafafa'}} onClick={() => setExpandedItem(expandedItem === user.name ? null : user.name)}>
+                            <td style={{padding: '10px', textAlign: 'center', color: '#10b981'}}>{expandedItem === user.name ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</td>
+                            <td style={{padding: '10px', fontWeight: '500', color: '#374151'}}><User size={14} style={{marginRight: '6px', color: '#10b981'}} />{user.name}</td>
+                            <td style={{padding: '10px', textAlign: 'right', fontWeight: '700', color: '#3b82f6'}}>{user.totalHours.toFixed(2)}</td>
+                            <td style={{padding: '10px', textAlign: 'right', color: '#10b981', fontWeight: '600'}}>{user.billableHours.toFixed(2)}</td>
+                            <td style={{padding: '10px', textAlign: 'right', color: '#f59e0b', fontWeight: '600'}}>{user.nonBillableHours.toFixed(2)}</td>
+                            <td style={{padding: '10px', textAlign: 'center'}}><span style={{padding: '3px 10px', background: '#dcfce7', color: '#166534', borderRadius: '10px', fontSize: '11px', fontWeight: '600'}}>{user.presentDays}</span></td>
+                            <td style={{padding: '10px', textAlign: 'center'}}><span style={{padding: '3px 10px', background: '#fee2e2', color: '#dc2626', borderRadius: '10px', fontSize: '11px', fontWeight: '600'}}>{user.leaveDays}</span></td>
+                            <td style={{padding: '10px', textAlign: 'center'}}>
+                              <button onClick={(e) => { e.stopPropagation(); openDayWiseView('user', user.name, user.entries); }} style={{padding: '5px 10px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: '500'}}><Eye size={12} /> Day View</button>
                             </td>
                           </tr>
                           {expandedItem === user.name && (
-                            <tr className="expanded-row">
-                              <td colSpan="8">
-                                <div className="expanded-content">
-                                  <h4>Timesheets for {user.name}</h4>
-                                  <table className="nested-table">
-                                    <thead>
-                                      <tr><th>Date</th><th>Status</th><th>Total</th><th>Billable</th><th>Non-Billable</th></tr>
-                                    </thead>
-                                    <tbody>
-                                      {Object.entries(user.dates).sort(([a], [b]) => a.localeCompare(b)).map(([date, ts]) => (
-                                        <tr key={date}>
-                                          <td>{date}</td>
-                                          <td><span className={`status-badge ${ts.status === 'Leave' ? 'leave' : 'present'}`}>{ts.status || ts.attendanceStatus}</span></td>
-                                          <td>{ts.totalHours?.toFixed(2) || '-'}</td>
-                                          <td>{ts.billableHours?.toFixed(2) || '-'}</td>
-                                          <td>{ts.nonBillableHours?.toFixed(2) || '-'}</td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </td>
-                            </tr>
+                            <tr><td colSpan="8" style={{padding: '0', background: '#f8fafc'}}>
+                              <div style={{padding: '16px 20px'}}>
+                                <h4 style={{margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#166534'}}>Timesheets for {user.name}</h4>
+                                <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                                  <thead><tr style={{background: '#e2e8f0'}}><th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600'}}>Date</th><th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600'}}>Status</th><th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600'}}>Total</th><th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600'}}>Billable</th><th style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600'}}>Non-Billable</th></tr></thead>
+                                  <tbody>
+                                    {Object.entries(user.dates).sort(([a], [b]) => a.localeCompare(b)).map(([date, ts]) => (
+                                      <tr key={date} style={{borderBottom: '1px solid #e2e8f0'}}>
+                                        <td style={{padding: '8px 10px'}}>{date}</td>
+                                        <td style={{padding: '8px 10px', textAlign: 'center'}}><span style={{padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: '600', background: ts.status === 'Leave' ? '#fee2e2' : '#dcfce7', color: ts.status === 'Leave' ? '#dc2626' : '#166534'}}>{ts.status || ts.attendanceStatus}</span></td>
+                                        <td style={{padding: '8px 10px', textAlign: 'right', fontWeight: '600'}}>{ts.totalHours?.toFixed(2) || '-'}</td>
+                                        <td style={{padding: '8px 10px', textAlign: 'right', color: '#10b981'}}>{ts.billableHours?.toFixed(2) || '-'}</td>
+                                        <td style={{padding: '8px 10px', textAlign: 'right', color: '#f59e0b'}}>{ts.nonBillableHours?.toFixed(2) || '-'}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </td></tr>
                           )}
                         </React.Fragment>
                       ))}
@@ -10603,13 +10527,12 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   </table>
                 </div>
               )}
-            </div>
+            </>
           )}
         </div>
       </div>
     );
   };
-
   // Reports View
   const ReportsView = () => {
     const [activeReportTab, setActiveReportTab] = useState('dashboard');
