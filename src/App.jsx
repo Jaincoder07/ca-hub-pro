@@ -198,7 +198,8 @@ const initialData = {
   recurringBatches: [], // {id, name, parentTask, childTask, clients: [], autoCreate: true/false, isActive: true}
   checklists: [], // {id, name, parentTask, childTask, items: [{id, text, required}], isActive: true}
   pendingApprovals: [], // {id, type, requestedBy, requestedByRole, approverId, approverRole, status, data, createdAt, updatedAt, comments, actionedBy}
-  dscRegister: [] // {id, clientId, clientName, holderName, pan, dscType, tokenSerialNo, issuingAuthority, issueDate, expiryDate, password, physicalLocation, status, remarks, createdAt, updatedAt}
+  dscRegister: [], // {id, clientId, clientName, holderName, pan, dscType, tokenSerialNo, issuingAuthority, issueDate, expiryDate, password, physicalLocation, status, remarks, createdAt, updatedAt}
+  expenses: [] // {id, clientName, parentTask, childTask, taskId, expenseType, amount, description, enteredBy, enteredAt, invoiceId (null if unbilled), invoiceDate, invoiceNumber, status: 'Unbilled'|'Billed'}
 };
 
 const PracticeManagementApp = () => {
@@ -227,7 +228,8 @@ const PracticeManagementApp = () => {
     dscRegister: [],
     packages: [],
     bulkBatches: [],
-    latestGeneratedInvoices: []
+    latestGeneratedInvoices: [],
+    expenses: []
   });
   
   const [currentUser, setCurrentUser] = useState(null);
@@ -287,6 +289,21 @@ const PracticeManagementApp = () => {
   const [selectedApproval, setSelectedApproval] = useState(null);
   const [showApprovalEditModal, setShowApprovalEditModal] = useState(false);
   const [approvalEditData, setApprovalEditData] = useState(null);
+  
+  // Expense Management State
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [expenseFormData, setExpenseFormData] = useState({
+    clientName: '',
+    parentTask: '',
+    childTask: '',
+    taskId: '',
+    expenseType: '',
+    amount: '',
+    expenseDate: new Date().toISOString().split('T')[0],
+    description: ''
+  });
+  const [showTaskCloseExpenseModal, setShowTaskCloseExpenseModal] = useState(false);
+  const [taskCloseExpenseData, setTaskCloseExpenseData] = useState(null);
   
   // Computed PARENT_CHILD_TASKS - uses stored config or defaults
   const PARENT_CHILD_TASKS = data.parentChildTasks || DEFAULT_PARENT_CHILD_TASKS;
@@ -763,7 +780,8 @@ const PracticeManagementApp = () => {
               pendingApprovals: firebaseData.pendingApprovals || prev.pendingApprovals || [],
               dscRegister: firebaseData.dscRegister || prev.dscRegister || [],
               bulkBatches: firebaseData.bulkBatches || prev.bulkBatches || [],
-              latestGeneratedInvoices: firebaseData.latestGeneratedInvoices || prev.latestGeneratedInvoices || []
+              latestGeneratedInvoices: firebaseData.latestGeneratedInvoices || prev.latestGeneratedInvoices || [],
+              expenses: firebaseData.expenses || prev.expenses || []
             }));
             
             // Find current user in staff
@@ -922,6 +940,7 @@ const PracticeManagementApp = () => {
         dscRegister: deepClean(dataObj.dscRegister) || [],
         bulkBatches: deepClean(dataObj.bulkBatches) || [],
         latestGeneratedInvoices: deepClean(dataObj.latestGeneratedInvoices) || [],
+        expenses: deepClean(dataObj.expenses) || [],
         lastUpdated: new Date().toISOString()
       };
       
@@ -2058,6 +2077,8 @@ const PracticeManagementApp = () => {
                 { id: 'dashboard', label: 'Dashboard', icon: <BarChart3 size={16} />, permKey: 'invoicing_dashboard' },
                 { id: 'billing', label: 'Billing', icon: <FileText size={16} />, permKey: 'invoicing_billing' },
                 { id: 'unbilledTasks', label: 'Unbilled Tasks', icon: <Clock size={16} />, permKey: 'invoicing_unbilledTasks' },
+                { id: 'expenses', label: 'Expenses', icon: <Receipt size={16} />, permKey: 'invoicing_expenses' },
+                { id: 'expenseReport', label: 'Expense Report', icon: <PieChart size={16} />, permKey: 'invoicing_expenseReport' },
                 { id: 'receipts', label: 'Receipts', icon: <DollarSign size={16} />, permKey: 'invoicing_receipts' },
                 { id: 'debtors', label: 'Debtors', icon: <Users size={16} />, permKey: 'invoicing_debtors' },
                 { id: 'organizations', label: 'Organization', icon: <Briefcase size={16} />, permKey: 'invoicing_organizations' }
@@ -2691,6 +2712,9 @@ const PracticeManagementApp = () => {
               <button className="btn-primary" onClick={() => setShowTimesheetModal(true)} style={{background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', display: 'flex', alignItems: 'center', gap: '8px'}}>
                 <Clock size={20} /> Timesheet
               </button>
+              <button className="btn-primary" onClick={() => setShowExpenseModal(true)} style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                <Receipt size={20} /> Add Expense
+              </button>
               <button className="btn-primary" onClick={() => setShowAddTaskModal(true)}>
                 <Plus size={20} /> Add New Task
               </button>
@@ -3143,6 +3167,9 @@ const PracticeManagementApp = () => {
               <button className="btn-primary" onClick={() => setShowTimesheetModal(true)} style={{background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', display: 'flex', alignItems: 'center', gap: '8px'}}>
                 <Clock size={20} /> Timesheet
               </button>
+              <button className="btn-primary" onClick={() => setShowExpenseModal(true)} style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                <Receipt size={20} /> Add Expense
+              </button>
               {hasActionPermission('canCreateTask') && (
                 <button className="btn-primary" onClick={() => setShowAddTaskModal(true)}>
                   <Plus size={20} /> Add Task
@@ -3558,6 +3585,9 @@ const PracticeManagementApp = () => {
             <button className="btn-primary" onClick={() => setShowTimesheetModal(true)} style={{background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', display: 'flex', alignItems: 'center', gap: '8px'}}>
               <Clock size={20} /> Fill Timesheet
             </button>
+            <button className="btn-primary" onClick={() => setShowExpenseModal(true)} style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', display: 'flex', alignItems: 'center', gap: '8px'}}>
+              <Receipt size={20} /> Add Expense
+            </button>
             {hasActionPermission('canCreateTask') && (
               <button className="btn-primary" onClick={() => setShowAddTaskModal(true)}>
                 <Plus size={20} /> Add Task
@@ -3892,8 +3922,27 @@ const PracticeManagementApp = () => {
       setActiveStatusFilter('');
     };
 
-    // Complete single task
+    // Complete single task - now shows expense modal first
     const completeTask = (taskId) => {
+      const task = data.tasks.find(t => t.id === taskId);
+      if (!task) return;
+      
+      // Get existing expenses for this task
+      const taskExpenses = (data.expenses || []).filter(e => 
+        e.taskId === taskId || 
+        (e.clientName === task.clientName && e.parentTask === task.parentTask && e.childTask === task.childTask)
+      );
+      
+      setTaskCloseExpenseData({
+        taskId,
+        task,
+        existingExpenses: taskExpenses
+      });
+      setShowTaskCloseExpenseModal(true);
+    };
+    
+    // Actually complete the task after expense check
+    const actuallyCompleteTask = (taskId) => {
       const today = new Date();
       const dateStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
       
@@ -7540,7 +7589,8 @@ const PracticeManagementApp = () => {
                     { id: 'contacts', label: 'Contacts', show: viewingClient.primaryOwner?.name || viewingClient.secondaryOwner?.name || viewingClient.accountant?.name },
                     { id: 'fees', label: 'Agreed Fees', show: viewingClient.agreedFees?.some(f => f.parentTask || f.fee) },
                     { id: 'kyc', label: 'KYC Documents' },
-                    { id: 'tasks', label: 'Tasks' }
+                    { id: 'tasks', label: 'Tasks' },
+                    { id: 'unbilledExpenses', label: 'Unbilled Expenses', show: (data.expenses || []).filter(e => e.clientName === viewingClient.name && e.status === 'Unbilled').length > 0 }
                   ].filter(tab => tab.show !== false).map(tab => (
                     <button
                       key={tab.id}
@@ -7916,6 +7966,63 @@ const PracticeManagementApp = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* Unbilled Expenses Tab */}
+                  {clientViewTab === 'unbilledExpenses' && (
+                    <div>
+                      <h3 style={{fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <span style={{width: '4px', height: '18px', background: '#f59e0b', borderRadius: '2px'}}></span>
+                        Unbilled Expenses
+                      </h3>
+                      {(() => {
+                        const clientExpenses = (data.expenses || []).filter(e => e.clientName === viewingClient.name && e.status === 'Unbilled');
+                        const totalUnbilled = clientExpenses.reduce((s, e) => s + (e.amount || 0), 0);
+                        
+                        return (
+                          <>
+                            <div style={{background: '#fef3c7', padding: '16px', borderRadius: '10px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                              <div>
+                                <div style={{fontSize: '12px', color: '#92400e', fontWeight: '600'}}>Total Unbilled Expenses</div>
+                                <div style={{fontSize: '24px', fontWeight: '700', color: '#92400e'}}>₹{totalUnbilled.toLocaleString()}</div>
+                              </div>
+                              <div style={{fontSize: '14px', color: '#92400e', fontWeight: '600'}}>{clientExpenses.length} items</div>
+                            </div>
+                            
+                            {clientExpenses.length === 0 ? (
+                              <div style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>No unbilled expenses</div>
+                            ) : (
+                              <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+                                <thead>
+                                  <tr style={{background: '#f8fafc'}}>
+                                    <th style={{padding: '10px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Date</th>
+                                    <th style={{padding: '10px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Task</th>
+                                    <th style={{padding: '10px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Type</th>
+                                    <th style={{padding: '10px', textAlign: 'right', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Amount</th>
+                                    <th style={{padding: '10px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Description</th>
+                                    <th style={{padding: '10px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e2e8f0'}}>Entered By</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {clientExpenses.map((exp, idx) => (
+                                    <tr key={exp.id} style={{borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#fafafa'}}>
+                                      <td style={{padding: '10px'}}>{exp.expenseDate}</td>
+                                      <td style={{padding: '10px'}}>{exp.parentTask} → {exp.childTask}</td>
+                                      <td style={{padding: '10px'}}>
+                                        <span style={{padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '600', background: '#fef3c7', color: '#92400e'}}>{exp.expenseType}</span>
+                                      </td>
+                                      <td style={{padding: '10px', textAlign: 'right', fontWeight: '600'}}>₹{(exp.amount || 0).toLocaleString()}</td>
+                                      <td style={{padding: '10px', color: '#64748b', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{exp.description || '-'}</td>
+                                      <td style={{padding: '10px'}}>{exp.enteredBy}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -8183,6 +8290,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           { id: 'invoicing_dashboard', label: 'Dashboard' },
           { id: 'invoicing_billing', label: 'Billing' },
           { id: 'invoicing_unbilledTasks', label: 'Unbilled Tasks' },
+          { id: 'invoicing_expenses', label: 'Expenses' },
+          { id: 'invoicing_expenseReport', label: 'Expense Report' },
           { id: 'invoicing_receipts', label: 'Receipts' },
           { id: 'invoicing_debtors', label: 'Debtors' },
           { id: 'invoicing_organizations', label: 'Organization' }
@@ -24960,6 +25069,510 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           </div>
         )}
 
+        {/* Expenses Tab */}
+        {activeTab === 'expenses' && (() => {
+          const [expenseFilters, setExpenseFilters] = React.useState({
+            clientName: '',
+            parentTask: '',
+            childTask: '',
+            expenseType: '',
+            status: 'Unbilled',
+            dateFrom: '',
+            dateTo: '',
+            enteredBy: ''
+          });
+          const [selectedExpenses, setSelectedExpenses] = React.useState([]);
+          const [showExpenseInvoiceModal, setShowExpenseInvoiceModal] = React.useState(false);
+          
+          const allExpenses = data.expenses || [];
+          
+          const filteredExpenses = allExpenses.filter(exp => {
+            if (expenseFilters.clientName && exp.clientName !== expenseFilters.clientName) return false;
+            if (expenseFilters.parentTask && exp.parentTask !== expenseFilters.parentTask) return false;
+            if (expenseFilters.childTask && exp.childTask !== expenseFilters.childTask) return false;
+            if (expenseFilters.expenseType && exp.expenseType !== expenseFilters.expenseType) return false;
+            if (expenseFilters.status && exp.status !== expenseFilters.status) return false;
+            if (expenseFilters.dateFrom && exp.expenseDate < expenseFilters.dateFrom) return false;
+            if (expenseFilters.dateTo && exp.expenseDate > expenseFilters.dateTo) return false;
+            if (expenseFilters.enteredBy && exp.enteredBy !== expenseFilters.enteredBy) return false;
+            return true;
+          });
+          
+          const totalUnbilled = filteredExpenses.filter(e => e.status === 'Unbilled').reduce((sum, e) => sum + (e.amount || 0), 0);
+          const totalBilled = filteredExpenses.filter(e => e.status === 'Billed').reduce((sum, e) => sum + (e.amount || 0), 0);
+          
+          const uniqueClients = [...new Set(allExpenses.map(e => e.clientName))].filter(Boolean);
+          const uniqueUsers = [...new Set(allExpenses.map(e => e.enteredBy))].filter(Boolean);
+          
+          const handleSelectExpense = (expId) => {
+            setSelectedExpenses(prev => 
+              prev.includes(expId) ? prev.filter(id => id !== expId) : [...prev, expId]
+            );
+          };
+          
+          const handleSelectAll = () => {
+            const unbilledIds = filteredExpenses.filter(e => e.status === 'Unbilled').map(e => e.id);
+            if (selectedExpenses.length === unbilledIds.length) {
+              setSelectedExpenses([]);
+            } else {
+              setSelectedExpenses(unbilledIds);
+            }
+          };
+          
+          const handleGenerateExpenseInvoice = () => {
+            if (selectedExpenses.length === 0) {
+              alert('Please select at least one expense to invoice');
+              return;
+            }
+            // Check all selected are same client
+            const selectedItems = allExpenses.filter(e => selectedExpenses.includes(e.id));
+            const clients = [...new Set(selectedItems.map(e => e.clientName))];
+            if (clients.length > 1) {
+              alert('All selected expenses must be for the same client');
+              return;
+            }
+            setShowExpenseInvoiceModal(true);
+          };
+          
+          return (
+            <div>
+              {/* Summary Cards */}
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '20px'}}>
+                <div style={{background: '#dbeafe', borderRadius: '12px', padding: '20px', border: '1px solid #93c5fd'}}>
+                  <div style={{fontSize: '12px', color: '#1e40af', fontWeight: '600'}}>Total Expenses</div>
+                  <div style={{fontSize: '28px', fontWeight: '700', color: '#1e40af'}}>{filteredExpenses.length}</div>
+                </div>
+                <div style={{background: '#fef3c7', borderRadius: '12px', padding: '20px', border: '1px solid #fcd34d'}}>
+                  <div style={{fontSize: '12px', color: '#92400e', fontWeight: '600'}}>Unbilled Amount</div>
+                  <div style={{fontSize: '28px', fontWeight: '700', color: '#92400e'}}>₹{totalUnbilled.toLocaleString()}</div>
+                </div>
+                <div style={{background: '#dcfce7', borderRadius: '12px', padding: '20px', border: '1px solid #86efac'}}>
+                  <div style={{fontSize: '12px', color: '#166534', fontWeight: '600'}}>Billed Amount</div>
+                  <div style={{fontSize: '28px', fontWeight: '700', color: '#166534'}}>₹{totalBilled.toLocaleString()}</div>
+                </div>
+                <div style={{background: '#ede9fe', borderRadius: '12px', padding: '20px', border: '1px solid #c4b5fd'}}>
+                  <div style={{fontSize: '12px', color: '#5b21b6', fontWeight: '600'}}>Selected</div>
+                  <div style={{fontSize: '28px', fontWeight: '700', color: '#5b21b6'}}>{selectedExpenses.length}</div>
+                </div>
+              </div>
+              
+              {/* Filters */}
+              <div style={{background: '#fff', borderRadius: '12px', padding: '16px 20px', marginBottom: '20px', border: '1px solid #e2e8f0'}}>
+                <div style={{display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '12px', alignItems: 'end'}}>
+                  <div>
+                    <label style={{fontSize: '11px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px'}}>Client</label>
+                    <select value={expenseFilters.clientName} onChange={(e) => setExpenseFilters({...expenseFilters, clientName: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}>
+                      <option value="">All Clients</option>
+                      {uniqueClients.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{fontSize: '11px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px'}}>Parent Task</label>
+                    <select value={expenseFilters.parentTask} onChange={(e) => setExpenseFilters({...expenseFilters, parentTask: e.target.value, childTask: ''})} style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}>
+                      <option value="">All</option>
+                      {Object.keys(PARENT_CHILD_TASKS).map(pt => <option key={pt} value={pt}>{pt}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{fontSize: '11px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px'}}>Expense Type</label>
+                    <select value={expenseFilters.expenseType} onChange={(e) => setExpenseFilters({...expenseFilters, expenseType: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}>
+                      <option value="">All Types</option>
+                      <option value="Travel & Conveyance">Travel & Conveyance</option>
+                      <option value="Income Tax">Income Tax</option>
+                      <option value="GST">GST</option>
+                      <option value="MCA">MCA</option>
+                      <option value="Other Fees/Tax">Other Fees/Tax</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{fontSize: '11px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px'}}>Status</label>
+                    <select value={expenseFilters.status} onChange={(e) => setExpenseFilters({...expenseFilters, status: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}>
+                      <option value="">All</option>
+                      <option value="Unbilled">Unbilled</option>
+                      <option value="Billed">Billed</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{fontSize: '11px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px'}}>From Date</label>
+                    <input type="date" value={expenseFilters.dateFrom} onChange={(e) => setExpenseFilters({...expenseFilters, dateFrom: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}} />
+                  </div>
+                  <div>
+                    <label style={{fontSize: '11px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px'}}>To Date</label>
+                    <input type="date" value={expenseFilters.dateTo} onChange={(e) => setExpenseFilters({...expenseFilters, dateTo: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}} />
+                  </div>
+                  <div>
+                    <label style={{fontSize: '11px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px'}}>Entered By</label>
+                    <select value={expenseFilters.enteredBy} onChange={(e) => setExpenseFilters({...expenseFilters, enteredBy: e.target.value})} style={{width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}>
+                      <option value="">All Users</option>
+                      {uniqueUsers.map(u => <option key={u} value={u}>{u}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <button onClick={() => setExpenseFilters({clientName: '', parentTask: '', childTask: '', expenseType: '', status: 'Unbilled', dateFrom: '', dateTo: '', enteredBy: ''})} style={{width: '100%', padding: '8px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', cursor: 'pointer'}}>Reset</button>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Action Bar */}
+              {selectedExpenses.length > 0 && (
+                <div style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', borderRadius: '10px', padding: '12px 20px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                  <span style={{color: '#fff', fontWeight: '600'}}>{selectedExpenses.length} expense(s) selected • ₹{allExpenses.filter(e => selectedExpenses.includes(e.id)).reduce((s, e) => s + e.amount, 0).toLocaleString()}</span>
+                  <button onClick={handleGenerateExpenseInvoice} style={{padding: '8px 20px', background: '#fff', color: '#d97706', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer'}}>Generate Invoice</button>
+                </div>
+              )}
+              
+              {/* Table */}
+              <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e2e8f0'}}>
+                <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+                  <thead>
+                    <tr style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'}}>
+                      <th style={{padding: '12px 10px', textAlign: 'center', color: '#fff', fontWeight: '600'}}>
+                        <input type="checkbox" checked={selectedExpenses.length > 0 && selectedExpenses.length === filteredExpenses.filter(e => e.status === 'Unbilled').length} onChange={handleSelectAll} />
+                      </th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>Date</th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>Client</th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>Task</th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>Type</th>
+                      <th style={{padding: '12px 10px', textAlign: 'right', color: '#fff', fontWeight: '600'}}>Amount</th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>Description</th>
+                      <th style={{padding: '12px 10px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>Entered By</th>
+                      <th style={{padding: '12px 10px', textAlign: 'center', color: '#fff', fontWeight: '600'}}>Status</th>
+                      <th style={{padding: '12px 10px', textAlign: 'center', color: '#fff', fontWeight: '600'}}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredExpenses.length === 0 ? (
+                      <tr><td colSpan="10" style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>No expenses found</td></tr>
+                    ) : filteredExpenses.map((exp, idx) => (
+                      <tr key={exp.id} style={{borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? '#fff' : '#fafafa'}}>
+                        <td style={{padding: '10px', textAlign: 'center'}}>
+                          {exp.status === 'Unbilled' && <input type="checkbox" checked={selectedExpenses.includes(exp.id)} onChange={() => handleSelectExpense(exp.id)} />}
+                        </td>
+                        <td style={{padding: '10px', color: '#374151'}}>{exp.expenseDate}</td>
+                        <td style={{padding: '10px', fontWeight: '600', color: '#374151'}}>{exp.clientName}</td>
+                        <td style={{padding: '10px', color: '#374151'}}>{exp.parentTask} → {exp.childTask}</td>
+                        <td style={{padding: '10px'}}>
+                          <span style={{padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', background: exp.expenseType === 'Travel & Conveyance' ? '#dbeafe' : exp.expenseType === 'Income Tax' ? '#dcfce7' : exp.expenseType === 'GST' ? '#fef3c7' : '#ede9fe', color: exp.expenseType === 'Travel & Conveyance' ? '#1e40af' : exp.expenseType === 'Income Tax' ? '#166534' : exp.expenseType === 'GST' ? '#92400e' : '#5b21b6'}}>{exp.expenseType}</span>
+                        </td>
+                        <td style={{padding: '10px', textAlign: 'right', fontWeight: '700', color: '#374151'}}>₹{(exp.amount || 0).toLocaleString()}</td>
+                        <td style={{padding: '10px', color: '#64748b', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={exp.description}>{exp.description || '-'}</td>
+                        <td style={{padding: '10px', color: '#374151'}}>{exp.enteredBy}</td>
+                        <td style={{padding: '10px', textAlign: 'center'}}>
+                          <span style={{padding: '3px 10px', borderRadius: '10px', fontSize: '11px', fontWeight: '600', background: exp.status === 'Billed' ? '#dcfce7' : '#fef3c7', color: exp.status === 'Billed' ? '#166534' : '#92400e'}}>{exp.status}</span>
+                        </td>
+                        <td style={{padding: '10px', textAlign: 'center'}}>
+                          {exp.status === 'Unbilled' && (
+                            <button onClick={() => {
+                              if (window.confirm('Delete this expense?')) {
+                                setData(prev => ({...prev, expenses: prev.expenses.filter(e => e.id !== exp.id)}));
+                              }
+                            }} style={{padding: '4px 8px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px'}}>Delete</button>
+                          )}
+                          {exp.status === 'Billed' && exp.invoiceNumber && (
+                            <span style={{fontSize: '10px', color: '#64748b'}}>{exp.invoiceNumber}</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* Expense Invoice Modal */}
+              {showExpenseInvoiceModal && (() => {
+                const selectedItems = allExpenses.filter(e => selectedExpenses.includes(e.id));
+                const clientName = selectedItems[0]?.clientName;
+                const client = data.clients.find(c => c.name === clientName);
+                const totalAmount = selectedItems.reduce((s, e) => s + e.amount, 0);
+                
+                const [selectedOrg, setSelectedOrg] = React.useState(data.organizations?.[0]?.id || '');
+                const [invoiceDate, setInvoiceDate] = React.useState(new Date().toISOString().split('T')[0]);
+                
+                const handleCreateExpenseInvoice = () => {
+                  if (!selectedOrg) {
+                    alert('Please select an organization');
+                    return;
+                  }
+                  const org = data.organizations.find(o => o.id === selectedOrg);
+                  const invoiceNumber = `${org?.invoicePrefix || 'INV'}-${String((data.invoices?.length || 0) + 1).padStart(4, '0')}`;
+                  
+                  const newInvoice = {
+                    id: `INV-${Date.now()}`,
+                    invoiceNumber,
+                    invoiceDate,
+                    clientId: client?.id,
+                    clientName,
+                    organizationId: selectedOrg,
+                    invoiceType: 'Expense Reimbursement',
+                    items: selectedItems.map(exp => ({
+                      description: `${exp.expenseType} - ${exp.parentTask} → ${exp.childTask}${exp.description ? ` (${exp.description})` : ''}`,
+                      amount: exp.amount,
+                      expenseId: exp.id
+                    })),
+                    subtotal: totalAmount,
+                    gstRate: 0,
+                    gstAmount: 0,
+                    totalAmount,
+                    status: 'Unpaid',
+                    createdAt: new Date().toISOString()
+                  };
+                  
+                  // Update expenses as billed
+                  const updatedExpenses = (data.expenses || []).map(exp => 
+                    selectedExpenses.includes(exp.id) 
+                      ? {...exp, status: 'Billed', invoiceId: newInvoice.id, invoiceDate, invoiceNumber}
+                      : exp
+                  );
+                  
+                  setData(prev => ({
+                    ...prev,
+                    invoices: [...(prev.invoices || []), newInvoice],
+                    expenses: updatedExpenses
+                  }));
+                  
+                  setShowExpenseInvoiceModal(false);
+                  setSelectedExpenses([]);
+                  alert(`✅ Invoice ${invoiceNumber} created for ₹${totalAmount.toLocaleString()}`);
+                };
+                
+                return (
+                  <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000}}>
+                    <div style={{background: '#fff', borderRadius: '16px', width: '90%', maxWidth: '700px', maxHeight: '85vh', overflow: 'hidden'}}>
+                      <div style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', padding: '20px 24px', color: '#fff'}}>
+                        <h3 style={{margin: 0, fontSize: '18px'}}>Generate Expense Invoice</h3>
+                        <p style={{margin: '4px 0 0', opacity: 0.9, fontSize: '13px'}}>Create invoice for expense reimbursement</p>
+                      </div>
+                      <div style={{padding: '24px', maxHeight: 'calc(85vh - 180px)', overflowY: 'auto'}}>
+                        <div style={{display: 'grid', gap: '16px'}}>
+                          <div style={{padding: '16px', background: '#f8fafc', borderRadius: '10px'}}>
+                            <div style={{fontWeight: '600', color: '#374151', marginBottom: '8px'}}>Client: {clientName}</div>
+                            <div style={{fontSize: '13px', color: '#64748b'}}>{client?.address || ''}</div>
+                          </div>
+                          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
+                            <div>
+                              <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', fontSize: '13px'}}>Organization *</label>
+                              <select value={selectedOrg} onChange={(e) => setSelectedOrg(e.target.value)} style={{width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px'}}>
+                                <option value="">Select Organization</option>
+                                {data.organizations?.map(org => <option key={org.id} value={org.id}>{org.name}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', fontSize: '13px'}}>Invoice Date *</label>
+                              <input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} style={{width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px'}} />
+                            </div>
+                          </div>
+                          <div>
+                            <label style={{display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '13px'}}>Selected Expenses ({selectedItems.length})</label>
+                            <div style={{border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden'}}>
+                              <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+                                <thead>
+                                  <tr style={{background: '#f8fafc'}}>
+                                    <th style={{padding: '10px', textAlign: 'left', borderBottom: '1px solid #e2e8f0'}}>Type</th>
+                                    <th style={{padding: '10px', textAlign: 'left', borderBottom: '1px solid #e2e8f0'}}>Task</th>
+                                    <th style={{padding: '10px', textAlign: 'right', borderBottom: '1px solid #e2e8f0'}}>Amount</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {selectedItems.map(exp => (
+                                    <tr key={exp.id} style={{borderBottom: '1px solid #f1f5f9'}}>
+                                      <td style={{padding: '10px'}}>{exp.expenseType}</td>
+                                      <td style={{padding: '10px'}}>{exp.parentTask} → {exp.childTask}</td>
+                                      <td style={{padding: '10px', textAlign: 'right', fontWeight: '600'}}>₹{exp.amount.toLocaleString()}</td>
+                                    </tr>
+                                  ))}
+                                  <tr style={{background: '#f0fdf4'}}>
+                                    <td colSpan="2" style={{padding: '12px', fontWeight: '700'}}>Total</td>
+                                    <td style={{padding: '12px', textAlign: 'right', fontWeight: '700', color: '#166534'}}>₹{totalAmount.toLocaleString()}</td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px'}}>
+                        <button onClick={() => setShowExpenseInvoiceModal(false)} style={{padding: '10px 20px', background: '#f1f5f9', border: 'none', borderRadius: '8px', cursor: 'pointer'}}>Cancel</button>
+                        <button onClick={handleCreateExpenseInvoice} style={{padding: '10px 24px', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer'}}>Create Invoice</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          );
+        })()}
+
+        {/* Expense Report Tab */}
+        {activeTab === 'expenseReport' && (() => {
+          const [reportType, setReportType] = React.useState('byClient');
+          const [reportFilters, setReportFilters] = React.useState({
+            dateFrom: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+            dateTo: new Date().toISOString().split('T')[0],
+            status: ''
+          });
+          
+          const allExpenses = data.expenses || [];
+          
+          const filteredExpenses = allExpenses.filter(exp => {
+            if (reportFilters.dateFrom && exp.expenseDate < reportFilters.dateFrom) return false;
+            if (reportFilters.dateTo && exp.expenseDate > reportFilters.dateTo) return false;
+            if (reportFilters.status && exp.status !== reportFilters.status) return false;
+            return true;
+          });
+          
+          const totalAmount = filteredExpenses.reduce((s, e) => s + (e.amount || 0), 0);
+          const unbilledAmount = filteredExpenses.filter(e => e.status === 'Unbilled').reduce((s, e) => s + (e.amount || 0), 0);
+          const billedAmount = filteredExpenses.filter(e => e.status === 'Billed').reduce((s, e) => s + (e.amount || 0), 0);
+          
+          // Group by Client
+          const byClient = {};
+          filteredExpenses.forEach(exp => {
+            if (!byClient[exp.clientName]) byClient[exp.clientName] = {total: 0, unbilled: 0, billed: 0, count: 0, expenses: []};
+            byClient[exp.clientName].total += exp.amount;
+            byClient[exp.clientName].count += 1;
+            if (exp.status === 'Unbilled') byClient[exp.clientName].unbilled += exp.amount;
+            else byClient[exp.clientName].billed += exp.amount;
+            byClient[exp.clientName].expenses.push(exp);
+          });
+          
+          // Group by Task
+          const byTask = {};
+          filteredExpenses.forEach(exp => {
+            const key = `${exp.parentTask} → ${exp.childTask}`;
+            if (!byTask[key]) byTask[key] = {total: 0, unbilled: 0, billed: 0, count: 0, expenses: []};
+            byTask[key].total += exp.amount;
+            byTask[key].count += 1;
+            if (exp.status === 'Unbilled') byTask[key].unbilled += exp.amount;
+            else byTask[key].billed += exp.amount;
+            byTask[key].expenses.push(exp);
+          });
+          
+          // Group by User
+          const byUser = {};
+          filteredExpenses.forEach(exp => {
+            if (!byUser[exp.enteredBy]) byUser[exp.enteredBy] = {total: 0, unbilled: 0, billed: 0, count: 0, expenses: []};
+            byUser[exp.enteredBy].total += exp.amount;
+            byUser[exp.enteredBy].count += 1;
+            if (exp.status === 'Unbilled') byUser[exp.enteredBy].unbilled += exp.amount;
+            else byUser[exp.enteredBy].billed += exp.amount;
+            byUser[exp.enteredBy].expenses.push(exp);
+          });
+          
+          const reportData = reportType === 'byClient' ? byClient : reportType === 'byTask' ? byTask : byUser;
+          
+          return (
+            <div>
+              {/* Summary Cards */}
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '20px'}}>
+                <div style={{background: '#dbeafe', borderRadius: '12px', padding: '20px', border: '1px solid #93c5fd'}}>
+                  <div style={{fontSize: '12px', color: '#1e40af', fontWeight: '600'}}>Total Expenses</div>
+                  <div style={{fontSize: '28px', fontWeight: '700', color: '#1e40af'}}>₹{totalAmount.toLocaleString()}</div>
+                </div>
+                <div style={{background: '#fef3c7', borderRadius: '12px', padding: '20px', border: '1px solid #fcd34d'}}>
+                  <div style={{fontSize: '12px', color: '#92400e', fontWeight: '600'}}>Unbilled</div>
+                  <div style={{fontSize: '28px', fontWeight: '700', color: '#92400e'}}>₹{unbilledAmount.toLocaleString()}</div>
+                </div>
+                <div style={{background: '#dcfce7', borderRadius: '12px', padding: '20px', border: '1px solid #86efac'}}>
+                  <div style={{fontSize: '12px', color: '#166534', fontWeight: '600'}}>Billed</div>
+                  <div style={{fontSize: '28px', fontWeight: '700', color: '#166534'}}>₹{billedAmount.toLocaleString()}</div>
+                </div>
+                <div style={{background: '#ede9fe', borderRadius: '12px', padding: '20px', border: '1px solid #c4b5fd'}}>
+                  <div style={{fontSize: '12px', color: '#5b21b6', fontWeight: '600'}}>Total Entries</div>
+                  <div style={{fontSize: '28px', fontWeight: '700', color: '#5b21b6'}}>{filteredExpenses.length}</div>
+                </div>
+              </div>
+              
+              {/* Filters */}
+              <div style={{background: '#fff', borderRadius: '12px', padding: '16px 20px', marginBottom: '20px', border: '1px solid #e2e8f0'}}>
+                <div style={{display: 'flex', gap: '16px', alignItems: 'end'}}>
+                  <div>
+                    <label style={{fontSize: '11px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px'}}>From Date</label>
+                    <input type="date" value={reportFilters.dateFrom} onChange={(e) => setReportFilters({...reportFilters, dateFrom: e.target.value})} style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}} />
+                  </div>
+                  <div>
+                    <label style={{fontSize: '11px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px'}}>To Date</label>
+                    <input type="date" value={reportFilters.dateTo} onChange={(e) => setReportFilters({...reportFilters, dateTo: e.target.value})} style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}} />
+                  </div>
+                  <div>
+                    <label style={{fontSize: '11px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px'}}>Status</label>
+                    <select value={reportFilters.status} onChange={(e) => setReportFilters({...reportFilters, status: e.target.value})} style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}>
+                      <option value="">All</option>
+                      <option value="Unbilled">Unbilled</option>
+                      <option value="Billed">Billed</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Report Type Tabs */}
+              <div style={{display: 'flex', gap: '8px', marginBottom: '16px'}}>
+                {[
+                  { id: 'byClient', label: 'By Client', icon: <Briefcase size={14} /> },
+                  { id: 'byTask', label: 'By Task', icon: <FileText size={14} /> },
+                  { id: 'byUser', label: 'By User', icon: <User size={14} /> }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setReportType(tab.id)}
+                    style={{
+                      padding: '10px 20px',
+                      background: reportType === tab.id ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : '#fff',
+                      color: reportType === tab.id ? '#fff' : '#374151',
+                      border: reportType === tab.id ? 'none' : '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    {tab.icon} {tab.label}
+                  </button>
+                ))}
+              </div>
+              
+              {/* Report Table */}
+              <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e2e8f0'}}>
+                <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+                  <thead>
+                    <tr style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'}}>
+                      <th style={{padding: '12px 14px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>{reportType === 'byClient' ? 'Client' : reportType === 'byTask' ? 'Task' : 'User'}</th>
+                      <th style={{padding: '12px 14px', textAlign: 'center', color: '#fff', fontWeight: '600'}}>Count</th>
+                      <th style={{padding: '12px 14px', textAlign: 'right', color: '#fff', fontWeight: '600'}}>Total</th>
+                      <th style={{padding: '12px 14px', textAlign: 'right', color: '#fff', fontWeight: '600'}}>Unbilled</th>
+                      <th style={{padding: '12px 14px', textAlign: 'right', color: '#fff', fontWeight: '600'}}>Billed</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.keys(reportData).length === 0 ? (
+                      <tr><td colSpan="5" style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>No expenses found</td></tr>
+                    ) : Object.entries(reportData).sort((a, b) => b[1].total - a[1].total).map(([name, data], idx) => (
+                      <tr key={name} style={{borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? '#fff' : '#fafafa'}}>
+                        <td style={{padding: '12px 14px', fontWeight: '600', color: '#374151'}}>{name}</td>
+                        <td style={{padding: '12px 14px', textAlign: 'center', color: '#374151'}}>{data.count}</td>
+                        <td style={{padding: '12px 14px', textAlign: 'right', fontWeight: '700', color: '#374151'}}>₹{data.total.toLocaleString()}</td>
+                        <td style={{padding: '12px 14px', textAlign: 'right', color: '#92400e', fontWeight: '600'}}>₹{data.unbilled.toLocaleString()}</td>
+                        <td style={{padding: '12px 14px', textAlign: 'right', color: '#166534', fontWeight: '600'}}>₹{data.billed.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{background: '#f8fafc', fontWeight: '700'}}>
+                      <td style={{padding: '12px 14px'}}>Total</td>
+                      <td style={{padding: '12px 14px', textAlign: 'center'}}>{filteredExpenses.length}</td>
+                      <td style={{padding: '12px 14px', textAlign: 'right'}}>₹{totalAmount.toLocaleString()}</td>
+                      <td style={{padding: '12px 14px', textAlign: 'right', color: '#92400e'}}>₹{unbilledAmount.toLocaleString()}</td>
+                      <td style={{padding: '12px 14px', textAlign: 'right', color: '#166534'}}>₹{billedAmount.toLocaleString()}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Receipts Tab */}
         {activeTab === 'receipts' && (
           <div>
@@ -30060,12 +30673,42 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         {/* Action Bar */}
         <div style={{ background: '#fff', borderRadius: '12px', padding: '16px 20px', marginBottom: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', flex: 1 }}>
+            {/* Client Code Filter */}
+            <input
+              type="text"
+              placeholder="Client Code..."
+              value={dscClientCodeFilter}
+              onChange={(e) => setDscClientCodeFilter(e.target.value)}
+              style={{
+                padding: '10px 12px',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                fontSize: '14px',
+                minWidth: '110px'
+              }}
+            />
+            
+            {/* Group Code Filter */}
+            <input
+              type="text"
+              placeholder="Group Code..."
+              value={dscGroupCodeFilter}
+              onChange={(e) => setDscGroupCodeFilter(e.target.value)}
+              style={{
+                padding: '10px 12px',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                fontSize: '14px',
+                minWidth: '110px'
+              }}
+            />
+            
             {/* Search */}
-            <div style={{ position: 'relative', minWidth: '250px' }}>
+            <div style={{ position: 'relative', minWidth: '220px' }}>
               <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
               <input
                 type="text"
-                placeholder="Type 2-3 letters to search client, holder..."
+                placeholder="Search client, holder..."
                 value={dscSearch}
                 onChange={(e) => setDscSearch(e.target.value)}
                 style={{
@@ -30090,7 +30733,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 fontSize: '14px',
                 background: '#fff',
                 cursor: 'pointer',
-                minWidth: '160px'
+                minWidth: '150px'
               }}
             >
               <option value="all">All Status</option>
@@ -30119,36 +30762,6 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               <option value="expiring-60">Due in 60 days</option>
               <option value="valid">Valid</option>
             </select>
-            
-            {/* Client Code Filter */}
-            <input
-              type="text"
-              placeholder="Client Code..."
-              value={dscClientCodeFilter}
-              onChange={(e) => setDscClientCodeFilter(e.target.value)}
-              style={{
-                padding: '10px 12px',
-                border: '1px solid #e2e8f0',
-                borderRadius: '8px',
-                fontSize: '14px',
-                minWidth: '120px'
-              }}
-            />
-            
-            {/* Group Code Filter */}
-            <input
-              type="text"
-              placeholder="Group Code..."
-              value={dscGroupCodeFilter}
-              onChange={(e) => setDscGroupCodeFilter(e.target.value)}
-              style={{
-                padding: '10px 12px',
-                border: '1px solid #e2e8f0',
-                borderRadius: '8px',
-                fontSize: '14px',
-                minWidth: '120px'
-              }}
-            />
           </div>
           
           {/* Add Button */}
@@ -32160,6 +32773,366 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         <TimesheetModal
           onClose={() => setShowTimesheetModal(false)}
         />
+      )}
+
+      {/* Expense Management Modal */}
+      {showExpenseModal && (
+        <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000}} onClick={() => setShowExpenseModal(false)}>
+          <div style={{background: '#fff', borderRadius: '16px', width: '95%', maxWidth: '600px', maxHeight: '90vh', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'}} onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', padding: '20px 24px', color: '#fff'}}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <h2 style={{margin: 0, fontSize: '20px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                  <Receipt size={24} /> Add Expense
+                </h2>
+                <button onClick={() => setShowExpenseModal(false)} style={{background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer', color: '#fff'}}>
+                  <X size={20} />
+                </button>
+              </div>
+              <p style={{margin: '8px 0 0', fontSize: '13px', opacity: 0.9}}>Record expenses paid on behalf of clients</p>
+            </div>
+            
+            {/* Form */}
+            <div style={{padding: '24px', maxHeight: 'calc(90vh - 180px)', overflowY: 'auto'}}>
+              <div style={{display: 'grid', gap: '16px'}}>
+                {/* Client Selection */}
+                <div>
+                  <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>Client *</label>
+                  <select
+                    value={expenseFormData.clientName}
+                    onChange={(e) => {
+                      setExpenseFormData({...expenseFormData, clientName: e.target.value, parentTask: '', childTask: '', taskId: ''});
+                    }}
+                    style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
+                  >
+                    <option value="">Select Client</option>
+                    {data.clients.filter(c => !c.deleted).map(c => (
+                      <option key={c.id} value={c.name}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* Parent Task */}
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
+                  <div>
+                    <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>Parent Task *</label>
+                    <select
+                      value={expenseFormData.parentTask}
+                      onChange={(e) => setExpenseFormData({...expenseFormData, parentTask: e.target.value, childTask: '', taskId: ''})}
+                      style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
+                      disabled={!expenseFormData.clientName}
+                    >
+                      <option value="">Select Parent Task</option>
+                      {Object.keys(PARENT_CHILD_TASKS).map(pt => (
+                        <option key={pt} value={pt}>{pt}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>Child Task *</label>
+                    <select
+                      value={expenseFormData.childTask}
+                      onChange={(e) => {
+                        const ct = e.target.value;
+                        // Find matching task
+                        const matchingTask = data.tasks.find(t => 
+                          t.clientName === expenseFormData.clientName && 
+                          t.parentTask === expenseFormData.parentTask && 
+                          t.childTask === ct && 
+                          !t.deleted
+                        );
+                        setExpenseFormData({...expenseFormData, childTask: ct, taskId: matchingTask?.id || ''});
+                      }}
+                      style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
+                      disabled={!expenseFormData.parentTask}
+                    >
+                      <option value="">Select Child Task</option>
+                      {expenseFormData.parentTask && PARENT_CHILD_TASKS[expenseFormData.parentTask]?.map(ct => (
+                        <option key={ct} value={ct}>{ct}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                
+                {/* Task Reference Info */}
+                {expenseFormData.taskId && (
+                  <div style={{padding: '10px 14px', background: '#dcfce7', borderRadius: '8px', fontSize: '12px', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                    <CheckCircle size={14} />
+                    Linked to Task: {data.tasks.find(t => t.id === expenseFormData.taskId)?.taskId || expenseFormData.taskId}
+                  </div>
+                )}
+                
+                {/* Expense Type and Amount */}
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
+                  <div>
+                    <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>Expense Type *</label>
+                    <select
+                      value={expenseFormData.expenseType}
+                      onChange={(e) => setExpenseFormData({...expenseFormData, expenseType: e.target.value})}
+                      style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
+                    >
+                      <option value="">Select Type</option>
+                      <option value="Travel & Conveyance">🚗 Travel & Conveyance</option>
+                      <option value="Income Tax">💰 Income Tax</option>
+                      <option value="GST">📋 GST</option>
+                      <option value="MCA">🏛️ MCA</option>
+                      <option value="Other Fees/Tax">📄 Other Fees/Tax</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>Amount (₹) *</label>
+                    <input
+                      type="number"
+                      value={expenseFormData.amount}
+                      onChange={(e) => setExpenseFormData({...expenseFormData, amount: e.target.value})}
+                      placeholder="Enter amount"
+                      style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
+                    />
+                  </div>
+                </div>
+                
+                {/* Date */}
+                <div>
+                  <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>Expense Date *</label>
+                  <input
+                    type="date"
+                    value={expenseFormData.expenseDate}
+                    onChange={(e) => setExpenseFormData({...expenseFormData, expenseDate: e.target.value})}
+                    style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px'}}
+                  />
+                </div>
+                
+                {/* Description */}
+                <div>
+                  <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>Description</label>
+                  <textarea
+                    value={expenseFormData.description}
+                    onChange={(e) => setExpenseFormData({...expenseFormData, description: e.target.value})}
+                    placeholder="Enter expense details, receipt reference, etc."
+                    rows={3}
+                    style={{width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', resize: 'vertical'}}
+                  />
+                </div>
+              </div>
+            </div>
+            
+            {/* Footer */}
+            <div style={{padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: '#f8fafc'}}>
+              <button
+                onClick={() => {
+                  setShowExpenseModal(false);
+                  setExpenseFormData({clientName: '', parentTask: '', childTask: '', taskId: '', expenseType: '', amount: '', expenseDate: new Date().toISOString().split('T')[0], description: ''});
+                }}
+                style={{padding: '10px 20px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer'}}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (!expenseFormData.clientName || !expenseFormData.parentTask || !expenseFormData.childTask || !expenseFormData.expenseType || !expenseFormData.amount) {
+                    alert('Please fill all required fields');
+                    return;
+                  }
+                  const newExpense = {
+                    id: `EXP-${Date.now()}`,
+                    clientName: expenseFormData.clientName,
+                    parentTask: expenseFormData.parentTask,
+                    childTask: expenseFormData.childTask,
+                    taskId: expenseFormData.taskId,
+                    expenseType: expenseFormData.expenseType,
+                    amount: parseFloat(expenseFormData.amount),
+                    expenseDate: expenseFormData.expenseDate,
+                    description: expenseFormData.description,
+                    enteredBy: currentUser?.name,
+                    enteredAt: new Date().toISOString(),
+                    invoiceId: null,
+                    invoiceDate: null,
+                    invoiceNumber: null,
+                    status: 'Unbilled'
+                  };
+                  setData(prev => ({...prev, expenses: [...(prev.expenses || []), newExpense]}));
+                  setShowExpenseModal(false);
+                  setExpenseFormData({clientName: '', parentTask: '', childTask: '', taskId: '', expenseType: '', amount: '', expenseDate: new Date().toISOString().split('T')[0], description: ''});
+                  alert('✅ Expense recorded successfully!');
+                }}
+                style={{padding: '10px 24px', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer'}}
+              >
+                Save Expense
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Task Close Expense Modal */}
+      {showTaskCloseExpenseModal && taskCloseExpenseData && (
+        <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2100}} onClick={() => setShowTaskCloseExpenseModal(false)}>
+          <div style={{background: '#fff', borderRadius: '16px', width: '95%', maxWidth: '700px', maxHeight: '90vh', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'}} onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', padding: '20px 24px', color: '#fff'}}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <h2 style={{margin: 0, fontSize: '18px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                  <CheckCircle size={22} /> Complete Task
+                </h2>
+                <button onClick={() => setShowTaskCloseExpenseModal(false)} style={{background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer', color: '#fff'}}>
+                  <X size={20} />
+                </button>
+              </div>
+              <p style={{margin: '8px 0 0', fontSize: '13px', opacity: 0.9}}>Review expenses before closing this task</p>
+            </div>
+            
+            {/* Task Info */}
+            <div style={{padding: '20px 24px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc'}}>
+              <div style={{fontWeight: '600', color: '#374151', marginBottom: '4px'}}>{taskCloseExpenseData.task?.clientName}</div>
+              <div style={{fontSize: '13px', color: '#64748b'}}>{taskCloseExpenseData.task?.parentTask} → {taskCloseExpenseData.task?.childTask}</div>
+              {taskCloseExpenseData.task?.taskId && <div style={{fontSize: '12px', color: '#10b981', marginTop: '4px'}}>Task ID: {taskCloseExpenseData.task?.taskId}</div>}
+            </div>
+            
+            {/* Existing Expenses */}
+            <div style={{padding: '20px 24px', maxHeight: 'calc(90vh - 350px)', overflowY: 'auto'}}>
+              <h4 style={{margin: '0 0 12px', fontSize: '14px', fontWeight: '600', color: '#374151'}}>Existing Expenses ({taskCloseExpenseData.existingExpenses?.length || 0})</h4>
+              
+              {taskCloseExpenseData.existingExpenses?.length > 0 ? (
+                <div style={{border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', marginBottom: '16px'}}>
+                  <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+                    <thead>
+                      <tr style={{background: '#f8fafc'}}>
+                        <th style={{padding: '10px', textAlign: 'left', fontWeight: '600'}}>Date</th>
+                        <th style={{padding: '10px', textAlign: 'left', fontWeight: '600'}}>Type</th>
+                        <th style={{padding: '10px', textAlign: 'right', fontWeight: '600'}}>Amount</th>
+                        <th style={{padding: '10px', textAlign: 'left', fontWeight: '600'}}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {taskCloseExpenseData.existingExpenses.map(exp => (
+                        <tr key={exp.id} style={{borderTop: '1px solid #f1f5f9'}}>
+                          <td style={{padding: '10px'}}>{exp.expenseDate}</td>
+                          <td style={{padding: '10px'}}>{exp.expenseType}</td>
+                          <td style={{padding: '10px', textAlign: 'right', fontWeight: '600'}}>₹{(exp.amount || 0).toLocaleString()}</td>
+                          <td style={{padding: '10px'}}>
+                            <span style={{padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '600', background: exp.status === 'Billed' ? '#dcfce7' : '#fef3c7', color: exp.status === 'Billed' ? '#166534' : '#92400e'}}>{exp.status}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr style={{background: '#f0fdf4'}}>
+                        <td colSpan="2" style={{padding: '10px', fontWeight: '600'}}>Total</td>
+                        <td style={{padding: '10px', textAlign: 'right', fontWeight: '700', color: '#166534'}}>₹{(taskCloseExpenseData.existingExpenses?.reduce((s, e) => s + (e.amount || 0), 0) || 0).toLocaleString()}</td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              ) : (
+                <div style={{padding: '20px', background: '#f8fafc', borderRadius: '8px', textAlign: 'center', color: '#64748b', marginBottom: '16px'}}>
+                  No expenses recorded for this task
+                </div>
+              )}
+              
+              {/* Quick Add Expense */}
+              <div style={{border: '1px solid #f59e0b', borderRadius: '10px', padding: '16px', background: '#fffbeb'}}>
+                <h4 style={{margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: '#92400e', display: 'flex', alignItems: 'center', gap: '6px'}}>
+                  <Receipt size={14} /> Add Expense Before Closing
+                </h4>
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px'}}>
+                  <select
+                    id="closeExpenseType"
+                    defaultValue=""
+                    style={{padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'}}
+                  >
+                    <option value="">Expense Type</option>
+                    <option value="Travel & Conveyance">Travel & Conveyance</option>
+                    <option value="Income Tax">Income Tax</option>
+                    <option value="GST">GST</option>
+                    <option value="MCA">MCA</option>
+                    <option value="Other Fees/Tax">Other Fees/Tax</option>
+                  </select>
+                  <input
+                    id="closeExpenseAmount"
+                    type="number"
+                    placeholder="Amount (₹)"
+                    style={{padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'}}
+                  />
+                  <input
+                    id="closeExpenseDesc"
+                    type="text"
+                    placeholder="Description"
+                    style={{padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'}}
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    const typeEl = document.getElementById('closeExpenseType');
+                    const amountEl = document.getElementById('closeExpenseAmount');
+                    const descEl = document.getElementById('closeExpenseDesc');
+                    
+                    if (!typeEl.value || !amountEl.value) {
+                      alert('Please select expense type and enter amount');
+                      return;
+                    }
+                    
+                    const newExpense = {
+                      id: `EXP-${Date.now()}`,
+                      clientName: taskCloseExpenseData.task?.clientName,
+                      parentTask: taskCloseExpenseData.task?.parentTask,
+                      childTask: taskCloseExpenseData.task?.childTask,
+                      taskId: taskCloseExpenseData.taskId,
+                      expenseType: typeEl.value,
+                      amount: parseFloat(amountEl.value),
+                      expenseDate: new Date().toISOString().split('T')[0],
+                      description: descEl.value,
+                      enteredBy: currentUser?.name,
+                      enteredAt: new Date().toISOString(),
+                      invoiceId: null,
+                      invoiceDate: null,
+                      invoiceNumber: null,
+                      status: 'Unbilled'
+                    };
+                    
+                    setData(prev => ({...prev, expenses: [...(prev.expenses || []), newExpense]}));
+                    
+                    // Update modal data to show new expense
+                    setTaskCloseExpenseData(prev => ({
+                      ...prev,
+                      existingExpenses: [...(prev.existingExpenses || []), newExpense]
+                    }));
+                    
+                    // Clear inputs
+                    typeEl.value = '';
+                    amountEl.value = '';
+                    descEl.value = '';
+                    
+                    alert('✅ Expense added!');
+                  }}
+                  style={{padding: '8px 16px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '12px'}}
+                >
+                  + Add Expense
+                </button>
+              </div>
+            </div>
+            
+            {/* Footer */}
+            <div style={{padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc'}}>
+              <button
+                onClick={() => setShowTaskCloseExpenseModal(false)}
+                style={{padding: '10px 20px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer'}}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  actuallyCompleteTask(taskCloseExpenseData.taskId);
+                  setShowTaskCloseExpenseModal(false);
+                  setTaskCloseExpenseData(null);
+                }}
+                style={{padding: '10px 24px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer'}}
+              >
+                ✓ Complete Task
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Task Configuration Modal */}
