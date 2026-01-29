@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Clock, FileText, DollarSign, Bell, Settings, Home, Briefcase, TrendingUp, Plus, Search, Filter, ChevronDown, ChevronRight, ChevronLeft, Mail, MessageSquare, Download, Upload, CheckCircle, AlertCircle, XCircle, Menu, X, MoreVertical, Edit, Trash2, Eye, User, LogOut, BarChart3, PieChart, Activity, Check, Building, Percent, Key, Shield, RefreshCw, IndianRupee } from 'lucide-react';
+import { Calendar, Users, Clock, FileText, DollarSign, Bell, Settings, Home, Briefcase, TrendingUp, Plus, Search, Filter, ChevronDown, ChevronRight, ChevronLeft, Mail, MessageSquare, Download, Upload, CheckCircle, AlertCircle, XCircle, Menu, X, MoreVertical, Edit, Trash2, Eye, User, LogOut, BarChart3, PieChart, Activity, Check, Building, Percent, Key, Shield, RefreshCw, IndianRupee, Receipt } from 'lucide-react';
 
 // Firebase imports
 import { initializeApp } from "firebase/app";
