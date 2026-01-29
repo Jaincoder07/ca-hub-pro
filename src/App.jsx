@@ -272,10 +272,10 @@ const PracticeManagementApp = () => {
     primaryDark: '#059669',
     primaryLight: '#dcfce7',
     primaryLighter: '#f0fdf4',
-    primaryText: themeColors.primaryText,
+    primaryText: '#065f46',
     gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
     gradientHover: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-    border: 'themeColors.border',
+    border: '#6ee7b7',
     shadow: 'rgba(16, 185, 129, 0.3)',
     // Secondary is Blue
     secondary: '#3b82f6',
@@ -1147,7 +1147,7 @@ const PracticeManagementApp = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #f0fdf4 0%, themeColors.primaryLighter 50%, themeColors.primaryLight 100%)',
+        background: `linear-gradient(135deg, ${themeColors.primaryLighter} 0%, ${themeColors.primaryLight} 50%, ${themeColors.primary} 100%)`,
         zIndex: 9999
       }}>
         <div style={{
@@ -31693,7 +31693,7 @@ ${invoiceHtml}
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #f0fdf4 0%, themeColors.primaryLighter 50%, themeColors.primaryLight 100%)',
+        background: `linear-gradient(135deg, ${themeColors.primaryLighter} 0%, ${themeColors.primaryLight} 50%, ${themeColors.primary} 100%)`,
         zIndex: 9999
       }}>
         <div style={{ textAlign: 'center' }}>
@@ -34926,35 +34926,17 @@ ${invoiceHtml}
           --theme-secondary-lighter: ${themeColors.secondaryLighter};
         }
         
-        @import url('https://fonts.googleapis.com/css2?family=Product+Sans:wght@400;500;700&display=swap');
-        @font-face {
-          font-family: 'Product Sans';
-          src: url('https://fonts.gstatic.com/s/productsans/v5/HYvgU2fE2nRJvZ5JFAumwegdm0LZdjqr5-oayXSOefg.woff2') format('woff2');
-          font-weight: 400;
-          font-style: normal;
-        }
-        @font-face {
-          font-family: 'Product Sans';
-          src: url('https://fonts.gstatic.com/s/productsans/v5/N0c8y_dasvG2CzM7DZIIz-H6MfT16ViRMK_Hqamd9Q.woff2') format('woff2');
-          font-weight: 500;
-          font-style: normal;
-        }
-        @font-face {
-          font-family: 'Product Sans';
-          src: url('https://fonts.gstatic.com/s/productsans/v5/pxiDy88Z97YVwY8_ioaLIBYd2P9R_5G.woff2') format('woff2');
-          font-weight: 700;
-          font-style: normal;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
         
         * {
           margin: 0;
           padding: 0;
           box-sizing: border-box;
-          font-family: 'Product Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+          font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
         }
 
         body {
-          font-family: 'Product Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           background: #f8fafc;
           color: #1a1a1a;
           font-size: 14px;
@@ -34966,7 +34948,7 @@ ${invoiceHtml}
           overflow: hidden;
           gap: 0;
           background: #f8fafc;
-          font-family: 'Product Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         
         /* Global table styling for better readability */
