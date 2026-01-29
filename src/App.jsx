@@ -21626,7 +21626,6 @@ ${invoiceHtml}
                                                     >
                                                       {task.remark ? '📝' : '+'}
                                                     </button>
-                                                    </button>
                                                   </td>
                                                   <td style={{padding: '12px', textAlign: 'right', color: '#64748b', fontSize: '11px'}}>₹{(task.agreedFees || 0).toLocaleString('en-IN')}</td>
                                                   <td style={{padding: '12px', textAlign: 'right'}}>
