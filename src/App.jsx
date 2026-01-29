@@ -197,7 +197,9 @@ const initialData = {
   parentChildTasks: { ...DEFAULT_PARENT_CHILD_TASKS }, // Configurable task categories
   recurringBatches: [], // {id, name, parentTask, childTask, clients: [], autoCreate: true/false, isActive: true}
   checklists: [], // {id, name, parentTask, childTask, items: [{id, text, required}], isActive: true}
-  pendingApprovals: [], // {id, type, requestedBy, requestedByRole, approverId, approverRole, status, data, createdAt, updatedAt, comments, actionedBy}
+  pendingApprovals: [], // Legacy - kept for compatibility
+  pendingTaskEntries: [], // New entries system - draft tasks awaiting approval
+  pendingClientEntries: [], // New entries system - draft clients awaiting approval
   dscRegister: [], // {id, clientId, clientName, holderName, pan, dscType, tokenSerialNo, issuingAuthority, issueDate, expiryDate, password, physicalLocation, status, remarks, createdAt, updatedAt}
   expenses: [] // {id, clientName, parentTask, childTask, taskId, expenseType, amount, description, enteredBy, enteredAt, invoiceId (null if unbilled), invoiceDate, invoiceNumber, status: 'Unbilled'|'Billed'}
 };
@@ -225,6 +227,8 @@ const PracticeManagementApp = () => {
     recurringBatches: [],
     checklists: [],
     pendingApprovals: [],
+    pendingTaskEntries: [],
+    pendingClientEntries: [],
     dscRegister: [],
     packages: [],
     bulkBatches: [],
@@ -339,13 +343,17 @@ const PracticeManagementApp = () => {
   });
   const [newChecklistItem, setNewChecklistItem] = useState('');
   
-  // Approval System State
-  const [showApprovalsView, setShowApprovalsView] = useState(false);
-  const [approvalsActiveTab, setApprovalsActiveTab] = useState('all'); // all, tasks, clients, billing, receipts, staff
-  const [showNotificationDropdown, setShowNotificationDropdown] = useState(false);
-  const [selectedApproval, setSelectedApproval] = useState(null);
-  const [showApprovalEditModal, setShowApprovalEditModal] = useState(false);
-  const [approvalEditData, setApprovalEditData] = useState(null);
+  // New Entries System State
+  const [newEntriesActiveTab, setNewEntriesActiveTab] = useState('tasks'); // 'tasks' or 'clients'
+  const [pendingTaskEntries, setPendingTaskEntries] = useState([]); // Draft task entries
+  const [pendingClientEntries, setPendingClientEntries] = useState([]); // Draft client entries
+  const [selectedEntries, setSelectedEntries] = useState([]); // For bulk actions
+  const [newEntryFilters, setNewEntryFilters] = useState({
+    status: 'all', // all, draft, approved
+    createdBy: 'all',
+    dateFrom: '',
+    dateTo: ''
+  });
   
   // Expense Management State
   const [showExpenseModal, setShowExpenseModal] = useState(false);
@@ -2442,33 +2450,15 @@ const PracticeManagementApp = () => {
         </button>
         )}
         
-        {/* Approvals Menu - Show for RM and above, or anyone with pending requests */}
-        {(isSuperAdmin || currentUser?.role === 'Reporting Manager' || getMyApprovalRequests().length > 0) && (
+        {/* New Entries Menu - Show for all users */}
         <button 
-          className={currentView === 'approvals' ? 'active' : ''} 
-          onClick={() => setCurrentView('approvals')}
+          className={currentView === 'newEntries' ? 'active' : ''} 
+          onClick={() => setCurrentView('newEntries')}
           style={{position: 'relative'}}
         >
-          <CheckCircle size={20} />
-          <span>Approvals</span>
-          {getPendingApprovalsForUser().length > 0 && (
-            <span style={{
-              position: 'absolute',
-              right: '12px',
-              background: '#ef4444',
-              color: '#fff',
-              borderRadius: '10px',
-              padding: '2px 6px',
-              fontSize: '12px',
-              fontWeight: '700',
-              minWidth: '18px',
-              textAlign: 'center'
-            }}>
-              {getPendingApprovalsForUser().length}
-            </span>
-          )}
+          <Plus size={20} />
+          <span>New Entries</span>
         </button>
-        )}
       </nav>
 
       <div className="sidebar-footer">
@@ -28817,916 +28807,844 @@ ${invoiceHtml}
     );
   };
 
-  // ========== APPROVALS VIEW ==========
-  const ApprovalsView = () => {
-    const [activeTab, setActiveTab] = useState('pending');
-    const [selectedApprovalType, setSelectedApprovalType] = useState('all');
-    const [viewingApproval, setViewingApproval] = useState(null);
-    const [editingApproval, setEditingApproval] = useState(null);
-    const [editedData, setEditedData] = useState(null);
-    const [rejectComment, setRejectComment] = useState('');
-    const [searchTerm, setSearchTerm] = useState('');
+
+  // ========== NEW ENTRIES VIEW ==========
+  const NewEntriesView = () => {
+    const [activeTab, setActiveTab] = useState('tasks'); // 'tasks' or 'clients'
+    const [taskEntries, setTaskEntries] = useState([]);
+    const [clientEntries, setClientEntries] = useState([]);
+    const [selectedItems, setSelectedItems] = useState([]);
+    const [editingEntry, setEditingEntry] = useState(null);
+    const [filters, setFilters] = useState({
+      status: 'all',
+      createdBy: 'all',
+      search: ''
+    });
     
     const userRole = getCurrentUserRole();
     const isSuperAdmin = currentUser?.isSuperAdmin || userRole === 'Superadmin';
     const isRM = userRole === 'Reporting Manager';
+    const canApprove = isSuperAdmin || isRM;
     
-    const pendingApprovals = getPendingApprovalsForUser();
-    const myRequests = getMyApprovalRequests();
-    const allApprovals = data.pendingApprovals || [];
+    // Initialize entries from data
+    const allTaskEntries = data.pendingTaskEntries || [];
+    const allClientEntries = data.pendingClientEntries || [];
     
-    // Filter by type
-    const filterByType = (approvals) => {
-      if (selectedApprovalType === 'all') return approvals;
-      return approvals.filter(a => {
-        if (selectedApprovalType === 'tasks') return a.type === 'task' || a.type === 'bulk_task';
-        if (selectedApprovalType === 'clients') return a.type === 'client_add' || a.type === 'client_disable';
-        if (selectedApprovalType === 'invoices') return (a.type === 'invoice' || a.type === 'invoice-create' || a.type === 'invoice-edit' || a.type === 'invoice-delete') && !a.data?.isBulkInvoice;
-        if (selectedApprovalType === 'bulk-invoices') return a.data?.isBulkInvoice;
-        if (selectedApprovalType === 'receipts') return a.type === 'receipt' || a.type === 'receipt-create' || a.type === 'receipt-edit' || a.type === 'receipt-delete';
-        if (selectedApprovalType === 'staff') return a.type === 'staff_add' || a.type === 'staff_disable';
-        return true;
-      });
-    };
-    
-    // Filter by search
-    const filterBySearch = (approvals) => {
-      if (!searchTerm) return approvals;
-      const term = searchTerm.toLowerCase();
-      return approvals.filter(a => {
-        const d = a.data || {};
-        return (
-          a.description?.toLowerCase().includes(term) ||
-          a.requestedBy?.toLowerCase().includes(term) ||
-          d.clientName?.toLowerCase().includes(term) ||
-          d.invoiceNo?.toLowerCase().includes(term) ||
-          d.receiptNo?.toLowerCase().includes(term)
-        );
-      });
-    };
-    
-    const getTypeLabel = (type, data) => {
-      if (data?.isBulkInvoice) return '📦 Bulk Invoice';
-      const labels = {
-        'task': '📋 Task', 'bulk_task': '📋 Bulk Tasks',
-        'client_add': '👤 New Client', 'client_disable': '🚫 Disable Client',
-        'invoice': '📄 New Invoice', 'invoice-create': '📄 New Invoice',
-        'invoice-edit': '✏️ Edit Invoice', 'invoice-delete': '🗑️ Delete Invoice',
-        'receipt': '💰 New Receipt', 'receipt-create': '💰 New Receipt',
-        'receipt-edit': '✏️ Edit Receipt', 'receipt-delete': '🗑️ Delete Receipt',
-        'staff_add': '👥 New Staff', 'staff_disable': '🚫 Disable Staff'
-      };
-      return labels[type] || type;
-    };
-    
-    const getStatusBadge = (status) => {
-      const styles = {
-        pending: { bg: '#fef3c7', color: '#d97706', text: '⏳ Pending' },
-        approved: { bg: themeColors.primaryLight, color: themeColors.primary, text: '✓ Approved' },
-        rejected: { bg: '#fef2f2', color: '#ef4444', text: '✗ Rejected' }
-      };
-      const s = styles[status] || styles.pending;
-      return <span style={{padding: '4px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: '600', background: s.bg, color: s.color}}>{s.text}</span>;
-    };
-    
-    // Get original invoice for edit comparison
-    const getOriginalInvoice = (invoiceId) => {
-      return (data.invoices || []).find(inv => inv.id === invoiceId);
-    };
-    
-    // Render complete invoice details
-    const renderInvoiceDetails = (inv, title, color) => (
-      <div style={{background: '#fff', borderRadius: '12px', border: `2px solid ${color}`, overflow: 'hidden'}}>
-        <div style={{background: color, padding: '12px 16px', color: '#fff', fontWeight: '700', fontSize: '14px'}}>{title}</div>
-        <div style={{padding: '16px'}}>
-          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px'}}>
-            <div style={{padding: '12px', background: '#f8fafc', borderRadius: '8px'}}>
-              <div style={{fontSize: '12px', color: '#64748b', marginBottom: '2px'}}>Invoice Number</div>
-              <div style={{fontSize: '16px', fontWeight: '700', color: color}}>{inv.invoiceNo}</div>
-            </div>
-            <div style={{padding: '12px', background: '#f8fafc', borderRadius: '8px'}}>
-              <div style={{fontSize: '12px', color: '#64748b', marginBottom: '2px'}}>Invoice Date</div>
-              <div style={{fontSize: '14px', fontWeight: '600'}}>{inv.invoiceDate}</div>
-            </div>
-          </div>
-          
-          <table style={{width: '100%', fontSize: '12px', borderCollapse: 'collapse'}}>
-            <tbody>
-              <tr style={{borderBottom: '1px solid #e5e7eb'}}>
-                <td style={{padding: '8px 0', color: '#64748b', width: '35%'}}>Client Name</td>
-                <td style={{padding: '8px 0', fontWeight: '500'}}>{inv.clientName}</td>
-              </tr>
-              <tr style={{borderBottom: '1px solid #e5e7eb'}}>
-                <td style={{padding: '8px 0', color: '#64748b'}}>Client Code</td>
-                <td style={{padding: '8px 0', fontWeight: '500', fontFamily: 'monospace', color: '#4f46e5'}}>{inv.clientCode || inv.fileNo || '-'}</td>
-              </tr>
-              <tr style={{borderBottom: '1px solid #e5e7eb'}}>
-                <td style={{padding: '8px 0', color: '#64748b'}}>Client Address</td>
-                <td style={{padding: '8px 0'}}>{inv.clientAddress || '-'}</td>
-              </tr>
-              <tr style={{borderBottom: '1px solid #e5e7eb'}}>
-                <td style={{padding: '8px 0', color: '#64748b'}}>Client GSTIN</td>
-                <td style={{padding: '8px 0', fontFamily: 'monospace'}}>{inv.clientGstin || '-'}</td>
-              </tr>
-              <tr style={{borderBottom: '1px solid #e5e7eb'}}>
-                <td style={{padding: '8px 0', color: '#64748b'}}>Organization</td>
-                <td style={{padding: '8px 0', fontWeight: '500'}}>{inv.orgName}</td>
-              </tr>
-              <tr style={{borderBottom: '1px solid #e5e7eb'}}>
-                <td style={{padding: '8px 0', color: '#64748b'}}>Service Description</td>
-                <td style={{padding: '8px 0'}}>{inv.serviceDescription || inv.narration || '-'}</td>
-              </tr>
-              <tr style={{borderBottom: '1px solid #e5e7eb'}}>
-                <td style={{padding: '8px 0', color: '#64748b'}}>Financial Year</td>
-                <td style={{padding: '8px 0'}}>{inv.financialYear || '-'}</td>
-              </tr>
-              <tr style={{borderBottom: '1px solid #e5e7eb'}}>
-                <td style={{padding: '8px 0', color: '#64748b'}}>Period</td>
-                <td style={{padding: '8px 0'}}>{inv.period || '-'}</td>
-              </tr>
-            </tbody>
-          </table>
-          
-          <div style={{marginTop: '16px', padding: '16px', background: themeColors.primaryLighter, borderRadius: '8px', border: `1px solid ${themeColors.border}`}}>
-            <div style={{fontSize: '13px', fontWeight: '600', color: themeColors.primaryText, marginBottom: '12px'}}>AMOUNT BREAKDOWN</div>
-            <table style={{width: '100%', fontSize: '12px'}}>
-              <tbody>
-                <tr><td style={{padding: '4px 0', color: '#64748b'}}>Gross Amount</td><td style={{textAlign: 'right', fontWeight: '500'}}>₹{(inv.amount || 0).toLocaleString('en-IN')}</td></tr>
-                {(inv.discount || 0) > 0 && <tr><td style={{padding: '4px 0', color: '#64748b'}}>Discount</td><td style={{textAlign: 'right', color: '#dc2626'}}>- ₹{(inv.discount || 0).toLocaleString('en-IN')}</td></tr>}
-                <tr><td style={{padding: '4px 0', color: '#64748b'}}>Net Amount</td><td style={{textAlign: 'right', fontWeight: '500'}}>₹{(inv.netAmount || 0).toLocaleString('en-IN')}</td></tr>
-                {(inv.cgst || 0) > 0 && <tr><td style={{padding: '4px 0', color: '#64748b'}}>CGST (9%)</td><td style={{textAlign: 'right'}}>₹{(inv.cgst || 0).toLocaleString('en-IN')}</td></tr>}
-                {(inv.sgst || 0) > 0 && <tr><td style={{padding: '4px 0', color: '#64748b'}}>SGST (9%)</td><td style={{textAlign: 'right'}}>₹{(inv.sgst || 0).toLocaleString('en-IN')}</td></tr>}
-                {(inv.igst || 0) > 0 && <tr><td style={{padding: '4px 0', color: '#64748b'}}>IGST (18%)</td><td style={{textAlign: 'right'}}>₹{(inv.igst || 0).toLocaleString('en-IN')}</td></tr>}
-                <tr style={{borderTop: `2px solid ${themeColors.primary}`}}>
-                  <td style={{padding: '10px 0', fontWeight: '700', color: themeColors.primaryText, fontSize: '14px'}}>Total Amount</td>
-                  <td style={{textAlign: 'right', fontWeight: '700', color: themeColors.primaryText, fontSize: '18px'}}>₹{(inv.totalAmount || 0).toLocaleString('en-IN')}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    );
-    
-    // Render receipt details
-    const renderReceiptDetails = (rec, title, color) => (
-      <div style={{background: '#fff', borderRadius: '12px', border: `2px solid ${color}`, overflow: 'hidden'}}>
-        <div style={{background: color, padding: '12px 16px', color: '#fff', fontWeight: '700', fontSize: '14px'}}>{title}</div>
-        <div style={{padding: '16px'}}>
-          <table style={{width: '100%', fontSize: '12px', borderCollapse: 'collapse'}}>
-            <tbody>
-              <tr style={{borderBottom: '1px solid #e5e7eb'}}><td style={{padding: '8px 0', color: '#64748b', width: '35%'}}>Receipt No</td><td style={{padding: '8px 0', fontWeight: '700', color: color}}>{rec.receiptNo}</td></tr>
-              <tr style={{borderBottom: '1px solid #e5e7eb'}}><td style={{padding: '8px 0', color: '#64748b'}}>Date</td><td style={{padding: '8px 0'}}>{rec.receiptDate || rec.date}</td></tr>
-              <tr style={{borderBottom: '1px solid #e5e7eb'}}><td style={{padding: '8px 0', color: '#64748b'}}>Client</td><td style={{padding: '8px 0', fontWeight: '500'}}>{rec.clientName}</td></tr>
-              <tr style={{borderBottom: '1px solid #e5e7eb'}}><td style={{padding: '8px 0', color: '#64748b'}}>Against Invoice</td><td style={{padding: '8px 0'}}>{rec.invoiceNo || '-'}</td></tr>
-              <tr style={{borderBottom: '1px solid #e5e7eb'}}><td style={{padding: '8px 0', color: '#64748b'}}>Amount</td><td style={{padding: '8px 0', fontWeight: '700', color: themeColors.primary, fontSize: '16px'}}>₹{(rec.amount || 0).toLocaleString('en-IN')}</td></tr>
-              <tr style={{borderBottom: '1px solid #e5e7eb'}}><td style={{padding: '8px 0', color: '#64748b'}}>TDS</td><td style={{padding: '8px 0'}}>₹{(rec.tds || 0).toLocaleString('en-IN')}</td></tr>
-              <tr style={{borderBottom: '1px solid #e5e7eb'}}><td style={{padding: '8px 0', color: '#64748b'}}>Discount</td><td style={{padding: '8px 0'}}>₹{(rec.discount || 0).toLocaleString('en-IN')}</td></tr>
-              <tr style={{borderBottom: '1px solid #e5e7eb'}}><td style={{padding: '8px 0', color: '#64748b'}}>Payment Mode</td><td style={{padding: '8px 0'}}>{rec.paymentMode || '-'}</td></tr>
-              <tr><td style={{padding: '8px 0', color: '#64748b'}}>Remarks</td><td style={{padding: '8px 0'}}>{rec.remarks || rec.narration || '-'}</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-    
-    // Render approval details based on type
-    const renderApprovalContent = (approval) => {
-      const d = approval.data;
-      
-      switch (approval.type) {
-        case 'invoice':
-        case 'invoice-create':
-          if (d.isBulkInvoice) {
-            // Bulk Invoice from Bulk Invoice feature
-            return (
-              <div>
-                <div style={{display: 'flex', gap: '16px', marginBottom: '20px'}}>
-                  <div style={{flex: 1, background: '#fef3c7', padding: '20px', borderRadius: '12px', textAlign: 'center'}}>
-                    <div style={{fontSize: '12px', color: '#92400e'}}>Total Invoices</div>
-                    <div style={{fontSize: '32px', fontWeight: '700', color: '#d97706'}}>{d.invoiceCount || (d.invoices?.length || 0)}</div>
-                  </div>
-                  <div style={{flex: 1, background: themeColors.primaryLight, padding: '20px', borderRadius: '12px', textAlign: 'center'}}>
-                    <div style={{fontSize: '12px', color: themeColors.primaryText}}>Total Amount</div>
-                    <div style={{fontSize: '32px', fontWeight: '700', color: themeColors.primary}}>₹{(d.totalAmount || 0).toLocaleString('en-IN')}</div>
-                  </div>
-                </div>
-                {d.invoices && (
-                  <div style={{background: '#fff', borderRadius: '12px', border: '1px solid #e5e7eb', overflow: 'hidden'}}>
-                    <div style={{background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)', padding: '12px 16px', color: '#fff', fontWeight: '600'}}>Invoice List</div>
-                    <div style={{maxHeight: '400px', overflowY: 'auto'}}>
-                      <table style={{width: '100%', fontSize: '12px', borderCollapse: 'collapse'}}>
-                        <thead style={{background: '#f8fafc', position: 'sticky', top: 0}}>
-                          <tr>
-                            <th style={{padding: '10px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e5e7eb'}}>#</th>
-                            <th style={{padding: '10px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e5e7eb'}}>Invoice No</th>
-                            <th style={{padding: '10px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e5e7eb'}}>Client</th>
-                            <th style={{padding: '10px', textAlign: 'left', fontWeight: '600', borderBottom: '1px solid #e5e7eb'}}>Code</th>
-                            <th style={{padding: '10px', textAlign: 'right', fontWeight: '600', borderBottom: '1px solid #e5e7eb'}}>Net</th>
-                            <th style={{padding: '10px', textAlign: 'right', fontWeight: '600', borderBottom: '1px solid #e5e7eb'}}>GST</th>
-                            <th style={{padding: '10px', textAlign: 'right', fontWeight: '600', borderBottom: '1px solid #e5e7eb'}}>Total</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {d.invoices.map((inv, idx) => (
-                            <tr key={idx} style={{borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#fafafa'}}>
-                              <td style={{padding: '10px', color: '#64748b'}}>{idx + 1}</td>
-                              <td style={{padding: '10px', fontWeight: '600', color: '#d97706'}}>{inv.invoiceNo}</td>
-                              <td style={{padding: '10px'}}>{inv.clientName}</td>
-                              <td style={{padding: '10px', fontFamily: 'monospace', color: '#4f46e5'}}>{inv.clientCode || '-'}</td>
-                              <td style={{padding: '10px', textAlign: 'right'}}>₹{(inv.netAmount || 0).toLocaleString('en-IN')}</td>
-                              <td style={{padding: '10px', textAlign: 'right'}}>₹{((inv.cgst || 0) + (inv.sgst || 0) + (inv.igst || 0)).toLocaleString('en-IN')}</td>
-                              <td style={{padding: '10px', textAlign: 'right', fontWeight: '600', color: themeColors.primary}}>₹{(inv.totalAmount || 0).toLocaleString('en-IN')}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          }
-          // Single new invoice
-          return renderInvoiceDetails(d, '📄 New Invoice Details', themeColors.primary);
-          
-        case 'invoice-edit':
-          const originalInv = getOriginalInvoice(d.id);
-          return (
-            <div>
-              <div style={{marginBottom: '16px', padding: '12px', background: themeColors.secondaryLighter, borderRadius: '8px', border: '1px solid #93c5fd'}}>
-                <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                  <Edit size={18} color={themeColors.secondaryDark} />
-                  <span style={{fontWeight: '600', color: themeColors.secondaryDark}}>Invoice Edit Request</span>
-                </div>
-                <div style={{fontSize: '12px', color: '#64748b', marginTop: '4px'}}>Compare original vs proposed changes below</div>
-              </div>
-              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
-                {originalInv && renderInvoiceDetails(originalInv, '📋 CURRENT (Before)', '#64748b')}
-                {renderInvoiceDetails(d, '✏️ PROPOSED (After)', themeColors.secondaryDark)}
-              </div>
-              {originalInv && (
-                <div style={{marginTop: '16px', padding: '16px', background: '#fef3c7', borderRadius: '8px', border: '1px solid #fcd34d'}}>
-                  <div style={{fontWeight: '600', color: '#92400e', marginBottom: '8px'}}>🔍 Changes Detected:</div>
-                  <div style={{fontSize: '12px', display: 'flex', flexWrap: 'wrap', gap: '8px'}}>
-                    {originalInv.clientName !== d.clientName && <span style={{padding: '4px 8px', background: '#fff', borderRadius: '4px'}}>Client Name</span>}
-                    {originalInv.invoiceDate !== d.invoiceDate && <span style={{padding: '4px 8px', background: '#fff', borderRadius: '4px'}}>Invoice Date</span>}
-                    {originalInv.netAmount !== d.netAmount && <span style={{padding: '4px 8px', background: '#fff', borderRadius: '4px'}}>Net Amount</span>}
-                    {originalInv.totalAmount !== d.totalAmount && <span style={{padding: '4px 8px', background: '#fff', borderRadius: '4px'}}>Total Amount</span>}
-                    {originalInv.serviceDescription !== d.serviceDescription && <span style={{padding: '4px 8px', background: '#fff', borderRadius: '4px'}}>Description</span>}
-                    {(originalInv.cgst !== d.cgst || originalInv.sgst !== d.sgst || originalInv.igst !== d.igst) && <span style={{padding: '4px 8px', background: '#fff', borderRadius: '4px'}}>GST</span>}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-          
-        case 'invoice-delete':
-          return (
-            <div>
-              <div style={{marginBottom: '16px', padding: '16px', background: '#fef2f2', borderRadius: '8px', border: '1px solid #fca5a5'}}>
-                <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                  <Trash2 size={18} color="#dc2626" />
-                  <span style={{fontWeight: '600', color: '#dc2626'}}>Invoice Deletion Request</span>
-                </div>
-                <div style={{fontSize: '12px', color: '#b91c1c', marginTop: '4px'}}>⚠️ This invoice will be permanently deleted and associated tasks will be marked as unbilled.</div>
-              </div>
-              {renderInvoiceDetails(d, '🗑️ Invoice to be Deleted', '#dc2626')}
-            </div>
-          );
-          
-        case 'receipt':
-        case 'receipt-create':
-          const receipts = d.receipts || [d];
-          if (receipts.length > 1) {
-            return (
-              <div>
-                <div style={{display: 'flex', gap: '16px', marginBottom: '20px'}}>
-                  <div style={{flex: 1, background: themeColors.primaryLight, padding: '20px', borderRadius: '12px', textAlign: 'center'}}>
-                    <div style={{fontSize: '12px', color: themeColors.primaryText}}>Total Receipts</div>
-                    <div style={{fontSize: '32px', fontWeight: '700', color: themeColors.primary}}>{receipts.length}</div>
-                  </div>
-                  <div style={{flex: 1, background: themeColors.primaryLight, padding: '20px', borderRadius: '12px', textAlign: 'center'}}>
-                    <div style={{fontSize: '12px', color: themeColors.primaryText}}>Total Amount</div>
-                    <div style={{fontSize: '32px', fontWeight: '700', color: themeColors.primary}}>₹{receipts.reduce((sum, r) => sum + (r.amount || 0), 0).toLocaleString('en-IN')}</div>
-                  </div>
-                </div>
-                <div style={{display: 'grid', gap: '16px'}}>
-                  {receipts.map((rec, idx) => (
-                    <div key={idx}>{renderReceiptDetails(rec, `Receipt ${idx + 1}: ${rec.receiptNo}`, themeColors.primary)}</div>
-                  ))}
-                </div>
-              </div>
-            );
-          }
-          return renderReceiptDetails(d, '💰 New Receipt Details', themeColors.primary);
-          
-        case 'receipt-edit':
-          const originalRec = (data.receipts || []).find(r => r.id === d.id);
-          return (
-            <div>
-              <div style={{marginBottom: '16px', padding: '12px', background: themeColors.secondaryLighter, borderRadius: '8px', border: '1px solid #93c5fd'}}>
-                <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                  <Edit size={18} color={themeColors.secondaryDark} />
-                  <span style={{fontWeight: '600', color: themeColors.secondaryDark}}>Receipt Edit Request</span>
-                </div>
-              </div>
-              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
-                {originalRec && renderReceiptDetails(originalRec, '📋 CURRENT (Before)', '#64748b')}
-                {renderReceiptDetails(d, '✏️ PROPOSED (After)', themeColors.secondaryDark)}
-              </div>
-            </div>
-          );
-          
-        case 'receipt-delete':
-          return (
-            <div>
-              <div style={{marginBottom: '16px', padding: '16px', background: '#fef2f2', borderRadius: '8px', border: '1px solid #fca5a5'}}>
-                <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                  <Trash2 size={18} color="#dc2626" />
-                  <span style={{fontWeight: '600', color: '#dc2626'}}>Receipt Deletion Request</span>
-                </div>
-                <div style={{fontSize: '12px', color: '#b91c1c', marginTop: '4px'}}>⚠️ This receipt will be permanently deleted from the ledger.</div>
-              </div>
-              {renderReceiptDetails(d, '🗑️ Receipt to be Deleted', '#dc2626')}
-            </div>
-          );
-          
-        case 'task':
-          return (
-            <div style={{background: '#fff', borderRadius: '12px', border: `2px solid ${themeColors.primary}`, overflow: 'hidden'}}>
-              <div style={{background: themeColors.primary, padding: '12px 16px', color: '#fff', fontWeight: '700'}}>📋 Task Details</div>
-              <div style={{padding: '16px'}}>
-                <table style={{width: '100%', fontSize: '13px', borderCollapse: 'collapse'}}>
-                  <tbody>
-                    <tr style={{borderBottom: '1px solid #e5e7eb'}}><td style={{padding: '10px 0', color: '#64748b', width: '30%'}}>Client</td><td style={{padding: '10px 0', fontWeight: '600'}}>{d.clientName}</td></tr>
-                    <tr style={{borderBottom: '1px solid #e5e7eb'}}><td style={{padding: '10px 0', color: '#64748b'}}>File No</td><td style={{padding: '10px 0', fontFamily: 'monospace', color: '#4f46e5'}}>{d.fileNo || '-'}</td></tr>
-                    <tr style={{borderBottom: '1px solid #e5e7eb'}}><td style={{padding: '10px 0', color: '#64748b'}}>Parent Task</td><td style={{padding: '10px 0', fontWeight: '500'}}>{d.parentTask}</td></tr>
-                    <tr style={{borderBottom: '1px solid #e5e7eb'}}><td style={{padding: '10px 0', color: '#64748b'}}>Child Task</td><td style={{padding: '10px 0', fontWeight: '500'}}>{d.childTask}</td></tr>
-                    <tr style={{borderBottom: '1px solid #e5e7eb'}}><td style={{padding: '10px 0', color: '#64748b'}}>Financial Year</td><td style={{padding: '10px 0'}}>{d.financialYear}</td></tr>
-                    <tr style={{borderBottom: '1px solid #e5e7eb'}}><td style={{padding: '10px 0', color: '#64748b'}}>Period</td><td style={{padding: '10px 0'}}>{d.period}</td></tr>
-                    <tr style={{borderBottom: '1px solid #e5e7eb'}}><td style={{padding: '10px 0', color: '#64748b'}}>Task Leader</td><td style={{padding: '10px 0'}}>{d.taskLeader || '-'}</td></tr>
-                    <tr style={{borderBottom: '1px solid #e5e7eb'}}><td style={{padding: '10px 0', color: '#64748b'}}>Task Manager</td><td style={{padding: '10px 0'}}>{d.taskManager}</td></tr>
-                    <tr><td style={{padding: '10px 0', color: '#64748b'}}>Assigned To</td><td style={{padding: '10px 0'}}>{d.primaryAssignedUser}</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          );
-          
-        case 'bulk_task':
-          const taskList = Array.isArray(d) ? d : [d];
-          return (
-            <div style={{background: '#fff', borderRadius: '12px', border: `2px solid ${themeColors.primary}`, overflow: 'hidden'}}>
-              <div style={{background: themeColors.primary, padding: '12px 16px', color: '#fff', fontWeight: '700'}}>📋 Bulk Tasks ({taskList.length} tasks)</div>
-              <div style={{maxHeight: '400px', overflowY: 'auto'}}>
-                <table style={{width: '100%', fontSize: '12px', borderCollapse: 'collapse'}}>
-                  <thead style={{background: '#f8fafc', position: 'sticky', top: 0}}>
-                    <tr>
-                      <th style={{padding: '10px', textAlign: 'left', fontWeight: '600'}}>#</th>
-                      <th style={{padding: '10px', textAlign: 'left', fontWeight: '600'}}>Client</th>
-                      <th style={{padding: '10px', textAlign: 'left', fontWeight: '600'}}>Task</th>
-                      <th style={{padding: '10px', textAlign: 'left', fontWeight: '600'}}>Period</th>
-                      <th style={{padding: '10px', textAlign: 'left', fontWeight: '600'}}>Manager</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {taskList.map((t, idx) => (
-                      <tr key={idx} style={{borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#fafafa'}}>
-                        <td style={{padding: '10px', color: '#64748b'}}>{idx + 1}</td>
-                        <td style={{padding: '10px', fontWeight: '500'}}>{t.clientName}</td>
-                        <td style={{padding: '10px'}}>{t.parentTask} → {t.childTask}</td>
-                        <td style={{padding: '10px'}}>{t.period}</td>
-                        <td style={{padding: '10px'}}>{t.taskManager}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          );
-          
-        case 'client_add':
-          return (
-            <div style={{background: '#fff', borderRadius: '12px', border: `2px solid ${themeColors.primary}`, overflow: 'hidden'}}>
-              <div style={{background: themeColors.primary, padding: '12px 16px', color: '#fff', fontWeight: '700'}}>👤 New Client Details</div>
-              <div style={{padding: '16px'}}>
-                <table style={{width: '100%', fontSize: '13px', borderCollapse: 'collapse'}}>
-                  <tbody>
-                    <tr style={{borderBottom: '1px solid #e5e7eb'}}><td style={{padding: '10px 0', color: '#64748b', width: '30%'}}>File No</td><td style={{padding: '10px 0', fontWeight: '600', fontFamily: 'monospace', color: '#4f46e5'}}>{d.fileNo}</td></tr>
-                    <tr style={{borderBottom: '1px solid #e5e7eb'}}><td style={{padding: '10px 0', color: '#64748b'}}>Client Name</td><td style={{padding: '10px 0', fontWeight: '600'}}>{d.name}</td></tr>
-                    <tr style={{borderBottom: '1px solid #e5e7eb'}}><td style={{padding: '10px 0', color: '#64748b'}}>PAN</td><td style={{padding: '10px 0', fontFamily: 'monospace'}}>{d.pan || '-'}</td></tr>
-                    <tr style={{borderBottom: '1px solid #e5e7eb'}}><td style={{padding: '10px 0', color: '#64748b'}}>Email</td><td style={{padding: '10px 0'}}>{d.email || '-'}</td></tr>
-                    <tr style={{borderBottom: '1px solid #e5e7eb'}}><td style={{padding: '10px 0', color: '#64748b'}}>Mobile</td><td style={{padding: '10px 0'}}>{d.mobile || '-'}</td></tr>
-                    <tr><td style={{padding: '10px 0', color: '#64748b'}}>Group</td><td style={{padding: '10px 0'}}>{d.groupName || d.name}</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          );
-          
-        case 'client_disable':
-          return (
-            <div style={{background: '#fff', borderRadius: '12px', border: '2px solid #dc2626', overflow: 'hidden'}}>
-              <div style={{background: '#dc2626', padding: '12px 16px', color: '#fff', fontWeight: '700'}}>🚫 Client Disable Request</div>
-              <div style={{padding: '16px'}}>
-                <div style={{fontSize: '14px'}}><strong>Client:</strong> {d.clientName}</div>
-                <div style={{fontSize: '14px', marginTop: '8px'}}><strong>File No:</strong> {d.fileNo || d.clientId}</div>
-                <div style={{marginTop: '16px', padding: '12px', background: '#fef2f2', borderRadius: '8px'}}>
-                  <strong style={{color: '#dc2626'}}>Reason:</strong> {d.reason || 'No reason provided'}
-                </div>
-              </div>
-            </div>
-          );
-          
-        case 'staff_add':
-          return (
-            <div style={{background: '#fff', borderRadius: '12px', border: `2px solid ${themeColors.primary}`, overflow: 'hidden'}}>
-              <div style={{background: themeColors.primary, padding: '12px 16px', color: '#fff', fontWeight: '700'}}>👥 New Staff Details</div>
-              <div style={{padding: '16px'}}>
-                <table style={{width: '100%', fontSize: '13px', borderCollapse: 'collapse'}}>
-                  <tbody>
-                    <tr style={{borderBottom: '1px solid #e5e7eb'}}><td style={{padding: '10px 0', color: '#64748b', width: '30%'}}>Name</td><td style={{padding: '10px 0', fontWeight: '600'}}>{d.name}</td></tr>
-                    <tr style={{borderBottom: '1px solid #e5e7eb'}}><td style={{padding: '10px 0', color: '#64748b'}}>Email</td><td style={{padding: '10px 0'}}>{d.email}</td></tr>
-                    <tr style={{borderBottom: '1px solid #e5e7eb'}}><td style={{padding: '10px 0', color: '#64748b'}}>Role</td><td style={{padding: '10px 0'}}>{d.role}</td></tr>
-                    <tr><td style={{padding: '10px 0', color: '#64748b'}}>Reporting To</td><td style={{padding: '10px 0'}}>{d.reportingManager || '-'}</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          );
-          
-        case 'staff_disable':
-          return (
-            <div style={{background: '#fff', borderRadius: '12px', border: '2px solid #dc2626', overflow: 'hidden'}}>
-              <div style={{background: '#dc2626', padding: '12px 16px', color: '#fff', fontWeight: '700'}}>🚫 Staff Disable Request</div>
-              <div style={{padding: '16px'}}>
-                <div style={{fontSize: '14px'}}><strong>Staff:</strong> {d.staffName}</div>
-                <div style={{fontSize: '14px', marginTop: '8px'}}><strong>Email:</strong> {d.staffEmail || d.staffId}</div>
-                <div style={{marginTop: '16px', padding: '12px', background: '#fef2f2', borderRadius: '8px'}}>
-                  <strong style={{color: '#dc2626'}}>Reason:</strong> {d.reason || 'No reason provided'}
-                </div>
-              </div>
-            </div>
-          );
-          
-        default:
-          return (
-            <div style={{background: '#f8fafc', padding: '16px', borderRadius: '8px'}}>
-              <pre style={{fontSize: '13px', overflow: 'auto', maxHeight: '300px', whiteSpace: 'pre-wrap'}}>{JSON.stringify(d, null, 2)}</pre>
-            </div>
-          );
+    // Get entries this user can see
+    const getVisibleTaskEntries = () => {
+      let entries = allTaskEntries;
+      if (!canApprove) {
+        // Non-approvers only see their own entries
+        entries = entries.filter(e => e.createdBy === currentUser?.name);
       }
+      // Apply filters
+      if (filters.status !== 'all') {
+        entries = entries.filter(e => e.status === filters.status);
+      }
+      if (filters.createdBy !== 'all') {
+        entries = entries.filter(e => e.createdBy === filters.createdBy);
+      }
+      if (filters.search) {
+        const term = filters.search.toLowerCase();
+        entries = entries.filter(e => 
+          e.clientName?.toLowerCase().includes(term) ||
+          e.parentTask?.toLowerCase().includes(term) ||
+          e.childTask?.toLowerCase().includes(term)
+        );
+      }
+      return entries;
     };
     
-    // Render approval row for table
-    const renderApprovalRow = (approval, idx, showActions = true) => {
-      const d = approval.data || {};
-      return (
-        <tr key={approval.id} style={{background: idx % 2 === 0 ? '#fff' : '#f8fafc', borderBottom: '1px solid #e5e7eb'}}>
-          <td style={{padding: '12px 16px', fontSize: '12px', color: '#64748b'}}>{idx + 1}</td>
-          <td style={{padding: '12px 16px'}}>
-            <div style={{fontWeight: '600', fontSize: '13px', color: '#1e293b'}}>{getTypeLabel(approval.type, d)}</div>
-            <div style={{fontSize: '13px', color: '#64748b', marginTop: '2px'}}>{approval.description?.substring(0, 50)}{approval.description?.length > 50 ? '...' : ''}</div>
-          </td>
-          <td style={{padding: '12px 16px', fontSize: '12px'}}>
-            <div style={{fontWeight: '500'}}>{d.clientName || d.name || d.staffName || '-'}</div>
-            <div style={{fontSize: '12px', color: '#64748b'}}>{d.invoiceNo || d.receiptNo || d.fileNo || ''}</div>
-          </td>
-          <td style={{padding: '12px 16px', fontSize: '12px', textAlign: 'right', fontWeight: '600', color: themeColors.primary}}>
-            {d.totalAmount ? `₹${d.totalAmount.toLocaleString('en-IN')}` : d.amount ? `₹${d.amount.toLocaleString('en-IN')}` : '-'}
-          </td>
-          <td style={{padding: '12px 16px', fontSize: '13px', color: '#64748b'}}>
-            <div>{approval.requestedBy}</div>
-            <div style={{fontSize: '12px'}}>{new Date(approval.createdAt).toLocaleDateString('en-IN', {day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'})}</div>
-          </td>
-          <td style={{padding: '12px 16px'}}>{getStatusBadge(approval.status)}</td>
-          <td style={{padding: '12px 16px'}}>
-            <div style={{display: 'flex', gap: '6px', justifyContent: 'center'}}>
-              <button onClick={() => setViewingApproval(approval)} style={{padding: '6px 10px', background: themeColors.secondaryLighter, color: themeColors.secondary, border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500'}}>
-                <Eye size={14} />
-              </button>
-              {showActions && approval.status === 'pending' && (
-                <>
-                  <button onClick={() => { setEditingApproval(approval); setEditedData({...d}); }} style={{padding: '6px 10px', background: '#fef3c7', color: '#d97706', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500'}}>
-                    <Edit size={14} />
-                  </button>
-                  <button onClick={() => { handleApprovalAction(approval.id, 'approved'); }} style={{padding: '6px 10px', background: themeColors.primaryLight, color: themeColors.primary, border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500'}}>
-                    <CheckCircle size={14} />
-                  </button>
-                  <button onClick={() => { const reason = prompt('Rejection reason:'); if (reason) handleApprovalAction(approval.id, 'rejected', null, reason); }} style={{padding: '6px 10px', background: '#fef2f2', color: '#ef4444', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500'}}>
-                    <XCircle size={14} />
-                  </button>
-                </>
-              )}
-            </div>
-          </td>
-        </tr>
+    const getVisibleClientEntries = () => {
+      let entries = allClientEntries;
+      if (!canApprove) {
+        entries = entries.filter(e => e.createdBy === currentUser?.name);
+      }
+      if (filters.status !== 'all') {
+        entries = entries.filter(e => e.status === filters.status);
+      }
+      if (filters.createdBy !== 'all') {
+        entries = entries.filter(e => e.createdBy === filters.createdBy);
+      }
+      if (filters.search) {
+        const term = filters.search.toLowerCase();
+        entries = entries.filter(e => 
+          e.name?.toLowerCase().includes(term) ||
+          e.fileNo?.toLowerCase().includes(term) ||
+          e.pan?.toLowerCase().includes(term)
+        );
+      }
+      return entries;
+    };
+    
+    // Add new task entry row
+    const addTaskEntry = () => {
+      const newEntry = {
+        id: generateId(),
+        serialNo: allTaskEntries.length + 1,
+        clientType: 'existing', // 'existing' or 'new'
+        clientId: '',
+        clientName: '',
+        fileNo: '',
+        groupName: '',
+        parentTask: '',
+        childTask: '',
+        financialYear: 'FY 2024-25',
+        period: '',
+        subPeriod: '',
+        taskLeader: '',
+        taskManager: '',
+        primaryAssignedUser: '',
+        startDate: '',
+        expectedCompletionDate: '',
+        taskDescription: '',
+        status: 'draft',
+        createdBy: currentUser?.name || 'Unknown',
+        createdAt: new Date().toISOString(),
+        approvedBy: null,
+        approvedAt: null
+      };
+      
+      setData(prev => ({
+        ...prev,
+        pendingTaskEntries: [...(prev.pendingTaskEntries || []), newEntry]
+      }));
+    };
+    
+    // Add new client entry row
+    const addClientEntry = () => {
+      const newEntry = {
+        id: generateId(),
+        serialNo: allClientEntries.length + 1,
+        clientType: 'new', // Always new for clients
+        fileNo: '',
+        groupNo: '',
+        name: '',
+        email: '',
+        phone: '',
+        address: '',
+        pan: '',
+        gstin: '',
+        state: '',
+        typeOfClient: '',
+        reportingManager: '',
+        dateOfEnrollment: new Date().toISOString().split('T')[0],
+        status: 'draft',
+        createdBy: currentUser?.name || 'Unknown',
+        createdAt: new Date().toISOString(),
+        approvedBy: null,
+        approvedAt: null
+      };
+      
+      setData(prev => ({
+        ...prev,
+        pendingClientEntries: [...(prev.pendingClientEntries || []), newEntry]
+      }));
+    };
+    
+    // Update task entry
+    const updateTaskEntry = (entryId, field, value) => {
+      setData(prev => ({
+        ...prev,
+        pendingTaskEntries: (prev.pendingTaskEntries || []).map(entry => {
+          if (entry.id !== entryId) return entry;
+          
+          let updated = { ...entry, [field]: value };
+          
+          // If client selected, populate client details
+          if (field === 'clientId' && value) {
+            const client = data.clients.find(c => c.id === value);
+            if (client) {
+              updated.clientName = client.name;
+              updated.fileNo = client.fileNo;
+              updated.groupName = client.groupName || client.name;
+            }
+          }
+          
+          // If parent task changes, reset child task
+          if (field === 'parentTask') {
+            updated.childTask = '';
+          }
+          
+          return updated;
+        })
+      }));
+    };
+    
+    // Update client entry
+    const updateClientEntry = (entryId, field, value) => {
+      setData(prev => ({
+        ...prev,
+        pendingClientEntries: (prev.pendingClientEntries || []).map(entry => {
+          if (entry.id !== entryId) return entry;
+          
+          let updated = { ...entry, [field]: value };
+          
+          // Auto-generate file number for new client
+          if (field === 'name' && !entry.fileNo && value) {
+            const existingCodes = data.clients.map(c => {
+              const match = c.fileNo?.match(/^(\d+)\./);
+              return match ? parseInt(match[1]) : 0;
+            });
+            const maxCode = Math.max(0, ...existingCodes);
+            const newClientCode = String(maxCode + 1 + allClientEntries.filter(e => e.status === 'draft').indexOf(entry)).padStart(3, '0');
+            updated.fileNo = `${newClientCode}.001`;
+            updated.groupNo = newClientCode;
+          }
+          
+          return updated;
+        })
+      }));
+    };
+    
+    // Delete entry
+    const deleteTaskEntry = (entryId) => {
+      if (!window.confirm('Delete this entry?')) return;
+      setData(prev => ({
+        ...prev,
+        pendingTaskEntries: (prev.pendingTaskEntries || []).filter(e => e.id !== entryId)
+      }));
+      setSelectedItems(prev => prev.filter(id => id !== entryId));
+    };
+    
+    const deleteClientEntry = (entryId) => {
+      if (!window.confirm('Delete this entry?')) return;
+      setData(prev => ({
+        ...prev,
+        pendingClientEntries: (prev.pendingClientEntries || []).filter(e => e.id !== entryId)
+      }));
+      setSelectedItems(prev => prev.filter(id => id !== entryId));
+    };
+    
+    // Save entry (mark as pending approval)
+    const saveTaskEntry = (entryId) => {
+      setData(prev => ({
+        ...prev,
+        pendingTaskEntries: (prev.pendingTaskEntries || []).map(entry => 
+          entry.id === entryId ? { ...entry, status: 'pending' } : entry
+        )
+      }));
+    };
+    
+    const saveClientEntry = (entryId) => {
+      setData(prev => ({
+        ...prev,
+        pendingClientEntries: (prev.pendingClientEntries || []).map(entry => 
+          entry.id === entryId ? { ...entry, status: 'pending' } : entry
+        )
+      }));
+    };
+    
+    // Approve and post task
+    const approveAndPostTask = (entry) => {
+      const newTask = {
+        id: generateId(),
+        taskCode: generateTaskCode(data.tasks, new Date()),
+        fileNo: entry.fileNo,
+        clientName: entry.clientName,
+        clientId: entry.clientId || '',
+        groupName: entry.groupName,
+        parentTask: entry.parentTask,
+        childTask: entry.childTask,
+        financialYear: entry.financialYear,
+        period: entry.period,
+        subPeriod: entry.subPeriod || '',
+        taskLeader: entry.taskLeader,
+        taskManager: entry.taskManager,
+        primaryAssignedUser: entry.primaryAssignedUser,
+        assignedTo: entry.primaryAssignedUser,
+        startDate: entry.startDate || '',
+        expectedCompletionDate: entry.expectedCompletionDate || '',
+        taskDescription: entry.taskDescription || '',
+        comments: '',
+        status: 'Pending',
+        priority: 'Medium',
+        completedCheck: false,
+        completedBy: '',
+        currentPosition: 'New Task Created',
+        pendingIssues: '',
+        checkGroupsName: `${entry.period}-${entry.childTask}`
+      };
+      
+      setData(prev => ({
+        ...prev,
+        tasks: [...prev.tasks, newTask],
+        pendingTaskEntries: (prev.pendingTaskEntries || []).map(e => 
+          e.id === entry.id ? { ...e, status: 'approved', approvedBy: currentUser?.name, approvedAt: new Date().toISOString() } : e
+        )
+      }));
+      
+      alert(`✅ Task posted successfully! Task Code: ${newTask.taskCode}`);
+    };
+    
+    // Approve and post client
+    const approveAndPostClient = (entry) => {
+      const newClient = {
+        id: generateId(),
+        name: entry.name,
+        email: entry.email || '',
+        phone: entry.phone || '',
+        fileNo: entry.fileNo,
+        groupNo: entry.groupNo,
+        address: entry.address || '',
+        gstin: entry.gstin || '',
+        pan: entry.pan || '',
+        pancard: entry.pan || '',
+        state: entry.state || '',
+        typeOfClient: entry.typeOfClient || '',
+        reportingManager: entry.reportingManager || '',
+        dateOfEnrollment: entry.dateOfEnrollment || '',
+        notes: '',
+        disabled: false,
+        services: [],
+        outstanding: 0
+      };
+      
+      setData(prev => ({
+        ...prev,
+        clients: [...prev.clients, newClient],
+        pendingClientEntries: (prev.pendingClientEntries || []).map(e => 
+          e.id === entry.id ? { ...e, status: 'approved', approvedBy: currentUser?.name, approvedAt: new Date().toISOString() } : e
+        )
+      }));
+      
+      alert(`✅ Client posted successfully! File No: ${newClient.fileNo}`);
+    };
+    
+    // Bulk approve
+    const bulkApprove = () => {
+      if (selectedItems.length === 0) {
+        alert('Please select entries to approve');
+        return;
+      }
+      
+      if (!window.confirm(`Approve and post ${selectedItems.length} selected entries?`)) return;
+      
+      if (activeTab === 'tasks') {
+        const entriesToApprove = allTaskEntries.filter(e => selectedItems.includes(e.id) && e.status === 'pending');
+        entriesToApprove.forEach(entry => approveAndPostTask(entry));
+      } else {
+        const entriesToApprove = allClientEntries.filter(e => selectedItems.includes(e.id) && e.status === 'pending');
+        entriesToApprove.forEach(entry => approveAndPostClient(entry));
+      }
+      
+      setSelectedItems([]);
+    };
+    
+    // Toggle selection
+    const toggleSelection = (id) => {
+      setSelectedItems(prev => 
+        prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
       );
     };
     
-    // Get filtered approvals based on active tab
-    const getDisplayApprovals = () => {
-      let base = activeTab === 'pending' ? pendingApprovals : activeTab === 'myRequests' ? myRequests : allApprovals;
-      return filterBySearch(filterByType(base));
+    // Select all visible
+    const selectAllVisible = () => {
+      const visibleIds = activeTab === 'tasks' 
+        ? getVisibleTaskEntries().filter(e => e.status === 'pending').map(e => e.id)
+        : getVisibleClientEntries().filter(e => e.status === 'pending').map(e => e.id);
+      
+      if (selectedItems.length === visibleIds.length) {
+        setSelectedItems([]);
+      } else {
+        setSelectedItems(visibleIds);
+      }
     };
     
-    const displayApprovals = getDisplayApprovals();
-    
-    // Stats
-    const stats = {
-      pending: pendingApprovals.length,
-      myPending: myRequests.filter(a => a.status === 'pending').length,
-      approved: allApprovals.filter(a => a.status === 'approved').length,
-      rejected: allApprovals.filter(a => a.status === 'rejected').length
+    // Get unique creators for filter
+    const getCreators = () => {
+      const entries = activeTab === 'tasks' ? allTaskEntries : allClientEntries;
+      return [...new Set(entries.map(e => e.createdBy).filter(Boolean))];
     };
     
+    const PARENT_CHILD_TASKS = data.parentChildTasks || {};
+    const financialYears = ['FY 2023-24', 'FY 2024-25', 'FY 2025-26', 'FY 2026-27'];
+    const periods = ['April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December', 'January', 'February', 'March', 'Q1', 'Q2', 'Q3', 'Q4', 'H1', 'H2', 'Annual'];
+    const clientTypes = ['Individual', 'Partnership', 'LLP', 'Private Limited', 'Public Limited', 'Trust', 'Society', 'AOP/BOI', 'HUF', 'Government', 'Other'];
+    const states = ['Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Delhi', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal'];
+    
+    const getStatusBadge = (status) => {
+      const styles = {
+        draft: { bg: '#f1f5f9', color: '#64748b', text: 'Draft' },
+        pending: { bg: '#fef3c7', color: '#d97706', text: 'Pending Approval' },
+        approved: { bg: themeColors.primaryLight, color: themeColors.primary, text: 'Approved' }
+      };
+      const s = styles[status] || styles.draft;
+      return <span style={{padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', background: s.bg, color: s.color}}>{s.text}</span>;
+    };
+    
+    const activeRMs = data.staff.filter(s => s.role === 'Reporting Manager' && s.status === 'Active');
+    const activeStaff = data.staff.filter(s => s.status === 'Active');
+
     return (
-      <div style={{padding: '24px', background: '#f8fafc', minHeight: '100vh'}}>
-        {/* Header */}
-        <div style={{marginBottom: '24px'}}>
-          <h1 style={{fontSize: '24px', fontWeight: '700', color: '#1e293b', margin: 0, display: 'flex', alignItems: 'center', gap: '12px'}}>
-            <div style={{width: '40px', height: '40px', borderRadius: '10px', background: themeColors.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-              <CheckCircle size={22} color="#fff" />
-            </div>
-            Approvals
-          </h1>
-          <p style={{color: '#64748b', marginTop: '4px', marginLeft: '52px'}}>Review and manage pending approval requests</p>
+      <div className="view-container" style={{padding: '24px'}}>
+        <div className="view-header" style={{marginBottom: '20px'}}>
+          <div>
+            <h1 style={{fontSize: '24px', fontWeight: '600', color: '#1e293b', margin: 0}}>New Entries</h1>
+            <p style={{color: '#64748b', fontSize: '14px', marginTop: '4px'}}>Add new tasks and clients for approval</p>
+          </div>
+          {canApprove && selectedItems.length > 0 && (
+            <button 
+              onClick={bulkApprove}
+              style={{padding: '10px 20px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}
+            >
+              <CheckCircle size={18} /> Approve & Post Selected ({selectedItems.length})
+            </button>
+          )}
         </div>
         
-        {/* Stats Cards */}
-        <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px'}}>
-          <div style={{background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: '4px solid #d97706'}}>
-            <div style={{fontSize: '28px', fontWeight: '700', color: '#d97706'}}>{stats.pending}</div>
-            <div style={{fontSize: '13px', color: '#64748b'}}>Pending Your Review</div>
-          </div>
-          <div style={{background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: `4px solid ${themeColors.secondary}`}}>
-            <div style={{fontSize: '28px', fontWeight: '700', color: themeColors.secondary}}>{stats.myPending}</div>
-            <div style={{fontSize: '13px', color: '#64748b'}}>My Pending Requests</div>
-          </div>
-          <div style={{background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: '4px solid #16a34a'}}>
-            <div style={{fontSize: '28px', fontWeight: '700', color: themeColors.primary}}>{stats.approved}</div>
-            <div style={{fontSize: '13px', color: '#64748b'}}>Total Approved</div>
-          </div>
-          <div style={{background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: '4px solid #ef4444'}}>
-            <div style={{fontSize: '28px', fontWeight: '700', color: '#ef4444'}}>{stats.rejected}</div>
-            <div style={{fontSize: '13px', color: '#64748b'}}>Total Rejected</div>
-          </div>
+        {/* Tabs */}
+        <div style={{display: 'flex', gap: '4px', marginBottom: '20px', background: '#f1f5f9', padding: '4px', borderRadius: '10px', width: 'fit-content'}}>
+          <button
+            onClick={() => { setActiveTab('tasks'); setSelectedItems([]); }}
+            style={{
+              padding: '10px 24px',
+              background: activeTab === 'tasks' ? '#fff' : 'transparent',
+              color: activeTab === 'tasks' ? themeColors.primary : '#64748b',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '600',
+              boxShadow: activeTab === 'tasks' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              transition: 'all 0.2s'
+            }}
+          >
+            New Tasks ({getVisibleTaskEntries().length})
+          </button>
+          <button
+            onClick={() => { setActiveTab('clients'); setSelectedItems([]); }}
+            style={{
+              padding: '10px 24px',
+              background: activeTab === 'clients' ? '#fff' : 'transparent',
+              color: activeTab === 'clients' ? themeColors.primary : '#64748b',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '600',
+              boxShadow: activeTab === 'clients' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              transition: 'all 0.2s'
+            }}
+          >
+            New Clients ({getVisibleClientEntries().length})
+          </button>
         </div>
         
-        {/* Main Content Card */}
-        <div style={{background: '#fff', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden'}}>
-          {/* Tabs */}
-          <div style={{display: 'flex', borderBottom: '1px solid #e5e7eb'}}>
-            {[
-              {id: 'pending', label: 'Pending Review', count: stats.pending, color: '#d97706'},
-              {id: 'myRequests', label: 'My Requests', count: myRequests.length, color: themeColors.secondary},
-              {id: 'all', label: 'All History', count: allApprovals.length, color: '#64748b'}
-            ].map(tab => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
-                padding: '16px 24px', background: activeTab === tab.id ? '#fff' : 'transparent',
-                border: 'none', borderBottom: activeTab === tab.id ? `3px solid ${tab.color}` : '3px solid transparent',
-                cursor: 'pointer', fontWeight: activeTab === tab.id ? '600' : '500',
-                color: activeTab === tab.id ? tab.color : '#64748b', fontSize: '14px',
-                display: 'flex', alignItems: 'center', gap: '8px'
-              }}>
-                {tab.label}
-                <span style={{padding: '2px 8px', borderRadius: '10px', background: activeTab === tab.id ? tab.color : '#e5e7eb', color: activeTab === tab.id ? '#fff' : '#64748b', fontSize: '13px', fontWeight: '600'}}>{tab.count}</span>
-              </button>
-            ))}
-          </div>
-          
-          {/* Filters */}
-          <div style={{padding: '16px 20px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px'}}>
-            <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
-              {[
-                {id: 'all', label: 'All'},
-                {id: 'tasks', label: '📋 Tasks'},
-                {id: 'clients', label: '👤 Clients'},
-                {id: 'invoices', label: '📄 Invoices'},
-                {id: 'bulk-invoices', label: '📦 Bulk Invoices'},
-                {id: 'receipts', label: '💰 Receipts'},
-                {id: 'staff', label: '👥 Staff'}
-              ].map(type => (
-                <button key={type.id} onClick={() => setSelectedApprovalType(type.id)} style={{
-                  padding: '6px 14px', borderRadius: '20px', border: '1px solid',
-                  borderColor: selectedApprovalType === type.id ? themeColors.primary : '#e5e7eb',
-                  background: selectedApprovalType === type.id ? themeColors.primaryLight : '#fff',
-                  color: selectedApprovalType === type.id ? '#166534' : '#64748b',
-                  fontSize: '12px', fontWeight: '500', cursor: 'pointer'
-                }}>
-                  {type.label}
-                </button>
-              ))}
-            </div>
-            <div style={{position: 'relative'}}>
-              <Search size={16} style={{position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8'}} />
-              <input type="text" placeholder="Search approvals..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                style={{padding: '8px 12px 8px 36px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', width: '220px'}} />
-            </div>
-          </div>
-          
-          {/* Table */}
-          <div style={{overflowX: 'auto'}}>
-            {displayApprovals.length === 0 ? (
-              <div style={{padding: '60px', textAlign: 'center', color: '#94a3b8'}}>
-                <CheckCircle size={48} style={{marginBottom: '16px', opacity: 0.5}} />
-                <div style={{fontSize: '16px', fontWeight: '500'}}>No Approvals Found</div>
-                <div style={{fontSize: '13px', marginTop: '4px'}}>
-                  {activeTab === 'pending' ? 'All caught up! No pending approvals.' : 'No matching records found.'}
-                </div>
-              </div>
-            ) : (
+        {/* Filters */}
+        <div style={{display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center'}}>
+          <input
+            type="text"
+            placeholder="Search..."
+            value={filters.search}
+            onChange={(e) => setFilters({...filters, search: e.target.value})}
+            style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px', width: '200px'}}
+          />
+          <select
+            value={filters.status}
+            onChange={(e) => setFilters({...filters, status: e.target.value})}
+            style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px'}}
+          >
+            <option value="all">All Status</option>
+            <option value="draft">Draft</option>
+            <option value="pending">Pending Approval</option>
+            <option value="approved">Approved</option>
+          </select>
+          {canApprove && (
+            <select
+              value={filters.createdBy}
+              onChange={(e) => setFilters({...filters, createdBy: e.target.value})}
+              style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px'}}
+            >
+              <option value="all">All Users</option>
+              {getCreators().map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          )}
+          <div style={{flex: 1}}></div>
+          <button
+            onClick={activeTab === 'tasks' ? addTaskEntry : addClientEntry}
+            style={{padding: '8px 16px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'}}
+          >
+            <Plus size={16} /> Add {activeTab === 'tasks' ? 'Task' : 'Client'} Entry
+          </button>
+        </div>
+        
+        {/* Tasks Tab */}
+        {activeTab === 'tasks' && (
+          <div style={{background: '#fff', borderRadius: '12px', border: '1px solid #e5e7eb', overflow: 'hidden'}}>
+            <div style={{overflowX: 'auto'}}>
               <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
                 <thead>
                   <tr style={{background: themeColors.gradient}}>
-                    <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff', fontSize: '12px'}}>#</th>
-                    <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff', fontSize: '12px'}}>Type / Description</th>
-                    <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff', fontSize: '12px'}}>Details</th>
-                    <th style={{padding: '14px 16px', textAlign: 'right', fontWeight: '600', color: '#fff', fontSize: '12px'}}>Amount</th>
-                    <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff', fontSize: '12px'}}>Requested By</th>
-                    <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff', fontSize: '12px'}}>Status</th>
-                    <th style={{padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#fff', fontSize: '12px'}}>Actions</th>
+                    {canApprove && (
+                      <th style={{padding: '12px 8px', color: '#fff', fontWeight: '600', textAlign: 'center', width: '40px'}}>
+                        <input 
+                          type="checkbox" 
+                          checked={selectedItems.length > 0 && selectedItems.length === getVisibleTaskEntries().filter(e => e.status === 'pending').length}
+                          onChange={selectAllVisible}
+                          style={{cursor: 'pointer'}}
+                        />
+                      </th>
+                    )}
+                    <th style={{padding: '12px 8px', color: '#fff', fontWeight: '600', textAlign: 'center', width: '50px'}}>S.No</th>
+                    <th style={{padding: '12px 8px', color: '#fff', fontWeight: '600', textAlign: 'left', minWidth: '180px'}}>Client</th>
+                    <th style={{padding: '12px 8px', color: '#fff', fontWeight: '600', textAlign: 'left', minWidth: '120px'}}>Parent Task</th>
+                    <th style={{padding: '12px 8px', color: '#fff', fontWeight: '600', textAlign: 'left', minWidth: '120px'}}>Child Task</th>
+                    <th style={{padding: '12px 8px', color: '#fff', fontWeight: '600', textAlign: 'left', width: '100px'}}>FY</th>
+                    <th style={{padding: '12px 8px', color: '#fff', fontWeight: '600', textAlign: 'left', width: '100px'}}>Period</th>
+                    <th style={{padding: '12px 8px', color: '#fff', fontWeight: '600', textAlign: 'left', minWidth: '120px'}}>Task Leader</th>
+                    <th style={{padding: '12px 8px', color: '#fff', fontWeight: '600', textAlign: 'left', minWidth: '120px'}}>Assigned To</th>
+                    <th style={{padding: '12px 8px', color: '#fff', fontWeight: '600', textAlign: 'center', width: '100px'}}>Status</th>
+                    <th style={{padding: '12px 8px', color: '#fff', fontWeight: '600', textAlign: 'center', width: '120px'}}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {displayApprovals.map((approval, idx) => renderApprovalRow(approval, idx, activeTab === 'pending'))}
+                  {getVisibleTaskEntries().length === 0 ? (
+                    <tr>
+                      <td colSpan={canApprove ? 11 : 10} style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>
+                        No task entries found. Click "Add Task Entry" to create one.
+                      </td>
+                    </tr>
+                  ) : (
+                    getVisibleTaskEntries().map((entry, idx) => (
+                      <tr key={entry.id} style={{borderBottom: '1px solid #e5e7eb', background: idx % 2 === 0 ? '#fff' : '#f9fafb'}}>
+                        {canApprove && (
+                          <td style={{padding: '8px', textAlign: 'center'}}>
+                            {entry.status === 'pending' && (
+                              <input 
+                                type="checkbox" 
+                                checked={selectedItems.includes(entry.id)}
+                                onChange={() => toggleSelection(entry.id)}
+                                style={{cursor: 'pointer'}}
+                              />
+                            )}
+                          </td>
+                        )}
+                        <td style={{padding: '8px', textAlign: 'center', fontWeight: '600', color: '#64748b'}}>{idx + 1}</td>
+                        <td style={{padding: '8px'}}>
+                          {entry.status === 'draft' ? (
+                            <select
+                              value={entry.clientId}
+                              onChange={(e) => updateTaskEntry(entry.id, 'clientId', e.target.value)}
+                              style={{width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
+                            >
+                              <option value="">Select Client</option>
+                              {data.clients.filter(c => !c.disabled).map(c => (
+                                <option key={c.id} value={c.id}>{c.fileNo} - {c.name}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <span style={{fontSize: '12px'}}>{entry.fileNo} - {entry.clientName}</span>
+                          )}
+                        </td>
+                        <td style={{padding: '8px'}}>
+                          {entry.status === 'draft' ? (
+                            <select
+                              value={entry.parentTask}
+                              onChange={(e) => updateTaskEntry(entry.id, 'parentTask', e.target.value)}
+                              style={{width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
+                            >
+                              <option value="">Select</option>
+                              {Object.keys(PARENT_CHILD_TASKS).map(p => <option key={p} value={p}>{p}</option>)}
+                            </select>
+                          ) : entry.parentTask}
+                        </td>
+                        <td style={{padding: '8px'}}>
+                          {entry.status === 'draft' ? (
+                            <select
+                              value={entry.childTask}
+                              onChange={(e) => updateTaskEntry(entry.id, 'childTask', e.target.value)}
+                              style={{width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
+                              disabled={!entry.parentTask}
+                            >
+                              <option value="">Select</option>
+                              {(PARENT_CHILD_TASKS[entry.parentTask] || []).map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                          ) : entry.childTask}
+                        </td>
+                        <td style={{padding: '8px'}}>
+                          {entry.status === 'draft' ? (
+                            <select
+                              value={entry.financialYear}
+                              onChange={(e) => updateTaskEntry(entry.id, 'financialYear', e.target.value)}
+                              style={{width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
+                            >
+                              {financialYears.map(fy => <option key={fy} value={fy}>{fy}</option>)}
+                            </select>
+                          ) : entry.financialYear}
+                        </td>
+                        <td style={{padding: '8px'}}>
+                          {entry.status === 'draft' ? (
+                            <select
+                              value={entry.period}
+                              onChange={(e) => updateTaskEntry(entry.id, 'period', e.target.value)}
+                              style={{width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
+                            >
+                              <option value="">Select</option>
+                              {periods.map(p => <option key={p} value={p}>{p}</option>)}
+                            </select>
+                          ) : entry.period}
+                        </td>
+                        <td style={{padding: '8px'}}>
+                          {entry.status === 'draft' ? (
+                            <select
+                              value={entry.taskLeader}
+                              onChange={(e) => updateTaskEntry(entry.id, 'taskLeader', e.target.value)}
+                              style={{width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
+                            >
+                              <option value="">Select</option>
+                              {activeRMs.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                            </select>
+                          ) : entry.taskLeader}
+                        </td>
+                        <td style={{padding: '8px'}}>
+                          {entry.status === 'draft' ? (
+                            <select
+                              value={entry.primaryAssignedUser}
+                              onChange={(e) => updateTaskEntry(entry.id, 'primaryAssignedUser', e.target.value)}
+                              style={{width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
+                            >
+                              <option value="">Select</option>
+                              {activeStaff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                            </select>
+                          ) : entry.primaryAssignedUser}
+                        </td>
+                        <td style={{padding: '8px', textAlign: 'center'}}>{getStatusBadge(entry.status)}</td>
+                        <td style={{padding: '8px', textAlign: 'center'}}>
+                          <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
+                            {entry.status === 'draft' && (
+                              <>
+                                <button
+                                  onClick={() => saveTaskEntry(entry.id)}
+                                  disabled={!entry.clientId || !entry.parentTask || !entry.childTask}
+                                  title="Save for Approval"
+                                  style={{padding: '4px 8px', background: entry.clientId && entry.parentTask && entry.childTask ? themeColors.primary : '#cbd5e1', color: '#fff', border: 'none', borderRadius: '4px', cursor: entry.clientId && entry.parentTask && entry.childTask ? 'pointer' : 'not-allowed', fontSize: '11px'}}
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  onClick={() => deleteTaskEntry(entry.id)}
+                                  title="Delete"
+                                  style={{padding: '4px 8px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px'}}
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </>
+                            )}
+                            {entry.status === 'pending' && canApprove && (
+                              <button
+                                onClick={() => approveAndPostTask(entry)}
+                                title="Approve & Post"
+                                style={{padding: '4px 10px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: '600'}}
+                              >
+                                ✓ Approve
+                              </button>
+                            )}
+                            {entry.status === 'approved' && (
+                              <span style={{fontSize: '11px', color: themeColors.primary}}>✓ Posted</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
-            )}
-          </div>
-        </div>
-        
-        {/* View Approval Modal */}
-        {viewingApproval && (
-          <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px'}}>
-            <div style={{background: '#f8fafc', borderRadius: '16px', width: '100%', maxWidth: '900px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column'}}>
-              <div style={{padding: '20px 24px', background: themeColors.gradient, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                <div>
-                  <h3 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: '#fff'}}>{getTypeLabel(viewingApproval.type, viewingApproval.data)}</h3>
-                  <div style={{fontSize: '12px', color: 'rgba(255,255,255,0.8)', marginTop: '4px'}}>
-                    Requested by {viewingApproval.requestedBy} • {new Date(viewingApproval.createdAt).toLocaleString()}
-                  </div>
-                </div>
-                <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-                  {getStatusBadge(viewingApproval.status)}
-                  <button onClick={() => setViewingApproval(null)} style={{background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer', color: '#fff'}}>
-                    <X size={20} />
-                  </button>
-                </div>
-              </div>
-              <div style={{padding: '24px', overflowY: 'auto', flex: 1}}>
-                {renderApprovalContent(viewingApproval)}
-                {viewingApproval.comments && (
-                  <div style={{marginTop: '20px', padding: '16px', background: viewingApproval.status === 'rejected' ? '#fef2f2' : themeColors.primaryLight, borderRadius: '8px'}}>
-                    <strong style={{color: viewingApproval.status === 'rejected' ? '#dc2626' : '#166534'}}>Reviewer Comment:</strong>
-                    <div style={{marginTop: '4px'}}>{viewingApproval.comments}</div>
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         )}
         
-        {/* Edit & Approve Modal */}
-        {editingApproval && editedData && (
-          <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px'}}>
-            <div style={{background: '#fff', borderRadius: '16px', width: '100%', maxWidth: '800px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column'}}>
-              <div style={{padding: '20px 24px', background: '#fef3c7', borderBottom: '1px solid #fcd34d', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                <div>
-                  <h3 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: '#92400e'}}>✎ Edit Before Approving</h3>
-                  <div style={{fontSize: '12px', color: '#b45309', marginTop: '4px'}}>Make changes below and approve</div>
+        {/* Clients Tab */}
+        {activeTab === 'clients' && (
+          <div style={{background: '#fff', borderRadius: '12px', border: '1px solid #e5e7eb', overflow: 'hidden'}}>
+            <div style={{overflowX: 'auto'}}>
+              <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
+                <thead>
+                  <tr style={{background: themeColors.gradient}}>
+                    {canApprove && (
+                      <th style={{padding: '12px 8px', color: '#fff', fontWeight: '600', textAlign: 'center', width: '40px'}}>
+                        <input 
+                          type="checkbox" 
+                          checked={selectedItems.length > 0 && selectedItems.length === getVisibleClientEntries().filter(e => e.status === 'pending').length}
+                          onChange={selectAllVisible}
+                          style={{cursor: 'pointer'}}
+                        />
+                      </th>
+                    )}
+                    <th style={{padding: '12px 8px', color: '#fff', fontWeight: '600', textAlign: 'center', width: '50px'}}>S.No</th>
+                    <th style={{padding: '12px 8px', color: '#fff', fontWeight: '600', textAlign: 'left', width: '100px'}}>File No</th>
+                    <th style={{padding: '12px 8px', color: '#fff', fontWeight: '600', textAlign: 'left', minWidth: '180px'}}>Client Name</th>
+                    <th style={{padding: '12px 8px', color: '#fff', fontWeight: '600', textAlign: 'left', width: '120px'}}>PAN</th>
+                    <th style={{padding: '12px 8px', color: '#fff', fontWeight: '600', textAlign: 'left', width: '150px'}}>GSTIN</th>
+                    <th style={{padding: '12px 8px', color: '#fff', fontWeight: '600', textAlign: 'left', width: '120px'}}>Phone</th>
+                    <th style={{padding: '12px 8px', color: '#fff', fontWeight: '600', textAlign: 'left', width: '120px'}}>Type</th>
+                    <th style={{padding: '12px 8px', color: '#fff', fontWeight: '600', textAlign: 'left', width: '120px'}}>State</th>
+                    <th style={{padding: '12px 8px', color: '#fff', fontWeight: '600', textAlign: 'left', width: '120px'}}>RM</th>
+                    <th style={{padding: '12px 8px', color: '#fff', fontWeight: '600', textAlign: 'center', width: '100px'}}>Status</th>
+                    <th style={{padding: '12px 8px', color: '#fff', fontWeight: '600', textAlign: 'center', width: '120px'}}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {getVisibleClientEntries().length === 0 ? (
+                    <tr>
+                      <td colSpan={canApprove ? 12 : 11} style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>
+                        No client entries found. Click "Add Client Entry" to create one.
+                      </td>
+                    </tr>
+                  ) : (
+                    getVisibleClientEntries().map((entry, idx) => (
+                      <tr key={entry.id} style={{borderBottom: '1px solid #e5e7eb', background: idx % 2 === 0 ? '#fff' : '#f9fafb'}}>
+                        {canApprove && (
+                          <td style={{padding: '8px', textAlign: 'center'}}>
+                            {entry.status === 'pending' && (
+                              <input 
+                                type="checkbox" 
+                                checked={selectedItems.includes(entry.id)}
+                                onChange={() => toggleSelection(entry.id)}
+                                style={{cursor: 'pointer'}}
+                              />
+                            )}
+                          </td>
+                        )}
+                        <td style={{padding: '8px', textAlign: 'center', fontWeight: '600', color: '#64748b'}}>{idx + 1}</td>
+                        <td style={{padding: '8px', fontWeight: '600', color: themeColors.primary}}>{entry.fileNo || '-'}</td>
+                        <td style={{padding: '8px'}}>
+                          {entry.status === 'draft' ? (
+                            <input
+                              type="text"
+                              value={entry.name}
+                              onChange={(e) => updateClientEntry(entry.id, 'name', e.target.value)}
+                              placeholder="Client Name"
+                              style={{width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
+                            />
+                          ) : entry.name}
+                        </td>
+                        <td style={{padding: '8px'}}>
+                          {entry.status === 'draft' ? (
+                            <input
+                              type="text"
+                              value={entry.pan}
+                              onChange={(e) => updateClientEntry(entry.id, 'pan', e.target.value.toUpperCase())}
+                              placeholder="PAN"
+                              maxLength={10}
+                              style={{width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', textTransform: 'uppercase'}}
+                            />
+                          ) : entry.pan}
+                        </td>
+                        <td style={{padding: '8px'}}>
+                          {entry.status === 'draft' ? (
+                            <input
+                              type="text"
+                              value={entry.gstin}
+                              onChange={(e) => updateClientEntry(entry.id, 'gstin', e.target.value.toUpperCase())}
+                              placeholder="GSTIN"
+                              maxLength={15}
+                              style={{width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', textTransform: 'uppercase'}}
+                            />
+                          ) : entry.gstin}
+                        </td>
+                        <td style={{padding: '8px'}}>
+                          {entry.status === 'draft' ? (
+                            <input
+                              type="tel"
+                              value={entry.phone}
+                              onChange={(e) => updateClientEntry(entry.id, 'phone', e.target.value)}
+                              placeholder="Phone"
+                              style={{width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
+                            />
+                          ) : entry.phone}
+                        </td>
+                        <td style={{padding: '8px'}}>
+                          {entry.status === 'draft' ? (
+                            <select
+                              value={entry.typeOfClient}
+                              onChange={(e) => updateClientEntry(entry.id, 'typeOfClient', e.target.value)}
+                              style={{width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
+                            >
+                              <option value="">Select</option>
+                              {clientTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                            </select>
+                          ) : entry.typeOfClient}
+                        </td>
+                        <td style={{padding: '8px'}}>
+                          {entry.status === 'draft' ? (
+                            <select
+                              value={entry.state}
+                              onChange={(e) => updateClientEntry(entry.id, 'state', e.target.value)}
+                              style={{width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
+                            >
+                              <option value="">Select</option>
+                              {states.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                          ) : entry.state}
+                        </td>
+                        <td style={{padding: '8px'}}>
+                          {entry.status === 'draft' ? (
+                            <select
+                              value={entry.reportingManager}
+                              onChange={(e) => updateClientEntry(entry.id, 'reportingManager', e.target.value)}
+                              style={{width: '100%', padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}
+                            >
+                              <option value="">Select</option>
+                              {activeRMs.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                            </select>
+                          ) : entry.reportingManager}
+                        </td>
+                        <td style={{padding: '8px', textAlign: 'center'}}>{getStatusBadge(entry.status)}</td>
+                        <td style={{padding: '8px', textAlign: 'center'}}>
+                          <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
+                            {entry.status === 'draft' && (
+                              <>
+                                <button
+                                  onClick={() => saveClientEntry(entry.id)}
+                                  disabled={!entry.name}
+                                  title="Save for Approval"
+                                  style={{padding: '4px 8px', background: entry.name ? themeColors.primary : '#cbd5e1', color: '#fff', border: 'none', borderRadius: '4px', cursor: entry.name ? 'pointer' : 'not-allowed', fontSize: '11px'}}
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  onClick={() => deleteClientEntry(entry.id)}
+                                  title="Delete"
+                                  style={{padding: '4px 8px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px'}}
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </>
+                            )}
+                            {entry.status === 'pending' && canApprove && (
+                              <button
+                                onClick={() => approveAndPostClient(entry)}
+                                title="Approve & Post"
+                                style={{padding: '4px 10px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: '600'}}
+                              >
+                                ✓ Approve
+                              </button>
+                            )}
+                            {entry.status === 'approved' && (
+                              <span style={{fontSize: '11px', color: themeColors.primary}}>✓ Posted</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+        
+        {/* Info for non-approvers */}
+        {!canApprove && (
+          <div style={{marginTop: '20px', padding: '16px', background: themeColors.primaryLighter, borderRadius: '10px', border: `1px solid ${themeColors.border}`}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+              <Info size={20} style={{color: themeColors.primary}} />
+              <div>
+                <div style={{fontWeight: '600', color: '#1e293b', marginBottom: '2px'}}>How it works</div>
+                <div style={{fontSize: '13px', color: '#64748b'}}>
+                  Add entries and click "Save" to submit for approval. Your Reporting Manager will review and approve the entries.
                 </div>
-                <button onClick={() => { setEditingApproval(null); setEditedData(null); }} style={{background: 'none', border: 'none', cursor: 'pointer', padding: '8px'}}>
-                  <X size={20} color="#92400e" />
-                </button>
-              </div>
-              <div style={{padding: '24px', overflowY: 'auto', flex: 1}}>
-                {/* Invoice Edit Form */}
-                {(editingApproval.type === 'invoice' || editingApproval.type === 'invoice-create' || editingApproval.type === 'invoice-edit') && !editedData.isBulkInvoice && (
-                  <div style={{display: 'grid', gap: '16px'}}>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>Invoice No</label>
-                        <input type="text" value={editedData.invoiceNo || ''} onChange={(e) => setEditedData({...editedData, invoiceNo: e.target.value})}
-                          style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>Invoice Date</label>
-                        <input type="date" value={editedData.invoiceDate || ''} onChange={(e) => setEditedData({...editedData, invoiceDate: e.target.value})}
-                          style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                    </div>
-                    <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px'}}>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>Client Name</label>
-                        <input type="text" value={editedData.clientName || ''} onChange={(e) => setEditedData({...editedData, clientName: e.target.value})}
-                          style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>Client Code</label>
-                        <input type="text" value={editedData.clientCode || ''} onChange={(e) => setEditedData({...editedData, clientCode: e.target.value})}
-                          style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                    </div>
-                    <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>Client Address</label>
-                      <input type="text" value={editedData.clientAddress || ''} onChange={(e) => setEditedData({...editedData, clientAddress: e.target.value})}
-                        style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                    </div>
-                    <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>Service Description</label>
-                      <textarea value={editedData.serviceDescription || editedData.narration || ''} 
-                        onChange={(e) => setEditedData({...editedData, serviceDescription: e.target.value, narration: e.target.value})}
-                        rows={2} style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', resize: 'vertical'}} />
-                    </div>
-                    <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px'}}>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>Net Amount</label>
-                        <input type="number" value={editedData.netAmount || 0} onChange={(e) => {
-                          const net = parseFloat(e.target.value) || 0;
-                          const cgst = editedData.cgst || 0;
-                          const sgst = editedData.sgst || 0;
-                          const igst = editedData.igst || 0;
-                          setEditedData({...editedData, netAmount: net, totalAmount: net + cgst + sgst + igst});
-                        }} style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>CGST</label>
-                        <input type="number" value={editedData.cgst || 0} onChange={(e) => {
-                          const cgst = parseFloat(e.target.value) || 0;
-                          setEditedData({...editedData, cgst, totalAmount: (editedData.netAmount || 0) + cgst + (editedData.sgst || 0) + (editedData.igst || 0)});
-                        }} style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>SGST</label>
-                        <input type="number" value={editedData.sgst || 0} onChange={(e) => {
-                          const sgst = parseFloat(e.target.value) || 0;
-                          setEditedData({...editedData, sgst, totalAmount: (editedData.netAmount || 0) + (editedData.cgst || 0) + sgst + (editedData.igst || 0)});
-                        }} style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>IGST</label>
-                        <input type="number" value={editedData.igst || 0} onChange={(e) => {
-                          const igst = parseFloat(e.target.value) || 0;
-                          setEditedData({...editedData, igst, totalAmount: (editedData.netAmount || 0) + (editedData.cgst || 0) + (editedData.sgst || 0) + igst});
-                        }} style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                    </div>
-                    <div style={{padding: '16px', background: themeColors.primaryLighter, borderRadius: '8px', border: `1px solid ${themeColors.border}`}}>
-                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                        <span style={{fontWeight: '600', color: themeColors.primaryText}}>Total Amount</span>
-                        <span style={{fontSize: '24px', fontWeight: '700', color: themeColors.primary}}>₹{(editedData.totalAmount || 0).toLocaleString('en-IN')}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Receipt Edit Form */}
-                {(editingApproval.type === 'receipt' || editingApproval.type === 'receipt-create' || editingApproval.type === 'receipt-edit') && (
-                  <div style={{display: 'grid', gap: '16px'}}>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>Receipt No</label>
-                        <input type="text" value={editedData.receiptNo || ''} onChange={(e) => setEditedData({...editedData, receiptNo: e.target.value})}
-                          style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>Receipt Date</label>
-                        <input type="date" value={editedData.receiptDate || editedData.date || ''} onChange={(e) => setEditedData({...editedData, receiptDate: e.target.value, date: e.target.value})}
-                          style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                    </div>
-                    <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>Client Name</label>
-                      <input type="text" value={editedData.clientName || ''} onChange={(e) => setEditedData({...editedData, clientName: e.target.value})}
-                        style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                    </div>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px'}}>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>Amount</label>
-                        <input type="number" value={editedData.amount || 0} onChange={(e) => setEditedData({...editedData, amount: parseFloat(e.target.value) || 0})}
-                          style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>TDS</label>
-                        <input type="number" value={editedData.tds || 0} onChange={(e) => setEditedData({...editedData, tds: parseFloat(e.target.value) || 0})}
-                          style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>Payment Mode</label>
-                        <select value={editedData.paymentMode || ''} onChange={(e) => setEditedData({...editedData, paymentMode: e.target.value})}
-                          style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}}>
-                          <option value="">Select</option>
-                          <option value="Cash">Cash</option>
-                          <option value="Cheque">Cheque</option>
-                          <option value="NEFT">NEFT</option>
-                          <option value="RTGS">RTGS</option>
-                          <option value="UPI">UPI</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Task Edit Form */}
-                {(editingApproval.type === 'task') && (
-                  <div style={{display: 'grid', gap: '16px'}}>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>Client Name</label>
-                        <input type="text" value={editedData.clientName || ''} onChange={(e) => setEditedData({...editedData, clientName: e.target.value})}
-                          style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>File No</label>
-                        <input type="text" value={editedData.fileNo || ''} onChange={(e) => setEditedData({...editedData, fileNo: e.target.value})}
-                          style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                    </div>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>Parent Task</label>
-                        <input type="text" value={editedData.parentTask || ''} onChange={(e) => setEditedData({...editedData, parentTask: e.target.value})}
-                          style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>Child Task</label>
-                        <input type="text" value={editedData.childTask || ''} onChange={(e) => setEditedData({...editedData, childTask: e.target.value})}
-                          style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                    </div>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>Task Manager</label>
-                        <input type="text" value={editedData.taskManager || ''} onChange={(e) => setEditedData({...editedData, taskManager: e.target.value})}
-                          style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>Assigned To</label>
-                        <input type="text" value={editedData.primaryAssignedUser || ''} onChange={(e) => setEditedData({...editedData, primaryAssignedUser: e.target.value})}
-                          style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                    </div>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>Financial Year</label>
-                        <input type="text" value={editedData.financialYear || ''} onChange={(e) => setEditedData({...editedData, financialYear: e.target.value})}
-                          style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>Period</label>
-                        <input type="text" value={editedData.period || ''} onChange={(e) => setEditedData({...editedData, period: e.target.value})}
-                          style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Client Add Edit Form */}
-                {editingApproval.type === 'client_add' && (
-                  <div style={{display: 'grid', gap: '16px'}}>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px'}}>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>File No</label>
-                        <input type="text" value={editedData.fileNo || ''} onChange={(e) => setEditedData({...editedData, fileNo: e.target.value})}
-                          style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>Client Name</label>
-                        <input type="text" value={editedData.name || ''} onChange={(e) => setEditedData({...editedData, name: e.target.value})}
-                          style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                    </div>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px'}}>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>PAN</label>
-                        <input type="text" value={editedData.pan || ''} onChange={(e) => setEditedData({...editedData, pan: e.target.value.toUpperCase()})}
-                          style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>Email</label>
-                        <input type="email" value={editedData.email || ''} onChange={(e) => setEditedData({...editedData, email: e.target.value})}
-                          style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                      <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#374151'}}>Mobile</label>
-                        <input type="text" value={editedData.mobile || ''} onChange={(e) => setEditedData({...editedData, mobile: e.target.value})}
-                          style={{width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px'}} />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div style={{padding: '16px 24px', borderTop: '1px solid #e5e7eb', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end', gap: '12px'}}>
-                <button onClick={() => { setEditingApproval(null); setEditedData(null); }}
-                  style={{padding: '10px 20px', background: '#fff', color: '#64748b', border: '1px solid #d1d5db', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '500'}}>
-                  Cancel
-                </button>
-                <button onClick={() => { handleApprovalAction(editingApproval.id, 'approved', editedData); setEditingApproval(null); setEditedData(null); }}
-                  style={{padding: '10px 24px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600'}}>
-                  ✓ Approve with Changes
-                </button>
               </div>
             </div>
           </div>
@@ -29734,6 +29652,7 @@ ${invoiceHtml}
       </div>
     );
   };
+
 
 
   // ==================== DSC REGISTER VIEW ====================
@@ -31674,7 +31593,7 @@ ${invoiceHtml}
       case 'timesheetReports': return <TimesheetReportsView />;
       case 'templates': return <TemplatesView />;
       case 'reports': return <ReportsView />;
-      case 'approvals': return <ApprovalsView />;
+      case 'newEntries': return <NewEntriesView />;
       case 'dscRegister': return <DSCRegisterView />;
       case 'packages': return <PackagesView />;
       default: return <DashboardView />;
