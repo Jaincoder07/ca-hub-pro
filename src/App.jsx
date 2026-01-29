@@ -28847,717 +28847,487 @@ ${invoiceHtml}
   const NewEntriesView = () => {
     const [activeTab, setActiveTab] = useState('tasks');
     const [selectedItems, setSelectedItems] = useState([]);
-    const [editingEntry, setEditingEntry] = useState(null);
-    const [editFormData, setEditFormData] = useState(null);
-    const [filters, setFilters] = useState({ status: 'all', createdBy: 'all', search: '' });
-    
-    // Search states stored separately to avoid re-render issues
-    const [taskClientSearch, setTaskClientSearch] = useState({});
-    const [taskClientDropdown, setTaskClientDropdown] = useState({});
-    const [teamTaskSearch, setTeamTaskSearch] = useState({});
-    const [teamTaskDropdown, setTeamTaskDropdown] = useState({});
+    const [editModal, setEditModal] = useState(null);
     
     const userRole = getCurrentUserRole();
-    const isSuperAdmin = currentUser?.isSuperAdmin || userRole === 'Superadmin';
-    const isRM = userRole === 'Reporting Manager';
-    const canApprove = isSuperAdmin || isRM;
+    const canApprove = currentUser?.isSuperAdmin || userRole === 'Superadmin' || userRole === 'Reporting Manager';
     
-    const allTaskEntries = data.pendingTaskEntries || [];
-    const allClientEntries = data.pendingClientEntries || [];
-    const allTeamMemberEntries = data.pendingTeamMemberEntries || [];
+    // Get entries from data
+    const taskEntries = data.pendingTaskEntries || [];
+    const clientEntries = data.pendingClientEntries || [];
+    const teamEntries = data.pendingTeamMemberEntries || [];
+    
+    // Constants
+    const TASKS = data.parentChildTasks || {};
+    const FYs = ['FY 2023-24', 'FY 2024-25', 'FY 2025-26'];
+    const PERIODS = ['Monthly', 'Quarterly', 'Half-Yearly', 'Annual', 'Q1', 'Q2', 'Q3', 'Q4'];
+    const TYPES = ['Individual', 'Partnership', 'LLP', 'Private Limited', 'Public Limited', 'HUF', 'Trust'];
+    const STATES = ['Delhi', 'Maharashtra', 'Karnataka', 'Tamil Nadu', 'Gujarat', 'Uttar Pradesh', 'Rajasthan', 'West Bengal', 'Telangana', 'Kerala'];
+    
+    const superAdmins = data.staff.filter(s => s.isSuperAdmin && s.status === 'Active');
+    const rms = data.staff.filter(s => s.role === 'Reporting Manager' && s.status === 'Active');
+    const staff = data.staff.filter(s => s.status === 'Active');
     
     // Group helpers
-    const getExistingGroups = () => {
-      const groups = new Set();
+    const getGroups = () => {
+      const g = new Set();
       data.clients.forEach(c => {
         if (c.fileNo) {
-          const parts = c.fileNo.split('.');
-          if (parts.length === 2 && parts[0]) groups.add(parseInt(parts[0]));
+          const p = c.fileNo.split('.');
+          if (p.length === 2) g.add(parseInt(p[0]));
         }
       });
-      return Array.from(groups).filter(g => !isNaN(g)).sort((a, b) => a - b);
+      return [...g].filter(x => !isNaN(x)).sort((a,b) => a-b);
     };
     
-    const getNextNewGroup = () => {
-      const groups = getExistingGroups();
-      const pendingGroups = allClientEntries.filter(e => e.status !== 'approved' && e.groupMode === 'new' && e.groupNo).map(e => parseInt(e.groupNo));
-      const allGroups = [...groups, ...pendingGroups];
-      return allGroups.length === 0 ? 1 : Math.max(...allGroups) + 1;
+    const getNextGroup = () => {
+      const groups = getGroups();
+      const pending = clientEntries.filter(e => e.groupMode === 'new' && e.groupNo).map(e => parseInt(e.groupNo));
+      const all = [...groups, ...pending];
+      return all.length === 0 ? 1 : Math.max(...all) + 1;
     };
     
-    const getNextClientCode = (groupCode) => {
-      const groupClients = data.clients.filter(c => c.fileNo && c.fileNo.split('.')[0] === String(groupCode));
-      const pendingInGroup = allClientEntries.filter(e => e.status !== 'approved' && e.groupNo === String(groupCode));
-      const existingCodes = groupClients.map(c => { const p = c.fileNo.split('.'); return p.length === 2 ? parseInt(p[1]) : 0; }).filter(n => !isNaN(n));
-      const pendingCodes = pendingInGroup.map(e => { const p = (e.fileNo || '').split('.'); return p.length === 2 ? parseInt(p[1]) : 0; }).filter(n => !isNaN(n));
-      const maxCode = Math.max(0, ...existingCodes, ...pendingCodes);
-      return `${groupCode}.${String(maxCode + 1).padStart(2, '0')}`;
+    const getNextCode = (grp) => {
+      const existing = data.clients.filter(c => c.fileNo?.startsWith(grp + '.')).map(c => parseInt(c.fileNo.split('.')[1]) || 0);
+      const pending = clientEntries.filter(e => e.groupNo === String(grp)).map(e => parseInt((e.fileNo || '').split('.')[1]) || 0);
+      const max = Math.max(0, ...existing, ...pending);
+      return `${grp}.${String(max + 1).padStart(2, '0')}`;
     };
     
-    const getGroupClientCount = (groupCode) => data.clients.filter(c => c.fileNo && c.fileNo.split('.')[0] === String(groupCode)).length;
+    const getGroupCount = (grp) => data.clients.filter(c => c.fileNo?.startsWith(grp + '.')).length;
     
-    // Filter helpers
-    const getVisibleTaskEntries = () => {
-      let entries = allTaskEntries;
-      if (!canApprove) entries = entries.filter(e => e.createdBy === currentUser?.name);
-      if (filters.status !== 'all') entries = entries.filter(e => e.status === filters.status);
-      if (filters.createdBy !== 'all') entries = entries.filter(e => e.createdBy === filters.createdBy);
-      if (filters.search) {
-        const term = filters.search.toLowerCase();
-        entries = entries.filter(e => e.clientName?.toLowerCase().includes(term) || e.parentTask?.toLowerCase().includes(term));
-      }
-      return entries;
-    };
-    
-    const getVisibleClientEntries = () => {
-      let entries = allClientEntries;
-      if (!canApprove) entries = entries.filter(e => e.createdBy === currentUser?.name);
-      if (filters.status !== 'all') entries = entries.filter(e => e.status === filters.status);
-      if (filters.createdBy !== 'all') entries = entries.filter(e => e.createdBy === filters.createdBy);
-      if (filters.search) {
-        const term = filters.search.toLowerCase();
-        entries = entries.filter(e => e.name?.toLowerCase().includes(term) || e.pan?.toLowerCase().includes(term));
-      }
-      return entries;
-    };
-    
-    const getVisibleTeamMemberEntries = () => {
-      let entries = allTeamMemberEntries;
-      if (!canApprove) entries = entries.filter(e => e.createdBy === currentUser?.name);
-      if (filters.status !== 'all') entries = entries.filter(e => e.status === filters.status);
-      if (filters.search) {
-        const term = filters.search.toLowerCase();
-        entries = entries.filter(e => e.clientName?.toLowerCase().includes(term) || e.taskCode?.toLowerCase().includes(term));
-      }
-      return entries;
-    };
-    
-    // Sub-period logic
-    const getSubPeriods = (period) => {
-      const months = ['April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December', 'January', 'February', 'March'];
-      if (period === 'Monthly') return months;
-      if (period === 'Quarterly') return ['Q1 (Apr-Jun)', 'Q2 (Jul-Sep)', 'Q3 (Oct-Dec)', 'Q4 (Jan-Mar)'];
-      if (period === 'Half-Yearly') return ['H1 (Apr-Sep)', 'H2 (Oct-Mar)'];
+    // Sub-periods
+    const getSubPeriods = (p) => {
+      if (p === 'Monthly') return ['April','May','June','July','August','September','October','November','December','January','February','March'];
+      if (p === 'Quarterly') return ['Q1 (Apr-Jun)','Q2 (Jul-Sep)','Q3 (Oct-Dec)','Q4 (Jan-Mar)'];
+      if (p === 'Half-Yearly') return ['H1 (Apr-Sep)','H2 (Oct-Mar)'];
       return [];
     };
     
-    // Search helpers - renamed to avoid shadowing
-    const searchClientsByTerm = (searchTerm) => {
-      if (!searchTerm || searchTerm.length < 2) return [];
-      const term = searchTerm.toLowerCase();
-      return data.clients.filter(c => !c.disabled && (c.name?.toLowerCase().includes(term) || c.fileNo?.toLowerCase().includes(term) || c.pan?.toLowerCase().includes(term))).slice(0, 15);
-    };
-    
-    const searchTasksByTerm = (searchTerm) => {
-      if (!searchTerm || searchTerm.length < 2) return [];
-      const term = searchTerm.toLowerCase();
-      return data.tasks.filter(t => t.clientName?.toLowerCase().includes(term) || t.taskCode?.toLowerCase().includes(term) || t.parentTask?.toLowerCase().includes(term)).slice(0, 15);
-    };
-    
-    // Add functions
-    const addTaskEntry = () => {
-      const id = generateId();
-      const newEntry = {
-        id, serialNo: allTaskEntries.length + 1,
+    // ===== ADD FUNCTIONS =====
+    const addTask = () => {
+      const entry = {
+        id: generateId(), status: 'draft', createdBy: currentUser?.name,
         clientId: '', clientName: '', fileNo: '', groupName: '',
         parentTask: '', childTask: '', financialYear: 'FY 2024-25', period: '', subPeriod: '',
-        taskLeader: '', taskManager: '', primaryAssignedUser: '', teamMembers: [],
-        startDate: '', expectedCompletionDate: '', taskDescription: '',
-        status: 'draft', createdBy: currentUser?.name || 'Unknown', createdAt: new Date().toISOString()
+        taskLeader: '', taskManager: '', assignedUser: '', teamMembers: [], description: ''
       };
-      setData(prev => ({ ...prev, pendingTaskEntries: [...(prev.pendingTaskEntries || []), newEntry] }));
-      setTaskClientSearch(prev => ({ ...prev, [id]: '' }));
+      setData(p => ({...p, pendingTaskEntries: [...(p.pendingTaskEntries||[]), entry]}));
     };
     
-    const addClientEntry = () => {
-      const nextGroup = getNextNewGroup();
-      const newEntry = {
-        id: generateId(), serialNo: allClientEntries.length + 1,
-        groupMode: 'new', selectedGroup: '', groupNo: String(nextGroup), fileNo: `${nextGroup}.01`,
-        name: '', email: '', phone: '', address: '', pan: '', gstin: '', state: '', typeOfClient: '', reportingManager: '',
-        dateOfEnrollment: new Date().toISOString().split('T')[0],
-        status: 'draft', createdBy: currentUser?.name || 'Unknown', createdAt: new Date().toISOString()
+    const addClient = () => {
+      const ng = getNextGroup();
+      const entry = {
+        id: generateId(), status: 'draft', createdBy: currentUser?.name,
+        groupMode: 'new', selectedGroup: '', groupNo: String(ng), fileNo: `${ng}.01`,
+        name: '', pan: '', gstin: '', phone: '', email: '', typeOfClient: '', state: '', reportingManager: ''
       };
-      setData(prev => ({ ...prev, pendingClientEntries: [...(prev.pendingClientEntries || []), newEntry] }));
+      setData(p => ({...p, pendingClientEntries: [...(p.pendingClientEntries||[]), entry]}));
     };
     
-    const addTeamMemberEntry = () => {
-      const id = generateId();
-      const newEntry = {
-        id, taskId: '', taskCode: '', clientName: '', parentTask: '', childTask: '',
-        currentPrimaryUser: '', newPrimaryUser: '', additionalMembers: [], changePrimary: false,
-        status: 'draft', createdBy: currentUser?.name || 'Unknown', createdAt: new Date().toISOString()
+    const addTeamMember = () => {
+      const entry = {
+        id: generateId(), status: 'draft', createdBy: currentUser?.name,
+        taskId: '', taskCode: '', clientName: '', currentPrimary: '',
+        changePrimary: false, newPrimary: '', addMembers: []
       };
-      setData(prev => ({ ...prev, pendingTeamMemberEntries: [...(prev.pendingTeamMemberEntries || []), newEntry] }));
-      setTeamTaskSearch(prev => ({ ...prev, [id]: '' }));
+      setData(p => ({...p, pendingTeamMemberEntries: [...(p.pendingTeamMemberEntries||[]), entry]}));
     };
     
-    // Update functions
-    const updateTaskEntry = (entryId, field, value) => {
-      setData(prev => ({
-        ...prev,
-        pendingTaskEntries: (prev.pendingTaskEntries || []).map(entry => {
-          if (entry.id !== entryId) return entry;
-          let updated = { ...entry, [field]: value };
-          if (field === 'clientId' && value) {
-            const client = data.clients.find(c => c.id === value);
-            if (client) {
-              updated.clientName = client.name;
-              updated.fileNo = client.fileNo;
-              updated.groupName = client.groupName || client.name;
-            }
+    // ===== UPDATE FUNCTIONS =====
+    const updateTask = (id, field, val) => {
+      setData(p => ({
+        ...p,
+        pendingTaskEntries: (p.pendingTaskEntries||[]).map(e => {
+          if (e.id !== id) return e;
+          const u = {...e, [field]: val};
+          if (field === 'clientId' && val) {
+            const c = data.clients.find(x => x.id === val);
+            if (c) { u.clientName = c.name; u.fileNo = c.fileNo; u.groupName = c.groupName || c.name; }
           }
-          if (field === 'parentTask') updated.childTask = '';
-          if (field === 'period') updated.subPeriod = '';
-          return updated;
+          if (field === 'parentTask') u.childTask = '';
+          if (field === 'period') u.subPeriod = '';
+          return u;
         })
       }));
     };
     
-    const updateClientEntryField = (entryId, field, value) => {
-      setData(prev => {
-        // Helper functions using prev state
-        const existingGroups = () => {
-          const groups = new Set();
-          prev.clients.forEach(c => {
-            if (c.fileNo) {
-              const parts = c.fileNo.split('.');
-              if (parts.length === 2 && parts[0]) groups.add(parseInt(parts[0]));
-            }
-          });
-          return Array.from(groups).filter(g => !isNaN(g)).sort((a, b) => a - b);
-        };
-        
-        const nextNewGroup = () => {
-          const groups = existingGroups();
-          const pendingGroups = (prev.pendingClientEntries || []).filter(e => e.status !== 'approved' && e.groupMode === 'new' && e.groupNo).map(e => parseInt(e.groupNo));
-          const allGroups = [...groups, ...pendingGroups];
-          return allGroups.length === 0 ? 1 : Math.max(...allGroups) + 1;
-        };
-        
-        const nextClientCode = (groupCode) => {
-          const groupClients = prev.clients.filter(c => c.fileNo && c.fileNo.split('.')[0] === String(groupCode));
-          const pendingInGroup = (prev.pendingClientEntries || []).filter(e => e.status !== 'approved' && e.groupNo === String(groupCode));
-          const existingCodes = groupClients.map(c => { const p = c.fileNo.split('.'); return p.length === 2 ? parseInt(p[1]) : 0; }).filter(n => !isNaN(n));
-          const pendingCodes = pendingInGroup.map(e => { const p = (e.fileNo || '').split('.'); return p.length === 2 ? parseInt(p[1]) : 0; }).filter(n => !isNaN(n));
-          const maxCode = Math.max(0, ...existingCodes, ...pendingCodes);
-          return `${groupCode}.${String(maxCode + 1).padStart(2, '0')}`;
-        };
-        
+    const updateClient = (id, field, val) => {
+      setData(p => {
+        const groups = getGroups();
+        const ng = getNextGroup();
         return {
-          ...prev,
-          pendingClientEntries: (prev.pendingClientEntries || []).map(entry => {
-            if (entry.id !== entryId) return entry;
-            let updated = { ...entry, [field]: value };
+          ...p,
+          pendingClientEntries: (p.pendingClientEntries||[]).map(e => {
+            if (e.id !== id) return e;
+            const u = {...e, [field]: val};
             if (field === 'groupMode') {
-              if (value === 'new') {
-                const ng = nextNewGroup();
-                updated.groupNo = String(ng);
-                updated.fileNo = `${ng}.01`;
-                updated.selectedGroup = '';
+              if (val === 'new') {
+                u.groupNo = String(ng); u.fileNo = `${ng}.01`; u.selectedGroup = '';
               } else {
-                const groups = existingGroups();
-                updated.selectedGroup = groups.length > 0 ? String(groups[0]) : '';
-                updated.groupNo = updated.selectedGroup;
-                updated.fileNo = updated.selectedGroup ? nextClientCode(updated.selectedGroup) : '';
+                const first = groups[0] || '';
+                u.selectedGroup = String(first); u.groupNo = String(first);
+                u.fileNo = first ? getNextCode(first) : '';
               }
             }
-            if (field === 'selectedGroup' && value) {
-              updated.groupNo = value;
-              updated.fileNo = nextClientCode(value);
+            if (field === 'selectedGroup' && val) {
+              u.groupNo = val; u.fileNo = getNextCode(val);
             }
-            return updated;
+            return u;
           })
         };
       });
     };
     
-    const updateTeamMemberEntry = (entryId, field, value) => {
-      setData(prev => ({
-        ...prev,
-        pendingTeamMemberEntries: (prev.pendingTeamMemberEntries || []).map(entry => {
-          if (entry.id !== entryId) return entry;
-          let updated = { ...entry, [field]: value };
-          if (field === 'taskId' && value) {
-            const task = data.tasks.find(t => t.id === value);
-            if (task) {
-              updated.taskCode = task.taskCode;
-              updated.clientName = task.clientName;
-              updated.parentTask = task.parentTask;
-              updated.childTask = task.childTask;
-              updated.currentPrimaryUser = task.primaryAssignedUser || task.assignedTo;
-            }
+    const updateTeam = (id, field, val) => {
+      setData(p => ({
+        ...p,
+        pendingTeamMemberEntries: (p.pendingTeamMemberEntries||[]).map(e => {
+          if (e.id !== id) return e;
+          const u = {...e, [field]: val};
+          if (field === 'taskId' && val) {
+            const t = data.tasks.find(x => x.id === val);
+            if (t) { u.taskCode = t.taskCode; u.clientName = t.clientName; u.currentPrimary = t.primaryAssignedUser || t.assignedTo; }
           }
-          return updated;
+          return u;
         })
       }));
     };
     
-    // Delete/Save
-    const deleteEntry = (type, entryId) => {
-      if (!window.confirm('Delete this entry?')) return;
-      const key = type === 'tasks' ? 'pendingTaskEntries' : type === 'clients' ? 'pendingClientEntries' : 'pendingTeamMemberEntries';
-      setData(prev => ({ ...prev, [key]: (prev[key] || []).filter(e => e.id !== entryId) }));
-      setSelectedItems(prev => prev.filter(id => id !== entryId));
+    // ===== DELETE/SAVE =====
+    const deleteEntry = (type, id) => {
+      if (!confirm('Delete?')) return;
+      const key = type === 'task' ? 'pendingTaskEntries' : type === 'client' ? 'pendingClientEntries' : 'pendingTeamMemberEntries';
+      setData(p => ({...p, [key]: (p[key]||[]).filter(e => e.id !== id)}));
     };
     
-    const saveEntry = (type, entryId) => {
-      const key = type === 'tasks' ? 'pendingTaskEntries' : type === 'clients' ? 'pendingClientEntries' : 'pendingTeamMemberEntries';
-      setData(prev => ({ ...prev, [key]: (prev[key] || []).map(e => e.id === entryId ? { ...e, status: 'pending' } : e) }));
+    const saveEntry = (type, id) => {
+      const key = type === 'task' ? 'pendingTaskEntries' : type === 'client' ? 'pendingClientEntries' : 'pendingTeamMemberEntries';
+      setData(p => ({...p, [key]: (p[key]||[]).map(e => e.id === id ? {...e, status: 'pending'} : e)}));
     };
     
-    // Edit modal
-    const openEditModal = (entry, type) => { setEditingEntry({ ...entry, type }); setEditFormData({ ...entry }); };
-    const saveEdit = () => {
-      if (!editingEntry || !editFormData) return;
-      const key = editingEntry.type === 'tasks' ? 'pendingTaskEntries' : editingEntry.type === 'clients' ? 'pendingClientEntries' : 'pendingTeamMemberEntries';
-      setData(prev => ({ ...prev, [key]: (prev[key] || []).map(e => e.id === editingEntry.id ? { ...editFormData, id: e.id } : e) }));
-      setEditingEntry(null); setEditFormData(null);
-    };
-    
-    // Approve functions
-    const approveAndPostTask = (entry) => {
-      const newTask = {
+    // ===== APPROVE =====
+    const approveTask = (e) => {
+      const task = {
         id: generateId(), taskCode: generateTaskCode(data.tasks, new Date()),
-        fileNo: entry.fileNo, clientName: entry.clientName, clientId: entry.clientId || '', groupName: entry.groupName,
-        parentTask: entry.parentTask, childTask: entry.childTask, financialYear: entry.financialYear,
-        period: entry.period, subPeriod: entry.subPeriod || '', taskLeader: entry.taskLeader,
-        taskManager: entry.taskManager, primaryAssignedUser: entry.primaryAssignedUser, assignedTo: entry.primaryAssignedUser,
-        teamMembers: entry.teamMembers || [], startDate: entry.startDate || '', expectedCompletionDate: entry.expectedCompletionDate || '',
-        taskDescription: entry.taskDescription || '', comments: '', status: 'Pending', priority: 'Medium',
-        completedCheck: false, currentPosition: 'New Task Created', checkGroupsName: `${entry.period}-${entry.childTask}`
+        fileNo: e.fileNo, clientName: e.clientName, clientId: e.clientId, groupName: e.groupName,
+        parentTask: e.parentTask, childTask: e.childTask, financialYear: e.financialYear,
+        period: e.period, subPeriod: e.subPeriod, taskLeader: e.taskLeader, taskManager: e.taskManager,
+        primaryAssignedUser: e.assignedUser, assignedTo: e.assignedUser, teamMembers: e.teamMembers || [],
+        taskDescription: e.description, status: 'Pending', priority: 'Medium', completedCheck: false
       };
-      setData(prev => ({
-        ...prev, tasks: [...prev.tasks, newTask],
-        pendingTaskEntries: (prev.pendingTaskEntries || []).map(e => e.id === entry.id ? { ...e, status: 'approved', approvedBy: currentUser?.name, approvedAt: new Date().toISOString() } : e)
+      setData(p => ({
+        ...p, tasks: [...p.tasks, task],
+        pendingTaskEntries: (p.pendingTaskEntries||[]).map(x => x.id === e.id ? {...x, status: 'approved'} : x)
       }));
-      alert(`✅ Task posted! Code: ${newTask.taskCode}`);
+      alert('Task created: ' + task.taskCode);
     };
     
-    const approveAndPostClient = (entry) => {
-      const newClient = {
-        id: generateId(), name: entry.name, email: entry.email || '', phone: entry.phone || '',
-        fileNo: entry.fileNo, groupNo: entry.groupNo, address: entry.address || '',
-        gstin: entry.gstin || '', pan: entry.pan || '', pancard: entry.pan || '', state: entry.state || '',
-        typeOfClient: entry.typeOfClient || '', reportingManager: entry.reportingManager || '',
-        dateOfEnrollment: entry.dateOfEnrollment || '', disabled: false, services: [], outstanding: 0
+    const approveClient = (e) => {
+      const client = {
+        id: generateId(), name: e.name, email: e.email, phone: e.phone,
+        fileNo: e.fileNo, groupNo: e.groupNo, pan: e.pan, gstin: e.gstin,
+        state: e.state, typeOfClient: e.typeOfClient, reportingManager: e.reportingManager,
+        disabled: false, services: [], outstanding: 0
       };
-      setData(prev => ({
-        ...prev, clients: [...prev.clients, newClient],
-        pendingClientEntries: (prev.pendingClientEntries || []).map(e => e.id === entry.id ? { ...e, status: 'approved', approvedBy: currentUser?.name, generatedFileNo: newClient.fileNo } : e)
+      setData(p => ({
+        ...p, clients: [...p.clients, client],
+        pendingClientEntries: (p.pendingClientEntries||[]).map(x => x.id === e.id ? {...x, status: 'approved', generatedFileNo: client.fileNo} : x)
       }));
-      alert(`✅ Client posted! File No: ${newClient.fileNo}`);
+      alert('Client created: ' + client.fileNo);
     };
     
-    const approveTeamMemberEntry = (entry) => {
-      setData(prev => {
-        const updatedTasks = prev.tasks.map(task => {
-          if (task.id !== entry.taskId) return task;
-          let updated = { ...task };
-          if (entry.changePrimary && entry.newPrimaryUser) { updated.primaryAssignedUser = entry.newPrimaryUser; updated.assignedTo = entry.newPrimaryUser; }
-          if (entry.additionalMembers?.length > 0) { updated.teamMembers = [...new Set([...(task.teamMembers || []), ...entry.additionalMembers])]; }
-          return updated;
-        });
-        return { ...prev, tasks: updatedTasks, pendingTeamMemberEntries: (prev.pendingTeamMemberEntries || []).map(e => e.id === entry.id ? { ...e, status: 'approved', approvedBy: currentUser?.name } : e) };
-      });
-      alert('✅ Team member changes applied!');
+    const approveTeam = (e) => {
+      setData(p => ({
+        ...p,
+        tasks: p.tasks.map(t => {
+          if (t.id !== e.taskId) return t;
+          const u = {...t};
+          if (e.changePrimary && e.newPrimary) { u.primaryAssignedUser = e.newPrimary; u.assignedTo = e.newPrimary; }
+          if (e.addMembers?.length) { u.teamMembers = [...new Set([...(t.teamMembers||[]), ...e.addMembers])]; }
+          return u;
+        }),
+        pendingTeamMemberEntries: (p.pendingTeamMemberEntries||[]).map(x => x.id === e.id ? {...x, status: 'approved'} : x)
+      }));
+      alert('Team updated!');
     };
     
-    // Bulk approve
-    const bulkApprove = () => {
-      if (selectedItems.length === 0) return alert('Select entries to approve');
-      if (!window.confirm(`Approve ${selectedItems.length} entries?`)) return;
-      if (activeTab === 'tasks') allTaskEntries.filter(e => selectedItems.includes(e.id) && e.status === 'pending').forEach(approveAndPostTask);
-      else if (activeTab === 'clients') allClientEntries.filter(e => selectedItems.includes(e.id) && e.status === 'pending').forEach(approveAndPostClient);
-      else allTeamMemberEntries.filter(e => selectedItems.includes(e.id) && e.status === 'pending').forEach(approveTeamMemberEntry);
-      setSelectedItems([]);
+    // Styles
+    const th = {padding: '10px 8px', background: themeColors.gradient, color: '#fff', fontSize: '12px', fontWeight: '600', textAlign: 'left'};
+    const td = {padding: '8px', fontSize: '13px', borderBottom: '1px solid #e5e7eb'};
+    const inp = {width: '100%', padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '12px'};
+    const btn = (bg) => ({padding: '4px 8px', background: bg, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px'});
+    
+    // Client Search Component
+    const ClientSearch = ({entry}) => {
+      const [search, setSearch] = useState(entry.clientName ? `${entry.fileNo} - ${entry.clientName}` : '');
+      const [open, setOpen] = useState(false);
+      
+      const results = search.length >= 2 
+        ? data.clients.filter(c => !c.disabled && (c.name?.toLowerCase().includes(search.toLowerCase()) || c.fileNo?.includes(search))).slice(0, 10)
+        : [];
+      
+      return (
+        <div style={{position: 'relative'}}>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setOpen(e.target.value.length >= 2); }}
+            onFocus={() => search.length >= 2 && setOpen(true)}
+            onBlur={() => setTimeout(() => setOpen(false), 150)}
+            placeholder="Type 2+ letters..."
+            style={inp}
+          />
+          {open && results.length > 0 && (
+            <div style={{position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #ddd', borderRadius: '4px', maxHeight: '180px', overflowY: 'auto', zIndex: 999, boxShadow: '0 4px 8px rgba(0,0,0,0.1)'}}>
+              {results.map(c => (
+                <div
+                  key={c.id}
+                  style={{padding: '8px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0'}}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setSearch(`${c.fileNo} - ${c.name}`);
+                    updateTask(entry.id, 'clientId', c.id);
+                    setOpen(false);
+                  }}
+                  onMouseEnter={(e) => e.target.style.background = '#f5f5f5'}
+                  onMouseLeave={(e) => e.target.style.background = '#fff'}
+                >
+                  <div style={{fontWeight: '500'}}>{c.name}</div>
+                  <div style={{fontSize: '11px', color: '#666'}}>{c.fileNo}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
     };
     
-    const toggleSelection = (id) => setSelectedItems(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
-    const selectAllVisible = () => {
-      const visibleIds = activeTab === 'tasks' ? getVisibleTaskEntries().filter(e => e.status === 'pending').map(e => e.id)
-        : activeTab === 'clients' ? getVisibleClientEntries().filter(e => e.status === 'pending').map(e => e.id)
-        : getVisibleTeamMemberEntries().filter(e => e.status === 'pending').map(e => e.id);
-      setSelectedItems(prev => prev.length === visibleIds.length ? [] : visibleIds);
-    };
-    const getCreators = () => [...new Set((activeTab === 'tasks' ? allTaskEntries : activeTab === 'clients' ? allClientEntries : allTeamMemberEntries).map(e => e.createdBy).filter(Boolean))];
-    
-    // Constants
-    const PARENT_CHILD_TASKS = data.parentChildTasks || {};
-    const financialYears = ['FY 2023-24', 'FY 2024-25', 'FY 2025-26', 'FY 2026-27'];
-    const periods = ['Monthly', 'Quarterly', 'Half-Yearly', 'Annual', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December', 'January', 'February', 'March', 'Q1', 'Q2', 'Q3', 'Q4', 'H1', 'H2'];
-    const clientTypes = ['Individual', 'Partnership', 'LLP', 'Private Limited', 'Public Limited', 'Trust', 'Society', 'AOP/BOI', 'HUF', 'Government', 'Other'];
-    const states = ['Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Delhi', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal'];
-    
-    const superAdmins = data.staff.filter(s => s.isSuperAdmin && s.status === 'Active');
-    const activeRMs = data.staff.filter(s => s.role === 'Reporting Manager' && s.status === 'Active');
-    const activeStaff = data.staff.filter(s => s.status === 'Active');
-    
-    const getStatusBadge = (status) => {
-      const styles = { draft: { bg: '#f1f5f9', color: '#64748b', text: 'Draft' }, pending: { bg: '#fef3c7', color: '#d97706', text: 'Pending' }, approved: { bg: themeColors.primaryLight, color: themeColors.primary, text: 'Approved' } };
-      const s = styles[status] || styles.draft;
-      return <span style={{padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: '600', background: s.bg, color: s.color}}>{s.text}</span>;
-    };
-    
-    const inputStyle = {width: '100%', padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'};
-    const thStyle = {padding: '12px 8px', color: '#fff', fontWeight: '600', fontSize: '13px', textAlign: 'left'};
-    const tdStyle = {padding: '10px 8px', fontSize: '13px', verticalAlign: 'top'};
-
-    // Client select handler for task entries
-    const handleTaskClientSelect = (entryId, client) => {
-      updateTaskEntry(entryId, 'clientId', client.id);
-      setTaskClientSearch(prev => ({ ...prev, [entryId]: `${client.fileNo} - ${client.name}` }));
-      setTaskClientDropdown(prev => ({ ...prev, [entryId]: false }));
-    };
-    
-    // Task select handler for team member entries
-    const handleTeamTaskSelect = (entryId, task) => {
-      updateTeamMemberEntry(entryId, 'taskId', task.id);
-      setTeamTaskSearch(prev => ({ ...prev, [entryId]: `${task.taskCode} - ${task.clientName}` }));
-      setTeamTaskDropdown(prev => ({ ...prev, [entryId]: false }));
+    // Task Search Component
+    const TaskSearch = ({entry}) => {
+      const [search, setSearch] = useState(entry.taskCode ? `${entry.taskCode} - ${entry.clientName}` : '');
+      const [open, setOpen] = useState(false);
+      
+      const results = search.length >= 2 
+        ? data.tasks.filter(t => t.taskCode?.toLowerCase().includes(search.toLowerCase()) || t.clientName?.toLowerCase().includes(search.toLowerCase())).slice(0, 10)
+        : [];
+      
+      return (
+        <div style={{position: 'relative'}}>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setOpen(e.target.value.length >= 2); }}
+            onFocus={() => search.length >= 2 && setOpen(true)}
+            onBlur={() => setTimeout(() => setOpen(false), 150)}
+            placeholder="Type task code or client..."
+            style={inp}
+          />
+          {open && results.length > 0 && (
+            <div style={{position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #ddd', borderRadius: '4px', maxHeight: '180px', overflowY: 'auto', zIndex: 999, boxShadow: '0 4px 8px rgba(0,0,0,0.1)'}}>
+              {results.map(t => (
+                <div
+                  key={t.id}
+                  style={{padding: '8px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0'}}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setSearch(`${t.taskCode} - ${t.clientName}`);
+                    updateTeam(entry.id, 'taskId', t.id);
+                    setOpen(false);
+                  }}
+                  onMouseEnter={(e) => e.target.style.background = '#f5f5f5'}
+                  onMouseLeave={(e) => e.target.style.background = '#fff'}
+                >
+                  <div style={{fontWeight: '500', color: themeColors.primary}}>{t.taskCode}</div>
+                  <div style={{fontSize: '11px'}}>{t.clientName} - {t.childTask}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
     };
 
     return (
-      <div className="view-container" style={{padding: '24px'}}>
-        <div className="view-header" style={{marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-          <div>
-            <h1 style={{fontSize: '24px', fontWeight: '600', color: '#1e293b', margin: 0}}>New Entries</h1>
-            <p style={{color: '#64748b', fontSize: '14px', marginTop: '4px'}}>Add new tasks, clients and team members for approval</p>
-          </div>
-          {canApprove && selectedItems.length > 0 && (
-            <button onClick={bulkApprove} style={{padding: '10px 20px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}>
-              <CheckCircle size={18} /> Approve Selected ({selectedItems.length})
-            </button>
-          )}
-        </div>
+      <div style={{padding: '24px'}}>
+        <h1 style={{fontSize: '22px', fontWeight: '600', marginBottom: '8px'}}>New Entries</h1>
+        <p style={{color: '#666', marginBottom: '20px'}}>Add tasks, clients, and team members for approval</p>
         
         {/* Tabs */}
-        <div style={{display: 'flex', gap: '4px', marginBottom: '20px', background: '#f1f5f9', padding: '4px', borderRadius: '10px', width: 'fit-content'}}>
-          {[{id: 'tasks', label: 'New Tasks'}, {id: 'clients', label: 'New Clients'}, {id: 'teamMembers', label: 'Team Members'}].map(tab => (
-            <button key={tab.id} onClick={() => { setActiveTab(tab.id); setSelectedItems([]); }}
-              style={{padding: '10px 20px', background: activeTab === tab.id ? '#fff' : 'transparent', color: activeTab === tab.id ? themeColors.primary : '#64748b', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', boxShadow: activeTab === tab.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'}}>
-              {tab.label} ({tab.id === 'tasks' ? getVisibleTaskEntries().length : tab.id === 'clients' ? getVisibleClientEntries().length : getVisibleTeamMemberEntries().length})
+        <div style={{display: 'flex', gap: '8px', marginBottom: '20px'}}>
+          {['tasks', 'clients', 'teamMembers'].map(t => (
+            <button key={t} onClick={() => setActiveTab(t)}
+              style={{padding: '10px 20px', background: activeTab === t ? themeColors.primary : '#f1f5f9', color: activeTab === t ? '#fff' : '#666', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600'}}>
+              {t === 'tasks' ? 'New Tasks' : t === 'clients' ? 'New Clients' : 'Team Members'}
             </button>
           ))}
         </div>
         
-        {/* Filters */}
-        <div style={{display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center'}}>
-          <input type="text" placeholder="Search..." value={filters.search} onChange={(e) => setFilters({...filters, search: e.target.value})} style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px', width: '200px'}} />
-          <select value={filters.status} onChange={(e) => setFilters({...filters, status: e.target.value})} style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px'}}><option value="all">All Status</option><option value="draft">Draft</option><option value="pending">Pending</option><option value="approved">Approved</option></select>
-          {canApprove && <select value={filters.createdBy} onChange={(e) => setFilters({...filters, createdBy: e.target.value})} style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px'}}><option value="all">All Users</option>{getCreators().map(c => <option key={c} value={c}>{c}</option>)}</select>}
-          <div style={{flex: 1}}></div>
-          <button onClick={activeTab === 'tasks' ? addTaskEntry : activeTab === 'clients' ? addClientEntry : addTeamMemberEntry} style={{padding: '8px 16px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'}}><Plus size={16} /> Add {activeTab === 'tasks' ? 'Task' : activeTab === 'clients' ? 'Client' : 'Team Member'}</button>
-        </div>
+        {/* Add Button */}
+        <button onClick={activeTab === 'tasks' ? addTask : activeTab === 'clients' ? addClient : addTeamMember}
+          style={{marginBottom: '16px', padding: '10px 20px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600'}}>
+          + Add {activeTab === 'tasks' ? 'Task' : activeTab === 'clients' ? 'Client' : 'Team Member'}
+        </button>
         
         {/* TASKS TABLE */}
         {activeTab === 'tasks' && (
-          <div style={{background: '#fff', borderRadius: '12px', border: '1px solid #e5e7eb', overflow: 'hidden'}}>
-            <div style={{overflowX: 'auto'}}>
-              <table style={{width: '100%', borderCollapse: 'collapse'}}>
-                <thead><tr style={{background: themeColors.gradient}}>
-                  {canApprove && <th style={{...thStyle, width: '40px', textAlign: 'center'}}><input type="checkbox" checked={selectedItems.length > 0} onChange={selectAllVisible} /></th>}
-                  <th style={{...thStyle, width: '50px', textAlign: 'center'}}>S.No</th>
-                  <th style={{...thStyle, minWidth: '200px'}}>Client (Type to search)</th>
-                  <th style={{...thStyle, minWidth: '120px'}}>Parent Task</th>
-                  <th style={{...thStyle, minWidth: '120px'}}>Child Task</th>
-                  <th style={{...thStyle, width: '100px'}}>FY</th>
-                  <th style={{...thStyle, width: '100px'}}>Period</th>
-                  <th style={{...thStyle, width: '100px'}}>Sub-Period</th>
-                  <th style={{...thStyle, width: '110px'}}>Task Leader</th>
-                  <th style={{...thStyle, width: '110px'}}>Task Manager</th>
-                  <th style={{...thStyle, width: '110px'}}>Assigned To</th>
-                  <th style={{...thStyle, width: '100px'}}>Team</th>
-                  <th style={{...thStyle, minWidth: '140px'}}>Description</th>
-                  <th style={{...thStyle, width: '80px', textAlign: 'center'}}>Status</th>
-                  <th style={{...thStyle, width: '110px', textAlign: 'center'}}>Actions</th>
-                </tr></thead>
-                <tbody>
-                  {getVisibleTaskEntries().length === 0 ? <tr><td colSpan={canApprove ? 15 : 14} style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>No entries. Click "Add Task" to create one.</td></tr>
-                  : getVisibleTaskEntries().map((entry, idx) => (
-                    <tr key={entry.id} style={{borderBottom: '1px solid #e5e7eb', background: idx % 2 === 0 ? '#fff' : '#f9fafb'}}>
-                      {canApprove && <td style={{...tdStyle, textAlign: 'center'}}>{entry.status === 'pending' && <input type="checkbox" checked={selectedItems.includes(entry.id)} onChange={() => toggleSelection(entry.id)} />}</td>}
-                      <td style={{...tdStyle, textAlign: 'center', fontWeight: '600', color: '#64748b'}}>{idx + 1}</td>
-                      <td style={{...tdStyle, position: 'relative'}}>
-                        {entry.status === 'draft' ? (
-                          <div>
-                            <input 
-                              type="text" 
-                              placeholder="Type 2+ letters to search..." 
-                              value={taskClientSearch[entry.id] !== undefined ? taskClientSearch[entry.id] : (entry.clientName ? `${entry.fileNo} - ${entry.clientName}` : '')}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setTaskClientSearch(prev => ({ ...prev, [entry.id]: val }));
-                                setTaskClientDropdown(prev => ({ ...prev, [entry.id]: val.length >= 2 }));
-                              }}
-                              onFocus={() => {
-                                const val = taskClientSearch[entry.id] || '';
-                                if (val.length >= 2) setTaskClientDropdown(prev => ({ ...prev, [entry.id]: true }));
-                              }}
-                              onBlur={() => setTimeout(() => setTaskClientDropdown(prev => ({ ...prev, [entry.id]: false })), 200)}
-                              style={inputStyle} 
-                            />
-                            {taskClientDropdown[entry.id] && searchClientsByTerm(taskClientSearch[entry.id] || '').length > 0 && (
-                              <div style={{position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', maxHeight: '200px', overflowY: 'auto', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'}}>
-                                {searchClientsByTerm(taskClientSearch[entry.id] || '').map(c => (
-                                  <div key={c.id} onMouseDown={(e) => { e.preventDefault(); handleTaskClientSelect(entry.id, c); }} 
-                                    style={{padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9'}}
-                                    onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'} 
-                                    onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}>
-                                    <div style={{fontWeight: '500', fontSize: '13px'}}>{c.name}</div>
-                                    <div style={{fontSize: '11px', color: '#64748b'}}>{c.fileNo} | {c.pan || 'No PAN'}</div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        ) : <span>{entry.fileNo} - {entry.clientName}</span>}
-                      </td>
-                      <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.parentTask} onChange={(e) => updateTaskEntry(entry.id, 'parentTask', e.target.value)} style={inputStyle}><option value="">Select</option>{Object.keys(PARENT_CHILD_TASKS).map(p => <option key={p} value={p}>{p}</option>)}</select> : entry.parentTask}</td>
-                      <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.childTask} onChange={(e) => updateTaskEntry(entry.id, 'childTask', e.target.value)} disabled={!entry.parentTask} style={inputStyle}><option value="">Select</option>{(PARENT_CHILD_TASKS[entry.parentTask] || []).map(c => <option key={c} value={c}>{c}</option>)}</select> : entry.childTask}</td>
-                      <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.financialYear} onChange={(e) => updateTaskEntry(entry.id, 'financialYear', e.target.value)} style={inputStyle}>{financialYears.map(fy => <option key={fy} value={fy}>{fy}</option>)}</select> : entry.financialYear}</td>
-                      <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.period} onChange={(e) => updateTaskEntry(entry.id, 'period', e.target.value)} style={inputStyle}><option value="">Select</option>{periods.map(p => <option key={p} value={p}>{p}</option>)}</select> : entry.period}</td>
-                      <td style={tdStyle}>{entry.status === 'draft' ? (getSubPeriods(entry.period).length > 0 ? <select value={entry.subPeriod} onChange={(e) => updateTaskEntry(entry.id, 'subPeriod', e.target.value)} style={inputStyle}><option value="">Select</option>{getSubPeriods(entry.period).map(sp => <option key={sp} value={sp}>{sp}</option>)}</select> : <input type="text" value={entry.subPeriod || ''} onChange={(e) => updateTaskEntry(entry.id, 'subPeriod', e.target.value)} placeholder="Optional" style={inputStyle} />) : entry.subPeriod || '-'}</td>
-                      <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.taskLeader} onChange={(e) => updateTaskEntry(entry.id, 'taskLeader', e.target.value)} style={inputStyle}><option value="">Select</option>{superAdmins.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : entry.taskLeader || '-'}</td>
-                      <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.taskManager} onChange={(e) => updateTaskEntry(entry.id, 'taskManager', e.target.value)} style={inputStyle}><option value="">Select</option>{activeRMs.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : entry.taskManager || '-'}</td>
-                      <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.primaryAssignedUser} onChange={(e) => updateTaskEntry(entry.id, 'primaryAssignedUser', e.target.value)} style={inputStyle}><option value="">Select</option>{activeStaff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : entry.primaryAssignedUser || '-'}</td>
-                      <td style={tdStyle}>{entry.status === 'draft' ? <select multiple value={entry.teamMembers || []} onChange={(e) => updateTaskEntry(entry.id, 'teamMembers', Array.from(e.target.selectedOptions, o => o.value))} style={{...inputStyle, height: '60px', fontSize: '11px'}}>{activeStaff.filter(s => s.name !== entry.primaryAssignedUser).map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (entry.teamMembers?.length || 0) > 0 ? <span style={{fontSize: '11px'}}>{entry.teamMembers.join(', ')}</span> : '-'}</td>
-                      <td style={tdStyle}>{entry.status === 'draft' ? <input type="text" value={entry.taskDescription || ''} onChange={(e) => updateTaskEntry(entry.id, 'taskDescription', e.target.value)} placeholder="Description" style={inputStyle} /> : entry.taskDescription || '-'}</td>
-                      <td style={{...tdStyle, textAlign: 'center'}}>{getStatusBadge(entry.status)}</td>
-                      <td style={{...tdStyle, textAlign: 'center'}}>
-                        <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
-                          {entry.status === 'draft' && (<><button onClick={() => saveEntry('tasks', entry.id)} disabled={!entry.clientId || !entry.parentTask || !entry.childTask} style={{padding: '5px 10px', background: entry.clientId && entry.parentTask && entry.childTask ? themeColors.primary : '#cbd5e1', color: '#fff', border: 'none', borderRadius: '4px', cursor: entry.clientId && entry.parentTask && entry.childTask ? 'pointer' : 'not-allowed', fontSize: '12px'}}>Save</button><button onClick={() => deleteEntry('tasks', entry.id)} style={{padding: '5px 8px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Trash2 size={12} /></button></>)}
-                          {entry.status === 'pending' && canApprove && (<><button onClick={() => openEditModal(entry, 'tasks')} style={{padding: '5px 8px', background: themeColors.secondary, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Edit size={12} /></button><button onClick={() => approveAndPostTask(entry)} style={{padding: '5px 10px', background: themeColors.primary, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}}>✓</button></>)}
-                          {entry.status === 'approved' && <span style={{fontSize: '12px', color: themeColors.primary, fontWeight: '600'}}>✓ Posted</span>}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div style={{background: '#fff', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb'}}>
+            <table style={{width: '100%', borderCollapse: 'collapse'}}>
+              <thead>
+                <tr>
+                  <th style={th}>#</th>
+                  <th style={{...th, minWidth: '180px'}}>Client</th>
+                  <th style={th}>Parent Task</th>
+                  <th style={th}>Child Task</th>
+                  <th style={th}>FY</th>
+                  <th style={th}>Period</th>
+                  <th style={th}>Sub-Period</th>
+                  <th style={th}>Leader</th>
+                  <th style={th}>Manager</th>
+                  <th style={th}>Assigned</th>
+                  <th style={th}>Status</th>
+                  <th style={th}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {taskEntries.length === 0 ? (
+                  <tr><td colSpan={12} style={{padding: '40px', textAlign: 'center', color: '#999'}}>No entries yet</td></tr>
+                ) : taskEntries.map((e, i) => (
+                  <tr key={e.id} style={{background: i % 2 ? '#f9fafb' : '#fff'}}>
+                    <td style={td}>{i + 1}</td>
+                    <td style={td}>{e.status === 'draft' ? <ClientSearch entry={e} /> : `${e.fileNo} - ${e.clientName}`}</td>
+                    <td style={td}>{e.status === 'draft' ? <select value={e.parentTask} onChange={(x) => updateTask(e.id, 'parentTask', x.target.value)} style={inp}><option value="">Select</option>{Object.keys(TASKS).map(p => <option key={p}>{p}</option>)}</select> : e.parentTask}</td>
+                    <td style={td}>{e.status === 'draft' ? <select value={e.childTask} onChange={(x) => updateTask(e.id, 'childTask', x.target.value)} style={inp} disabled={!e.parentTask}><option value="">Select</option>{(TASKS[e.parentTask]||[]).map(c => <option key={c}>{c}</option>)}</select> : e.childTask}</td>
+                    <td style={td}>{e.status === 'draft' ? <select value={e.financialYear} onChange={(x) => updateTask(e.id, 'financialYear', x.target.value)} style={inp}>{FYs.map(f => <option key={f}>{f}</option>)}</select> : e.financialYear}</td>
+                    <td style={td}>{e.status === 'draft' ? <select value={e.period} onChange={(x) => updateTask(e.id, 'period', x.target.value)} style={inp}><option value="">Select</option>{PERIODS.map(p => <option key={p}>{p}</option>)}</select> : e.period}</td>
+                    <td style={td}>{e.status === 'draft' && getSubPeriods(e.period).length > 0 ? <select value={e.subPeriod} onChange={(x) => updateTask(e.id, 'subPeriod', x.target.value)} style={inp}><option value="">Select</option>{getSubPeriods(e.period).map(s => <option key={s}>{s}</option>)}</select> : e.subPeriod || '-'}</td>
+                    <td style={td}>{e.status === 'draft' ? <select value={e.taskLeader} onChange={(x) => updateTask(e.id, 'taskLeader', x.target.value)} style={inp}><option value="">Select</option>{superAdmins.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : e.taskLeader || '-'}</td>
+                    <td style={td}>{e.status === 'draft' ? <select value={e.taskManager} onChange={(x) => updateTask(e.id, 'taskManager', x.target.value)} style={inp}><option value="">Select</option>{rms.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : e.taskManager || '-'}</td>
+                    <td style={td}>{e.status === 'draft' ? <select value={e.assignedUser} onChange={(x) => updateTask(e.id, 'assignedUser', x.target.value)} style={inp}><option value="">Select</option>{staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : e.assignedUser || '-'}</td>
+                    <td style={td}><span style={{padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', background: e.status === 'draft' ? '#f1f5f9' : e.status === 'pending' ? '#fef3c7' : '#dcfce7', color: e.status === 'draft' ? '#64748b' : e.status === 'pending' ? '#d97706' : '#16a34a'}}>{e.status}</span></td>
+                    <td style={td}>
+                      {e.status === 'draft' && <><button onClick={() => saveEntry('task', e.id)} disabled={!e.clientId || !e.parentTask || !e.childTask} style={btn(e.clientId && e.parentTask && e.childTask ? themeColors.primary : '#ccc')}>Save</button> <button onClick={() => deleteEntry('task', e.id)} style={btn('#ef4444')}>×</button></>}
+                      {e.status === 'pending' && canApprove && <button onClick={() => approveTask(e)} style={btn('#16a34a')}>Approve</button>}
+                      {e.status === 'approved' && <span style={{color: '#16a34a', fontWeight: '600'}}>✓</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
         
         {/* CLIENTS TABLE */}
         {activeTab === 'clients' && (
-          <div style={{background: '#fff', borderRadius: '12px', border: '1px solid #e5e7eb', overflow: 'hidden'}}>
-            <div style={{overflowX: 'auto'}}>
-              <table style={{width: '100%', borderCollapse: 'collapse'}}>
-                <thead><tr style={{background: themeColors.gradient}}>
-                  {canApprove && <th style={{...thStyle, width: '40px', textAlign: 'center'}}><input type="checkbox" checked={selectedItems.length > 0} onChange={selectAllVisible} /></th>}
-                  <th style={{...thStyle, width: '50px', textAlign: 'center'}}>S.No</th>
-                  <th style={{...thStyle, width: '100px'}}>Group Type</th>
-                  <th style={{...thStyle, width: '100px'}}>Group No</th>
-                  <th style={{...thStyle, width: '90px'}}>Client Code</th>
-                  <th style={{...thStyle, minWidth: '180px'}}>Client Name *</th>
-                  <th style={{...thStyle, width: '110px'}}>PAN</th>
-                  <th style={{...thStyle, width: '130px'}}>GSTIN</th>
-                  <th style={{...thStyle, width: '100px'}}>Phone</th>
-                  <th style={{...thStyle, width: '100px'}}>Type</th>
-                  <th style={{...thStyle, width: '100px'}}>State</th>
-                  <th style={{...thStyle, width: '100px'}}>RM</th>
-                  <th style={{...thStyle, width: '80px', textAlign: 'center'}}>Status</th>
-                  <th style={{...thStyle, width: '110px', textAlign: 'center'}}>Actions</th>
-                </tr></thead>
-                <tbody>
-                  {getVisibleClientEntries().length === 0 ? <tr><td colSpan={canApprove ? 14 : 13} style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>No entries. Click "Add Client" to create one.</td></tr>
-                  : getVisibleClientEntries().map((entry, idx) => (
-                    <tr key={entry.id} style={{borderBottom: '1px solid #e5e7eb', background: idx % 2 === 0 ? '#fff' : '#f9fafb'}}>
-                      {canApprove && <td style={{...tdStyle, textAlign: 'center'}}>{entry.status === 'pending' && <input type="checkbox" checked={selectedItems.includes(entry.id)} onChange={() => toggleSelection(entry.id)} />}</td>}
-                      <td style={{...tdStyle, textAlign: 'center', fontWeight: '600', color: '#64748b'}}>{idx + 1}</td>
-                      <td style={tdStyle}>
-                        {entry.status === 'draft' ? (
-                          <div style={{display: 'flex', gap: '6px', alignItems: 'center'}}>
-                            <label style={{display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer', fontSize: '11px'}}>
-                              <input type="radio" name={`grp-${entry.id}`} checked={entry.groupMode === 'new'} onChange={() => updateClientEntryField(entry.id, 'groupMode', 'new')} style={{accentColor: themeColors.primary}} /> New
-                            </label>
-                            <label style={{display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer', fontSize: '11px'}}>
-                              <input type="radio" name={`grp-${entry.id}`} checked={entry.groupMode === 'existing'} onChange={() => updateClientEntryField(entry.id, 'groupMode', 'existing')} style={{accentColor: themeColors.primary}} /> Existing
-                            </label>
-                          </div>
-                        ) : <span style={{fontSize: '12px', fontWeight: '500'}}>{entry.groupMode === 'new' ? 'New' : 'Existing'}</span>}
-                      </td>
-                      <td style={tdStyle}>
-                        {entry.status === 'draft' && entry.groupMode === 'existing' ? (
-                          <select value={entry.selectedGroup || ''} onChange={(e) => updateClientEntryField(entry.id, 'selectedGroup', e.target.value)} style={{...inputStyle, width: '90px', fontSize: '12px'}}>
-                            <option value="">Select</option>
-                            {getExistingGroups().map(g => <option key={g} value={g}>Grp {g} ({getGroupClientCount(g)})</option>)}
-                          </select>
-                        ) : <span style={{fontWeight: '500'}}>{entry.groupNo}</span>}
-                      </td>
-                      <td style={{...tdStyle, fontWeight: '600', color: themeColors.primary}}>{entry.fileNo}</td>
-                      <td style={tdStyle}>{entry.status === 'draft' ? <input type="text" value={entry.name || ''} onChange={(e) => updateClientEntryField(entry.id, 'name', e.target.value)} placeholder="Client Name *" style={inputStyle} /> : entry.name}</td>
-                      <td style={tdStyle}>{entry.status === 'draft' ? <input type="text" value={entry.pan || ''} onChange={(e) => updateClientEntryField(entry.id, 'pan', e.target.value.toUpperCase())} placeholder="PAN" maxLength={10} style={{...inputStyle, textTransform: 'uppercase'}} /> : entry.pan || '-'}</td>
-                      <td style={tdStyle}>{entry.status === 'draft' ? <input type="text" value={entry.gstin || ''} onChange={(e) => updateClientEntryField(entry.id, 'gstin', e.target.value.toUpperCase())} placeholder="GSTIN" maxLength={15} style={{...inputStyle, textTransform: 'uppercase'}} /> : entry.gstin || '-'}</td>
-                      <td style={tdStyle}>{entry.status === 'draft' ? <input type="tel" value={entry.phone || ''} onChange={(e) => updateClientEntryField(entry.id, 'phone', e.target.value)} placeholder="Phone" style={inputStyle} /> : entry.phone || '-'}</td>
-                      <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.typeOfClient || ''} onChange={(e) => updateClientEntryField(entry.id, 'typeOfClient', e.target.value)} style={inputStyle}><option value="">Select</option>{clientTypes.map(t => <option key={t} value={t}>{t}</option>)}</select> : entry.typeOfClient || '-'}</td>
-                      <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.state || ''} onChange={(e) => updateClientEntryField(entry.id, 'state', e.target.value)} style={inputStyle}><option value="">Select</option>{states.map(s => <option key={s} value={s}>{s}</option>)}</select> : entry.state || '-'}</td>
-                      <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.reportingManager || ''} onChange={(e) => updateClientEntryField(entry.id, 'reportingManager', e.target.value)} style={inputStyle}><option value="">Select</option>{activeRMs.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : entry.reportingManager || '-'}</td>
-                      <td style={{...tdStyle, textAlign: 'center'}}>{getStatusBadge(entry.status)}</td>
-                      <td style={{...tdStyle, textAlign: 'center'}}>
-                        <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
-                          {entry.status === 'draft' && (<><button onClick={() => saveEntry('clients', entry.id)} disabled={!entry.name} style={{padding: '5px 10px', background: entry.name ? themeColors.primary : '#cbd5e1', color: '#fff', border: 'none', borderRadius: '4px', cursor: entry.name ? 'pointer' : 'not-allowed', fontSize: '12px'}}>Save</button><button onClick={() => deleteEntry('clients', entry.id)} style={{padding: '5px 8px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Trash2 size={12} /></button></>)}
-                          {entry.status === 'pending' && canApprove && (<><button onClick={() => openEditModal(entry, 'clients')} style={{padding: '5px 8px', background: themeColors.secondary, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Edit size={12} /></button><button onClick={() => approveAndPostClient(entry)} style={{padding: '5px 10px', background: themeColors.primary, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}}>✓</button></>)}
-                          {entry.status === 'approved' && <span style={{fontSize: '12px', color: themeColors.primary, fontWeight: '600'}}>✓ {entry.generatedFileNo || entry.fileNo}</span>}
+          <div style={{background: '#fff', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb'}}>
+            <table style={{width: '100%', borderCollapse: 'collapse'}}>
+              <thead>
+                <tr>
+                  <th style={th}>#</th>
+                  <th style={th}>Group Type</th>
+                  <th style={th}>Group No</th>
+                  <th style={th}>Client Code</th>
+                  <th style={{...th, minWidth: '150px'}}>Name *</th>
+                  <th style={th}>PAN</th>
+                  <th style={th}>GSTIN</th>
+                  <th style={th}>Phone</th>
+                  <th style={th}>Type</th>
+                  <th style={th}>State</th>
+                  <th style={th}>RM</th>
+                  <th style={th}>Status</th>
+                  <th style={th}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {clientEntries.length === 0 ? (
+                  <tr><td colSpan={13} style={{padding: '40px', textAlign: 'center', color: '#999'}}>No entries yet</td></tr>
+                ) : clientEntries.map((e, i) => (
+                  <tr key={e.id} style={{background: i % 2 ? '#f9fafb' : '#fff'}}>
+                    <td style={td}>{i + 1}</td>
+                    <td style={td}>
+                      {e.status === 'draft' ? (
+                        <div style={{display: 'flex', gap: '8px'}}>
+                          <label style={{fontSize: '11px', cursor: 'pointer'}}><input type="radio" name={`gm${e.id}`} checked={e.groupMode === 'new'} onChange={() => updateClient(e.id, 'groupMode', 'new')} /> New</label>
+                          <label style={{fontSize: '11px', cursor: 'pointer'}}><input type="radio" name={`gm${e.id}`} checked={e.groupMode === 'existing'} onChange={() => updateClient(e.id, 'groupMode', 'existing')} /> Existing</label>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      ) : e.groupMode}
+                    </td>
+                    <td style={td}>
+                      {e.status === 'draft' && e.groupMode === 'existing' ? (
+                        <select value={e.selectedGroup} onChange={(x) => updateClient(e.id, 'selectedGroup', x.target.value)} style={{...inp, width: '80px'}}>
+                          <option value="">Select</option>
+                          {getGroups().map(g => <option key={g} value={g}>Grp {g} ({getGroupCount(g)})</option>)}
+                        </select>
+                      ) : e.groupNo}
+                    </td>
+                    <td style={{...td, fontWeight: '600', color: themeColors.primary}}>{e.fileNo}</td>
+                    <td style={td}>{e.status === 'draft' ? <input value={e.name} onChange={(x) => updateClient(e.id, 'name', x.target.value)} placeholder="Name *" style={inp} /> : e.name}</td>
+                    <td style={td}>{e.status === 'draft' ? <input value={e.pan} onChange={(x) => updateClient(e.id, 'pan', x.target.value.toUpperCase())} maxLength={10} style={{...inp, width: '90px', textTransform: 'uppercase'}} /> : e.pan || '-'}</td>
+                    <td style={td}>{e.status === 'draft' ? <input value={e.gstin} onChange={(x) => updateClient(e.id, 'gstin', x.target.value.toUpperCase())} maxLength={15} style={{...inp, width: '120px', textTransform: 'uppercase'}} /> : e.gstin || '-'}</td>
+                    <td style={td}>{e.status === 'draft' ? <input value={e.phone} onChange={(x) => updateClient(e.id, 'phone', x.target.value)} style={{...inp, width: '90px'}} /> : e.phone || '-'}</td>
+                    <td style={td}>{e.status === 'draft' ? <select value={e.typeOfClient} onChange={(x) => updateClient(e.id, 'typeOfClient', x.target.value)} style={inp}><option value="">Select</option>{TYPES.map(t => <option key={t}>{t}</option>)}</select> : e.typeOfClient || '-'}</td>
+                    <td style={td}>{e.status === 'draft' ? <select value={e.state} onChange={(x) => updateClient(e.id, 'state', x.target.value)} style={inp}><option value="">Select</option>{STATES.map(s => <option key={s}>{s}</option>)}</select> : e.state || '-'}</td>
+                    <td style={td}>{e.status === 'draft' ? <select value={e.reportingManager} onChange={(x) => updateClient(e.id, 'reportingManager', x.target.value)} style={inp}><option value="">Select</option>{rms.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}</select> : e.reportingManager || '-'}</td>
+                    <td style={td}><span style={{padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', background: e.status === 'draft' ? '#f1f5f9' : e.status === 'pending' ? '#fef3c7' : '#dcfce7', color: e.status === 'draft' ? '#64748b' : e.status === 'pending' ? '#d97706' : '#16a34a'}}>{e.status}</span></td>
+                    <td style={td}>
+                      {e.status === 'draft' && <><button onClick={() => saveEntry('client', e.id)} disabled={!e.name} style={btn(e.name ? themeColors.primary : '#ccc')}>Save</button> <button onClick={() => deleteEntry('client', e.id)} style={btn('#ef4444')}>×</button></>}
+                      {e.status === 'pending' && canApprove && <button onClick={() => approveClient(e)} style={btn('#16a34a')}>Approve</button>}
+                      {e.status === 'approved' && <span style={{color: '#16a34a', fontWeight: '600'}}>✓ {e.generatedFileNo}</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
         
         {/* TEAM MEMBERS TABLE */}
         {activeTab === 'teamMembers' && (
-          <div style={{background: '#fff', borderRadius: '12px', border: '1px solid #e5e7eb', overflow: 'hidden'}}>
-            <div style={{overflowX: 'auto'}}>
-              <table style={{width: '100%', borderCollapse: 'collapse'}}>
-                <thead><tr style={{background: themeColors.gradient}}>
-                  {canApprove && <th style={{...thStyle, width: '40px', textAlign: 'center'}}><input type="checkbox" checked={selectedItems.length > 0} onChange={selectAllVisible} /></th>}
-                  <th style={{...thStyle, width: '50px', textAlign: 'center'}}>S.No</th>
-                  <th style={{...thStyle, minWidth: '220px'}}>Task (Type to search)</th>
-                  <th style={{...thStyle, width: '100px'}}>Task Code</th>
-                  <th style={{...thStyle, minWidth: '150px'}}>Client</th>
-                  <th style={{...thStyle, width: '130px'}}>Current Primary</th>
-                  <th style={{...thStyle, width: '80px', textAlign: 'center'}}>Change?</th>
-                  <th style={{...thStyle, width: '130px'}}>New Primary</th>
-                  <th style={{...thStyle, minWidth: '160px'}}>Add Team Members</th>
-                  <th style={{...thStyle, width: '80px', textAlign: 'center'}}>Status</th>
-                  <th style={{...thStyle, width: '110px', textAlign: 'center'}}>Actions</th>
-                </tr></thead>
-                <tbody>
-                  {getVisibleTeamMemberEntries().length === 0 ? <tr><td colSpan={canApprove ? 11 : 10} style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>No entries. Click "Add Team Member" to add members to existing tasks.</td></tr>
-                  : getVisibleTeamMemberEntries().map((entry, idx) => (
-                    <tr key={entry.id} style={{borderBottom: '1px solid #e5e7eb', background: idx % 2 === 0 ? '#fff' : '#f9fafb'}}>
-                      {canApprove && <td style={{...tdStyle, textAlign: 'center'}}>{entry.status === 'pending' && <input type="checkbox" checked={selectedItems.includes(entry.id)} onChange={() => toggleSelection(entry.id)} />}</td>}
-                      <td style={{...tdStyle, textAlign: 'center', fontWeight: '600', color: '#64748b'}}>{idx + 1}</td>
-                      <td style={{...tdStyle, position: 'relative'}}>
-                        {entry.status === 'draft' ? (
-                          <div>
-                            <input 
-                              type="text" 
-                              placeholder="Type task code or client..." 
-                              value={teamTaskSearch[entry.id] !== undefined ? teamTaskSearch[entry.id] : (entry.taskCode ? `${entry.taskCode} - ${entry.clientName}` : '')}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setTeamTaskSearch(prev => ({ ...prev, [entry.id]: val }));
-                                setTeamTaskDropdown(prev => ({ ...prev, [entry.id]: val.length >= 2 }));
-                              }}
-                              onFocus={() => {
-                                const val = teamTaskSearch[entry.id] || '';
-                                if (val.length >= 2) setTeamTaskDropdown(prev => ({ ...prev, [entry.id]: true }));
-                              }}
-                              onBlur={() => setTimeout(() => setTeamTaskDropdown(prev => ({ ...prev, [entry.id]: false })), 200)}
-                              style={inputStyle} 
-                            />
-                            {teamTaskDropdown[entry.id] && searchTasksByTerm(teamTaskSearch[entry.id] || '').length > 0 && (
-                              <div style={{position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', maxHeight: '200px', overflowY: 'auto', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'}}>
-                                {searchTasksByTerm(teamTaskSearch[entry.id] || '').map(t => (
-                                  <div key={t.id} onMouseDown={(e) => { e.preventDefault(); handleTeamTaskSelect(entry.id, t); }} 
-                                    style={{padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9'}}
-                                    onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'} 
-                                    onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}>
-                                    <div style={{fontWeight: '600', color: themeColors.primary, fontSize: '13px'}}>{t.taskCode}</div>
-                                    <div style={{fontSize: '13px'}}>{t.clientName}</div>
-                                    <div style={{fontSize: '11px', color: '#64748b'}}>{t.parentTask} → {t.childTask}</div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        ) : <span>{entry.taskCode} - {entry.clientName}</span>}
-                      </td>
-                      <td style={{...tdStyle, fontWeight: '600', color: themeColors.primary}}>{entry.taskCode || '-'}</td>
-                      <td style={tdStyle}>{entry.clientName || '-'}</td>
-                      <td style={tdStyle}>{entry.currentPrimaryUser || '-'}</td>
-                      <td style={{...tdStyle, textAlign: 'center'}}>{entry.status === 'draft' && entry.taskId ? <input type="checkbox" checked={entry.changePrimary || false} onChange={(e) => updateTeamMemberEntry(entry.id, 'changePrimary', e.target.checked)} /> : entry.changePrimary ? 'Yes' : 'No'}</td>
-                      <td style={tdStyle}>{entry.status === 'draft' && entry.changePrimary ? <select value={entry.newPrimaryUser || ''} onChange={(e) => updateTeamMemberEntry(entry.id, 'newPrimaryUser', e.target.value)} style={inputStyle}><option value="">Select</option>{activeStaff.filter(s => s.name !== entry.currentPrimaryUser).map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : entry.newPrimaryUser || '-'}</td>
-                      <td style={tdStyle}>{entry.status === 'draft' && entry.taskId ? <select multiple value={entry.additionalMembers || []} onChange={(e) => updateTeamMemberEntry(entry.id, 'additionalMembers', Array.from(e.target.selectedOptions, o => o.value))} style={{...inputStyle, height: '70px', fontSize: '12px'}}>{activeStaff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (entry.additionalMembers?.length || 0) > 0 ? <span style={{fontSize: '12px'}}>{entry.additionalMembers.join(', ')}</span> : '-'}</td>
-                      <td style={{...tdStyle, textAlign: 'center'}}>{getStatusBadge(entry.status)}</td>
-                      <td style={{...tdStyle, textAlign: 'center'}}>
-                        <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
-                          {entry.status === 'draft' && (<><button onClick={() => saveEntry('teamMembers', entry.id)} disabled={!entry.taskId || (!entry.changePrimary && (!entry.additionalMembers || entry.additionalMembers.length === 0))} style={{padding: '5px 10px', background: entry.taskId && (entry.changePrimary || entry.additionalMembers?.length > 0) ? themeColors.primary : '#cbd5e1', color: '#fff', border: 'none', borderRadius: '4px', cursor: entry.taskId && (entry.changePrimary || entry.additionalMembers?.length > 0) ? 'pointer' : 'not-allowed', fontSize: '12px'}}>Save</button><button onClick={() => deleteEntry('teamMembers', entry.id)} style={{padding: '5px 8px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Trash2 size={12} /></button></>)}
-                          {entry.status === 'pending' && canApprove && (<><button onClick={() => openEditModal(entry, 'teamMembers')} style={{padding: '5px 8px', background: themeColors.secondary, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Edit size={12} /></button><button onClick={() => approveTeamMemberEntry(entry)} style={{padding: '5px 10px', background: themeColors.primary, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}}>✓</button></>)}
-                          {entry.status === 'approved' && <span style={{fontSize: '12px', color: themeColors.primary, fontWeight: '600'}}>✓ Applied</span>}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div style={{background: '#fff', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb'}}>
+            <table style={{width: '100%', borderCollapse: 'collapse'}}>
+              <thead>
+                <tr>
+                  <th style={th}>#</th>
+                  <th style={{...th, minWidth: '200px'}}>Task</th>
+                  <th style={th}>Task Code</th>
+                  <th style={th}>Client</th>
+                  <th style={th}>Current Primary</th>
+                  <th style={th}>Change?</th>
+                  <th style={th}>New Primary</th>
+                  <th style={{...th, minWidth: '140px'}}>Add Members</th>
+                  <th style={th}>Status</th>
+                  <th style={th}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {teamEntries.length === 0 ? (
+                  <tr><td colSpan={10} style={{padding: '40px', textAlign: 'center', color: '#999'}}>No entries yet</td></tr>
+                ) : teamEntries.map((e, i) => (
+                  <tr key={e.id} style={{background: i % 2 ? '#f9fafb' : '#fff'}}>
+                    <td style={td}>{i + 1}</td>
+                    <td style={td}>{e.status === 'draft' ? <TaskSearch entry={e} /> : `${e.taskCode} - ${e.clientName}`}</td>
+                    <td style={{...td, fontWeight: '600', color: themeColors.primary}}>{e.taskCode || '-'}</td>
+                    <td style={td}>{e.clientName || '-'}</td>
+                    <td style={td}>{e.currentPrimary || '-'}</td>
+                    <td style={td}>{e.status === 'draft' && e.taskId ? <input type="checkbox" checked={e.changePrimary} onChange={(x) => updateTeam(e.id, 'changePrimary', x.target.checked)} /> : e.changePrimary ? 'Yes' : 'No'}</td>
+                    <td style={td}>{e.status === 'draft' && e.changePrimary ? <select value={e.newPrimary} onChange={(x) => updateTeam(e.id, 'newPrimary', x.target.value)} style={inp}><option value="">Select</option>{staff.filter(s => s.name !== e.currentPrimary).map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : e.newPrimary || '-'}</td>
+                    <td style={td}>{e.status === 'draft' && e.taskId ? <select multiple value={e.addMembers||[]} onChange={(x) => updateTeam(e.id, 'addMembers', Array.from(x.target.selectedOptions, o => o.value))} style={{...inp, height: '60px'}}>{staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.addMembers?.join(', ') || '-')}</td>
+                    <td style={td}><span style={{padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', background: e.status === 'draft' ? '#f1f5f9' : e.status === 'pending' ? '#fef3c7' : '#dcfce7', color: e.status === 'draft' ? '#64748b' : e.status === 'pending' ? '#d97706' : '#16a34a'}}>{e.status}</span></td>
+                    <td style={td}>
+                      {e.status === 'draft' && <><button onClick={() => saveEntry('team', e.id)} disabled={!e.taskId || (!e.changePrimary && !e.addMembers?.length)} style={btn(e.taskId && (e.changePrimary || e.addMembers?.length) ? themeColors.primary : '#ccc')}>Save</button> <button onClick={() => deleteEntry('team', e.id)} style={btn('#ef4444')}>×</button></>}
+                      {e.status === 'pending' && canApprove && <button onClick={() => approveTeam(e)} style={btn('#16a34a')}>Approve</button>}
+                      {e.status === 'approved' && <span style={{color: '#16a34a', fontWeight: '600'}}>✓</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
         
-        {/* Info box */}
         {!canApprove && (
-          <div style={{marginTop: '20px', padding: '16px', background: themeColors.primaryLighter, borderRadius: '10px', border: `1px solid ${themeColors.border}`}}>
-            <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-              <Info size={20} style={{color: themeColors.primary}} />
-              <div>
-                <div style={{fontWeight: '600', color: '#1e293b'}}>How it works</div>
-                <div style={{fontSize: '13px', color: '#64748b'}}>Add entries and click "Save" to submit for approval. Your Reporting Manager will review and approve.</div>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* Edit Modal */}
-        {editingEntry && editFormData && (
-          <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000}} onClick={() => { setEditingEntry(null); setEditFormData(null); }}>
-            <div style={{background: '#fff', borderRadius: '12px', width: '90%', maxWidth: '700px', maxHeight: '85vh', overflow: 'auto'}} onClick={(e) => e.stopPropagation()}>
-              <div style={{padding: '20px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: '#fff'}}>
-                <h3 style={{margin: 0, fontSize: '18px', fontWeight: '600'}}>Edit {editingEntry.type === 'tasks' ? 'Task' : editingEntry.type === 'clients' ? 'Client' : 'Team Member'} Entry</h3>
-                <button onClick={() => { setEditingEntry(null); setEditFormData(null); }} style={{background: 'none', border: 'none', cursor: 'pointer'}}><X size={20} /></button>
-              </div>
-              <div style={{padding: '20px'}}>
-                {editingEntry.type === 'tasks' && (
-                  <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
-                    <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Client</label><input type="text" value={editFormData.clientName} disabled style={{...inputStyle, background: '#f8fafc'}} /></div>
-                    <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Parent Task</label><select value={editFormData.parentTask} onChange={(e) => setEditFormData({...editFormData, parentTask: e.target.value, childTask: ''})} style={inputStyle}>{Object.keys(PARENT_CHILD_TASKS).map(p => <option key={p} value={p}>{p}</option>)}</select></div>
-                    <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Child Task</label><select value={editFormData.childTask} onChange={(e) => setEditFormData({...editFormData, childTask: e.target.value})} style={inputStyle}><option value="">Select</option>{(PARENT_CHILD_TASKS[editFormData.parentTask] || []).map(c => <option key={c} value={c}>{c}</option>)}</select></div>
-                    <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Financial Year</label><select value={editFormData.financialYear} onChange={(e) => setEditFormData({...editFormData, financialYear: e.target.value})} style={inputStyle}>{financialYears.map(fy => <option key={fy} value={fy}>{fy}</option>)}</select></div>
-                    <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Period</label><select value={editFormData.period} onChange={(e) => setEditFormData({...editFormData, period: e.target.value, subPeriod: ''})} style={inputStyle}>{periods.map(p => <option key={p} value={p}>{p}</option>)}</select></div>
-                    <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Sub-Period</label>{getSubPeriods(editFormData.period).length > 0 ? <select value={editFormData.subPeriod} onChange={(e) => setEditFormData({...editFormData, subPeriod: e.target.value})} style={inputStyle}><option value="">Select</option>{getSubPeriods(editFormData.period).map(sp => <option key={sp} value={sp}>{sp}</option>)}</select> : <input type="text" value={editFormData.subPeriod || ''} onChange={(e) => setEditFormData({...editFormData, subPeriod: e.target.value})} style={inputStyle} />}</div>
-                    <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Task Leader</label><select value={editFormData.taskLeader} onChange={(e) => setEditFormData({...editFormData, taskLeader: e.target.value})} style={inputStyle}><option value="">Select</option>{superAdmins.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
-                    <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Task Manager</label><select value={editFormData.taskManager} onChange={(e) => setEditFormData({...editFormData, taskManager: e.target.value})} style={inputStyle}><option value="">Select</option>{activeRMs.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
-                    <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Primary Assigned User</label><select value={editFormData.primaryAssignedUser} onChange={(e) => setEditFormData({...editFormData, primaryAssignedUser: e.target.value})} style={inputStyle}><option value="">Select</option>{activeStaff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
-                    <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Team Members</label><select multiple value={editFormData.teamMembers || []} onChange={(e) => setEditFormData({...editFormData, teamMembers: Array.from(e.target.selectedOptions, o => o.value)})} style={{...inputStyle, height: '80px'}}>{activeStaff.filter(s => s.name !== editFormData.primaryAssignedUser).map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
-                    <div style={{gridColumn: 'span 2'}}><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Task Description</label><textarea value={editFormData.taskDescription || ''} onChange={(e) => setEditFormData({...editFormData, taskDescription: e.target.value})} rows={3} style={{...inputStyle, resize: 'vertical'}} /></div>
-                  </div>
-                )}
-                {editingEntry.type === 'clients' && (
-                  <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
-                    <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Group No</label><input type="text" value={editFormData.groupNo} disabled style={{...inputStyle, background: '#f8fafc'}} /></div>
-                    <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Client Code</label><input type="text" value={editFormData.fileNo} disabled style={{...inputStyle, background: '#f8fafc'}} /></div>
-                    <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Client Name *</label><input type="text" value={editFormData.name} onChange={(e) => setEditFormData({...editFormData, name: e.target.value})} style={inputStyle} /></div>
-                    <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>PAN</label><input type="text" value={editFormData.pan} onChange={(e) => setEditFormData({...editFormData, pan: e.target.value.toUpperCase()})} maxLength={10} style={inputStyle} /></div>
-                    <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>GSTIN</label><input type="text" value={editFormData.gstin} onChange={(e) => setEditFormData({...editFormData, gstin: e.target.value.toUpperCase()})} maxLength={15} style={inputStyle} /></div>
-                    <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Phone</label><input type="tel" value={editFormData.phone} onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})} style={inputStyle} /></div>
-                    <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Type of Client</label><select value={editFormData.typeOfClient} onChange={(e) => setEditFormData({...editFormData, typeOfClient: e.target.value})} style={inputStyle}><option value="">Select</option>{clientTypes.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                    <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>State</label><select value={editFormData.state} onChange={(e) => setEditFormData({...editFormData, state: e.target.value})} style={inputStyle}><option value="">Select</option>{states.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
-                    <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Reporting Manager</label><select value={editFormData.reportingManager} onChange={(e) => setEditFormData({...editFormData, reportingManager: e.target.value})} style={inputStyle}><option value="">Select</option>{activeRMs.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
-                  </div>
-                )}
-                {editingEntry.type === 'teamMembers' && (
-                  <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
-                    <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Task Code</label><input type="text" value={editFormData.taskCode} disabled style={{...inputStyle, background: '#f8fafc'}} /></div>
-                    <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Client</label><input type="text" value={editFormData.clientName} disabled style={{...inputStyle, background: '#f8fafc'}} /></div>
-                    <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Current Primary User</label><input type="text" value={editFormData.currentPrimaryUser} disabled style={{...inputStyle, background: '#f8fafc'}} /></div>
-                    <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginTop: '24px'}}><input type="checkbox" checked={editFormData.changePrimary} onChange={(e) => setEditFormData({...editFormData, changePrimary: e.target.checked})} /><label style={{fontSize: '13px', fontWeight: '500', color: '#374151'}}>Change Primary User</label></div>
-                    {editFormData.changePrimary && <div style={{gridColumn: 'span 2'}}><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>New Primary User</label><select value={editFormData.newPrimaryUser || ''} onChange={(e) => setEditFormData({...editFormData, newPrimaryUser: e.target.value})} style={inputStyle}><option value="">Select</option>{activeStaff.filter(s => s.name !== editFormData.currentPrimaryUser).map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>}
-                    <div style={{gridColumn: 'span 2'}}><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Add Team Members</label><select multiple value={editFormData.additionalMembers || []} onChange={(e) => setEditFormData({...editFormData, additionalMembers: Array.from(e.target.selectedOptions, o => o.value)})} style={{...inputStyle, height: '120px'}}>{activeStaff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
-                  </div>
-                )}
-              </div>
-              <div style={{padding: '16px 20px', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'flex-end', gap: '12px', position: 'sticky', bottom: 0, background: '#fff'}}>
-                <button onClick={() => { setEditingEntry(null); setEditFormData(null); }} style={{padding: '10px 20px', background: '#fff', color: '#64748b', border: '1px solid #d1d5db', borderRadius: '8px', cursor: 'pointer', fontSize: '14px'}}>Cancel</button>
-                <button onClick={saveEdit} style={{padding: '10px 20px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600'}}>Save Changes</button>
-              </div>
-            </div>
+          <div style={{marginTop: '20px', padding: '16px', background: '#f0f9ff', borderRadius: '8px', border: '1px solid #bae6fd'}}>
+            <strong>Note:</strong> Add entries and click Save to submit for approval. Your manager will review and approve them.
           </div>
         )}
       </div>
