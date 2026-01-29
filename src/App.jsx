@@ -20534,6 +20534,17 @@ ${invoiceHtml}
                               />
                             </div>
 
+                            <div style={{marginBottom: '20px'}}>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Remark (Optional)</label>
+                              <textarea
+                                value={billingDetails.remark || ''}
+                                onChange={(e) => setBillingDetails({...billingDetails, remark: e.target.value})}
+                                placeholder="Additional notes or remarks for this invoice..."
+                                rows={2}
+                                style={{width: '100%', padding: '10px 12px', border: '2px solid #d1fae5', borderRadius: '8px', fontSize: '13px', background: '#f0fdf4', resize: 'vertical'}}
+                              />
+                            </div>
+
                             <div style={{display: 'flex', justifyContent: 'flex-end', gap: '12px'}}>
                               <button
                                 onClick={() => setSelectedBillingTask(null)}
