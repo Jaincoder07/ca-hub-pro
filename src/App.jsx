@@ -9777,102 +9777,104 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
 
           {/* VIEW TAB - Compact Monthly View */}
           {activeTab === 'view' && !viewingTimesheet && (
-            <div style={{padding: '20px'}}>
+            <div style={{padding: '16px'}}>
               {/* Filters */}
-              <div style={{display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '16px', padding: '12px 16px', background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '10px', border: '1px solid #86efac'}}>
+              <div style={{display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '12px', padding: '10px 14px', background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '8px', border: '1px solid #86efac'}}>
                 <div>
-                  <label style={{fontSize: '11px', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '4px', textTransform: 'uppercase'}}>Employee</label>
-                  <div style={{padding: '8px 14px', background: '#fff', borderRadius: '6px', border: '1px solid #86efac', fontSize: '13px', fontWeight: '600', color: '#374151'}}>{viewEmployee}</div>
+                  <label style={{fontSize: '10px', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '3px', textTransform: 'uppercase'}}>Employee</label>
+                  <div style={{padding: '6px 12px', background: '#fff', borderRadius: '5px', border: '1px solid #86efac', fontSize: '12px', fontWeight: '600', color: '#374151'}}>{viewEmployee}</div>
                 </div>
                 <div>
-                  <label style={{fontSize: '11px', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '4px', textTransform: 'uppercase'}}>Month</label>
-                  <input type="month" value={viewMonth} onChange={(e) => setViewMonth(e.target.value)} style={{padding: '8px 12px', border: '1px solid #86efac', borderRadius: '6px', fontSize: '13px', background: '#fff'}} />
+                  <label style={{fontSize: '10px', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '3px', textTransform: 'uppercase'}}>Month</label>
+                  <input type="month" value={viewMonth} onChange={(e) => setViewMonth(e.target.value)} style={{padding: '6px 10px', border: '1px solid #86efac', borderRadius: '5px', fontSize: '12px', background: '#fff'}} />
                 </div>
               </div>
 
-              {/* Monthly View Table */}
-              <div style={{background: '#fff', borderRadius: '10px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
-                <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
-                  <thead>
-                    <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
-                      <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Date</th>
-                      <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Day</th>
-                      <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Status</th>
-                      <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Billable</th>
-                      <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Non-Bill</th>
-                      <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Total</th>
-                      <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Min Req.</th>
-                      <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Short/Excess</th>
-                      <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {daysInMonth.map(({ date, dayOfWeek }, idx) => {
-                      const ts = getTimesheetForDate(date);
-                      const isMissing = !ts;
-                      const status = ts?.attendanceStatus || 'Missing';
-                      const isLeave = ts?.status === 'Leave' || status === 'Full Day Leave';
-                      const total = ts?.totalHours || 0;
-                      const minRequired = 8;
-                      const shortExcess = total - minRequired;
-                      const isSunday = dayOfWeek === 'Sun';
-                      
-                      return (
-                        <tr key={date} style={{borderBottom: '1px solid #f1f5f9', background: isSunday ? '#fef2f2' : idx % 2 === 0 ? '#fff' : '#fafafa'}}>
-                          <td style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#374151'}}>{date.split('-')[2]}</td>
-                          <td style={{padding: '10px 8px', textAlign: 'center', color: isSunday ? '#dc2626' : '#374151'}}>{dayOfWeek}</td>
-                          <td style={{padding: '10px 8px', textAlign: 'center'}}>
-                            <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600', 
-                              background: status === 'Present' ? '#dcfce7' : status === 'Full Day Leave' ? '#fee2e2' : '#fef3c7',
-                              color: status === 'Present' ? '#166534' : status === 'Full Day Leave' ? '#dc2626' : '#92400e'
-                            }}>{status === 'Full Day Leave' ? 'Leave' : status === 'Present' ? 'Present' : 'Missing'}</span>
-                          </td>
-                          <td style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#374151'}}>{ts?.billableHours?.toFixed(2) || '-'}</td>
-                          <td style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#374151'}}>{ts?.nonBillableHours?.toFixed(2) || '-'}</td>
-                          <td style={{padding: '10px 8px', textAlign: 'center', fontWeight: '700', color: '#374151'}}>{total > 0 ? total.toFixed(2) : '-'}</td>
-                          <td style={{padding: '10px 8px', textAlign: 'center', color: '#374151'}}>{isLeave ? '-' : '8.00'}</td>
-                          <td style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600'}}>
-                            {isMissing && !isSunday ? (
-                              <span style={{color: '#dc2626'}}>-8.00</span>
-                            ) : isLeave ? (
-                              <span style={{color: '#374151'}}>-</span>
-                            ) : shortExcess < 0 ? (
-                              <span style={{color: '#dc2626'}}>{shortExcess.toFixed(2)}</span>
-                            ) : shortExcess > 0 ? (
-                              <span style={{color: '#10b981'}}>+{shortExcess.toFixed(2)}</span>
-                            ) : (
-                              <span style={{color: '#10b981'}}>✓ 0.00</span>
-                            )}
-                          </td>
-                          <td style={{padding: '10px 8px', textAlign: 'center'}}>
-                            {ts ? (
-                              <div style={{display: 'flex', gap: '6px', justifyContent: 'center'}}>
-                                <button onClick={() => setViewingTimesheet(ts)} style={{padding: '5px 12px', background: '#dbeafe', color: '#1d4ed8', border: 'none', borderRadius: '4px', fontSize: '11px', fontWeight: '600', cursor: 'pointer'}}>View</button>
-                                <button onClick={() => handleEditFromView(ts)} style={{padding: '5px 12px', background: '#fef3c7', color: '#92400e', border: 'none', borderRadius: '4px', fontSize: '11px', fontWeight: '600', cursor: 'pointer'}}>Edit</button>
-                              </div>
-                            ) : (
-                              <button onClick={() => { setTimesheetDate(date); setActiveTab('fill'); }} style={{padding: '5px 12px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '11px', fontWeight: '600', cursor: 'pointer'}}>Fill</button>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              {/* Monthly View Table with Scroll */}
+              <div style={{background: '#fff', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 2px 6px rgba(0,0,0,0.05)'}}>
+                <div style={{maxHeight: '400px', overflowY: 'auto'}}>
+                  <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                    <thead style={{position: 'sticky', top: 0, zIndex: 10}}>
+                      <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                        <th style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Date</th>
+                        <th style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Day</th>
+                        <th style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Status</th>
+                        <th style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Bill</th>
+                        <th style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>N-Bill</th>
+                        <th style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Total</th>
+                        <th style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Min</th>
+                        <th style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>+/-</th>
+                        <th style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {daysInMonth.map(({ date, dayOfWeek }, idx) => {
+                        const ts = getTimesheetForDate(date);
+                        const isMissing = !ts;
+                        const status = ts?.attendanceStatus || 'Missing';
+                        const isLeave = ts?.status === 'Leave' || status === 'Full Day Leave';
+                        const total = ts?.totalHours || 0;
+                        const minRequired = 8;
+                        const shortExcess = total - minRequired;
+                        const isSunday = dayOfWeek === 'Sun';
+                        
+                        return (
+                          <tr key={date} style={{borderBottom: '1px solid #f1f5f9', background: isSunday ? '#fef2f2' : idx % 2 === 0 ? '#fff' : '#fafafa'}}>
+                            <td style={{padding: '6px 4px', textAlign: 'center', fontWeight: '600', color: '#374151'}}>{date.split('-')[2]}</td>
+                            <td style={{padding: '6px 4px', textAlign: 'center', color: isSunday ? '#dc2626' : '#374151'}}>{dayOfWeek}</td>
+                            <td style={{padding: '6px 4px', textAlign: 'center'}}>
+                              <span style={{padding: '2px 6px', borderRadius: '8px', fontSize: '9px', fontWeight: '600', 
+                                background: status === 'Present' ? '#dcfce7' : status === 'Full Day Leave' ? '#fee2e2' : '#fef3c7',
+                                color: status === 'Present' ? '#166534' : status === 'Full Day Leave' ? '#dc2626' : '#92400e'
+                              }}>{status === 'Full Day Leave' ? 'Leave' : status === 'Present' ? 'P' : 'M'}</span>
+                            </td>
+                            <td style={{padding: '6px 4px', textAlign: 'center', fontWeight: '500', color: '#374151'}}>{ts?.billableHours?.toFixed(1) || '-'}</td>
+                            <td style={{padding: '6px 4px', textAlign: 'center', fontWeight: '500', color: '#374151'}}>{ts?.nonBillableHours?.toFixed(1) || '-'}</td>
+                            <td style={{padding: '6px 4px', textAlign: 'center', fontWeight: '600', color: '#374151'}}>{total > 0 ? total.toFixed(1) : '-'}</td>
+                            <td style={{padding: '6px 4px', textAlign: 'center', color: '#374151'}}>{isLeave ? '-' : '8'}</td>
+                            <td style={{padding: '6px 4px', textAlign: 'center', fontWeight: '600'}}>
+                              {isMissing && !isSunday ? (
+                                <span style={{color: '#dc2626'}}>-8</span>
+                              ) : isLeave || isSunday ? (
+                                <span style={{color: '#374151'}}>-</span>
+                              ) : shortExcess < 0 ? (
+                                <span style={{color: '#dc2626'}}>{shortExcess.toFixed(1)}</span>
+                              ) : shortExcess > 0 ? (
+                                <span style={{color: '#10b981'}}>+{shortExcess.toFixed(1)}</span>
+                              ) : (
+                                <span style={{color: '#10b981'}}>✓</span>
+                              )}
+                            </td>
+                            <td style={{padding: '6px 4px', textAlign: 'center'}}>
+                              {ts ? (
+                                <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
+                                  <button onClick={() => setViewingTimesheet(ts)} style={{padding: '3px 8px', background: '#dbeafe', color: '#1d4ed8', border: 'none', borderRadius: '3px', fontSize: '10px', fontWeight: '600', cursor: 'pointer'}}>View</button>
+                                  <button onClick={() => handleEditFromView(ts)} style={{padding: '3px 8px', background: '#fef3c7', color: '#92400e', border: 'none', borderRadius: '3px', fontSize: '10px', fontWeight: '600', cursor: 'pointer'}}>Edit</button>
+                                </div>
+                              ) : (
+                                <button onClick={() => { setTimesheetDate(date); setActiveTab('fill'); }} style={{padding: '3px 8px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '3px', fontSize: '10px', fontWeight: '600', cursor: 'pointer'}}>Fill</button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
                 
                 {/* Summary Row */}
-                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr', background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderTop: '2px solid #10b981', padding: '12px 0'}}>
-                  <div style={{textAlign: 'center', fontSize: '13px', fontWeight: '700', color: '#166534', gridColumn: 'span 3'}}>Monthly Total</div>
-                  <div style={{textAlign: 'center', fontSize: '13px', fontWeight: '700', color: '#374151'}}>{daysInMonth.reduce((sum, d) => sum + (getTimesheetForDate(d.date)?.billableHours || 0), 0).toFixed(2)}</div>
-                  <div style={{textAlign: 'center', fontSize: '13px', fontWeight: '700', color: '#374151'}}>{daysInMonth.reduce((sum, d) => sum + (getTimesheetForDate(d.date)?.nonBillableHours || 0), 0).toFixed(2)}</div>
-                  <div style={{textAlign: 'center', fontSize: '13px', fontWeight: '700', color: '#374151'}}>{daysInMonth.reduce((sum, d) => sum + (getTimesheetForDate(d.date)?.totalHours || 0), 0).toFixed(2)}</div>
-                  <div style={{textAlign: 'center', fontSize: '13px', fontWeight: '700', color: '#374151'}}>{daysInMonth.filter(d => d.dayOfWeek !== 'Sun').length * 8}</div>
-                  <div style={{textAlign: 'center', fontSize: '13px', fontWeight: '700', color: (daysInMonth.reduce((sum, d) => sum + (getTimesheetForDate(d.date)?.totalHours || 0), 0) - daysInMonth.filter(d => d.dayOfWeek !== 'Sun').length * 8) >= 0 ? '#10b981' : '#dc2626'}}>
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr', background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderTop: '2px solid #10b981', padding: '8px 0'}}>
+                  <div style={{textAlign: 'center', fontSize: '11px', fontWeight: '700', color: '#166534', gridColumn: 'span 3'}}>Monthly Total</div>
+                  <div style={{textAlign: 'center', fontSize: '11px', fontWeight: '700', color: '#374151'}}>{daysInMonth.reduce((sum, d) => sum + (getTimesheetForDate(d.date)?.billableHours || 0), 0).toFixed(1)}</div>
+                  <div style={{textAlign: 'center', fontSize: '11px', fontWeight: '700', color: '#374151'}}>{daysInMonth.reduce((sum, d) => sum + (getTimesheetForDate(d.date)?.nonBillableHours || 0), 0).toFixed(1)}</div>
+                  <div style={{textAlign: 'center', fontSize: '11px', fontWeight: '700', color: '#374151'}}>{daysInMonth.reduce((sum, d) => sum + (getTimesheetForDate(d.date)?.totalHours || 0), 0).toFixed(1)}</div>
+                  <div style={{textAlign: 'center', fontSize: '11px', fontWeight: '700', color: '#374151'}}>{daysInMonth.filter(d => d.dayOfWeek !== 'Sun').length * 8}</div>
+                  <div style={{textAlign: 'center', fontSize: '11px', fontWeight: '700', color: (daysInMonth.reduce((sum, d) => sum + (getTimesheetForDate(d.date)?.totalHours || 0), 0) - daysInMonth.filter(d => d.dayOfWeek !== 'Sun').length * 8) >= 0 ? '#10b981' : '#dc2626'}}>
                     {(() => {
                       const totalHrs = daysInMonth.reduce((sum, d) => sum + (getTimesheetForDate(d.date)?.totalHours || 0), 0);
                       const reqHrs = daysInMonth.filter(d => d.dayOfWeek !== 'Sun').length * 8;
                       const diff = totalHrs - reqHrs;
-                      return diff >= 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2);
+                      return diff >= 0 ? `+${diff.toFixed(1)}` : diff.toFixed(1);
                     })()}
                   </div>
                   <div></div>
@@ -15680,8 +15682,18 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const [showOrgModal, setShowOrgModal] = useState(false);
     const [editingOrg, setEditingOrg] = useState(null);
     
-    // Dashboard States
-    const [dashboardFY, setDashboardFY] = useState('FY 2024-25');
+    // Dashboard States - Default to current FY
+    const getCurrentFY = () => {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = today.getMonth();
+      // FY starts in April (month 3), so if we're in Jan-Mar, we're in previous year's FY
+      if (month < 3) {
+        return `FY ${year - 1}-${String(year).slice(2)}`;
+      }
+      return `FY ${year}-${String(year + 1).slice(2)}`;
+    };
+    const [dashboardFY, setDashboardFY] = useState(getCurrentFY());
     const [dashboardTab, setDashboardTab] = useState('summary'); // 'summary', 'billRegister', 'receiptRegister'
     const [billRegisterFilters, setBillRegisterFilters] = useState({
       fromDate: '',
@@ -29716,6 +29728,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const [dscSearch, setDscSearch] = useState('');
     const [dscStatusFilter, setDscStatusFilter] = useState('all');
     const [dscExpiryFilter, setDscExpiryFilter] = useState('all');
+    const [dscClientCodeFilter, setDscClientCodeFilter] = useState('');
+    const [dscGroupCodeFilter, setDscGroupCodeFilter] = useState('');
     const [showDscForm, setShowDscForm] = useState(false);
     const [editingDsc, setEditingDsc] = useState(null);
     const [viewingDsc, setViewingDsc] = useState(null);
@@ -29776,13 +29790,26 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     
     // Filter DSC records
     const filteredDscRecords = dscRecords.filter(dsc => {
+      // Get client for code filtering
+      const client = data.clients.find(c => c.name === dsc.clientName);
+      
       // Search filter - works with 2+ letters
       const searchLower = dscSearch.toLowerCase().trim();
       const matchesSearch = searchLower.length < 2 || 
         (dsc.clientName || '').toLowerCase().includes(searchLower) ||
         (dsc.holderName || '').toLowerCase().includes(searchLower) ||
         (dsc.tokenSerialNo || '').toLowerCase().includes(searchLower) ||
-        (dsc.issuingAuthority || '').toLowerCase().includes(searchLower);
+        (dsc.issuingAuthority || '').toLowerCase().includes(searchLower) ||
+        (client?.clientCode || '').toLowerCase().includes(searchLower) ||
+        (client?.groupCode || '').toLowerCase().includes(searchLower);
+      
+      // Client Code filter
+      const matchesClientCode = !dscClientCodeFilter || 
+        (client?.clientCode || '').toLowerCase().includes(dscClientCodeFilter.toLowerCase());
+      
+      // Group Code filter
+      const matchesGroupCode = !dscGroupCodeFilter ||
+        (client?.groupCode || '').toLowerCase().includes(dscGroupCodeFilter.toLowerCase());
       
       // Status filter (use effective status)
       const effectiveStatus = getEffectiveStatus(dsc);
@@ -29807,7 +29834,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         else if (dscExpiryFilter === 'valid') matchesExpiry = expiryStatus === 'valid';
       }
       
-      return matchesSearch && matchesStatus && matchesExpiry;
+      return matchesSearch && matchesStatus && matchesExpiry && matchesClientCode && matchesGroupCode;
     });
     
     // Summary stats
@@ -30092,6 +30119,36 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               <option value="expiring-60">Due in 60 days</option>
               <option value="valid">Valid</option>
             </select>
+            
+            {/* Client Code Filter */}
+            <input
+              type="text"
+              placeholder="Client Code..."
+              value={dscClientCodeFilter}
+              onChange={(e) => setDscClientCodeFilter(e.target.value)}
+              style={{
+                padding: '10px 12px',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                fontSize: '14px',
+                minWidth: '120px'
+              }}
+            />
+            
+            {/* Group Code Filter */}
+            <input
+              type="text"
+              placeholder="Group Code..."
+              value={dscGroupCodeFilter}
+              onChange={(e) => setDscGroupCodeFilter(e.target.value)}
+              style={{
+                padding: '10px 12px',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                fontSize: '14px',
+                minWidth: '120px'
+              }}
+            />
           </div>
           
           {/* Add Button */}
@@ -30133,10 +30190,12 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1100px', fontSize: '12px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1300px', fontSize: '12px' }}>
                 <thead>
                   <tr style={{ background: 'linear-gradient(180deg, #10b981 0%, #059669 100%)' }}>
                     <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>Client / Holder</th>
+                    <th style={{ padding: '12px 10px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>Client Code</th>
+                    <th style={{ padding: '12px 10px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>Group Code</th>
                     <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>Type</th>
                     <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>Token Serial</th>
                     <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>Issuing Authority</th>
@@ -30148,7 +30207,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredDscRecords.map((dsc, index) => (
+                  {filteredDscRecords.map((dsc, index) => {
+                    const client = data.clients.find(c => c.name === dsc.clientName);
+                    return (
                     <tr 
                       key={dsc.id} 
                       style={{ 
@@ -30163,6 +30224,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         <div style={{ fontWeight: '600', color: '#0f172a', marginBottom: '2px', fontSize: '12px' }}>{dsc.clientName}</div>
                         <div style={{ fontSize: '11px', color: '#64748b' }}>{dsc.holderName}</div>
                       </td>
+                      <td style={{ padding: '12px 10px', borderRight: '1px solid #e2e8f0', fontSize: '11px', fontFamily: 'monospace', color: '#374151' }}>{client?.clientCode || '-'}</td>
+                      <td style={{ padding: '12px 10px', borderRight: '1px solid #e2e8f0', fontSize: '11px', fontFamily: 'monospace', color: '#374151' }}>{client?.groupCode || '-'}</td>
                       <td style={{ padding: '12px 14px', borderRight: '1px solid #e2e8f0' }}>
                         <span style={{
                           padding: '3px 8px',
@@ -30294,7 +30357,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  );})}
                 </tbody>
               </table>
             </div>
