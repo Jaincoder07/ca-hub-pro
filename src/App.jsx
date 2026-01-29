@@ -28941,14 +28941,14 @@ ${invoiceHtml}
       return [];
     };
     
-    // Search helpers
-    const getFilteredClients = (searchTerm) => {
+    // Search helpers - renamed to avoid shadowing
+    const searchClientsByTerm = (searchTerm) => {
       if (!searchTerm || searchTerm.length < 2) return [];
       const term = searchTerm.toLowerCase();
       return data.clients.filter(c => !c.disabled && (c.name?.toLowerCase().includes(term) || c.fileNo?.toLowerCase().includes(term) || c.pan?.toLowerCase().includes(term))).slice(0, 15);
     };
     
-    const getFilteredTasks = (searchTerm) => {
+    const searchTasksByTerm = (searchTerm) => {
       if (!searchTerm || searchTerm.length < 2) return [];
       const term = searchTerm.toLowerCase();
       return data.tasks.filter(t => t.clientName?.toLowerCase().includes(term) || t.taskCode?.toLowerCase().includes(term) || t.parentTask?.toLowerCase().includes(term)).slice(0, 15);
@@ -29015,31 +29015,61 @@ ${invoiceHtml}
     };
     
     const updateClientEntryField = (entryId, field, value) => {
-      setData(prev => ({
-        ...prev,
-        pendingClientEntries: (prev.pendingClientEntries || []).map(entry => {
-          if (entry.id !== entryId) return entry;
-          let updated = { ...entry, [field]: value };
-          if (field === 'groupMode') {
-            if (value === 'new') {
-              const nextGroup = getNextNewGroup();
-              updated.groupNo = String(nextGroup);
-              updated.fileNo = `${nextGroup}.01`;
-              updated.selectedGroup = '';
-            } else {
-              const groups = getExistingGroups();
-              updated.selectedGroup = groups.length > 0 ? String(groups[0]) : '';
-              updated.groupNo = updated.selectedGroup;
-              updated.fileNo = updated.selectedGroup ? getNextClientCode(updated.selectedGroup) : '';
+      setData(prev => {
+        // Helper functions using prev state
+        const existingGroups = () => {
+          const groups = new Set();
+          prev.clients.forEach(c => {
+            if (c.fileNo) {
+              const parts = c.fileNo.split('.');
+              if (parts.length === 2 && parts[0]) groups.add(parseInt(parts[0]));
             }
-          }
-          if (field === 'selectedGroup' && value) {
-            updated.groupNo = value;
-            updated.fileNo = getNextClientCode(value);
-          }
-          return updated;
-        })
-      }));
+          });
+          return Array.from(groups).filter(g => !isNaN(g)).sort((a, b) => a - b);
+        };
+        
+        const nextNewGroup = () => {
+          const groups = existingGroups();
+          const pendingGroups = (prev.pendingClientEntries || []).filter(e => e.status !== 'approved' && e.groupMode === 'new' && e.groupNo).map(e => parseInt(e.groupNo));
+          const allGroups = [...groups, ...pendingGroups];
+          return allGroups.length === 0 ? 1 : Math.max(...allGroups) + 1;
+        };
+        
+        const nextClientCode = (groupCode) => {
+          const groupClients = prev.clients.filter(c => c.fileNo && c.fileNo.split('.')[0] === String(groupCode));
+          const pendingInGroup = (prev.pendingClientEntries || []).filter(e => e.status !== 'approved' && e.groupNo === String(groupCode));
+          const existingCodes = groupClients.map(c => { const p = c.fileNo.split('.'); return p.length === 2 ? parseInt(p[1]) : 0; }).filter(n => !isNaN(n));
+          const pendingCodes = pendingInGroup.map(e => { const p = (e.fileNo || '').split('.'); return p.length === 2 ? parseInt(p[1]) : 0; }).filter(n => !isNaN(n));
+          const maxCode = Math.max(0, ...existingCodes, ...pendingCodes);
+          return `${groupCode}.${String(maxCode + 1).padStart(2, '0')}`;
+        };
+        
+        return {
+          ...prev,
+          pendingClientEntries: (prev.pendingClientEntries || []).map(entry => {
+            if (entry.id !== entryId) return entry;
+            let updated = { ...entry, [field]: value };
+            if (field === 'groupMode') {
+              if (value === 'new') {
+                const ng = nextNewGroup();
+                updated.groupNo = String(ng);
+                updated.fileNo = `${ng}.01`;
+                updated.selectedGroup = '';
+              } else {
+                const groups = existingGroups();
+                updated.selectedGroup = groups.length > 0 ? String(groups[0]) : '';
+                updated.groupNo = updated.selectedGroup;
+                updated.fileNo = updated.selectedGroup ? nextClientCode(updated.selectedGroup) : '';
+              }
+            }
+            if (field === 'selectedGroup' && value) {
+              updated.groupNo = value;
+              updated.fileNo = nextClientCode(value);
+            }
+            return updated;
+          })
+        };
+      });
     };
     
     const updateTeamMemberEntry = (entryId, field, value) => {
@@ -29267,9 +29297,9 @@ ${invoiceHtml}
                               onBlur={() => setTimeout(() => setTaskClientDropdown(prev => ({ ...prev, [entry.id]: false })), 200)}
                               style={inputStyle} 
                             />
-                            {taskClientDropdown[entry.id] && getFilteredClients(taskClientSearch[entry.id] || '').length > 0 && (
+                            {taskClientDropdown[entry.id] && searchClientsByTerm(taskClientSearch[entry.id] || '').length > 0 && (
                               <div style={{position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', maxHeight: '200px', overflowY: 'auto', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'}}>
-                                {getFilteredClients(taskClientSearch[entry.id] || '').map(c => (
+                                {searchClientsByTerm(taskClientSearch[entry.id] || '').map(c => (
                                   <div key={c.id} onMouseDown={(e) => { e.preventDefault(); handleTaskClientSelect(entry.id, c); }} 
                                     style={{padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9'}}
                                     onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'} 
@@ -29423,9 +29453,9 @@ ${invoiceHtml}
                               onBlur={() => setTimeout(() => setTeamTaskDropdown(prev => ({ ...prev, [entry.id]: false })), 200)}
                               style={inputStyle} 
                             />
-                            {teamTaskDropdown[entry.id] && getFilteredTasks(teamTaskSearch[entry.id] || '').length > 0 && (
+                            {teamTaskDropdown[entry.id] && searchTasksByTerm(teamTaskSearch[entry.id] || '').length > 0 && (
                               <div style={{position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', maxHeight: '200px', overflowY: 'auto', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'}}>
-                                {getFilteredTasks(teamTaskSearch[entry.id] || '').map(t => (
+                                {searchTasksByTerm(teamTaskSearch[entry.id] || '').map(t => (
                                   <div key={t.id} onMouseDown={(e) => { e.preventDefault(); handleTeamTaskSelect(entry.id, t); }} 
                                     style={{padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9'}}
                                     onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'} 
