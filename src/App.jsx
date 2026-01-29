@@ -2079,7 +2079,6 @@ const PracticeManagementApp = () => {
                 { id: 'billing', label: 'Billing', icon: <FileText size={16} />, permKey: 'invoicing_billing' },
                 { id: 'unbilledTasks', label: 'Unbilled Tasks', icon: <Clock size={16} />, permKey: 'invoicing_unbilledTasks' },
                 { id: 'expenses', label: 'Expenses', icon: <Receipt size={16} />, permKey: 'invoicing_expenses' },
-                { id: 'expenseReport', label: 'Expense Report', icon: <PieChart size={16} />, permKey: 'invoicing_expenseReport' },
                 { id: 'receipts', label: 'Receipts', icon: <DollarSign size={16} />, permKey: 'invoicing_receipts' },
                 { id: 'debtors', label: 'Debtors', icon: <Users size={16} />, permKey: 'invoicing_debtors' },
                 { id: 'organizations', label: 'Organization', icon: <Briefcase size={16} />, permKey: 'invoicing_organizations' }
@@ -15845,6 +15844,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const [showExpenseInvoiceModal, setShowExpenseInvoiceModal] = useState(false);
     const [expenseInvoiceOrg, setExpenseInvoiceOrg] = useState('');
     const [expenseInvoiceDate, setExpenseInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
+    const [expenseInvoiceGst, setExpenseInvoiceGst] = useState(false);
+    const [viewingExpenseInvoice, setViewingExpenseInvoice] = useState(null);
     
     // Expense Report States
     const [expenseReportType, setExpenseReportType] = useState('byClient');
@@ -25142,6 +25143,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               alert('All selected expenses must be for the same client');
               return;
             }
+            setExpenseInvoiceGst(false);
             setShowExpenseInvoiceModal(true);
           };
           
@@ -25153,18 +25155,54 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             const selectedItems = allExpenses.filter(e => selectedExpenses.includes(e.id));
             const clientName = selectedItems[0]?.clientName;
             const client = data.clients.find(c => c.name === clientName);
-            const totalAmount = selectedItems.reduce((s, e) => s + e.amount, 0);
+            const netAmount = selectedItems.reduce((s, e) => s + e.amount, 0);
             const org = data.organizations.find(o => o.id === expenseInvoiceOrg);
-            const invoiceNumber = `${org?.invoicePrefix || 'INV'}-${String((data.invoices?.length || 0) + 1).padStart(4, '0')}`;
+            
+            // Get next invoice number
+            const currentNo = org?.invoiceCurrentNo || 1;
+            const invoiceNumber = `${org?.invoicePrefix || 'INV'}${String(currentNo).padStart(4, '0')}`;
+            
+            // Calculate GST only if org is GST registered AND user selected GST
+            const orgIsGstRegistered = org?.gstin && org?.gstRate;
+            const applyGst = orgIsGstRegistered && expenseInvoiceGst;
+            const gstRate = applyGst ? (org?.gstRate || 18) : 0;
+            const taxAmount = applyGst ? Math.round(netAmount * gstRate / 100) : 0;
+            const totalAmount = netAmount + taxAmount;
+            
+            // Determine CGST/SGST vs IGST
+            let cgst = 0, sgst = 0, igst = 0;
+            if (applyGst) {
+              const clientState = client?.state?.toLowerCase();
+              const orgState = org?.state?.toLowerCase();
+              if (clientState && orgState && clientState === orgState) {
+                cgst = Math.round(taxAmount / 2);
+                sgst = Math.round(taxAmount / 2);
+              } else {
+                igst = taxAmount;
+              }
+            }
+            
+            // Build remarks
+            const remarks = !applyGst && orgIsGstRegistered 
+              ? 'Reimbursement of Expenses classified under pure agent services as per rule 33 of CGST Rules, hence no GST Charged'
+              : '';
             
             const newInvoice = {
               id: `INV-${Date.now()}`,
               invoiceNo: invoiceNumber,
               invoiceDate: expenseInvoiceDate,
+              invoiceCurrentNo: currentNo,
               clientId: client?.id,
               clientName,
+              clientAddress: client?.address || '',
+              clientState: client?.state || '',
+              clientGstin: client?.gstin || '',
               organizationId: expenseInvoiceOrg,
               orgName: org?.name,
+              orgAddress: org?.address || '',
+              orgState: org?.state || '',
+              orgGstin: org?.gstin || '',
+              orgPan: org?.panNo || '',
               invoiceType: 'Expense Reimbursement',
               serviceDescription: selectedItems.map(exp => `${exp.expenseType} - ${exp.parentTask} → ${exp.childTask}`).join('; '),
               lineItems: selectedItems.map(exp => ({
@@ -25172,11 +25210,16 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 amount: exp.amount,
                 expenseId: exp.id
               })),
-              amount: totalAmount,
-              netAmount: totalAmount,
-              gstApplicable: false,
-              taxAmount: 0,
+              amount: netAmount,
+              netAmount,
+              gstApplicable: applyGst,
+              gstRate: applyGst ? gstRate : 0,
+              taxAmount,
+              cgst,
+              sgst,
+              igst,
               totalAmount,
+              remarks,
               status: 'Generated',
               createdAt: new Date().toISOString()
             };
@@ -25190,12 +25233,16 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             setData(prev => ({
               ...prev,
               invoices: [...(prev.invoices || []), newInvoice],
-              expenses: updatedExpenses
+              expenses: updatedExpenses,
+              organizations: prev.organizations.map(o => 
+                o.id === expenseInvoiceOrg ? {...o, invoiceCurrentNo: currentNo + 1} : o
+              )
             }));
             
             setShowExpenseInvoiceModal(false);
             setSelectedExpenses([]);
             setExpenseInvoiceOrg('');
+            setExpenseInvoiceGst(false);
             alert(`✅ Invoice ${invoiceNumber} created for ₹${totalAmount.toLocaleString()}`);
           };
           
@@ -25273,7 +25320,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     </select>
                   </div>
                   <div>
-                    <button onClick={() => setExpenseFilters({clientName: '', parentTask: '', childTask: '', expenseType: '', status: 'Unbilled', dateFrom: '', dateTo: '', enteredBy: ''})} style={{width: '100%', padding: '8px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', cursor: 'pointer'}}>Reset</button>
+                    <button onClick={() => setExpenseFilters({clientName: '', parentTask: '', childTask: '', expenseType: '', status: '', dateFrom: '', dateTo: '', enteredBy: ''})} style={{width: '100%', padding: '8px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', cursor: 'pointer'}}>Reset</button>
                   </div>
                 </div>
               </div>
@@ -25291,18 +25338,18 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                   <thead>
                     <tr style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'}}>
-                      <th style={{padding: '12px 10px', textAlign: 'center', color: '#fff', fontWeight: '600'}}>
+                      <th style={{padding: '12px 8px', textAlign: 'center', color: '#fff', fontWeight: '600'}}>
                         <input type="checkbox" checked={selectedExpenses.length > 0 && selectedExpenses.length === filteredExpenses.filter(e => e.status === 'Unbilled').length} onChange={handleSelectAll} />
                       </th>
-                      <th style={{padding: '12px 10px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>Date</th>
-                      <th style={{padding: '12px 10px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>Client</th>
-                      <th style={{padding: '12px 10px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>Task</th>
-                      <th style={{padding: '12px 10px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>Type</th>
-                      <th style={{padding: '12px 10px', textAlign: 'right', color: '#fff', fontWeight: '600'}}>Amount</th>
-                      <th style={{padding: '12px 10px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>Description</th>
-                      <th style={{padding: '12px 10px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>Entered By</th>
-                      <th style={{padding: '12px 10px', textAlign: 'center', color: '#fff', fontWeight: '600'}}>Status</th>
-                      <th style={{padding: '12px 10px', textAlign: 'center', color: '#fff', fontWeight: '600'}}>Actions</th>
+                      <th style={{padding: '12px 8px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>Date</th>
+                      <th style={{padding: '12px 8px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>Client</th>
+                      <th style={{padding: '12px 8px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>Task</th>
+                      <th style={{padding: '12px 8px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>Type</th>
+                      <th style={{padding: '12px 8px', textAlign: 'right', color: '#fff', fontWeight: '600'}}>Amount</th>
+                      <th style={{padding: '12px 8px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>Entered By</th>
+                      <th style={{padding: '12px 8px', textAlign: 'center', color: '#fff', fontWeight: '600'}}>Status</th>
+                      <th style={{padding: '12px 8px', textAlign: 'center', color: '#fff', fontWeight: '600'}}>Invoice</th>
+                      <th style={{padding: '12px 8px', textAlign: 'center', color: '#fff', fontWeight: '600'}}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -25310,31 +25357,40 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       <tr><td colSpan="10" style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>No expenses found</td></tr>
                     ) : filteredExpenses.map((exp, idx) => (
                       <tr key={exp.id} style={{borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? '#fff' : '#fafafa'}}>
-                        <td style={{padding: '10px', textAlign: 'center'}}>
+                        <td style={{padding: '8px', textAlign: 'center'}}>
                           {exp.status === 'Unbilled' && <input type="checkbox" checked={selectedExpenses.includes(exp.id)} onChange={() => handleSelectExpense(exp.id)} />}
                         </td>
-                        <td style={{padding: '10px', color: '#374151'}}>{exp.expenseDate}</td>
-                        <td style={{padding: '10px', fontWeight: '600', color: '#374151'}}>{exp.clientName}</td>
-                        <td style={{padding: '10px', color: '#374151'}}>{exp.parentTask} → {exp.childTask}</td>
-                        <td style={{padding: '10px'}}>
-                          <span style={{padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', background: exp.expenseType === 'Travel & Conveyance' ? '#dbeafe' : exp.expenseType === 'Income Tax' ? '#dcfce7' : exp.expenseType === 'GST' ? '#fef3c7' : '#ede9fe', color: exp.expenseType === 'Travel & Conveyance' ? '#1e40af' : exp.expenseType === 'Income Tax' ? '#166534' : exp.expenseType === 'GST' ? '#92400e' : '#5b21b6'}}>{exp.expenseType}</span>
+                        <td style={{padding: '8px', color: '#374151', fontSize: '11px'}}>{exp.expenseDate}</td>
+                        <td style={{padding: '8px', fontWeight: '600', color: '#374151', fontSize: '11px'}}>{exp.clientName}</td>
+                        <td style={{padding: '8px', color: '#374151', fontSize: '11px'}}>{exp.parentTask} → {exp.childTask}</td>
+                        <td style={{padding: '8px'}}>
+                          <span style={{padding: '2px 6px', borderRadius: '6px', fontSize: '10px', fontWeight: '600', background: exp.expenseType === 'Travel & Conveyance' ? '#dbeafe' : exp.expenseType === 'Income Tax' ? '#dcfce7' : exp.expenseType === 'GST' ? '#fef3c7' : '#ede9fe', color: exp.expenseType === 'Travel & Conveyance' ? '#1e40af' : exp.expenseType === 'Income Tax' ? '#166534' : exp.expenseType === 'GST' ? '#92400e' : '#5b21b6'}}>{exp.expenseType}</span>
                         </td>
-                        <td style={{padding: '10px', textAlign: 'right', fontWeight: '700', color: '#374151'}}>₹{(exp.amount || 0).toLocaleString()}</td>
-                        <td style={{padding: '10px', color: '#64748b', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={exp.description}>{exp.description || '-'}</td>
-                        <td style={{padding: '10px', color: '#374151'}}>{exp.enteredBy}</td>
-                        <td style={{padding: '10px', textAlign: 'center'}}>
-                          <span style={{padding: '3px 10px', borderRadius: '10px', fontSize: '11px', fontWeight: '600', background: exp.status === 'Billed' ? '#dcfce7' : '#fef3c7', color: exp.status === 'Billed' ? '#166534' : '#92400e'}}>{exp.status}</span>
+                        <td style={{padding: '8px', textAlign: 'right', fontWeight: '700', color: '#374151'}}>₹{(exp.amount || 0).toLocaleString()}</td>
+                        <td style={{padding: '8px', color: '#374151', fontSize: '11px'}}>{exp.enteredBy}</td>
+                        <td style={{padding: '8px', textAlign: 'center'}}>
+                          <span style={{padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: '600', background: exp.status === 'Billed' ? '#dcfce7' : '#fef3c7', color: exp.status === 'Billed' ? '#166534' : '#92400e'}}>{exp.status}</span>
                         </td>
-                        <td style={{padding: '10px', textAlign: 'center'}}>
+                        <td style={{padding: '8px', textAlign: 'center'}}>
+                          {exp.status === 'Billed' && exp.invoiceId && (
+                            <button
+                              onClick={() => {
+                                const inv = data.invoices?.find(i => i.id === exp.invoiceId);
+                                if (inv) setViewingExpenseInvoice(inv);
+                              }}
+                              style={{padding: '3px 8px', background: '#dbeafe', color: '#1e40af', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: '500'}}
+                            >
+                              {exp.invoiceNumber}
+                            </button>
+                          )}
+                        </td>
+                        <td style={{padding: '8px', textAlign: 'center'}}>
                           {exp.status === 'Unbilled' && (
                             <button onClick={() => {
                               if (window.confirm('Delete this expense?')) {
                                 setData(prev => ({...prev, expenses: prev.expenses.filter(e => e.id !== exp.id)}));
                               }
-                            }} style={{padding: '4px 8px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px'}}>Delete</button>
-                          )}
-                          {exp.status === 'Billed' && exp.invoiceNumber && (
-                            <span style={{fontSize: '10px', color: '#64748b'}}>{exp.invoiceNumber}</span>
+                            }} style={{padding: '3px 8px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px'}}>Delete</button>
                           )}
                         </td>
                       </tr>
@@ -25343,21 +25399,26 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 </table>
               </div>
               
-              {/* Expense Invoice Modal */}
+              {/* Expense Invoice Modal - with GST option */}
               {showExpenseInvoiceModal && (() => {
                 const selectedItems = allExpenses.filter(e => selectedExpenses.includes(e.id));
                 const clientName = selectedItems[0]?.clientName;
                 const client = data.clients.find(c => c.name === clientName);
-                const totalAmount = selectedItems.reduce((s, e) => s + e.amount, 0);
+                const netAmount = selectedItems.reduce((s, e) => s + e.amount, 0);
+                const selectedOrg = data.organizations?.find(o => o.id === expenseInvoiceOrg);
+                const orgIsGstRegistered = selectedOrg?.gstin && selectedOrg?.gstRate;
+                const gstRate = expenseInvoiceGst && orgIsGstRegistered ? (selectedOrg?.gstRate || 18) : 0;
+                const taxAmount = Math.round(netAmount * gstRate / 100);
+                const totalAmount = netAmount + taxAmount;
                 
                 return (
                   <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000}}>
-                    <div style={{background: '#fff', borderRadius: '16px', width: '90%', maxWidth: '700px', maxHeight: '85vh', overflow: 'hidden'}}>
+                    <div style={{background: '#fff', borderRadius: '16px', width: '90%', maxWidth: '750px', maxHeight: '90vh', overflow: 'hidden'}}>
                       <div style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', padding: '20px 24px', color: '#fff'}}>
                         <h3 style={{margin: 0, fontSize: '18px'}}>Generate Expense Invoice</h3>
                         <p style={{margin: '4px 0 0', opacity: 0.9, fontSize: '13px'}}>Create invoice for expense reimbursement</p>
                       </div>
-                      <div style={{padding: '24px', maxHeight: 'calc(85vh - 180px)', overflowY: 'auto'}}>
+                      <div style={{padding: '24px', maxHeight: 'calc(90vh - 200px)', overflowY: 'auto'}}>
                         <div style={{display: 'grid', gap: '16px'}}>
                           <div style={{padding: '16px', background: '#f8fafc', borderRadius: '10px'}}>
                             <div style={{fontWeight: '600', color: '#374151', marginBottom: '8px'}}>Client: {clientName}</div>
@@ -25376,6 +25437,41 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               <input type="date" value={expenseInvoiceDate} onChange={(e) => setExpenseInvoiceDate(e.target.value)} style={{width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px'}} />
                             </div>
                           </div>
+                          
+                          {/* GST Option - only if org is GST registered */}
+                          {expenseInvoiceOrg && (
+                            <div style={{padding: '16px', background: orgIsGstRegistered ? '#fefce8' : '#f1f5f9', borderRadius: '10px', border: orgIsGstRegistered ? '1px solid #fde047' : '1px solid #e2e8f0'}}>
+                              <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                                <div>
+                                  <div style={{fontWeight: '600', color: '#374151', fontSize: '13px'}}>Charge GST on Expenses?</div>
+                                  {!orgIsGstRegistered && (
+                                    <div style={{fontSize: '11px', color: '#64748b', marginTop: '4px'}}>This organization is not GST registered</div>
+                                  )}
+                                  {orgIsGstRegistered && !expenseInvoiceGst && (
+                                    <div style={{fontSize: '11px', color: '#92400e', marginTop: '4px'}}>No GST - Pure agent services (Rule 33 CGST)</div>
+                                  )}
+                                </div>
+                                <label style={{display: 'flex', alignItems: 'center', gap: '8px', cursor: orgIsGstRegistered ? 'pointer' : 'not-allowed', opacity: orgIsGstRegistered ? 1 : 0.5}}>
+                                  <span style={{fontSize: '12px', color: '#374151'}}>No</span>
+                                  <div 
+                                    onClick={() => orgIsGstRegistered && setExpenseInvoiceGst(!expenseInvoiceGst)}
+                                    style={{
+                                      width: '44px', height: '24px', borderRadius: '12px', position: 'relative',
+                                      background: expenseInvoiceGst ? '#10b981' : '#cbd5e1', transition: 'background 0.2s'
+                                    }}
+                                  >
+                                    <div style={{
+                                      width: '20px', height: '20px', borderRadius: '50%', background: '#fff',
+                                      position: 'absolute', top: '2px', left: expenseInvoiceGst ? '22px' : '2px',
+                                      transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                                    }}></div>
+                                  </div>
+                                  <span style={{fontSize: '12px', color: '#374151'}}>Yes ({selectedOrg?.gstRate || 18}%)</span>
+                                </label>
+                              </div>
+                            </div>
+                          )}
+                          
                           <div>
                             <label style={{display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '13px'}}>Selected Expenses ({selectedItems.length})</label>
                             <div style={{border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden'}}>
@@ -25395,188 +25491,132 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                       <td style={{padding: '10px', textAlign: 'right', fontWeight: '600'}}>₹{exp.amount.toLocaleString()}</td>
                                     </tr>
                                   ))}
+                                  <tr style={{background: '#f8fafc'}}>
+                                    <td colSpan="2" style={{padding: '10px', fontWeight: '600'}}>Net Amount</td>
+                                    <td style={{padding: '10px', textAlign: 'right', fontWeight: '600'}}>₹{netAmount.toLocaleString()}</td>
+                                  </tr>
+                                  {expenseInvoiceGst && orgIsGstRegistered && (
+                                    <tr style={{background: '#fefce8'}}>
+                                      <td colSpan="2" style={{padding: '10px', fontWeight: '600', color: '#92400e'}}>GST ({selectedOrg?.gstRate || 18}%)</td>
+                                      <td style={{padding: '10px', textAlign: 'right', fontWeight: '600', color: '#92400e'}}>₹{taxAmount.toLocaleString()}</td>
+                                    </tr>
+                                  )}
                                   <tr style={{background: '#f0fdf4'}}>
-                                    <td colSpan="2" style={{padding: '12px', fontWeight: '700'}}>Total</td>
+                                    <td colSpan="2" style={{padding: '12px', fontWeight: '700'}}>Total Amount</td>
                                     <td style={{padding: '12px', textAlign: 'right', fontWeight: '700', color: '#166534'}}>₹{totalAmount.toLocaleString()}</td>
                                   </tr>
                                 </tbody>
                               </table>
                             </div>
                           </div>
+                          
+                          {/* Pure Agent Note */}
+                          {expenseInvoiceOrg && orgIsGstRegistered && !expenseInvoiceGst && (
+                            <div style={{padding: '12px 16px', background: '#fef3c7', borderRadius: '8px', fontSize: '11px', color: '#92400e'}}>
+                              <strong>Note:</strong> Invoice will include: "Reimbursement of Expenses classified under pure agent services as per rule 33 of CGST Rules, hence no GST Charged"
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div style={{padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px'}}>
-                        <button onClick={() => setShowExpenseInvoiceModal(false)} style={{padding: '10px 20px', background: '#f1f5f9', border: 'none', borderRadius: '8px', cursor: 'pointer'}}>Cancel</button>
+                        <button onClick={() => { setShowExpenseInvoiceModal(false); setExpenseInvoiceGst(false); }} style={{padding: '10px 20px', background: '#f1f5f9', border: 'none', borderRadius: '8px', cursor: 'pointer'}}>Cancel</button>
                         <button onClick={handleCreateExpenseInvoice} style={{padding: '10px 24px', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer'}}>Create Invoice</button>
                       </div>
                     </div>
                   </div>
                 );
               })()}
-            </div>
-          );
-        })()}
-
-        {/* Expense Report Tab */}
-        {activeTab === 'expenseReport' && (() => {
-          const allExpenses = data.expenses || [];
-          
-          const filteredExpenses = allExpenses.filter(exp => {
-            if (expenseReportFilters.dateFrom && exp.expenseDate < expenseReportFilters.dateFrom) return false;
-            if (expenseReportFilters.dateTo && exp.expenseDate > expenseReportFilters.dateTo) return false;
-            if (expenseReportFilters.status && exp.status !== expenseReportFilters.status) return false;
-            return true;
-          });
-          
-          const totalAmount = filteredExpenses.reduce((s, e) => s + (e.amount || 0), 0);
-          const unbilledAmount = filteredExpenses.filter(e => e.status === 'Unbilled').reduce((s, e) => s + (e.amount || 0), 0);
-          const billedAmount = filteredExpenses.filter(e => e.status === 'Billed').reduce((s, e) => s + (e.amount || 0), 0);
-          
-          // Group by Client
-          const byClient = {};
-          filteredExpenses.forEach(exp => {
-            if (!byClient[exp.clientName]) byClient[exp.clientName] = {total: 0, unbilled: 0, billed: 0, count: 0, expenses: []};
-            byClient[exp.clientName].total += exp.amount;
-            byClient[exp.clientName].count += 1;
-            if (exp.status === 'Unbilled') byClient[exp.clientName].unbilled += exp.amount;
-            else byClient[exp.clientName].billed += exp.amount;
-            byClient[exp.clientName].expenses.push(exp);
-          });
-          
-          // Group by Task
-          const byTask = {};
-          filteredExpenses.forEach(exp => {
-            const key = `${exp.parentTask} → ${exp.childTask}`;
-            if (!byTask[key]) byTask[key] = {total: 0, unbilled: 0, billed: 0, count: 0, expenses: []};
-            byTask[key].total += exp.amount;
-            byTask[key].count += 1;
-            if (exp.status === 'Unbilled') byTask[key].unbilled += exp.amount;
-            else byTask[key].billed += exp.amount;
-            byTask[key].expenses.push(exp);
-          });
-          
-          // Group by User
-          const byUser = {};
-          filteredExpenses.forEach(exp => {
-            if (!byUser[exp.enteredBy]) byUser[exp.enteredBy] = {total: 0, unbilled: 0, billed: 0, count: 0, expenses: []};
-            byUser[exp.enteredBy].total += exp.amount;
-            byUser[exp.enteredBy].count += 1;
-            if (exp.status === 'Unbilled') byUser[exp.enteredBy].unbilled += exp.amount;
-            else byUser[exp.enteredBy].billed += exp.amount;
-            byUser[exp.enteredBy].expenses.push(exp);
-          });
-          
-          const reportData = expenseReportType === 'byClient' ? byClient : expenseReportType === 'byTask' ? byTask : byUser;
-          
-          return (
-            <div>
-              {/* Summary Cards */}
-              <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '20px'}}>
-                <div style={{background: '#dbeafe', borderRadius: '12px', padding: '20px', border: '1px solid #93c5fd'}}>
-                  <div style={{fontSize: '12px', color: '#1e40af', fontWeight: '600'}}>Total Expenses</div>
-                  <div style={{fontSize: '28px', fontWeight: '700', color: '#1e40af'}}>₹{totalAmount.toLocaleString()}</div>
-                </div>
-                <div style={{background: '#fef3c7', borderRadius: '12px', padding: '20px', border: '1px solid #fcd34d'}}>
-                  <div style={{fontSize: '12px', color: '#92400e', fontWeight: '600'}}>Unbilled</div>
-                  <div style={{fontSize: '28px', fontWeight: '700', color: '#92400e'}}>₹{unbilledAmount.toLocaleString()}</div>
-                </div>
-                <div style={{background: '#dcfce7', borderRadius: '12px', padding: '20px', border: '1px solid #86efac'}}>
-                  <div style={{fontSize: '12px', color: '#166534', fontWeight: '600'}}>Billed</div>
-                  <div style={{fontSize: '28px', fontWeight: '700', color: '#166534'}}>₹{billedAmount.toLocaleString()}</div>
-                </div>
-                <div style={{background: '#ede9fe', borderRadius: '12px', padding: '20px', border: '1px solid #c4b5fd'}}>
-                  <div style={{fontSize: '12px', color: '#5b21b6', fontWeight: '600'}}>Total Entries</div>
-                  <div style={{fontSize: '28px', fontWeight: '700', color: '#5b21b6'}}>{filteredExpenses.length}</div>
-                </div>
-              </div>
               
-              {/* Filters */}
-              <div style={{background: '#fff', borderRadius: '12px', padding: '16px 20px', marginBottom: '20px', border: '1px solid #e2e8f0'}}>
-                <div style={{display: 'flex', gap: '16px', alignItems: 'end'}}>
-                  <div>
-                    <label style={{fontSize: '11px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px'}}>From Date</label>
-                    <input type="date" value={expenseReportFilters.dateFrom} onChange={(e) => setExpenseReportFilters({...expenseReportFilters, dateFrom: e.target.value})} style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}} />
-                  </div>
-                  <div>
-                    <label style={{fontSize: '11px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px'}}>To Date</label>
-                    <input type="date" value={expenseReportFilters.dateTo} onChange={(e) => setExpenseReportFilters({...expenseReportFilters, dateTo: e.target.value})} style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}} />
-                  </div>
-                  <div>
-                    <label style={{fontSize: '11px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px'}}>Status</label>
-                    <select value={expenseReportFilters.status} onChange={(e) => setExpenseReportFilters({...expenseReportFilters, status: e.target.value})} style={{padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px'}}>
-                      <option value="">All</option>
-                      <option value="Unbilled">Unbilled</option>
-                      <option value="Billed">Billed</option>
-                    </select>
+              {/* View Expense Invoice Modal */}
+              {viewingExpenseInvoice && (
+                <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000}} onClick={() => setViewingExpenseInvoice(null)}>
+                  <div style={{background: '#fff', borderRadius: '16px', width: '95%', maxWidth: '800px', maxHeight: '90vh', overflow: 'hidden'}} onClick={(e) => e.stopPropagation()}>
+                    <div style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', padding: '20px 24px', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                      <div>
+                        <h3 style={{margin: 0, fontSize: '18px'}}>Expense Invoice - {viewingExpenseInvoice.invoiceNo}</h3>
+                        <p style={{margin: '4px 0 0', opacity: 0.9, fontSize: '13px'}}>{viewingExpenseInvoice.invoiceDate}</p>
+                      </div>
+                      <button onClick={() => setViewingExpenseInvoice(null)} style={{background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer', color: '#fff'}}><X size={20} /></button>
+                    </div>
+                    <div style={{padding: '24px', maxHeight: 'calc(90vh - 120px)', overflowY: 'auto'}}>
+                      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px'}}>
+                        <div style={{padding: '16px', background: '#f8fafc', borderRadius: '10px'}}>
+                          <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>FROM</div>
+                          <div style={{fontWeight: '600', color: '#374151'}}>{viewingExpenseInvoice.orgName}</div>
+                          <div style={{fontSize: '12px', color: '#64748b', marginTop: '4px'}}>{viewingExpenseInvoice.orgAddress}</div>
+                          {viewingExpenseInvoice.orgGstin && <div style={{fontSize: '11px', color: '#64748b', marginTop: '4px'}}>GSTIN: {viewingExpenseInvoice.orgGstin}</div>}
+                        </div>
+                        <div style={{padding: '16px', background: '#f8fafc', borderRadius: '10px'}}>
+                          <div style={{fontSize: '11px', color: '#64748b', marginBottom: '4px'}}>TO</div>
+                          <div style={{fontWeight: '600', color: '#374151'}}>{viewingExpenseInvoice.clientName}</div>
+                          <div style={{fontSize: '12px', color: '#64748b', marginTop: '4px'}}>{viewingExpenseInvoice.clientAddress}</div>
+                          {viewingExpenseInvoice.clientGstin && <div style={{fontSize: '11px', color: '#64748b', marginTop: '4px'}}>GSTIN: {viewingExpenseInvoice.clientGstin}</div>}
+                        </div>
+                      </div>
+                      
+                      <div style={{border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', marginBottom: '20px'}}>
+                        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
+                          <thead>
+                            <tr style={{background: '#f8fafc'}}>
+                              <th style={{padding: '12px', textAlign: 'left', borderBottom: '1px solid #e2e8f0'}}>Description</th>
+                              <th style={{padding: '12px', textAlign: 'right', borderBottom: '1px solid #e2e8f0'}}>Amount</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {viewingExpenseInvoice.lineItems?.map((item, idx) => (
+                              <tr key={idx} style={{borderBottom: '1px solid #f1f5f9'}}>
+                                <td style={{padding: '12px'}}>{item.description}</td>
+                                <td style={{padding: '12px', textAlign: 'right', fontWeight: '600'}}>₹{(item.amount || 0).toLocaleString()}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      
+                      <div style={{display: 'flex', justifyContent: 'flex-end'}}>
+                        <div style={{width: '300px'}}>
+                          <div style={{display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f5f9'}}>
+                            <span style={{color: '#64748b'}}>Net Amount:</span>
+                            <span style={{fontWeight: '600'}}>₹{(viewingExpenseInvoice.netAmount || 0).toLocaleString()}</span>
+                          </div>
+                          {viewingExpenseInvoice.gstApplicable && (
+                            <>
+                              {viewingExpenseInvoice.cgst > 0 && (
+                                <div style={{display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f5f9'}}>
+                                  <span style={{color: '#64748b'}}>CGST:</span>
+                                  <span>₹{viewingExpenseInvoice.cgst.toLocaleString()}</span>
+                                </div>
+                              )}
+                              {viewingExpenseInvoice.sgst > 0 && (
+                                <div style={{display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f5f9'}}>
+                                  <span style={{color: '#64748b'}}>SGST:</span>
+                                  <span>₹{viewingExpenseInvoice.sgst.toLocaleString()}</span>
+                                </div>
+                              )}
+                              {viewingExpenseInvoice.igst > 0 && (
+                                <div style={{display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f5f9'}}>
+                                  <span style={{color: '#64748b'}}>IGST:</span>
+                                  <span>₹{viewingExpenseInvoice.igst.toLocaleString()}</span>
+                                </div>
+                              )}
+                            </>
+                          )}
+                          <div style={{display: 'flex', justifyContent: 'space-between', padding: '12px 0', background: '#f0fdf4', borderRadius: '8px', marginTop: '8px', paddingLeft: '12px', paddingRight: '12px'}}>
+                            <span style={{fontWeight: '700', color: '#166534'}}>Total:</span>
+                            <span style={{fontWeight: '700', color: '#166534'}}>₹{(viewingExpenseInvoice.totalAmount || 0).toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {viewingExpenseInvoice.remarks && (
+                        <div style={{marginTop: '20px', padding: '12px 16px', background: '#fef3c7', borderRadius: '8px', fontSize: '12px', color: '#92400e'}}>
+                          <strong>Note:</strong> {viewingExpenseInvoice.remarks}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-              
-              {/* Report Type Tabs */}
-              <div style={{display: 'flex', gap: '8px', marginBottom: '16px'}}>
-                {[
-                  { id: 'byClient', label: 'By Client', icon: <Briefcase size={14} /> },
-                  { id: 'byTask', label: 'By Task', icon: <FileText size={14} /> },
-                  { id: 'byUser', label: 'By User', icon: <User size={14} /> }
-                ].map(tab => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setExpenseReportType(tab.id)}
-                    style={{
-                      padding: '10px 20px',
-                      background: expenseReportType === tab.id ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : '#fff',
-                      color: expenseReportType === tab.id ? '#fff' : '#374151',
-                      border: expenseReportType === tab.id ? 'none' : '1px solid #e2e8f0',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      fontWeight: '600',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    {tab.icon} {tab.label}
-                  </button>
-                ))}
-              </div>
-              
-              {/* Report Table */}
-              <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e2e8f0'}}>
-                <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
-                  <thead>
-                    <tr style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'}}>
-                      <th style={{padding: '12px 14px', textAlign: 'left', color: '#fff', fontWeight: '600'}}>{expenseReportType === 'byClient' ? 'Client' : expenseReportType === 'byTask' ? 'Task' : 'User'}</th>
-                      <th style={{padding: '12px 14px', textAlign: 'center', color: '#fff', fontWeight: '600'}}>Count</th>
-                      <th style={{padding: '12px 14px', textAlign: 'right', color: '#fff', fontWeight: '600'}}>Total</th>
-                      <th style={{padding: '12px 14px', textAlign: 'right', color: '#fff', fontWeight: '600'}}>Unbilled</th>
-                      <th style={{padding: '12px 14px', textAlign: 'right', color: '#fff', fontWeight: '600'}}>Billed</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {Object.keys(reportData).length === 0 ? (
-                      <tr><td colSpan="5" style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>No expenses found</td></tr>
-                    ) : Object.entries(reportData).sort((a, b) => b[1].total - a[1].total).map(([name, rowData], idx) => (
-                      <tr key={name} style={{borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? '#fff' : '#fafafa'}}>
-                        <td style={{padding: '12px 14px', fontWeight: '600', color: '#374151'}}>{name}</td>
-                        <td style={{padding: '12px 14px', textAlign: 'center', color: '#374151'}}>{rowData.count}</td>
-                        <td style={{padding: '12px 14px', textAlign: 'right', fontWeight: '700', color: '#374151'}}>₹{rowData.total.toLocaleString()}</td>
-                        <td style={{padding: '12px 14px', textAlign: 'right', color: '#92400e', fontWeight: '600'}}>₹{rowData.unbilled.toLocaleString()}</td>
-                        <td style={{padding: '12px 14px', textAlign: 'right', color: '#166534', fontWeight: '600'}}>₹{rowData.billed.toLocaleString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr style={{background: '#f8fafc', fontWeight: '700'}}>
-                      <td style={{padding: '12px 14px'}}>Total</td>
-                      <td style={{padding: '12px 14px', textAlign: 'center'}}>{filteredExpenses.length}</td>
-                      <td style={{padding: '12px 14px', textAlign: 'right'}}>₹{totalAmount.toLocaleString()}</td>
-                      <td style={{padding: '12px 14px', textAlign: 'right', color: '#92400e'}}>₹{unbilledAmount.toLocaleString()}</td>
-                      <td style={{padding: '12px 14px', textAlign: 'right', color: '#166534'}}>₹{billedAmount.toLocaleString()}</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
+              )}
             </div>
           );
         })()}
@@ -32925,32 +32965,47 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       </div>
                     </div>
                     
-                    {/* Task Selection - Show list of matching tasks */}
+                    {/* Task Selection - Show proper table with full details */}
                     {selectableTasks.length > 0 && (
                       <div>
-                        <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>Select Task *</label>
-                        <div style={{border: '1px solid #e2e8f0', borderRadius: '8px', maxHeight: '150px', overflowY: 'auto'}}>
-                          {selectableTasks.map(task => (
-                            <div
-                              key={task.id}
-                              onClick={() => setExpenseFormData({...expenseFormData, taskId: task.id})}
-                              style={{
-                                padding: '10px 14px',
-                                cursor: 'pointer',
-                                borderBottom: '1px solid #f1f5f9',
-                                background: expenseFormData.taskId === task.id ? '#fef3c7' : '#fff',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center'
-                              }}
-                            >
-                              <div>
-                                <div style={{fontSize: '13px', fontWeight: '500', color: '#374151'}}>{task.taskId || task.id.slice(0, 8)}</div>
-                                <div style={{fontSize: '11px', color: '#64748b'}}>{task.financialYear} • {task.subPeriod || task.period}</div>
-                              </div>
-                              {expenseFormData.taskId === task.id && <CheckCircle size={16} color="#f59e0b" />}
-                            </div>
-                          ))}
+                        <label style={{display: 'block', marginBottom: '6px', fontWeight: '600', color: '#374151', fontSize: '13px'}}>Select Task * ({selectableTasks.length} task{selectableTasks.length > 1 ? 's' : ''} found)</label>
+                        <div style={{border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden'}}>
+                          <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
+                            <thead>
+                              <tr style={{background: '#f8fafc'}}>
+                                <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e2e8f0'}}>Task ID</th>
+                                <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e2e8f0'}}>FY</th>
+                                <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e2e8f0'}}>Period</th>
+                                <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e2e8f0'}}>Assigned To</th>
+                                <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e2e8f0'}}>Status</th>
+                                <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e2e8f0'}}>Select</th>
+                              </tr>
+                            </thead>
+                            <tbody style={{maxHeight: '150px', overflowY: 'auto'}}>
+                              {selectableTasks.map((task, idx) => (
+                                <tr 
+                                  key={task.id}
+                                  onClick={() => setExpenseFormData({...expenseFormData, taskId: task.id})}
+                                  style={{
+                                    cursor: 'pointer',
+                                    borderBottom: '1px solid #f1f5f9',
+                                    background: expenseFormData.taskId === task.id ? '#fef3c7' : idx % 2 === 0 ? '#fff' : '#fafafa'
+                                  }}
+                                >
+                                  <td style={{padding: '8px 10px', fontWeight: '600', color: '#374151'}}>{task.taskId || '-'}</td>
+                                  <td style={{padding: '8px 10px', color: '#374151'}}>{task.financialYear || '-'}</td>
+                                  <td style={{padding: '8px 10px', color: '#374151'}}>{task.subPeriod || task.period || '-'}</td>
+                                  <td style={{padding: '8px 10px', color: '#64748b'}}>{task.primaryAssignedTo || '-'}</td>
+                                  <td style={{padding: '8px 10px'}}>
+                                    <span style={{padding: '2px 6px', borderRadius: '6px', fontSize: '10px', fontWeight: '500', background: task.status === 'Completed' ? '#dcfce7' : task.status === 'In Progress' ? '#dbeafe' : '#fef3c7', color: task.status === 'Completed' ? '#166534' : task.status === 'In Progress' ? '#1e40af' : '#92400e'}}>{task.status}</span>
+                                  </td>
+                                  <td style={{padding: '8px 10px', textAlign: 'center'}}>
+                                    {expenseFormData.taskId === task.id ? <CheckCircle size={16} color="#f59e0b" /> : <div style={{width: '16px', height: '16px', border: '2px solid #e2e8f0', borderRadius: '50%'}}></div>}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                     )}
@@ -32959,7 +33014,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     {expenseFormData.taskId && (
                       <div style={{padding: '10px 14px', background: '#dcfce7', borderRadius: '8px', fontSize: '12px', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px'}}>
                         <CheckCircle size={14} />
-                        Linked to Task: {data.tasks.find(t => t.id === expenseFormData.taskId)?.taskId || expenseFormData.taskId}
+                        Linked to Task: {data.tasks.find(t => t.id === expenseFormData.taskId)?.taskId || '-'}
                       </div>
                     )}
                     
