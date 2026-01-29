@@ -272,10 +272,10 @@ const PracticeManagementApp = () => {
     primaryDark: '#059669',
     primaryLight: '#dcfce7',
     primaryLighter: '#f0fdf4',
-    primaryText: '#065f46',
+    primaryText: themeColors.primaryText,
     gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
     gradientHover: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-    border: '#6ee7b7',
+    border: 'themeColors.border',
     shadow: 'rgba(16, 185, 129, 0.3)',
     // Secondary is Blue
     secondary: '#3b82f6',
@@ -1147,7 +1147,7 @@ const PracticeManagementApp = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #d1fae5 100%)',
+        background: 'linear-gradient(135deg, #f0fdf4 0%, themeColors.primaryLighter 50%, themeColors.primaryLight 100%)',
         zIndex: 9999
       }}>
         <div style={{
@@ -3010,108 +3010,161 @@ const PracticeManagementApp = () => {
     if (isSuperAdmin) {
       return (
         <div className="dashboard-view">
-          <div className="view-header" style={{marginBottom: '24px'}}>
+          <div className="view-header">
             <div>
-              <h1 style={{fontSize: '24px', fontWeight: '600', color: '#1e293b'}}>Dashboard</h1>
-              <p className="view-subtitle" style={{color: '#64748b', fontSize: '14px'}}>Overview of your practice</p>
+              <h1>Firm Dashboard</h1>
+              <p className="view-subtitle">Complete overview of your CA practice • Superadmin View</p>
             </div>
-            <div style={{display: 'flex', gap: '10px'}}>
-              <button className="btn-secondary" onClick={() => setShowTimesheetModal(true)} style={{background: '#fff', color: '#374151', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: '500'}}>
-                <Clock size={16} /> Timesheet
+            <div style={{display: 'flex', gap: '12px'}}>
+              <button 
+                className="btn-secondary" 
+                onClick={() => {
+                  if (window.confirm('⚠️ Clear ALL data? This will delete all tasks, clients, and staff. This action cannot be undone!')) {
+                    localStorage.removeItem('caHubProData');
+                    setData(initialData);
+                    alert('✅ All data cleared! Page will refresh.');
+                    window.location.reload();
+                  }
+                }}
+                style={{background: '#ef4444', color: 'white', border: 'none'}}
+              >
+                🗑️ Clear All Data
               </button>
-              <button className="btn-secondary" onClick={() => setShowExpenseModal(true)} style={{background: '#fff', color: '#374151', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: '500'}}>
-                <Receipt size={16} /> Expense
+              <button className="btn-primary" onClick={() => setShowTimesheetModal(true)} style={{background: themeColors.secondaryGradient, display: 'flex', alignItems: 'center', gap: '8px'}}>
+                <Clock size={20} /> Timesheet
               </button>
-              <button className="btn-primary" onClick={() => setShowAddTaskModal(true)} style={{background: themeColors.primary, padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: '500'}}>
-                <Plus size={16} /> New Task
+              <button className="btn-primary" onClick={() => setShowExpenseModal(true)} style={{background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                <Receipt size={20} /> Add Expense
+              </button>
+              <button className="btn-primary" onClick={() => setShowAddTaskModal(true)}>
+                <Plus size={20} /> Add New Task
               </button>
             </div>
           </div>
 
-          {/* Task Metrics - Clean white cards */}
-          <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '24px'}}>
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)'}}>
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px'}}>
-                <span style={{fontSize: '13px', color: '#6b7280', fontWeight: '500'}}>Total Tasks</span>
-                <div style={{width: '32px', height: '32px', background: themeColors.secondaryLighter, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                  <FileText size={16} style={{color: themeColors.secondary}} />
+          {/* KPI Cards Row 1 - Tasks */}
+          <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '20px'}}>
+            <div className="dashboard-card" style={{background: themeColors.secondaryLight, borderRadius: '12px', padding: '20px', border: `1px solid ${themeColors.secondaryLight}`, transition: 'all 0.3s ease', cursor: 'pointer'}} 
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 10px 25px ${themeColors.secondaryShadow}`; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                <div>
+                  <div style={{fontSize: '13px', color: themeColors.secondary, fontWeight: '600', marginBottom: '4px'}}>Total Tasks</div>
+                  <div style={{fontSize: '28px', fontWeight: '700', color: themeColors.secondaryDark}}>{kpis.totalTasks}</div>
+                </div>
+                <div style={{width: '40px', height: '40px', background: themeColors.secondary, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform 0.3s ease'}} className="card-icon">
+                  <FileText size={20} style={{color: '#fff'}} />
                 </div>
               </div>
-              <div style={{fontSize: '28px', fontWeight: '700', color: '#111827'}}>{kpis.totalTasks}</div>
-              <div style={{fontSize: '12px', color: '#9ca3af', marginTop: '4px'}}>{kpis.openTasks} open • {kpis.inProgressTasks} in progress</div>
+              <div style={{fontSize: '13px', color: '#64748b', marginTop: '8px'}}>{kpis.openTasks} open • {kpis.inProgressTasks} in progress</div>
             </div>
-            
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)'}}>
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px'}}>
-                <span style={{fontSize: '13px', color: '#6b7280', fontWeight: '500'}}>Completed</span>
-                <div style={{width: '32px', height: '32px', background: themeColors.primaryLighter, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                  <CheckCircle size={16} style={{color: themeColors.primary}} />
+            <div className="dashboard-card" style={{background: themeColors.primaryLight, borderRadius: '12px', padding: '20px', border: `1px solid ${themeColors.border}`, transition: 'all 0.3s ease', cursor: 'pointer'}}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 10px 25px ${themeColors.shadow}`; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                <div>
+                  <div style={{fontSize: '13px', color: themeColors.primary, fontWeight: '600', marginBottom: '4px'}}>Completed</div>
+                  <div style={{fontSize: '28px', fontWeight: '700', color: themeColors.primaryDark}}>{kpis.completedTasks}</div>
+                </div>
+                <div style={{width: '40px', height: '40px', background: themeColors.primary, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                  <CheckCircle size={20} style={{color: '#fff'}} />
                 </div>
               </div>
-              <div style={{fontSize: '28px', fontWeight: '700', color: '#111827'}}>{kpis.completedTasks}</div>
-              <div style={{fontSize: '12px', color: '#9ca3af', marginTop: '4px'}}>{kpis.completedThisMonth} this month</div>
+              <div style={{fontSize: '13px', color: '#64748b', marginTop: '8px'}}>{kpis.completedThisMonth} this month</div>
             </div>
-            
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)'}}>
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px'}}>
-                <span style={{fontSize: '13px', color: '#6b7280', fontWeight: '500'}}>Overdue</span>
-                <div style={{width: '32px', height: '32px', background: '#fef2f2', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                  <AlertCircle size={16} style={{color: '#ef4444'}} />
+            <div className="dashboard-card" style={{background: 'linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #fecaca', transition: 'all 0.3s ease', cursor: 'pointer'}}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(239, 68, 68, 0.25)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                <div>
+                  <div style={{fontSize: '13px', color: '#dc2626', fontWeight: '600', marginBottom: '4px'}}>Overdue</div>
+                  <div style={{fontSize: '28px', fontWeight: '700', color: '#b91c1c'}}>{kpis.overdueTasks}</div>
+                </div>
+                <div style={{width: '40px', height: '40px', background: '#ef4444', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                  <AlertCircle size={20} style={{color: '#fff'}} />
                 </div>
               </div>
-              <div style={{fontSize: '28px', fontWeight: '700', color: kpis.overdueTasks > 0 ? '#ef4444' : '#111827'}}>{kpis.overdueTasks}</div>
-              <div style={{fontSize: '12px', color: '#9ca3af', marginTop: '4px'}}>{kpis.highPriorityPending} high priority</div>
+              <div style={{fontSize: '13px', color: '#64748b', marginTop: '8px'}}>{kpis.highPriorityPending} high priority</div>
             </div>
-            
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)'}}>
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px'}}>
-                <span style={{fontSize: '13px', color: '#6b7280', fontWeight: '500'}}>Active Clients</span>
-                <div style={{width: '32px', height: '32px', background: '#f5f3ff', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                  <Users size={16} style={{color: '#8b5cf6'}} />
+            <div className="dashboard-card" style={{background: 'linear-gradient(135deg, #f3e8ff 0%, #faf5ff 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #e9d5ff', transition: 'all 0.3s ease', cursor: 'pointer'}}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(139, 92, 246, 0.25)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                <div>
+                  <div style={{fontSize: '13px', color: '#9333ea', fontWeight: '600', marginBottom: '4px'}}>Active Clients</div>
+                  <div style={{fontSize: '28px', fontWeight: '700', color: '#7c3aed'}}>{data.clients.filter(c => !c.disabled).length}</div>
+                </div>
+                <div style={{width: '40px', height: '40px', background: '#8b5cf6', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                  <Users size={20} style={{color: '#fff'}} />
                 </div>
               </div>
-              <div style={{fontSize: '28px', fontWeight: '700', color: '#111827'}}>{data.clients.filter(c => !c.disabled).length}</div>
-              <div style={{fontSize: '12px', color: '#9ca3af', marginTop: '4px'}}>{data.clients.filter(c => c.disabled).length} disabled</div>
+              <div style={{fontSize: '13px', color: '#64748b', marginTop: '8px'}}>{data.clients.filter(c => c.disabled).length} disabled</div>
             </div>
-            
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)'}}>
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px'}}>
-                <span style={{fontSize: '13px', color: '#6b7280', fontWeight: '500'}}>Active Staff</span>
-                <div style={{width: '32px', height: '32px', background: '#fef3c7', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                  <User size={16} style={{color: '#f59e0b'}} />
+            <div className="dashboard-card" style={{background: 'linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%)', borderRadius: '12px', padding: '20px', border: '1px solid #fde68a', transition: 'all 0.3s ease', cursor: 'pointer'}}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(245, 158, 11, 0.25)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                <div>
+                  <div style={{fontSize: '13px', color: '#d97706', fontWeight: '600', marginBottom: '4px'}}>Active Staff</div>
+                  <div style={{fontSize: '28px', fontWeight: '700', color: '#b45309'}}>{data.staff.filter(s => s.status === 'Active').length}</div>
+                </div>
+                <div style={{width: '40px', height: '40px', background: '#f59e0b', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                  <User size={20} style={{color: '#fff'}} />
                 </div>
               </div>
-              <div style={{fontSize: '28px', fontWeight: '700', color: '#111827'}}>{data.staff.filter(s => s.status === 'Active').length}</div>
-              <div style={{fontSize: '12px', color: '#9ca3af', marginTop: '4px'}}>{kpis.efficiency}% efficiency</div>
+              <div style={{fontSize: '13px', color: '#64748b', marginTop: '8px'}}>{kpis.efficiency}% efficiency</div>
             </div>
           </div>
 
-          {/* Billing Metrics */}
+          {/* KPI Cards Row 2 - Billing */}
           <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px'}}>
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)'}}>
-              <div style={{fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px'}}>Total Billed</div>
-              <div style={{fontSize: '24px', fontWeight: '700', color: '#111827'}}>₹{billingKpis.totalBilled.toLocaleString('en-IN')}</div>
-              <div style={{fontSize: '12px', color: themeColors.primary, marginTop: '6px'}}>₹{billingKpis.thisMonthBilling.toLocaleString('en-IN')} this month</div>
-            </div>
-            
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)'}}>
-              <div style={{fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px'}}>Total Collected</div>
-              <div style={{fontSize: '24px', fontWeight: '700', color: themeColors.primary}}>₹{billingKpis.totalCollected.toLocaleString('en-IN')}</div>
-              <div style={{fontSize: '12px', color: themeColors.primary, marginTop: '6px'}}>₹{billingKpis.thisMonthCollection.toLocaleString('en-IN')} this month</div>
-            </div>
-            
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)'}}>
-              <div style={{fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px'}}>Outstanding</div>
-              <div style={{fontSize: '24px', fontWeight: '700', color: billingKpis.totalOutstanding > 0 ? '#ef4444' : '#111827'}}>₹{billingKpis.totalOutstanding.toLocaleString('en-IN')}</div>
-              <div style={{fontSize: '12px', color: '#9ca3af', marginTop: '6px'}}>{billingKpis.pendingInvoices} pending invoices</div>
-            </div>
-            
-            <div style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)'}}>
-              <div style={{fontSize: '12px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px'}}>Collection Rate</div>
-              <div style={{fontSize: '24px', fontWeight: '700', color: '#111827'}}>{billingKpis.totalBilled > 0 ? Math.round((billingKpis.totalCollected / billingKpis.totalBilled) * 100) : 0}%</div>
-              <div style={{height: '4px', background: '#f3f4f6', borderRadius: '2px', marginTop: '10px'}}>
-                <div style={{height: '100%', background: themeColors.primary, borderRadius: '2px', width: `${billingKpis.totalBilled > 0 ? Math.round((billingKpis.totalCollected / billingKpis.totalBilled) * 100) : 0}%`, transition: 'width 0.3s'}}></div>
+            <div className="dashboard-card" style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', transition: 'all 0.3s ease', cursor: 'pointer'}}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                <div>
+                  <div style={{fontSize: '13px', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px'}}>Total Billed</div>
+                  <div style={{fontSize: '24px', fontWeight: '700', color: '#1e293b'}}>₹{billingKpis.totalBilled.toLocaleString('en-IN')}</div>
+                </div>
+                <div style={{width: '40px', height: '40px', background: themeColors.secondaryLight, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                  <FileText size={20} style={{color: themeColors.secondary}} />
+                </div>
               </div>
+              <div style={{fontSize: '13px', color: themeColors.primary, marginTop: '8px'}}>₹{billingKpis.thisMonthBilling.toLocaleString('en-IN')} this month</div>
+            </div>
+            <div className="dashboard-card" style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', transition: 'all 0.3s ease', cursor: 'pointer'}}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                <div>
+                  <div style={{fontSize: '13px', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px'}}>Total Collected</div>
+                  <div style={{fontSize: '24px', fontWeight: '700', color: themeColors.primary}}>₹{billingKpis.totalCollected.toLocaleString('en-IN')}</div>
+                </div>
+                <div style={{width: '40px', height: '40px', background: themeColors.primaryLight, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                  <DollarSign size={20} style={{color: themeColors.primary}} />
+                </div>
+              </div>
+              <div style={{fontSize: '13px', color: themeColors.primary, marginTop: '8px'}}>₹{billingKpis.thisMonthCollection.toLocaleString('en-IN')} this month</div>
+            </div>
+            <div className="dashboard-card" style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', transition: 'all 0.3s ease', cursor: 'pointer'}}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                <div>
+                  <div style={{fontSize: '13px', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px'}}>Outstanding</div>
+                  <div style={{fontSize: '24px', fontWeight: '700', color: '#ef4444'}}>₹{billingKpis.totalOutstanding.toLocaleString('en-IN')}</div>
+                </div>
+                <div style={{width: '40px', height: '40px', background: '#fee2e2', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                  <AlertCircle size={20} style={{color: '#ef4444'}} />
+                </div>
+              </div>
+              <div style={{fontSize: '13px', color: '#64748b', marginTop: '8px'}}>{billingKpis.pendingInvoices} pending invoices</div>
+            </div>
+            <div className="dashboard-card" style={{background: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', transition: 'all 0.3s ease', cursor: 'pointer'}}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                <div>
+                  <div style={{fontSize: '13px', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px'}}>Collection Rate</div>
+                  <div style={{fontSize: '24px', fontWeight: '700', color: '#8b5cf6'}}>{billingKpis.totalBilled > 0 ? Math.round((billingKpis.totalCollected / billingKpis.totalBilled) * 100) : 0}%</div>
+                </div>
+                <div style={{width: '40px', height: '40px', background: '#ede9fe', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                  <TrendingUp size={20} style={{color: '#8b5cf6'}} />
+                </div>
+              </div>
+              <div style={{fontSize: '13px', color: '#64748b', marginTop: '8px'}}>Of total billing</div>
             </div>
           </div>
 
@@ -5166,8 +5219,8 @@ const PracticeManagementApp = () => {
             <div 
               onClick={() => setActiveStatusFilter(activeStatusFilter === 'Open' ? '' : 'Open')}
               style={{
-                background: activeStatusFilter === 'Open' ? themeColors.gradient : 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
-                color: activeStatusFilter === 'Open' ? '#fff' : '#065f46',
+                background: activeStatusFilter === 'Open' ? themeColors.gradient : 'linear-gradient(135deg, themeColors.primaryLight 0%, #a7f3d0 100%)',
+                color: activeStatusFilter === 'Open' ? '#fff' : themeColors.primaryText,
                 padding: '8px 12px',
                 borderRadius: '10px',
                 boxShadow: activeStatusFilter === 'Open' ? '0 4px 12px ${themeColors.shadow}' : '0 2px 8px rgba(0,0,0,0.06)',
@@ -12467,7 +12520,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       <th style={{padding: '10px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '100px'}}>Invoicing</th>
                       <th style={{padding: '10px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '100px'}}>Receipts</th>
                       <th style={{padding: '10px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '100px'}}>Outstanding</th>
-                      <th style={{padding: '10px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '80px', background: '#047857'}}>0-30</th>
+                      <th style={{padding: '10px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '80px', background: themeColors.primaryDark}}>0-30</th>
                       <th style={{padding: '10px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '80px', background: '#0369a1'}}>31-60</th>
                       <th style={{padding: '10px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '80px', background: '#b45309'}}>61-90</th>
                       <th style={{padding: '10px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '80px', background: '#c2410c'}}>91-360</th>
@@ -12588,7 +12641,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           <td style={{padding: '8px', border: `1px solid ${themeColors.primaryLight}`, textAlign: 'right', color: '#374151', fontWeight: '500'}}>{row.totalInvoiced > 0 ? `₹${row.totalInvoiced.toLocaleString('en-IN')}` : '-'}</td>
                           <td style={{padding: '8px', border: `1px solid ${themeColors.primaryLight}`, textAlign: 'right', color: '#374151', fontWeight: '500'}}>{row.totalReceived > 0 ? `₹${row.totalReceived.toLocaleString('en-IN')}` : '-'}</td>
                           <td style={{padding: '8px', border: `1px solid ${themeColors.primaryLight}`, textAlign: 'right', fontWeight: '600', color: row.outstanding > 0 ? '#dc2626' : row.outstanding < 0 ? '#166534' : '#374151'}}>{row.outstanding !== 0 ? `₹${row.outstanding.toLocaleString('en-IN')}` : '-'}</td>
-                          <td style={{padding: '8px', border: `1px solid ${themeColors.primaryLight}`, textAlign: 'right', color: '#047857', fontSize: '12px'}}>{row.age0to30 > 0 ? `₹${row.age0to30.toLocaleString('en-IN')}` : '-'}</td>
+                          <td style={{padding: '8px', border: `1px solid ${themeColors.primaryLight}`, textAlign: 'right', color: themeColors.primaryDark, fontSize: '12px'}}>{row.age0to30 > 0 ? `₹${row.age0to30.toLocaleString('en-IN')}` : '-'}</td>
                           <td style={{padding: '8px', border: `1px solid ${themeColors.primaryLight}`, textAlign: 'right', color: '#0369a1', fontSize: '12px'}}>{row.age31to60 > 0 ? `₹${row.age31to60.toLocaleString('en-IN')}` : '-'}</td>
                           <td style={{padding: '8px', border: `1px solid ${themeColors.primaryLight}`, textAlign: 'right', color: '#b45309', fontSize: '12px'}}>{row.age61to90 > 0 ? `₹${row.age61to90.toLocaleString('en-IN')}` : '-'}</td>
                           <td style={{padding: '8px', border: `1px solid ${themeColors.primaryLight}`, textAlign: 'right', color: '#c2410c', fontSize: '12px'}}>{row.age91to360 > 0 ? `₹${row.age91to360.toLocaleString('en-IN')}` : '-'}</td>
@@ -18752,12 +18805,12 @@ ${invoiceHtml}
                     </div>
                     
                     {/* Total Billing Card */}
-                    <div style={{background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', borderRadius: '16px', padding: '20px', border: '1px solid #6ee7b7', position: 'relative', overflow: 'hidden'}}>
+                    <div style={{background: 'linear-gradient(135deg, themeColors.primaryLighter 0%, themeColors.primaryLight 100%)', borderRadius: '16px', padding: '20px', border: '1px solid themeColors.border', position: 'relative', overflow: 'hidden'}}>
                       <div style={{position: 'absolute', top: '12px', right: '12px', background: themeColors.primary, borderRadius: '10px', padding: '8px'}}>
                         <FileText size={20} color="#fff" />
                       </div>
-                      <div style={{fontSize: '12px', color: '#065f46', fontWeight: '600', marginBottom: '6px'}}>Total Billing</div>
-                      <div style={{fontSize: '24px', fontWeight: '700', color: '#047857'}}>₹ {totalBilling.toLocaleString('en-IN')}</div>
+                      <div style={{fontSize: '12px', color: themeColors.primaryText, fontWeight: '600', marginBottom: '6px'}}>Total Billing</div>
+                      <div style={{fontSize: '24px', fontWeight: '700', color: themeColors.primaryDark}}>₹ {totalBilling.toLocaleString('en-IN')}</div>
                       <div style={{fontSize: '12px', color: themeColors.primaryDark, marginTop: '6px'}}>{fyInvoices.length} invoices</div>
                     </div>
                     
@@ -18826,7 +18879,7 @@ ${invoiceHtml}
                       {/* Organization Wise */}
                       <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: '20px', border: '1px solid #e5e7eb'}}>
                         <div style={{padding: '14px 18px', borderBottom: '1px solid #e5e7eb', background: themeColors.primaryLighter}}>
-                          <h3 style={{margin: 0, fontSize: '15px', fontWeight: '700', color: '#065f46'}}>🏢 Organization Wise Billing & Collection</h3>
+                          <h3 style={{margin: 0, fontSize: '15px', fontWeight: '700', color: themeColors.primaryText}}>🏢 Organization Wise Billing & Collection</h3>
                         </div>
                         <div style={{overflowX: 'auto'}}>
                           <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
@@ -18839,14 +18892,14 @@ ${invoiceHtml}
                                 <th rowSpan={2} style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, verticalAlign: 'middle'}}>Outstanding</th>
                               </tr>
                               {/* Sub-Headers Row */}
-                              <tr style={{background: '#d1fae5'}}>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Amount</th>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>GST</th>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Total</th>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Amount</th>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>TDS</th>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Discount</th>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Total</th>
+                              <tr style={{background: 'themeColors.primaryLight'}}>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: themeColors.primaryText, border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Amount</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: themeColors.primaryText, border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>GST</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: themeColors.primaryText, border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Total</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: themeColors.primaryText, border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Amount</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: themeColors.primaryText, border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>TDS</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: themeColors.primaryText, border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Discount</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: themeColors.primaryText, border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Total</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -18889,7 +18942,7 @@ ${invoiceHtml}
                                   ))}
                                   {/* Totals Row */}
                                   <tr style={{background: themeColors.primaryLight, fontWeight: '700'}}>
-                                    <td style={{padding: '8px 12px', border: `1px solid ${themeColors.border}`, fontWeight: '700', color: '#065f46'}}>Total</td>
+                                    <td style={{padding: '8px 12px', border: `1px solid ${themeColors.border}`, fontWeight: '700', color: themeColors.primaryText}}>Total</td>
                                     <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: `1px solid ${themeColors.border}`, fontSize: '13px'}}>₹{orgBreakdown.reduce((s, o) => s + o.billingNetAmount, 0).toLocaleString('en-IN')}</td>
                                     <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: `1px solid ${themeColors.border}`, fontSize: '13px'}}>₹{orgBreakdown.reduce((s, o) => s + o.billingGstAmount, 0).toLocaleString('en-IN')}</td>
                                     <td style={{padding: '6px 8px', textAlign: 'right', fontWeight: '700', color: themeColors.primaryDark, border: `1px solid ${themeColors.border}`, fontSize: '13px'}}>₹{orgBreakdown.reduce((s, o) => s + o.billing, 0).toLocaleString('en-IN')}</td>
@@ -18909,7 +18962,7 @@ ${invoiceHtml}
                       {/* Child Task Wise Breakdown */}
                       <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb'}}>
                         <div style={{padding: '14px 18px', borderBottom: '1px solid #e5e7eb', background: themeColors.primaryLighter}}>
-                          <h3 style={{margin: 0, fontSize: '15px', fontWeight: '700', color: '#065f46'}}>📋 Task Type Wise Billing & Collection</h3>
+                          <h3 style={{margin: 0, fontSize: '15px', fontWeight: '700', color: themeColors.primaryText}}>📋 Task Type Wise Billing & Collection</h3>
                         </div>
                         <div style={{overflowX: 'auto'}}>
                           <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
@@ -18924,14 +18977,14 @@ ${invoiceHtml}
                                 <th rowSpan={2} style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, verticalAlign: 'middle'}}>Outstanding</th>
                               </tr>
                               {/* Sub-Headers Row */}
-                              <tr style={{background: '#d1fae5'}}>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Amount</th>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>GST</th>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Total</th>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Amount</th>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>TDS</th>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Discount</th>
-                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#065f46', border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Total</th>
+                              <tr style={{background: 'themeColors.primaryLight'}}>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: themeColors.primaryText, border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Amount</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: themeColors.primaryText, border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>GST</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: themeColors.primaryText, border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Total</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: themeColors.primaryText, border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Amount</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: themeColors.primaryText, border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>TDS</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: themeColors.primaryText, border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Discount</th>
+                                <th style={{padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: themeColors.primaryText, border: `1px solid ${themeColors.border}`, fontSize: '12px'}}>Total</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -19049,7 +19102,7 @@ ${invoiceHtml}
                                     ))}
                                     {/* Totals Row */}
                                     <tr style={{background: themeColors.primaryLight, fontWeight: '700'}}>
-                                      <td colSpan={2} style={{padding: '8px 12px', border: `1px solid ${themeColors.border}`, fontWeight: '700', color: '#065f46'}}>Total</td>
+                                      <td colSpan={2} style={{padding: '8px 12px', border: `1px solid ${themeColors.border}`, fontWeight: '700', color: themeColors.primaryText}}>Total</td>
                                       <td style={{padding: '6px 8px', textAlign: 'center', border: `1px solid ${themeColors.border}`, fontWeight: '600'}}>{taskList.reduce((s, t) => s + t.invoiceCount, 0)}</td>
                                       <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: `1px solid ${themeColors.border}`, fontSize: '13px'}}>₹{taskList.reduce((s, t) => s + t.billingNetAmount, 0).toLocaleString('en-IN')}</td>
                                       <td style={{padding: '6px 8px', textAlign: 'right', color: '#374151', border: `1px solid ${themeColors.border}`, fontSize: '13px'}}>₹{taskList.reduce((s, t) => s + t.billingGstAmount, 0).toLocaleString('en-IN')}</td>
@@ -19317,8 +19370,8 @@ ${invoiceHtml}
                                         <td style={{padding: '6px 10px', textAlign: 'right', fontWeight: '600', border: '1px solid #e5e7eb'}}>₹{(inv.totalAmount || 0).toLocaleString('en-IN')}</td>
                                         <td style={{padding: '6px 10px', textAlign: 'center', border: '1px solid #e5e7eb'}}>
                                           <span style={{padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600',
-                                            background: isPaid ? '#d1fae5' : isPartial ? '#fef3c7' : '#fee2e2',
-                                            color: isPaid ? '#065f46' : isPartial ? '#92400e' : '#991b1b'
+                                            background: isPaid ? 'themeColors.primaryLight' : isPartial ? '#fef3c7' : '#fee2e2',
+                                            color: isPaid ? themeColors.primaryText : isPartial ? '#92400e' : '#991b1b'
                                           }}>
                                             {inv.paymentStatus}
                                           </span>
@@ -20058,7 +20111,7 @@ ${invoiceHtml}
                         flex: 1,
                         padding: '16px 20px',
                         background: billingMode === mode.id ? themeColors.gradient : 'transparent',
-                        color: billingMode === mode.id ? '#fff' : '#065f46',
+                        color: billingMode === mode.id ? '#fff' : themeColors.primaryText,
                         border: 'none',
                         borderRight: idx < 3 ? `1px solid ${themeColors.border}` : 'none',
                         cursor: 'pointer',
@@ -20131,7 +20184,7 @@ ${invoiceHtml}
                       <>
                         {/* Search Task Section - Enhanced Green Theme */}
                         <div style={{background: '#fff', borderRadius: '16px', padding: '24px', marginBottom: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', border: '1px solid #e2e8f0'}}>
-                          <h3 style={{margin: '0 0 20px 0', fontSize: '16px', fontWeight: '700', color: '#065f46', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                          <h3 style={{margin: '0 0 20px 0', fontSize: '16px', fontWeight: '700', color: themeColors.primaryText, display: 'flex', alignItems: 'center', gap: '10px'}}>
                             <Search size={20} style={{color: themeColors.primary}} /> Search Task
                           </h3>
                           
@@ -20139,7 +20192,7 @@ ${invoiceHtml}
                           <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '16px'}}>
                             {/* Group No. with Autocomplete */}
                             <div style={{position: 'relative'}}>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Group No.</label>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Group No.</label>
                               <input
                                 type="text"
                                 value={billingSearchFilters.groupName}
@@ -20151,7 +20204,7 @@ ${invoiceHtml}
                                 }}
                                 onBlur={() => setTimeout(() => setShowGroupNameSuggestions(false), 200)}
                                 placeholder="Type group no. (e.g., 1, 2...)"
-                                style={{width: '100%', padding: '10px 12px', border: '2px solid #d1fae5', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter, transition: 'border 0.2s'}}
+                                style={{width: '100%', padding: '10px 12px', border: '2px solid themeColors.primaryLight', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter, transition: 'border 0.2s'}}
                               />
                               {showGroupNameSuggestions && groupNameSuggestions.length > 0 && (
                                 <div style={{
@@ -20174,7 +20227,7 @@ ${invoiceHtml}
                                         setBillingSearchFilters({...billingSearchFilters, groupName: group});
                                         setShowGroupNameSuggestions(false);
                                       }}
-                                      style={{padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '13px', color: '#065f46'}}
+                                      style={{padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '13px', color: themeColors.primaryText}}
                                       onMouseEnter={(e) => e.target.style.background = themeColors.primaryLighter}
                                       onMouseLeave={(e) => e.target.style.background = 'transparent'}
                                     >
@@ -20187,7 +20240,7 @@ ${invoiceHtml}
                             
                             {/* Client Name with Autocomplete */}
                             <div style={{position: 'relative'}}>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Client Name</label>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Client Name</label>
                               <input
                                 type="text"
                                 value={billingSearchFilters.clientName}
@@ -20199,7 +20252,7 @@ ${invoiceHtml}
                                 }}
                                 onBlur={() => setTimeout(() => setShowClientNameSuggestions(false), 200)}
                                 placeholder="Type 2+ letters..."
-                                style={{width: '100%', padding: '10px 12px', border: '2px solid #d1fae5', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter}}
+                                style={{width: '100%', padding: '10px 12px', border: '2px solid themeColors.primaryLight', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter}}
                               />
                               {showClientNameSuggestions && clientNameSuggestions.length > 0 && (
                                 <div style={{position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: `2px solid ${themeColors.primary}`, borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 100, maxHeight: '200px', overflow: 'auto'}}>
@@ -20214,7 +20267,7 @@ ${invoiceHtml}
                                       onMouseEnter={(e) => e.target.style.background = themeColors.primaryLighter}
                                       onMouseLeave={(e) => e.target.style.background = 'transparent'}
                                     >
-                                      <div style={{fontWeight: '600', color: '#065f46'}}>{client.name}</div>
+                                      <div style={{fontWeight: '600', color: themeColors.primaryText}}>{client.name}</div>
                                       <div style={{fontSize: '13px', color: '#64748b'}}>{client.fileNo} {client.fileNo ? `• Group ${client.fileNo.split('.')[0]}` : ''}</div>
                                     </div>
                                   ))}
@@ -20224,13 +20277,13 @@ ${invoiceHtml}
                             
                             {/* Client Code */}
                             <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Client Code</label>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Client Code</label>
                               <input
                                 type="text"
                                 value={billingSearchFilters.clientCode}
                                 onChange={(e) => setBillingSearchFilters({...billingSearchFilters, clientCode: e.target.value})}
                                 placeholder="Enter code..."
-                                style={{width: '100%', padding: '10px 12px', border: '2px solid #d1fae5', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter}}
+                                style={{width: '100%', padding: '10px 12px', border: '2px solid themeColors.primaryLight', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter}}
                               />
                             </div>
                           </div>
@@ -20238,11 +20291,11 @@ ${invoiceHtml}
                           {/* Row 2: Task Filters */}
                           <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '16px'}}>
                             <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Parent Task</label>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Parent Task</label>
                               <select
                                 value={billingSearchFilters.parentTask}
                                 onChange={(e) => setBillingSearchFilters({...billingSearchFilters, parentTask: e.target.value, childTask: ''})}
-                                style={{width: '100%', padding: '10px 12px', border: '2px solid #d1fae5', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter}}
+                                style={{width: '100%', padding: '10px 12px', border: '2px solid themeColors.primaryLight', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter}}
                               >
                                 <option value="">All Parent Tasks</option>
                                 {[...new Set((data.tasks || []).map(t => t.parentTask).filter(Boolean))].map(pt => (
@@ -20251,11 +20304,11 @@ ${invoiceHtml}
                               </select>
                             </div>
                             <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Child Task</label>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Child Task</label>
                               <select
                                 value={billingSearchFilters.childTask}
                                 onChange={(e) => setBillingSearchFilters({...billingSearchFilters, childTask: e.target.value})}
-                                style={{width: '100%', padding: '10px 12px', border: '2px solid #d1fae5', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter}}
+                                style={{width: '100%', padding: '10px 12px', border: '2px solid themeColors.primaryLight', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter}}
                               >
                                 <option value="">All Child Tasks</option>
                                 {[...new Set((data.tasks || []).filter(t => !billingSearchFilters.parentTask || t.parentTask === billingSearchFilters.parentTask).map(t => t.childTask).filter(Boolean))].map(ct => (
@@ -20264,11 +20317,11 @@ ${invoiceHtml}
                               </select>
                             </div>
                             <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Financial Year</label>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Financial Year</label>
                               <select
                                 value={billingSearchFilters.financialYear}
                                 onChange={(e) => setBillingSearchFilters({...billingSearchFilters, financialYear: e.target.value})}
-                                style={{width: '100%', padding: '10px 12px', border: '2px solid #d1fae5', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter}}
+                                style={{width: '100%', padding: '10px 12px', border: '2px solid themeColors.primaryLight', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter}}
                               >
                                 <option value="">All Years</option>
                                 <option value="FY 2024-25">FY 2024-25</option>
@@ -20281,11 +20334,11 @@ ${invoiceHtml}
                           {/* Row 3: Period & Status */}
                           <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px'}}>
                             <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Period</label>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Period</label>
                               <select
                                 value={billingSearchFilters.period}
                                 onChange={(e) => setBillingSearchFilters({...billingSearchFilters, period: e.target.value})}
-                                style={{width: '100%', padding: '10px 12px', border: '2px solid #d1fae5', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter}}
+                                style={{width: '100%', padding: '10px 12px', border: '2px solid themeColors.primaryLight', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter}}
                               >
                                 <option value="">All Periods</option>
                                 <option value="Monthly">Monthly</option>
@@ -20295,11 +20348,11 @@ ${invoiceHtml}
                               </select>
                             </div>
                             <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Status</label>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Status</label>
                               <select
                                 value={billingSearchFilters.status}
                                 onChange={(e) => setBillingSearchFilters({...billingSearchFilters, status: e.target.value})}
-                                style={{width: '100%', padding: '10px 12px', border: '2px solid #d1fae5', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter}}
+                                style={{width: '100%', padding: '10px 12px', border: '2px solid themeColors.primaryLight', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter}}
                               >
                                 <option value="">All Status</option>
                                 <option value="Completed">Completed</option>
@@ -20381,7 +20434,7 @@ ${invoiceHtml}
                         {/* Search Results */}
                         {hasSearched && (
                           <div style={{background: '#fff', borderRadius: '16px', padding: '24px', marginBottom: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', border: '1px solid #e2e8f0'}}>
-                            <h3 style={{margin: '0 0 16px 0', fontSize: '16px', fontWeight: '700', color: '#065f46', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                            <h3 style={{margin: '0 0 16px 0', fontSize: '16px', fontWeight: '700', color: themeColors.primaryText, display: 'flex', alignItems: 'center', gap: '10px'}}>
                               📋 Search Results ({searchedTasks.length} unbilled tasks)
                             </h3>
                             {searchedTasks.length === 0 ? (
@@ -20411,7 +20464,7 @@ ${invoiceHtml}
                                           <span style={{fontSize: '12px', color: '#1e293b'}}>{task.taskCode || '-'}</span>
                                         </td>
                                         <td style={{padding: '10px'}}>
-                                          <div style={{fontWeight: '600', color: '#065f46'}}>{task.clientName}</div>
+                                          <div style={{fontWeight: '600', color: themeColors.primaryText}}>{task.clientName}</div>
                                           <div style={{fontSize: '13px', color: '#64748b'}}>{task.fileNo} {task.fileNo ? `• Group ${task.fileNo.split('.')[0]}` : ''}</div>
                                         </td>
                                         <td style={{padding: '10px'}}>
@@ -20453,7 +20506,7 @@ ${invoiceHtml}
                           <div style={{background: '#fff', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.12)', border: `2px solid ${themeColors.primary}`}}>
                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px'}}>
                               <div>
-                                <h3 style={{margin: '0 0 8px 0', fontSize: '18px', fontWeight: '700', color: '#065f46', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                                <h3 style={{margin: '0 0 8px 0', fontSize: '18px', fontWeight: '700', color: themeColors.primaryText, display: 'flex', alignItems: 'center', gap: '10px'}}>
                                   📄 Generate Invoice
                                 </h3>
                                 <div style={{fontSize: '14px', color: '#1e293b'}}>
@@ -20473,11 +20526,11 @@ ${invoiceHtml}
 
                             <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px'}}>
                               <div>
-                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Organization <span style={{color: '#dc2626'}}>*</span></label>
+                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Organization <span style={{color: '#dc2626'}}>*</span></label>
                                 <select
                                   value={billingDetails.organizationId}
                                   onChange={(e) => setBillingDetails({...billingDetails, organizationId: e.target.value})}
-                                  style={{width: '100%', padding: '10px 12px', border: '2px solid #d1fae5', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter}}
+                                  style={{width: '100%', padding: '10px 12px', border: '2px solid themeColors.primaryLight', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter}}
                                 >
                                   <option value="">Select Organization</option>
                                   {(data.organizations || []).map(org => (
@@ -20486,20 +20539,20 @@ ${invoiceHtml}
                                 </select>
                               </div>
                               <div>
-                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Invoice Date <span style={{color: '#dc2626'}}>*</span></label>
+                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Invoice Date <span style={{color: '#dc2626'}}>*</span></label>
                                 <input
                                   type="date"
                                   value={billingDetails.billDate}
                                   onChange={(e) => setBillingDetails({...billingDetails, billDate: e.target.value})}
-                                  style={{width: '100%', padding: '10px 12px', border: '2px solid #d1fae5', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter}}
+                                  style={{width: '100%', padding: '10px 12px', border: '2px solid themeColors.primaryLight', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter}}
                                 />
                               </div>
                               <div>
-                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Place of Supply</label>
+                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Place of Supply</label>
                                 <select
                                   value={billingDetails.placeOfSupply}
                                   onChange={(e) => setBillingDetails({...billingDetails, placeOfSupply: e.target.value})}
-                                  style={{width: '100%', padding: '10px 12px', border: '2px solid #d1fae5', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter}}
+                                  style={{width: '100%', padding: '10px 12px', border: '2px solid themeColors.primaryLight', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter}}
                                 >
                                   <option value="">Select State</option>
                                   {INDIAN_STATES.map(state => (
@@ -20511,7 +20564,7 @@ ${invoiceHtml}
 
                             <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '20px'}}>
                               <div>
-                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Amount <span style={{color: '#dc2626'}}>*</span></label>
+                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Amount <span style={{color: '#dc2626'}}>*</span></label>
                                 <input
                                   type="number"
                                   value={billingDetails.amount}
@@ -20521,11 +20574,11 @@ ${invoiceHtml}
                                     setBillingDetails({...billingDetails, amount: amt, netAmount: (parseFloat(amt) || 0) - disc});
                                   }}
                                   placeholder="Enter amount"
-                                  style={{width: '100%', padding: '10px 12px', border: '2px solid #d1fae5', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter}}
+                                  style={{width: '100%', padding: '10px 12px', border: '2px solid themeColors.primaryLight', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter}}
                                 />
                               </div>
                               <div>
-                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Discount</label>
+                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Discount</label>
                                 <input
                                   type="number"
                                   value={billingDetails.discount}
@@ -20535,39 +20588,39 @@ ${invoiceHtml}
                                     setBillingDetails({...billingDetails, discount: disc, netAmount: amt - (parseFloat(disc) || 0)});
                                   }}
                                   placeholder="0"
-                                  style={{width: '100%', padding: '10px 12px', border: '2px solid #d1fae5', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter}}
+                                  style={{width: '100%', padding: '10px 12px', border: '2px solid themeColors.primaryLight', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter}}
                                 />
                               </div>
                               <div>
-                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Net Amount</label>
+                                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Net Amount</label>
                                 <input
                                   type="text"
                                   value={`₹ ${(billingDetails.netAmount || 0).toLocaleString('en-IN')}`}
                                   readOnly
-                                  style={{width: '100%', padding: '10px 12px', border: '2px solid #d1fae5', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLight, fontWeight: '600', color: '#065f46'}}
+                                  style={{width: '100%', padding: '10px 12px', border: '2px solid themeColors.primaryLight', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLight, fontWeight: '600', color: themeColors.primaryText}}
                                 />
                               </div>
                             </div>
 
                             <div style={{marginBottom: '20px'}}>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Narration / Description</label>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Narration / Description</label>
                               <textarea
                                 value={billingDetails.narration}
                                 onChange={(e) => setBillingDetails({...billingDetails, narration: e.target.value})}
                                 placeholder={`Professional Fees for ${selectedBillingTask.childTask || selectedBillingTask.parentTask}`}
                                 rows={2}
-                                style={{width: '100%', padding: '10px 12px', border: '2px solid #d1fae5', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter, resize: 'vertical'}}
+                                style={{width: '100%', padding: '10px 12px', border: '2px solid themeColors.primaryLight', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter, resize: 'vertical'}}
                               />
                             </div>
 
                             <div style={{marginBottom: '20px'}}>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Remark (Optional)</label>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Remark (Optional)</label>
                               <textarea
                                 value={billingDetails.remark || ''}
                                 onChange={(e) => setBillingDetails({...billingDetails, remark: e.target.value})}
                                 placeholder="Additional notes or remarks for this invoice..."
                                 rows={2}
-                                style={{width: '100%', padding: '10px 12px', border: '2px solid #d1fae5', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter, resize: 'vertical'}}
+                                style={{width: '100%', padding: '10px 12px', border: '2px solid themeColors.primaryLight', borderRadius: '8px', fontSize: '13px', background: themeColors.primaryLighter, resize: 'vertical'}}
                               />
                             </div>
 
@@ -20725,8 +20778,8 @@ ${invoiceHtml}
                     {singleTaskMode === 'withoutTask' && (
                       <div style={{background: '#fff', padding: '28px', borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', border: '1px solid #e2e8f0'}}>
                         {/* Header with Green Gradient */}
-                        <div style={{marginBottom: '24px', paddingBottom: '16px', borderBottom: '2px solid #d1fae5'}}>
-                          <h3 style={{margin: '0', fontSize: '18px', fontWeight: '700', color: '#065f46', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                        <div style={{marginBottom: '24px', paddingBottom: '16px', borderBottom: '2px solid themeColors.primaryLight'}}>
+                          <h3 style={{margin: '0', fontSize: '18px', fontWeight: '700', color: themeColors.primaryText, display: 'flex', alignItems: 'center', gap: '10px'}}>
                             <FileText size={22} style={{color: themeColors.primary}} />
                             Create Invoice Without Task
                           </h3>
@@ -20735,11 +20788,11 @@ ${invoiceHtml}
                         
                         {/* Client Selection Section */}
                         <div style={{background: themeColors.primaryLighter, padding: '20px', borderRadius: '12px', marginBottom: '24px', border: `1px solid ${themeColors.border}`}}>
-                          <h4 style={{margin: '0 0 16px 0', fontSize: '14px', fontWeight: '600', color: '#065f46'}}>📋 Client Selection</h4>
+                          <h4 style={{margin: '0 0 16px 0', fontSize: '14px', fontWeight: '600', color: themeColors.primaryText}}>📋 Client Selection</h4>
                           <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px'}}>
                             {/* Group No. with Typeahead */}
                             <div style={{position: 'relative'}}>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Group No.</label>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Group No.</label>
                               <input
                                 type="text"
                                 value={withoutTaskForm.groupName}
@@ -20762,7 +20815,7 @@ ${invoiceHtml}
                                         setWithoutTaskForm({...withoutTaskForm, groupName: group});
                                         setShowWithoutTaskGroupSuggestions(false);
                                       }}
-                                      style={{padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '13px', color: '#065f46'}}
+                                      style={{padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '13px', color: themeColors.primaryText}}
                                       onMouseEnter={(e) => e.target.style.background = themeColors.primaryLighter}
                                       onMouseLeave={(e) => e.target.style.background = 'transparent'}
                                     >
@@ -20775,7 +20828,7 @@ ${invoiceHtml}
                             
                             {/* Client Name with Typeahead */}
                             <div style={{position: 'relative'}}>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>
                                 Client Name <span style={{color: '#dc2626'}}>*</span>
                               </label>
                               <input
@@ -20814,7 +20867,7 @@ ${invoiceHtml}
                                       onMouseEnter={(e) => e.target.style.background = themeColors.primaryLighter}
                                       onMouseLeave={(e) => e.target.style.background = 'transparent'}
                                     >
-                                      <div style={{fontWeight: '600', color: '#065f46'}}>{client.name}</div>
+                                      <div style={{fontWeight: '600', color: themeColors.primaryText}}>{client.name}</div>
                                       <div style={{fontSize: '13px', color: '#64748b'}}>{client.fileNo} • Group {client.fileNo ? client.fileNo.split('.')[0] : '-'}</div>
                                     </div>
                                   ))}
@@ -20827,7 +20880,7 @@ ${invoiceHtml}
                             
                             {/* Client Code (Read-only after selection) */}
                             <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Client Code</label>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Client Code</label>
                               <input
                                 type="text"
                                 value={withoutTaskForm.clientCode}
@@ -20958,7 +21011,7 @@ ${invoiceHtml}
                               
                               return (
                                 <div style={{display: 'flex', gap: '20px', fontSize: '13px', flexWrap: 'wrap', alignItems: 'center'}}>
-                                  <div><span style={{color: '#64748b'}}>Net Amount:</span> <strong style={{color: '#065f46'}}>₹{net.toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong></div>
+                                  <div><span style={{color: '#64748b'}}>Net Amount:</span> <strong style={{color: themeColors.primaryText}}>₹{net.toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong></div>
                                   {gstApplicable && cgst > 0 && (
                                     <>
                                       <div><span style={{color: '#64748b'}}>CGST @9%:</span> <strong style={{color: themeColors.primaryDark}}>₹{cgst.toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong></div>
@@ -21106,18 +21159,18 @@ ${invoiceHtml}
                     {/* Step 1: Group Selection */}
                     {multipleTaskBillingStep === 'group' && (
                       <div style={{background: '#fff', padding: '28px', borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', border: '1px solid #e2e8f0'}}>
-                        <div style={{marginBottom: '24px', paddingBottom: '16px', borderBottom: '2px solid #d1fae5'}}>
-                          <h3 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: '#065f46', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                        <div style={{marginBottom: '24px', paddingBottom: '16px', borderBottom: '2px solid themeColors.primaryLight'}}>
+                          <h3 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: themeColors.primaryText, display: 'flex', alignItems: 'center', gap: '10px'}}>
                             <Users size={22} style={{color: themeColors.primary}} /> Multiple Task Billing - Select Group
                           </h3>
                           <p style={{margin: '8px 0 0', fontSize: '13px', color: '#64748b'}}>Select a group to view all clients with unbilled tasks</p>
                         </div>
                         
                         <div style={{background: themeColors.primaryLighter, padding: '20px', borderRadius: '12px', marginBottom: '20px', border: `1px solid ${themeColors.border}`}}>
-                          <h4 style={{margin: '0 0 16px 0', fontSize: '14px', fontWeight: '600', color: '#065f46'}}>📋 Select Group No.</h4>
+                          <h4 style={{margin: '0 0 16px 0', fontSize: '14px', fontWeight: '600', color: themeColors.primaryText}}>📋 Select Group No.</h4>
                           <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', alignItems: 'end'}}>
                             <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Group No. <span style={{color: '#dc2626'}}>*</span></label>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Group No. <span style={{color: '#dc2626'}}>*</span></label>
                               <div style={{position: 'relative'}}>
                                 <input
                                   type="text"
@@ -21151,7 +21204,7 @@ ${invoiceHtml}
                                             onMouseEnter={(e) => e.currentTarget.style.background = themeColors.primaryLighter}
                                             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                           >
-                                            <span style={{fontWeight: '600', color: '#065f46'}}>Group {g}</span>
+                                            <span style={{fontWeight: '600', color: themeColors.primaryText}}>Group {g}</span>
                                             <span style={{fontSize: '13px', color: '#64748b', background: '#f1f5f9', padding: '2px 8px', borderRadius: '10px'}}>{clientCount} clients</span>
                                           </div>
                                         );
@@ -21167,7 +21220,7 @@ ${invoiceHtml}
                               </div>
                             </div>
                             <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Invoice Type</label>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Invoice Type</label>
                               <select
                                 value={multipleTaskFilters.invoiceType}
                                 onChange={(e) => setMultipleTaskFilters({...multipleTaskFilters, invoiceType: e.target.value})}
@@ -21218,7 +21271,7 @@ ${invoiceHtml}
                         {/* Header */}
                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
                           <div>
-                            <h3 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: '#065f46'}}>
+                            <h3 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: themeColors.primaryText}}>
                               Group {multipleTaskFilters.groupName} - Select Clients
                             </h3>
                             <p style={{margin: '4px 0 0', fontSize: '13px', color: '#64748b'}}>
@@ -21374,7 +21427,7 @@ ${invoiceHtml}
                         {/* Header */}
                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
                           <div>
-                            <h3 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: '#065f46'}}>
+                            <h3 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: themeColors.primaryText}}>
                               {multipleTaskBillingStep === 'billing' ? '📋 Generate Invoices' : 'Select Tasks'} - Group {multipleTaskFilters.groupName}
                             </h3>
                             <p style={{margin: '4px 0 0', fontSize: '13px', color: '#64748b'}}>
@@ -21500,13 +21553,13 @@ ${invoiceHtml}
                                   <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px', minWidth: '700px'}}>
                                     <thead>
                                       <tr style={{background: themeColors.primaryLighter}}>
-                                        <th style={{padding: '10px 12px', textAlign: 'center', width: '40px', borderBottom: '2px solid #d1fae5'}}></th>
-                                        <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5'}}>Task Type</th>
-                                        <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5'}}>Task Description</th>
-                                        <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5'}}>FY</th>
-                                        <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5'}}>Period</th>
-                                        <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5'}}>Status</th>
-                                        <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5'}}>Agreed Fees</th>
+                                        <th style={{padding: '10px 12px', textAlign: 'center', width: '40px', borderBottom: '2px solid themeColors.primaryLight'}}></th>
+                                        <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: themeColors.primaryText, borderBottom: '2px solid themeColors.primaryLight'}}>Task Type</th>
+                                        <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: themeColors.primaryText, borderBottom: '2px solid themeColors.primaryLight'}}>Task Description</th>
+                                        <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: themeColors.primaryText, borderBottom: '2px solid themeColors.primaryLight'}}>FY</th>
+                                        <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: themeColors.primaryText, borderBottom: '2px solid themeColors.primaryLight'}}>Period</th>
+                                        <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: themeColors.primaryText, borderBottom: '2px solid themeColors.primaryLight'}}>Status</th>
+                                        <th style={{padding: '10px 12px', textAlign: 'right', fontWeight: '600', color: themeColors.primaryText, borderBottom: '2px solid themeColors.primaryLight'}}>Agreed Fees</th>
                                       </tr>
                                     </thead>
                                     <tbody>
@@ -21563,7 +21616,7 @@ ${invoiceHtml}
                                     {/* Organization Selector */}
                                     <div style={{marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '16px'}}>
                                       <div style={{flex: 1, maxWidth: '300px'}}>
-                                        <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Organisation *</label>
+                                        <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Organisation *</label>
                                         <select
                                           value={clientBillingData.organizationId}
                                           onChange={(e) => {
@@ -21581,24 +21634,24 @@ ${invoiceHtml}
                                         </select>
                                       </div>
                                       <div style={{background: themeColors.primaryLight, padding: '12px 20px', borderRadius: '8px', marginLeft: 'auto'}}>
-                                        <div style={{fontSize: '12px', color: '#065f46'}}>Invoice Total</div>
+                                        <div style={{fontSize: '12px', color: themeColors.primaryText}}>Invoice Total</div>
                                         <div style={{fontSize: '18px', fontWeight: '700', color: themeColors.primaryText}}>₹{clientGrandTotal.toLocaleString('en-IN')}</div>
                                       </div>
                                     </div>
                                     
                                     {/* Task Wise Mode */}
                                     {multipleTaskFilters.invoiceType === 'taskWise' && (
-                                      <div style={{background: '#fff', borderRadius: '8px', border: '1px solid #d1fae5', overflow: 'hidden'}}>
+                                      <div style={{background: '#fff', borderRadius: '8px', border: '1px solid themeColors.primaryLight', overflow: 'hidden'}}>
                                         <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                                           <thead>
                                             <tr style={{background: themeColors.primaryLighter}}>
-                                              <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5'}}>Task</th>
-                                              <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5', minWidth: '180px'}}>Narration</th>
-                                              <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5', width: '60px'}}>Remark</th>
-                                              <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5'}}>Agreed</th>
-                                              <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5', width: '100px'}}>Amount</th>
-                                              <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5', width: '90px'}}>Discount</th>
-                                              <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5', width: '100px'}}>Net</th>
+                                              <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: themeColors.primaryText, borderBottom: '2px solid themeColors.primaryLight'}}>Task</th>
+                                              <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: themeColors.primaryText, borderBottom: '2px solid themeColors.primaryLight', minWidth: '180px'}}>Narration</th>
+                                              <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', color: themeColors.primaryText, borderBottom: '2px solid themeColors.primaryLight', width: '60px'}}>Remark</th>
+                                              <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', color: themeColors.primaryText, borderBottom: '2px solid themeColors.primaryLight'}}>Agreed</th>
+                                              <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', color: themeColors.primaryText, borderBottom: '2px solid themeColors.primaryLight', width: '100px'}}>Amount</th>
+                                              <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', color: themeColors.primaryText, borderBottom: '2px solid themeColors.primaryLight', width: '90px'}}>Discount</th>
+                                              <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', color: themeColors.primaryText, borderBottom: '2px solid themeColors.primaryLight', width: '100px'}}>Net</th>
                                             </tr>
                                           </thead>
                                           <tbody>
@@ -21626,7 +21679,7 @@ ${invoiceHtml}
                                                         });
                                                         setMultipleTaskClientBilling(updated);
                                                       }}
-                                                      style={{width: '100%', padding: '8px 10px', border: '1px solid #d1fae5', borderRadius: '6px', fontSize: '13px', background: themeColors.primaryLighter}}
+                                                      style={{width: '100%', padding: '8px 10px', border: '1px solid themeColors.primaryLight', borderRadius: '6px', fontSize: '13px', background: themeColors.primaryLighter}}
                                                     />
                                                   </td>
                                                   <td style={{padding: '12px', textAlign: 'center'}}>
@@ -21671,7 +21724,7 @@ ${invoiceHtml}
                                                         });
                                                         setMultipleTaskClientBilling(updated);
                                                       }}
-                                                      style={{width: '100%', padding: '8px', border: '1px solid #d1fae5', borderRadius: '6px', textAlign: 'right', fontSize: '13px', background: themeColors.primaryLighter}}
+                                                      style={{width: '100%', padding: '8px', border: '1px solid themeColors.primaryLight', borderRadius: '6px', textAlign: 'right', fontSize: '13px', background: themeColors.primaryLighter}}
                                                     />
                                                   </td>
                                                   <td style={{padding: '12px', textAlign: 'right'}}>
@@ -21689,7 +21742,7 @@ ${invoiceHtml}
                                                         });
                                                         setMultipleTaskClientBilling(updated);
                                                       }}
-                                                      style={{width: '100%', padding: '8px', border: '1px solid #d1fae5', borderRadius: '6px', textAlign: 'right', fontSize: '13px', background: themeColors.primaryLighter}}
+                                                      style={{width: '100%', padding: '8px', border: '1px solid themeColors.primaryLight', borderRadius: '6px', textAlign: 'right', fontSize: '13px', background: themeColors.primaryLighter}}
                                                     />
                                                   </td>
                                                   <td style={{padding: '12px', textAlign: 'right', fontWeight: '700', color: themeColors.primary, fontSize: '13px'}}>₹{taskNet.toLocaleString('en-IN')}</td>
@@ -21711,10 +21764,10 @@ ${invoiceHtml}
                                         </div>
                                         
                                         {/* Main Narration Row */}
-                                        <div style={{background: '#fff', padding: '16px', borderRadius: '8px', marginBottom: '12px', border: '1px solid #d1fae5'}}>
+                                        <div style={{background: '#fff', padding: '16px', borderRadius: '8px', marginBottom: '12px', border: '1px solid themeColors.primaryLight'}}>
                                           <div style={{display: 'grid', gridTemplateColumns: '1fr 140px 120px 120px', gap: '16px', alignItems: 'end'}}>
                                             <div>
-                                              <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Narration</label>
+                                              <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Narration</label>
                                               <input
                                                 type="text"
                                                 value={clientBillingData.combinedNarration}
@@ -21724,11 +21777,11 @@ ${invoiceHtml}
                                                   );
                                                   setMultipleTaskClientBilling(updated);
                                                 }}
-                                                style={{width: '100%', padding: '10px 12px', border: '1px solid #d1fae5', borderRadius: '6px', fontSize: '12px', background: themeColors.primaryLighter}}
+                                                style={{width: '100%', padding: '10px 12px', border: '1px solid themeColors.primaryLight', borderRadius: '6px', fontSize: '12px', background: themeColors.primaryLighter}}
                                               />
                                             </div>
                                             <div>
-                                              <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Amount</label>
+                                              <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Amount</label>
                                               <input
                                                 type="number"
                                                 value={clientBillingData.combinedAmount}
@@ -21738,11 +21791,11 @@ ${invoiceHtml}
                                                   );
                                                   setMultipleTaskClientBilling(updated);
                                                 }}
-                                                style={{width: '100%', padding: '10px 12px', border: '1px solid #d1fae5', borderRadius: '6px', fontSize: '12px', textAlign: 'right', background: themeColors.primaryLighter}}
+                                                style={{width: '100%', padding: '10px 12px', border: '1px solid themeColors.primaryLight', borderRadius: '6px', fontSize: '12px', textAlign: 'right', background: themeColors.primaryLighter}}
                                               />
                                             </div>
                                             <div>
-                                              <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Discount</label>
+                                              <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Discount</label>
                                               <input
                                                 type="number"
                                                 value={clientBillingData.combinedDiscount}
@@ -21752,11 +21805,11 @@ ${invoiceHtml}
                                                   );
                                                   setMultipleTaskClientBilling(updated);
                                                 }}
-                                                style={{width: '100%', padding: '10px 12px', border: '1px solid #d1fae5', borderRadius: '6px', fontSize: '12px', textAlign: 'right', background: themeColors.primaryLighter}}
+                                                style={{width: '100%', padding: '10px 12px', border: '1px solid themeColors.primaryLight', borderRadius: '6px', fontSize: '12px', textAlign: 'right', background: themeColors.primaryLighter}}
                                               />
                                             </div>
                                             <div>
-                                              <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Net</label>
+                                              <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Net</label>
                                               <div style={{padding: '10px 12px', background: themeColors.primaryLight, borderRadius: '6px', textAlign: 'right', fontWeight: '700', color: themeColors.primaryText, fontSize: '13px'}}>
                                                 ₹{((clientBillingData.combinedAmount || 0) - (clientBillingData.combinedDiscount || 0)).toLocaleString('en-IN')}
                                               </div>
@@ -21766,10 +21819,10 @@ ${invoiceHtml}
                                         
                                         {/* Extra Narrations - Same format as main */}
                                         {(clientBillingData.extraNarrations || []).map((extra, extraIdx) => (
-                                          <div key={extraIdx} style={{background: '#fff', padding: '16px', borderRadius: '8px', marginBottom: '12px', border: '1px solid #d1fae5'}}>
+                                          <div key={extraIdx} style={{background: '#fff', padding: '16px', borderRadius: '8px', marginBottom: '12px', border: '1px solid themeColors.primaryLight'}}>
                                             <div style={{display: 'grid', gridTemplateColumns: '1fr 140px 120px 120px 50px', gap: '16px', alignItems: 'end'}}>
                                               <div>
-                                                <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Extra Narration {extraIdx + 1}</label>
+                                                <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Extra Narration {extraIdx + 1}</label>
                                                 <input
                                                   type="text"
                                                   value={extra.narration || ''}
@@ -21785,11 +21838,11 @@ ${invoiceHtml}
                                                     setMultipleTaskClientBilling(updated);
                                                   }}
                                                   placeholder="Enter narration"
-                                                  style={{width: '100%', padding: '10px 12px', border: '1px solid #d1fae5', borderRadius: '6px', fontSize: '12px', background: themeColors.primaryLighter}}
+                                                  style={{width: '100%', padding: '10px 12px', border: '1px solid themeColors.primaryLight', borderRadius: '6px', fontSize: '12px', background: themeColors.primaryLighter}}
                                                 />
                                               </div>
                                               <div>
-                                                <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Amount</label>
+                                                <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Amount</label>
                                                 <input
                                                   type="number"
                                                   value={extra.amount || 0}
@@ -21804,11 +21857,11 @@ ${invoiceHtml}
                                                     });
                                                     setMultipleTaskClientBilling(updated);
                                                   }}
-                                                  style={{width: '100%', padding: '10px 12px', border: '1px solid #d1fae5', borderRadius: '6px', fontSize: '12px', textAlign: 'right', background: themeColors.primaryLighter}}
+                                                  style={{width: '100%', padding: '10px 12px', border: '1px solid themeColors.primaryLight', borderRadius: '6px', fontSize: '12px', textAlign: 'right', background: themeColors.primaryLighter}}
                                                 />
                                               </div>
                                               <div>
-                                                <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Discount</label>
+                                                <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Discount</label>
                                                 <input
                                                   type="number"
                                                   value={extra.discount || 0}
@@ -21823,11 +21876,11 @@ ${invoiceHtml}
                                                     });
                                                     setMultipleTaskClientBilling(updated);
                                                   }}
-                                                  style={{width: '100%', padding: '10px 12px', border: '1px solid #d1fae5', borderRadius: '6px', fontSize: '12px', textAlign: 'right', background: themeColors.primaryLighter}}
+                                                  style={{width: '100%', padding: '10px 12px', border: '1px solid themeColors.primaryLight', borderRadius: '6px', fontSize: '12px', textAlign: 'right', background: themeColors.primaryLighter}}
                                                 />
                                               </div>
                                               <div>
-                                                <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Net</label>
+                                                <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Net</label>
                                                 <div style={{padding: '10px 12px', background: themeColors.primaryLight, borderRadius: '6px', textAlign: 'right', fontWeight: '700', color: themeColors.primaryText, fontSize: '13px'}}>
                                                   ₹{((extra.amount || 0) - (extra.discount || 0)).toLocaleString('en-IN')}
                                                 </div>
@@ -21876,11 +21929,11 @@ ${invoiceHtml}
                                     {/* Client Total Summary */}
                                     <div style={{marginTop: '16px', padding: '12px 16px', background: themeColors.primaryLight, borderRadius: '8px', display: 'flex', justifyContent: 'flex-end', gap: '24px'}}>
                                       <div style={{textAlign: 'right'}}>
-                                        <div style={{fontSize: '12px', color: '#065f46'}}>Subtotal</div>
+                                        <div style={{fontSize: '12px', color: themeColors.primaryText}}>Subtotal</div>
                                         <div style={{fontWeight: '600', color: themeColors.primaryText}}>₹{clientTotal.toLocaleString('en-IN')}</div>
                                       </div>
                                       <div style={{textAlign: 'right'}}>
-                                        <div style={{fontSize: '12px', color: '#065f46'}}>GST (18%)</div>
+                                        <div style={{fontSize: '12px', color: themeColors.primaryText}}>GST (18%)</div>
                                         <div style={{fontWeight: '600', color: themeColors.primaryText}}>₹{clientGst.toLocaleString('en-IN')}</div>
                                       </div>
                                       <div style={{textAlign: 'right', background: themeColors.primary, padding: '8px 16px', borderRadius: '6px', marginLeft: '8px'}}>
@@ -22206,8 +22259,8 @@ ${invoiceHtml}
                         {/* Client Info Header - Green Theme */}
                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '16px 20px', background: themeColors.primaryLighter, borderRadius: '12px', border: `1px solid ${themeColors.border}`}}>
                           <div>
-                            <h3 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: '#065f46'}}>{multipleTaskClient.name}</h3>
-                            <div style={{fontSize: '13px', color: '#047857', marginTop: '4px'}}>
+                            <h3 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: themeColors.primaryText}}>{multipleTaskClient.name}</h3>
+                            <div style={{fontSize: '13px', color: themeColors.primaryDark, marginTop: '4px'}}>
                               Code: {multipleTaskClient.fileNo} | Group: {multipleTaskClient.groupName} | Invoice Type: <span style={{fontWeight: '700', padding: '2px 8px', borderRadius: '4px', background: multipleTaskFilters.invoiceType === 'taskWise' ? '#fef3c7' : themeColors.secondaryLight, color: multipleTaskFilters.invoiceType === 'taskWise' ? '#92400e' : '#1e40af'}}>{multipleTaskFilters.invoiceType === 'taskWise' ? 'Task Wise' : 'Combined Task'}</span>
                             </div>
                           </div>
@@ -22413,15 +22466,15 @@ ${invoiceHtml}
                     {/* Step 1: Filter Tasks */}
                     {bulkTaskStep === 'filter' && (
                       <div>
-                        <div style={{background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)', padding: '20px', borderRadius: '10px', marginBottom: '20px'}}>
-                          <h4 style={{margin: '0 0 16px 0', fontSize: '14px', fontWeight: '600', color: '#065f46'}}>Search By:</h4>
+                        <div style={{background: 'linear-gradient(135deg, themeColors.primaryLight 0%, #a7f3d0 100%)', padding: '20px', borderRadius: '10px', marginBottom: '20px'}}>
+                          <h4 style={{margin: '0 0 16px 0', fontSize: '14px', fontWeight: '600', color: themeColors.primaryText}}>Search By:</h4>
                           <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px'}}>
                             <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Category (Parent Task) *</label>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Category (Parent Task) *</label>
                               <select
                                 value={bulkTaskFilters.parentTask}
                                 onChange={(e) => setBulkTaskFilters({...bulkTaskFilters, parentTask: e.target.value, childTask: ''})}
-                                style={{width: '100%', padding: '10px', border: '1px solid #6ee7b7', borderRadius: '6px', fontSize: '13px', background: '#fff'}}
+                                style={{width: '100%', padding: '10px', border: '1px solid themeColors.border', borderRadius: '6px', fontSize: '13px', background: '#fff'}}
                               >
                                 <option value="">Select Category</option>
                                 {[...new Set((data.tasks || []).map(t => t.parentTask).filter(Boolean))].sort().map(pt => (
@@ -22430,11 +22483,11 @@ ${invoiceHtml}
                               </select>
                             </div>
                             <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Task Type (Child Task) *</label>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Task Type (Child Task) *</label>
                               <select
                                 value={bulkTaskFilters.childTask}
                                 onChange={(e) => setBulkTaskFilters({...bulkTaskFilters, childTask: e.target.value})}
-                                style={{width: '100%', padding: '10px', border: '1px solid #6ee7b7', borderRadius: '6px', fontSize: '13px', background: '#fff'}}
+                                style={{width: '100%', padding: '10px', border: '1px solid themeColors.border', borderRadius: '6px', fontSize: '13px', background: '#fff'}}
                               >
                                 <option value="">Select Task Type</option>
                                 {[...new Set((data.tasks || [])
@@ -22445,21 +22498,21 @@ ${invoiceHtml}
                               </select>
                             </div>
                             <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Group No.</label>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Group No.</label>
                               <input
                                 type="text"
                                 value={bulkTaskFilters.groupNo || ''}
                                 onChange={(e) => setBulkTaskFilters({...bulkTaskFilters, groupNo: e.target.value})}
                                 placeholder="e.g., 1, 2, 3..."
-                                style={{width: '100%', padding: '10px', border: '1px solid #6ee7b7', borderRadius: '6px', fontSize: '13px'}}
+                                style={{width: '100%', padding: '10px', border: '1px solid themeColors.border', borderRadius: '6px', fontSize: '13px'}}
                               />
                             </div>
                             <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Status</label>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Status</label>
                               <select
                                 value={bulkTaskFilters.status}
                                 onChange={(e) => setBulkTaskFilters({...bulkTaskFilters, status: e.target.value})}
-                                style={{width: '100%', padding: '10px', border: '1px solid #6ee7b7', borderRadius: '6px', fontSize: '13px', background: '#fff'}}
+                                style={{width: '100%', padding: '10px', border: '1px solid themeColors.border', borderRadius: '6px', fontSize: '13px', background: '#fff'}}
                               >
                                 <option value="">All Status</option>
                                 <option value="Completed">Completed</option>
@@ -22468,11 +22521,11 @@ ${invoiceHtml}
                               </select>
                             </div>
                             <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Financial Year</label>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Financial Year</label>
                               <select
                                 value={bulkTaskFilters.financialYear}
                                 onChange={(e) => setBulkTaskFilters({...bulkTaskFilters, financialYear: e.target.value})}
-                                style={{width: '100%', padding: '10px', border: '1px solid #6ee7b7', borderRadius: '6px', fontSize: '13px', background: '#fff'}}
+                                style={{width: '100%', padding: '10px', border: '1px solid themeColors.border', borderRadius: '6px', fontSize: '13px', background: '#fff'}}
                               >
                                 <option value="">All Years</option>
                                 {['FY 2025-26', 'FY 2024-25', 'FY 2023-24', 'FY 2022-23'].map(fy => (
@@ -22481,11 +22534,11 @@ ${invoiceHtml}
                               </select>
                             </div>
                             <div>
-                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Period</label>
+                              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Period</label>
                               <select
                                 value={bulkTaskFilters.period}
                                 onChange={(e) => setBulkTaskFilters({...bulkTaskFilters, period: e.target.value})}
-                                style={{width: '100%', padding: '10px', border: '1px solid #6ee7b7', borderRadius: '6px', fontSize: '13px', background: '#fff'}}
+                                style={{width: '100%', padding: '10px', border: '1px solid themeColors.border', borderRadius: '6px', fontSize: '13px', background: '#fff'}}
                               >
                                 <option value="">All Periods</option>
                                 {['Monthly', 'Quarterly', 'Half Yearly', 'Yearly', 'One Time', 'As & when required'].map(p => (
@@ -22748,12 +22801,12 @@ ${invoiceHtml}
                         
                         {/* Apply Organization Row */}
                         <div style={{display: 'flex', gap: '16px', marginBottom: '20px'}}>
-                          <div style={{flex: 1, padding: '12px', background: '#ecfdf5', borderRadius: '8px', border: '1px solid #6ee7b7'}}>
-                            <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '8px', color: '#065f46'}}>Apply Organisation to All Bills:</label>
+                          <div style={{flex: 1, padding: '12px', background: 'themeColors.primaryLighter', borderRadius: '8px', border: '1px solid themeColors.border'}}>
+                            <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '8px', color: themeColors.primaryText}}>Apply Organisation to All Bills:</label>
                             <div style={{display: 'flex', gap: '8px'}}>
                               <select
                                 id="bulkOrgSelect"
-                                style={{flex: 1, padding: '8px', border: '1px solid #6ee7b7', borderRadius: '6px', fontSize: '12px'}}
+                                style={{flex: 1, padding: '8px', border: '1px solid themeColors.border', borderRadius: '6px', fontSize: '12px'}}
                               >
                                 <option value="">Select Organisation</option>
                                 {(data.organizations || []).map(o => (
@@ -22840,7 +22893,7 @@ ${invoiceHtml}
                                             updated[idx].narration = e.target.value;
                                             setBulkBillingData(updated);
                                           }}
-                                          style={{width: '100%', padding: '6px 8px', border: '1px solid #d1fae5', borderRadius: '6px', fontSize: '13px', background: themeColors.primaryLighter}}
+                                          style={{width: '100%', padding: '6px 8px', border: '1px solid themeColors.primaryLight', borderRadius: '6px', fontSize: '13px', background: themeColors.primaryLighter}}
                                           placeholder="Auto-generated"
                                         />
                                       </td>
@@ -22873,7 +22926,7 @@ ${invoiceHtml}
                                             updated[idx].organizationId = e.target.value;
                                             setBulkBillingData(updated);
                                           }}
-                                          style={{width: '100%', padding: '6px 8px', border: '1px solid #d1fae5', borderRadius: '6px', fontSize: '13px', background: themeColors.primaryLighter}}
+                                          style={{width: '100%', padding: '6px 8px', border: '1px solid themeColors.primaryLight', borderRadius: '6px', fontSize: '13px', background: themeColors.primaryLighter}}
                                         >
                                           <option value="">Select</option>
                                           {(data.organizations || []).map(o => (
@@ -22893,7 +22946,7 @@ ${invoiceHtml}
                                             updated[idx].amount = parseFloat(e.target.value) || 0;
                                             setBulkBillingData(updated);
                                           }}
-                                          style={{width: '80px', padding: '8px', border: '1px solid #d1fae5', borderRadius: '6px', textAlign: 'right', fontSize: '12px', background: themeColors.primaryLighter}}
+                                          style={{width: '80px', padding: '8px', border: '1px solid themeColors.primaryLight', borderRadius: '6px', textAlign: 'right', fontSize: '12px', background: themeColors.primaryLighter}}
                                         />
                                       </td>
                                       <td style={{padding: '12px 10px', textAlign: 'right'}}>
@@ -22905,7 +22958,7 @@ ${invoiceHtml}
                                             updated[idx].discount = parseFloat(e.target.value) || 0;
                                             setBulkBillingData(updated);
                                           }}
-                                          style={{width: '70px', padding: '8px', border: '1px solid #d1fae5', borderRadius: '6px', textAlign: 'right', fontSize: '12px', background: themeColors.primaryLighter}}
+                                          style={{width: '70px', padding: '8px', border: '1px solid themeColors.primaryLight', borderRadius: '6px', textAlign: 'right', fontSize: '12px', background: themeColors.primaryLighter}}
                                         />
                                       </td>
                                       <td style={{padding: '12px 10px', textAlign: 'right', fontWeight: '600'}}>₹{net.toLocaleString('en-IN')}</td>
@@ -22917,7 +22970,7 @@ ${invoiceHtml}
                               </tbody>
                               <tfoot style={{background: themeColors.primaryLighter, borderTop: `2px solid ${themeColors.primary}`}}>
                                 <tr>
-                                  <td colSpan={11} style={{padding: '14px', fontWeight: '700', textAlign: 'right', fontSize: '14px', color: '#065f46'}}>Selected Total:</td>
+                                  <td colSpan={11} style={{padding: '14px', fontWeight: '700', textAlign: 'right', fontSize: '14px', color: themeColors.primaryText}}>Selected Total:</td>
                                   <td style={{padding: '14px', fontWeight: '600', textAlign: 'right', fontSize: '13px'}}>
                                     ₹{bulkBillingData.filter(b => b.selected).reduce((sum, b) => sum + (parseFloat(b.amount) || 0), 0).toLocaleString('en-IN')}
                                   </td>
@@ -22960,7 +23013,7 @@ ${invoiceHtml}
                         {(data.bulkBatches || []).length === 0 ? (
                           <div style={{textAlign: 'center', padding: '80px 20px', background: '#fff', borderRadius: '20px', border: '2px dashed #86efac'}}>
                             <div style={{fontSize: '72px', marginBottom: '20px'}}>📋</div>
-                            <div style={{fontSize: '20px', fontWeight: '700', color: '#065f46', marginBottom: '10px'}}>No Bulk Invoices Yet</div>
+                            <div style={{fontSize: '20px', fontWeight: '700', color: themeColors.primaryText, marginBottom: '10px'}}>No Bulk Invoices Yet</div>
                             <div style={{fontSize: '14px', color: '#64748b', marginBottom: '24px'}}>Create your first bulk invoice batch to see it here</div>
                             <button
                               onClick={() => setBulkTaskStep('filter')}
@@ -23009,14 +23062,14 @@ ${invoiceHtml}
                                             <div style={{fontSize: '13px', color: '#64748b'}}>{new Date(batch.createdAt).toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'})}</div>
                                           </td>
                                           <td style={{padding: '16px'}}>
-                                            <div style={{fontWeight: '600', color: '#065f46'}}>{batch.taskType || batch.childTask || '-'}</div>
+                                            <div style={{fontWeight: '600', color: themeColors.primaryText}}>{batch.taskType || batch.childTask || '-'}</div>
                                             <div style={{fontSize: '13px', color: '#64748b'}}>{batch.parentTask || ''}</div>
                                           </td>
                                           <td style={{padding: '16px', minWidth: '250px'}}>
                                             <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
                                               {Object.keys(orgBreakdown).slice(0, 5).map((orgName, i) => (
                                                 <div key={i} style={{display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px'}}>
-                                                  <span style={{background: themeColors.primaryLight, color: '#065f46', padding: '2px 8px', borderRadius: '12px', fontWeight: '500'}}>{orgBreakdown[orgName].count}</span>
+                                                  <span style={{background: themeColors.primaryLight, color: themeColors.primaryText, padding: '2px 8px', borderRadius: '12px', fontWeight: '500'}}>{orgBreakdown[orgName].count}</span>
                                                   <span style={{color: '#374151'}}>{orgName}</span>
                                                 </div>
                                               ))}
@@ -23079,10 +23132,10 @@ ${invoiceHtml}
                                 <div style={{background: themeColors.primaryLighter, padding: '20px', borderRadius: '16px', marginBottom: '20px', border: '2px solid #86efac'}}>
                                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                                     <div>
-                                      <h4 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: '#065f46'}}>
+                                      <h4 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: themeColors.primaryText}}>
                                         Batch: {viewingBulkBatch.id?.substring(0, 12).toUpperCase()}
                                       </h4>
-                                      <p style={{margin: '4px 0 0', fontSize: '13px', color: '#047857'}}>
+                                      <p style={{margin: '4px 0 0', fontSize: '13px', color: themeColors.primaryDark}}>
                                         {viewingBulkBatch.taskType || viewingBulkBatch.childTask} • {new Date(viewingBulkBatch.invoiceDate || viewingBulkBatch.createdAt).toLocaleDateString('en-IN', {day: '2-digit', month: 'short', year: 'numeric'})}
                                       </p>
                                     </div>
@@ -23139,7 +23192,7 @@ ${invoiceHtml}
                                     <div key={orgName} style={{marginBottom: '20px', background: '#fff', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e2e8f0'}}>
                                       <div style={{padding: '14px 20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                                         <h5 style={{margin: 0, fontSize: '15px', fontWeight: '600', color: '#1e293b'}}>{orgName}</h5>
-                                        <span style={{background: themeColors.primaryLight, color: '#065f46', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600'}}>
+                                        <span style={{background: themeColors.primaryLight, color: themeColors.primaryText, padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600'}}>
                                           {invoices.length} invoices • ₹{invoices.reduce((s, i) => s + (i.totalAmount || 0), 0).toLocaleString('en-IN')}
                                         </span>
                                       </div>
@@ -23175,7 +23228,7 @@ ${invoiceHtml}
                                 
                                 {/* Summary */}
                                 <div style={{background: themeColors.primaryLighter, padding: '16px 20px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: `1px solid ${themeColors.border}`}}>
-                                  <div style={{fontSize: '14px', color: '#065f46'}}>
+                                  <div style={{fontSize: '14px', color: themeColors.primaryText}}>
                                     <strong>Total Invoices:</strong> {viewingBulkBatch.invoiceCount || (data.invoices || []).filter(inv => viewingBulkBatch.invoiceIds?.includes(inv.id)).length}
                                   </div>
                                   <div style={{fontSize: '18px', fontWeight: '700', color: themeColors.primary}}>
@@ -23261,7 +23314,7 @@ ${invoiceHtml}
                 {billingMode === 'latest' && (
                   <div style={{background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
                     <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
-                      <h3 style={{margin: 0, fontSize: '16px', fontWeight: '700', color: '#065f46', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                      <h3 style={{margin: 0, fontSize: '16px', fontWeight: '700', color: themeColors.primaryText, display: 'flex', alignItems: 'center', gap: '10px'}}>
                         <CheckCircle size={20} style={{color: themeColors.primary}} />
                         Latest Generated Invoices ({(data.latestGeneratedInvoices || []).length})
                       </h3>
@@ -23347,22 +23400,22 @@ ${invoiceHtml}
                       /* Comprehensive Edit Invoice Form */
                       <div style={{background: '#f8fafc', border: `2px solid ${themeColors.primary}`, borderRadius: '10px', padding: '20px'}}>
                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid #e2e8f0'}}>
-                          <h4 style={{margin: 0, fontSize: '15px', fontWeight: '700', color: '#065f46'}}>✏️ Edit Invoice: {editingGeneratedInvoice.invoiceNo}</h4>
+                          <h4 style={{margin: 0, fontSize: '15px', fontWeight: '700', color: themeColors.primaryText}}>✏️ Edit Invoice: {editingGeneratedInvoice.invoiceNo}</h4>
                           <button onClick={() => setEditingGeneratedInvoice(null)} style={{padding: '6px 12px', background: '#e2e8f0', color: '#64748b', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}}>✕ Cancel</button>
                         </div>
                         
                         {/* Row 1: Basic Info */}
                         <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '12px'}}>
                           <div>
-                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Invoice No <span style={{color: '#dc2626'}}>*</span></label>
+                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: themeColors.primaryText}}>Invoice No <span style={{color: '#dc2626'}}>*</span></label>
                             <input type="text" value={editingGeneratedInvoice.invoiceNo} onChange={(e) => setEditingGeneratedInvoice(p => ({...p, invoiceNo: e.target.value}))} style={{width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px'}} />
                           </div>
                           <div>
-                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Invoice Date <span style={{color: '#dc2626'}}>*</span></label>
+                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: themeColors.primaryText}}>Invoice Date <span style={{color: '#dc2626'}}>*</span></label>
                             <input type="date" value={editingGeneratedInvoice.invoiceDate} onChange={(e) => setEditingGeneratedInvoice(p => ({...p, invoiceDate: e.target.value}))} style={{width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px'}} />
                           </div>
                           <div>
-                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Organization</label>
+                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: themeColors.primaryText}}>Organization</label>
                             <select value={editingGeneratedInvoice.organizationId} onChange={(e) => {
                               const newOrgId = e.target.value;
                               const org = (data.organizations || []).find(o => String(o.id) === String(newOrgId));
@@ -23406,7 +23459,7 @@ ${invoiceHtml}
                             </select>
                           </div>
                           <div>
-                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Place of Supply</label>
+                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: themeColors.primaryText}}>Place of Supply</label>
                             <select value={editingGeneratedInvoice.placeOfSupply || editingGeneratedInvoice.clientState || ''} onChange={(e) => setEditingGeneratedInvoice(p => ({...p, placeOfSupply: e.target.value, clientState: e.target.value}))} style={{width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px'}}>
                               <option value="">Select State</option>
                               {INDIAN_STATES.map(state => <option key={state} value={state}>{state}</option>)}
@@ -23417,19 +23470,19 @@ ${invoiceHtml}
                         {/* Row 2: Client Info */}
                         <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '12px'}}>
                           <div>
-                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Client Name <span style={{color: '#dc2626'}}>*</span></label>
+                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: themeColors.primaryText}}>Client Name <span style={{color: '#dc2626'}}>*</span></label>
                             <input type="text" value={editingGeneratedInvoice.clientName} onChange={(e) => setEditingGeneratedInvoice(p => ({...p, clientName: e.target.value}))} style={{width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px'}} />
                           </div>
                           <div>
-                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Client Code</label>
+                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: themeColors.primaryText}}>Client Code</label>
                             <input type="text" value={editingGeneratedInvoice.clientCode || ''} onChange={(e) => setEditingGeneratedInvoice(p => ({...p, clientCode: e.target.value}))} style={{width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px'}} />
                           </div>
                           <div>
-                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Client GSTIN</label>
+                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: themeColors.primaryText}}>Client GSTIN</label>
                             <input type="text" value={editingGeneratedInvoice.clientGstin || ''} onChange={(e) => setEditingGeneratedInvoice(p => ({...p, clientGstin: e.target.value}))} style={{width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px'}} />
                           </div>
                           <div>
-                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Client Address</label>
+                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: themeColors.primaryText}}>Client Address</label>
                             <input type="text" value={editingGeneratedInvoice.clientAddress || ''} onChange={(e) => setEditingGeneratedInvoice(p => ({...p, clientAddress: e.target.value}))} style={{width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px'}} />
                           </div>
                         </div>
@@ -23437,7 +23490,7 @@ ${invoiceHtml}
                         {/* Row 3: Amounts */}
                         <div style={{display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px', marginBottom: '12px'}}>
                           <div>
-                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Amount <span style={{color: '#dc2626'}}>*</span></label>
+                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: themeColors.primaryText}}>Amount <span style={{color: '#dc2626'}}>*</span></label>
                             <input type="number" value={editingGeneratedInvoice.amount || editingGeneratedInvoice.netAmount || 0} onChange={(e) => {
                               const amt = parseFloat(e.target.value) || 0;
                               const disc = parseFloat(editingGeneratedInvoice.discount) || 0;
@@ -23454,7 +23507,7 @@ ${invoiceHtml}
                             }} style={{width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px'}} />
                           </div>
                           <div>
-                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Discount</label>
+                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: themeColors.primaryText}}>Discount</label>
                             <input type="number" value={editingGeneratedInvoice.discount || 0} onChange={(e) => {
                               const disc = parseFloat(e.target.value) || 0;
                               const amt = parseFloat(editingGeneratedInvoice.amount) || 0;
@@ -23471,19 +23524,19 @@ ${invoiceHtml}
                             }} style={{width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px'}} />
                           </div>
                           <div>
-                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Net Amount</label>
+                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: themeColors.primaryText}}>Net Amount</label>
                             <input type="number" value={editingGeneratedInvoice.netAmount || 0} readOnly style={{width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', background: themeColors.primaryLighter}} />
                           </div>
                           <div>
-                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>CGST (9%)</label>
+                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: themeColors.primaryText}}>CGST (9%)</label>
                             <input type="number" value={editingGeneratedInvoice.cgst || 0} onChange={(e) => setEditingGeneratedInvoice(p => ({...p, cgst: parseFloat(e.target.value) || 0, totalAmount: (p.netAmount || 0) + (parseFloat(e.target.value) || 0) + (p.sgst || 0) + (p.igst || 0)}))} style={{width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px'}} />
                           </div>
                           <div>
-                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>SGST (9%)</label>
+                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: themeColors.primaryText}}>SGST (9%)</label>
                             <input type="number" value={editingGeneratedInvoice.sgst || 0} onChange={(e) => setEditingGeneratedInvoice(p => ({...p, sgst: parseFloat(e.target.value) || 0, totalAmount: (p.netAmount || 0) + (p.cgst || 0) + (parseFloat(e.target.value) || 0) + (p.igst || 0)}))} style={{width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px'}} />
                           </div>
                           <div>
-                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>IGST (18%)</label>
+                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: themeColors.primaryText}}>IGST (18%)</label>
                             <input type="number" value={editingGeneratedInvoice.igst || 0} onChange={(e) => setEditingGeneratedInvoice(p => ({...p, igst: parseFloat(e.target.value) || 0, totalAmount: (p.netAmount || 0) + (p.cgst || 0) + (p.sgst || 0) + (parseFloat(e.target.value) || 0)}))} style={{width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px'}} />
                           </div>
                         </div>
@@ -23491,19 +23544,19 @@ ${invoiceHtml}
                         {/* Row 4: Total & Task Info */}
                         <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px', marginBottom: '12px'}}>
                           <div>
-                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Total Amount</label>
+                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: themeColors.primaryText}}>Total Amount</label>
                             <input type="text" value={`₹${(editingGeneratedInvoice.totalAmount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}`} readOnly style={{width: '100%', padding: '8px', border: `2px solid ${themeColors.primary}`, borderRadius: '6px', fontSize: '13px', background: themeColors.primaryLighter, fontWeight: '700', color: themeColors.primary}} />
                           </div>
                           <div>
-                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Parent Task</label>
+                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: themeColors.primaryText}}>Parent Task</label>
                             <input type="text" value={editingGeneratedInvoice.parentTask || ''} onChange={(e) => setEditingGeneratedInvoice(p => ({...p, parentTask: e.target.value}))} style={{width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px'}} />
                           </div>
                           <div>
-                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Task Type / Child Task</label>
+                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: themeColors.primaryText}}>Task Type / Child Task</label>
                             <input type="text" value={editingGeneratedInvoice.taskType || editingGeneratedInvoice.childTask || ''} onChange={(e) => setEditingGeneratedInvoice(p => ({...p, taskType: e.target.value, childTask: e.target.value}))} style={{width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px'}} />
                           </div>
                           <div>
-                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>FY / Period</label>
+                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: themeColors.primaryText}}>FY / Period</label>
                             <input type="text" value={`${editingGeneratedInvoice.financialYear || ''} ${editingGeneratedInvoice.period || ''}`} onChange={(e) => setEditingGeneratedInvoice(p => ({...p, financialYear: e.target.value.split(' ')[0], period: e.target.value.split(' ').slice(1).join(' ')}))} style={{width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px'}} />
                           </div>
                         </div>
@@ -23511,11 +23564,11 @@ ${invoiceHtml}
                         {/* Row 5: Narration and Remarks */}
                         <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px'}}>
                           <div>
-                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Service Description / Narration</label>
+                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: themeColors.primaryText}}>Service Description / Narration</label>
                             <textarea value={editingGeneratedInvoice.narration || editingGeneratedInvoice.serviceDescription || ''} onChange={(e) => setEditingGeneratedInvoice(p => ({...p, narration: e.target.value, serviceDescription: e.target.value}))} rows={2} style={{width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', resize: 'vertical'}} />
                           </div>
                           <div>
-                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Remarks (Optional)</label>
+                            <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: themeColors.primaryText}}>Remarks (Optional)</label>
                             <textarea value={editingGeneratedInvoice.remark || editingGeneratedInvoice.remarks || ''} onChange={(e) => setEditingGeneratedInvoice(p => ({...p, remark: e.target.value, remarks: e.target.value}))} rows={2} style={{width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', resize: 'vertical'}} placeholder="Add any additional remarks for the invoice..." />
                           </div>
                         </div>
@@ -23585,11 +23638,11 @@ ${invoiceHtml}
                           {/* Summary Row */}
                           <div style={{display: 'flex', gap: '16px', marginBottom: '16px'}}>
                             <div style={{flex: 1, background: themeColors.primaryLighter, padding: '12px 16px', borderRadius: '8px', border: `1px solid ${themeColors.border}`}}>
-                              <div style={{fontSize: '13px', color: '#065f46', fontWeight: '600'}}>Showing</div>
+                              <div style={{fontSize: '13px', color: themeColors.primaryText, fontWeight: '600'}}>Showing</div>
                               <div style={{fontSize: '20px', fontWeight: '700', color: themeColors.primary}}>{filteredInvoices.length} <span style={{fontSize: '12px', fontWeight: '400', color: '#64748b'}}>of {(data.latestGeneratedInvoices || []).length}</span></div>
                             </div>
                             <div style={{flex: 1, background: themeColors.primaryLighter, padding: '12px 16px', borderRadius: '8px', border: `1px solid ${themeColors.border}`}}>
-                              <div style={{fontSize: '13px', color: '#065f46', fontWeight: '600'}}>Filtered Total</div>
+                              <div style={{fontSize: '13px', color: themeColors.primaryText, fontWeight: '600'}}>Filtered Total</div>
                               <div style={{fontSize: '20px', fontWeight: '700', color: themeColors.primary}}>₹{filteredInvoices.reduce((s, i) => s + (i.totalAmount || 0), 0).toLocaleString('en-IN')}</div>
                             </div>
                           </div>
@@ -23826,8 +23879,8 @@ ${invoiceHtml}
 
                 {/* Action Bar - Selected Tasks */}
                 {unbilledSelectedIds.length > 0 && (
-                  <div style={{padding: '12px 20px', background: '#ecfdf5', borderBottom: '1px solid #6ee7b7', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-                    <span style={{fontSize: '13px', fontWeight: '600', color: '#065f46'}}>
+                  <div style={{padding: '12px 20px', background: 'themeColors.primaryLighter', borderBottom: '1px solid themeColors.border', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                    <span style={{fontSize: '13px', fontWeight: '600', color: themeColors.primaryText}}>
                       ✓ {unbilledSelectedIds.length} task(s) selected
                     </span>
                     <div style={{display: 'flex', gap: '10px'}}>
@@ -24108,8 +24161,8 @@ ${invoiceHtml}
                               borderRadius: '12px', 
                               fontSize: '13px', 
                               fontWeight: '600',
-                              background: viewingUnbilledTask.status === 'Completed' || viewingUnbilledTask.completedCheck ? '#d1fae5' : viewingUnbilledTask.status === 'In Progress' ? '#fef3c7' : '#fee2e2',
-                              color: viewingUnbilledTask.status === 'Completed' || viewingUnbilledTask.completedCheck ? '#065f46' : viewingUnbilledTask.status === 'In Progress' ? '#92400e' : '#991b1b'
+                              background: viewingUnbilledTask.status === 'Completed' || viewingUnbilledTask.completedCheck ? 'themeColors.primaryLight' : viewingUnbilledTask.status === 'In Progress' ? '#fef3c7' : '#fee2e2',
+                              color: viewingUnbilledTask.status === 'Completed' || viewingUnbilledTask.completedCheck ? themeColors.primaryText : viewingUnbilledTask.status === 'In Progress' ? '#92400e' : '#991b1b'
                             }}>
                               {viewingUnbilledTask.status === 'Completed' || viewingUnbilledTask.completedCheck ? 'Completed' : viewingUnbilledTask.status || 'Open'}
                             </span>
@@ -24303,7 +24356,7 @@ ${invoiceHtml}
                     {/* Common Invoice Date */}
                     <div style={{marginBottom: '20px', display: 'flex', gap: '20px', alignItems: 'flex-end'}}>
                       <div>
-                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Invoice Date *</label>
+                        <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Invoice Date *</label>
                         <input
                           type="date"
                           value={unbilledInvoiceDate}
@@ -24314,8 +24367,8 @@ ${invoiceHtml}
                     </div>
                     
                     {/* Apply to All Row */}
-                    <div style={{marginBottom: '16px', padding: '14px 16px', background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', borderRadius: '8px', border: `1px solid ${themeColors.border}`, display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap'}}>
-                      <span style={{fontSize: '12px', fontWeight: '700', color: '#065f46'}}>⚡ Quick Apply to All:</span>
+                    <div style={{marginBottom: '16px', padding: '14px 16px', background: 'linear-gradient(135deg, themeColors.primaryLighter 0%, themeColors.primaryLight 100%)', borderRadius: '8px', border: `1px solid ${themeColors.border}`, display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap'}}>
+                      <span style={{fontSize: '12px', fontWeight: '700', color: themeColors.primaryText}}>⚡ Quick Apply to All:</span>
                       <select
                         onChange={(e) => {
                           if (e.target.value) {
@@ -24328,7 +24381,7 @@ ${invoiceHtml}
                             });
                           }
                         }}
-                        style={{padding: '8px 12px', border: '2px solid #86efac', borderRadius: '6px', fontSize: '12px', minWidth: '200px', background: '#fff', color: '#065f46', fontWeight: '500'}}
+                        style={{padding: '8px 12px', border: '2px solid #86efac', borderRadius: '6px', fontSize: '12px', minWidth: '200px', background: '#fff', color: themeColors.primaryText, fontWeight: '500'}}
                       >
                         <option value="">Select Organization for All</option>
                         {(data.organizations || []).map(org => (
@@ -24495,9 +24548,9 @@ ${invoiceHtml}
                               });
                               
                               return (
-                                <tr style={{background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)'}}>
-                                  <td colSpan={5} style={{padding: '14px', textAlign: 'right', fontWeight: '700', color: '#065f46', fontSize: '13px'}}>Grand Total:</td>
-                                  <td style={{padding: '14px', textAlign: 'right', fontWeight: '700', color: '#047857', fontSize: '14px'}}>
+                                <tr style={{background: 'linear-gradient(135deg, themeColors.primaryLighter 0%, themeColors.primaryLight 100%)'}}>
+                                  <td colSpan={5} style={{padding: '14px', textAlign: 'right', fontWeight: '700', color: themeColors.primaryText, fontSize: '13px'}}>Grand Total:</td>
+                                  <td style={{padding: '14px', textAlign: 'right', fontWeight: '700', color: themeColors.primaryDark, fontSize: '14px'}}>
                                     ₹{totalAmount.toLocaleString('en-IN')}
                                   </td>
                                   <td colSpan={2} style={{padding: '14px'}}></td>
@@ -25211,13 +25264,13 @@ ${invoiceHtml}
               <div>
                 {/* Step 1: Filters - Green Theme */}
                 <div style={{background: '#fff', borderRadius: '10px', padding: '20px 24px', marginBottom: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0'}}>
-                  <h3 style={{margin: '0 0 16px 0', fontSize: '14px', fontWeight: '600', color: '#065f46', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                  <h3 style={{margin: '0 0 16px 0', fontSize: '14px', fontWeight: '600', color: themeColors.primaryText, display: 'flex', alignItems: 'center', gap: '8px'}}>
                     <span style={{background: themeColors.primary, color: '#fff', width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px'}}>1</span>
                     Filter & Select Invoices
                   </h3>
                   <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: '14px', alignItems: 'end'}}>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Group No.</label>
+                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Group No.</label>
                       <select
                         value={receiptFilters.groupNo || ''}
                         onChange={(e) => { setReceiptFilters({...receiptFilters, groupNo: e.target.value}); setSelectedClientsForReceipt([]); setSelectedInvoicesForReceipt([]); }}
@@ -25230,7 +25283,7 @@ ${invoiceHtml}
                       </select>
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Client Code</label>
+                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Client Code</label>
                       <select
                         value={receiptFilters.clientCode || ''}
                         onChange={(e) => { setReceiptFilters({...receiptFilters, clientCode: e.target.value}); setSelectedClientsForReceipt([]); setSelectedInvoicesForReceipt([]); }}
@@ -25243,7 +25296,7 @@ ${invoiceHtml}
                       </select>
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Client Name</label>
+                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Client Name</label>
                       <input
                         type="text"
                         value={receiptFilters.clientName}
@@ -25253,7 +25306,7 @@ ${invoiceHtml}
                       />
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Organization</label>
+                      <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: themeColors.primaryText}}>Organization</label>
                       <select
                         value={receiptFilters.organizationId || ''}
                         onChange={(e) => { setReceiptFilters({...receiptFilters, organizationId: e.target.value}); setSelectedClientsForReceipt([]); setSelectedInvoicesForReceipt([]); }}
@@ -25411,8 +25464,8 @@ ${invoiceHtml}
                     </div>
                     {/* Selection Action Bar */}
                     {selectedInvoicesForReceipt.length > 0 && (
-                      <div style={{padding: '12px 20px', background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', borderTop: `1px solid ${themeColors.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                        <span style={{fontSize: '13px', fontWeight: '600', color: '#065f46'}}>
+                      <div style={{padding: '12px 20px', background: 'linear-gradient(135deg, themeColors.primaryLighter 0%, themeColors.primaryLight 100%)', borderTop: `1px solid ${themeColors.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                        <span style={{fontSize: '13px', fontWeight: '600', color: themeColors.primaryText}}>
                           ✓ {selectedInvoicesForReceipt.length} invoice(s) selected
                         </span>
                         <button
@@ -25434,14 +25487,14 @@ ${invoiceHtml}
                 {selectedClientsForReceipt.length > 0 && selectedInvoicesForReceipt.length > 0 && (
                   <div>
                     {/* Receipt Header - Green Theme */}
-                    <div style={{background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', borderRadius: '10px', padding: '14px 20px', marginBottom: '14px', border: `1px solid ${themeColors.border}`}}>
-                      <h3 style={{margin: '0 0 10px 0', fontSize: '13px', fontWeight: '600', color: '#065f46', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                    <div style={{background: 'linear-gradient(135deg, themeColors.primaryLighter 0%, themeColors.primaryLight 100%)', borderRadius: '10px', padding: '14px 20px', marginBottom: '14px', border: `1px solid ${themeColors.border}`}}>
+                      <h3 style={{margin: '0 0 10px 0', fontSize: '13px', fontWeight: '600', color: themeColors.primaryText, display: 'flex', alignItems: 'center', gap: '8px'}}>
                         <span style={{background: themeColors.primary, color: '#fff', width: '20px', height: '20px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px'}}>2</span>
                         Receipt Details (One Receipt per Client)
                       </h3>
                       <div style={{display: 'grid', gridTemplateColumns: '160px 1fr', gap: '12px'}}>
                         <div>
-                          <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Receipt Date</label>
+                          <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: themeColors.primaryText}}>Receipt Date</label>
                           <input
                             type="date"
                             value={receiptFormData.receiptDate}
@@ -25450,7 +25503,7 @@ ${invoiceHtml}
                           />
                         </div>
                         <div>
-                          <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Narration</label>
+                          <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px', color: themeColors.primaryText}}>Narration</label>
                           <input
                             type="text"
                             value={receiptFormData.narration}
@@ -25797,7 +25850,7 @@ ${invoiceHtml}
                 <div style={{background: '#fff', borderRadius: '10px', padding: '16px 20px', marginBottom: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0'}}>
                   <div style={{display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '12px', alignItems: 'end'}}>
                     <div>
-                      <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px', color: '#065f46'}}>Group No.</label>
+                      <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px', color: themeColors.primaryText}}>Group No.</label>
                       <select value={receiptFilters.groupNo || ''} onChange={(e) => setReceiptFilters({...receiptFilters, groupNo: e.target.value})} style={{width: '100%', padding: '9px 10px', border: '2px solid #86efac', borderRadius: '6px', fontSize: '12px', background: themeColors.primaryLighter}}>
                         <option value="">All</option>
                         {[...new Set((data.receipts || []).map(r => {
@@ -25807,29 +25860,29 @@ ${invoiceHtml}
                       </select>
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px', color: '#065f46'}}>Client Code</label>
+                      <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px', color: themeColors.primaryText}}>Client Code</label>
                       <select value={receiptFilters.clientCode || ''} onChange={(e) => setReceiptFilters({...receiptFilters, clientCode: e.target.value})} style={{width: '100%', padding: '9px 10px', border: '2px solid #86efac', borderRadius: '6px', fontSize: '12px', background: themeColors.primaryLighter}}>
                         <option value="">All</option>
                         {[...new Set((data.receipts || []).map(r => r.clientCode).filter(Boolean))].sort().map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px', color: '#065f46'}}>Client Name</label>
+                      <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px', color: themeColors.primaryText}}>Client Name</label>
                       <input type="text" value={receiptFilters.clientName} onChange={(e) => setReceiptFilters({...receiptFilters, clientName: e.target.value})} placeholder="Search..." style={{width: '100%', padding: '9px 10px', border: '2px solid #86efac', borderRadius: '6px', fontSize: '12px', background: themeColors.primaryLighter}} />
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px', color: '#065f46'}}>Organization</label>
+                      <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px', color: themeColors.primaryText}}>Organization</label>
                       <select value={receiptFilters.organizationId || ''} onChange={(e) => setReceiptFilters({...receiptFilters, organizationId: e.target.value})} style={{width: '100%', padding: '9px 10px', border: '2px solid #86efac', borderRadius: '6px', fontSize: '12px', background: themeColors.primaryLighter}}>
                         <option value="">All</option>
                         {(data.organizations || []).map(org => <option key={org.id} value={org.id}>{org.name}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px', color: '#065f46'}}>From Date</label>
+                      <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px', color: themeColors.primaryText}}>From Date</label>
                       <input type="date" value={receiptFilters.fromDate} onChange={(e) => setReceiptFilters({...receiptFilters, fromDate: e.target.value})} style={{width: '100%', padding: '9px 10px', border: '2px solid #86efac', borderRadius: '6px', fontSize: '12px', background: themeColors.primaryLighter}} />
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px', color: '#065f46'}}>To Date</label>
+                      <label style={{display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '5px', color: themeColors.primaryText}}>To Date</label>
                       <input type="date" value={receiptFilters.toDate} onChange={(e) => setReceiptFilters({...receiptFilters, toDate: e.target.value})} style={{width: '100%', padding: '9px 10px', border: '2px solid #86efac', borderRadius: '6px', fontSize: '12px', background: themeColors.primaryLighter}} />
                     </div>
                     <div>
@@ -28564,7 +28617,7 @@ ${invoiceHtml}
                 </button>
               </div>
               <div style={{padding: '20px'}}>
-                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '8px', color: '#065f46'}}>
+                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '8px', color: themeColors.primaryText}}>
                   Remark / Additional Notes
                 </label>
                 <textarea
@@ -28574,7 +28627,7 @@ ${invoiceHtml}
                   style={{
                     width: '100%',
                     padding: '12px',
-                    border: '2px solid #d1fae5',
+                    border: '2px solid themeColors.primaryLight',
                     borderRadius: '8px',
                     fontSize: '13px',
                     resize: 'vertical',
@@ -30272,7 +30325,7 @@ ${invoiceHtml}
                             textAlign: 'center',
                             fontSize: '11px',
                             fontWeight: '600',
-                            color: (dsc.location || 'In Office') === 'With Client' ? '#fff' : '#065f46',
+                            color: (dsc.location || 'In Office') === 'With Client' ? '#fff' : themeColors.primaryText,
                             position: 'relative',
                             zIndex: 1,
                             padding: '2px 4px'
@@ -31194,8 +31247,8 @@ ${invoiceHtml}
           <div 
             onClick={() => setPackageFilter('all')}
             style={{
-              background: packageFilter === 'all' ? themeColors.gradient : 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
-              color: packageFilter === 'all' ? '#fff' : '#065f46',
+              background: packageFilter === 'all' ? themeColors.gradient : 'linear-gradient(135deg, themeColors.primaryLight 0%, #a7f3d0 100%)',
+              color: packageFilter === 'all' ? '#fff' : themeColors.primaryText,
               padding: '16px 20px',
               borderRadius: '12px',
               cursor: 'pointer',
@@ -31369,8 +31422,8 @@ ${invoiceHtml}
                             fontSize: '12px',
                             fontWeight: '600',
                             cursor: isHistorical ? 'default' : 'pointer',
-                            background: pkg.billed ? '#d1fae5' : '#fee2e2',
-                            color: pkg.billed ? '#065f46' : '#991b1b'
+                            background: pkg.billed ? 'themeColors.primaryLight' : '#fee2e2',
+                            color: pkg.billed ? themeColors.primaryText : '#991b1b'
                           }}
                         >
                           {pkg.billed ? 'Billed' : 'Unbilled'}
@@ -31640,7 +31693,7 @@ ${invoiceHtml}
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #d1fae5 100%)',
+        background: 'linear-gradient(135deg, #f0fdf4 0%, themeColors.primaryLighter 50%, themeColors.primaryLight 100%)',
         zIndex: 9999
       }}>
         <div style={{ textAlign: 'center' }}>
@@ -36250,7 +36303,7 @@ ${invoiceHtml}
         .role-badge.role-partner { background: #fef3c7; color: #92400e; }
         .role-badge.role-manager { background: var(--theme-secondary-light); color: #1e40af; }
         .role-badge.role-senior-associate { background: #f3e8ff; color: #7c3aed; }
-        .role-badge.role-articles { background: #d1fae5; color: #065f46; }
+        .role-badge.role-articles { background: themeColors.primaryLight; color: #065f46; }
 
         .upload-modal-footer {
           display: flex;
@@ -37850,7 +37903,7 @@ ${invoiceHtml}
           text-align: center;
           margin: 24px 0 16px 0;
           padding: 12px;
-          background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+          background: linear-gradient(135deg, themeColors.primaryLight 0%, #a7f3d0 100%);
           border-radius: 8px;
         }
 
@@ -40666,7 +40719,7 @@ ${invoiceHtml}
           color: #475569;
         }
 
-        .ts-summary-card.billable .ts-summary-icon { background: #d1fae5; color: var(--theme-primary-dark); }
+        .ts-summary-card.billable .ts-summary-icon { background: themeColors.primaryLight; color: var(--theme-primary-dark); }
         .ts-summary-card.nonbillable .ts-summary-icon { background: #fef3c7; color: #d97706; }
         .ts-summary-card.entries .ts-summary-icon { background: var(--theme-secondary-light); color: var(--theme-secondary-dark); }
 
@@ -40936,7 +40989,7 @@ ${invoiceHtml}
           font-weight: 600;
         }
 
-        .status-badge.present { background: #d1fae5; color: var(--theme-primary-dark); }
+        .status-badge.present { background: themeColors.primaryLight; color: var(--theme-primary-dark); }
         .status-badge.leave { background: #fef3c7; color: #d97706; }
 
         .no-data {
@@ -41085,7 +41138,7 @@ ${invoiceHtml}
           font-weight: 600;
         }
 
-        .type-badge.billable { background: #d1fae5; color: var(--theme-primary-dark); }
+        .type-badge.billable { background: themeColors.primaryLight; color: var(--theme-primary-dark); }
         .type-badge.nonbillable { background: #fef3c7; color: #d97706; }
 
         @media (max-width: 1024px) {
