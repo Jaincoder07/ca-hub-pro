@@ -247,9 +247,6 @@ const PracticeManagementApp = () => {
   const [configExpanded, setConfigExpanded] = useState(false);
   const [activeConfigOption, setActiveConfigOption] = useState(''); // categories, batches, checklists
   
-  // Remark Dialog State (replaces browser prompt) - used across multiple components
-  const [remarkDialog, setRemarkDialog] = useState({ show: false, value: '', onSave: null, title: 'Enter Remark' });
-  
   // Recurring Batches State
   const [selectedBatch, setSelectedBatch] = useState(null);
   const [showBatchForm, setShowBatchForm] = useState(false);
@@ -16114,6 +16111,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const [unbilledTaskDetails, setUnbilledTaskDetails] = useState({}); // {taskId: {orgId, amount, tax}}
     const [viewingUnbilledTask, setViewingUnbilledTask] = useState(null); // Task being viewed
     
+    // Remark Dialog State (replaces browser prompt)
+    const [remarkDialog, setRemarkDialog] = useState({ show: false, value: '', onSave: null, title: 'Enter Remark' });
+    
     // Billing States
     const [billingMode, setBillingMode] = useState('single'); // 'single', 'multiple', 'bulk'
     const [singleTaskMode, setSingleTaskMode] = useState('withTask'); // 'withTask', 'withoutTask'
@@ -16446,9 +16446,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const [editingGeneratedInvoice, setEditingGeneratedInvoice] = useState(null);
     
     const [orgForm, setOrgForm] = useState({
-      orgId: '', // User-defined Organization ID (e.g., ORG001)
       name: '',
-      tagline: '', // e.g., "Chartered Accountants"
       website: '',
       faxNo: '',
       authorizedSignatory: '',
@@ -18486,9 +18484,7 @@ ${invoiceHtml}
       // Create clean org data with Storage URLs instead of base64
       const orgData = {
         id: orgId,
-        orgId: orgForm.orgId || '', // User-defined Org ID (e.g., ORG001)
         name: orgForm.name || '',
-        tagline: orgForm.tagline || '', // e.g., "Chartered Accountants"
         website: orgForm.website || '',
         faxNo: orgForm.faxNo || '',
         authorizedSignatory: orgForm.authorizedSignatory || '',
@@ -19903,7 +19899,6 @@ ${invoiceHtml}
                 <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                   <thead>
                     <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
-                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '80px'}}>Org ID</th>
                       <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Organization</th>
                       <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Address Details</th>
                       <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Contact Details</th>
@@ -19917,18 +19912,14 @@ ${invoiceHtml}
                   <tbody>
                     {(data.organizations || []).length === 0 ? (
                       <tr>
-                        <td colSpan={9} style={{padding: '40px', textAlign: 'center', color: '#64748b', border: '1px solid #e5e7eb'}}>
+                        <td colSpan={8} style={{padding: '40px', textAlign: 'center', color: '#64748b', border: '1px solid #e5e7eb'}}>
                           No organizations added yet. Click "Add Organization" to create one.
                         </td>
                       </tr>
                     ) : (
                       (data.organizations || []).map((org, idx) => (
                         <tr key={org.id} style={{background: idx % 2 === 0 ? '#fff' : '#f8fafc'}}>
-                          <td style={{padding: '10px', border: '1px solid #e5e7eb', fontWeight: '700', color: '#4f46e5', fontFamily: 'monospace', fontSize: '11px'}}>{org.orgId || '-'}</td>
-                          <td style={{padding: '10px', border: '1px solid #e5e7eb'}}>
-                            <div style={{fontWeight: '600', color: '#10b981'}}>{org.name}</div>
-                            {org.tagline && <div style={{fontSize: '10px', color: '#64748b', fontStyle: 'italic'}}>{org.tagline}</div>}
-                          </td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb', fontWeight: '600', color: '#10b981'}}>{org.name}</td>
                           <td style={{padding: '10px', border: '1px solid #e5e7eb'}}>
                             <div style={{fontSize: '11px', color: '#374151'}}>
                               <div><strong style={{color: '#64748b'}}>Address:</strong> {org.address || '-'}</div>
@@ -21535,7 +21526,7 @@ ${invoiceHtml}
                                     {/* Organization Selector */}
                                     <div style={{marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '16px'}}>
                                       <div style={{flex: 1, maxWidth: '300px'}}>
-                                        <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Org ID *</label>
+                                        <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Organisation *</label>
                                         <select
                                           value={clientBillingData.organizationId}
                                           onChange={(e) => {
@@ -21544,11 +21535,11 @@ ${invoiceHtml}
                                             );
                                             setMultipleTaskClientBilling(updated);
                                           }}
-                                          style={{width: '100%', padding: '10px 12px', border: '2px solid #10b981', borderRadius: '8px', fontSize: '13px', background: '#fff', fontWeight: '600', fontFamily: 'monospace'}}
+                                          style={{width: '100%', padding: '10px 12px', border: '2px solid #10b981', borderRadius: '8px', fontSize: '13px', background: '#fff', fontWeight: '500'}}
                                         >
-                                          <option value="">Select Org ID</option>
+                                          <option value="">Select Organisation</option>
                                           {(data.organizations || []).map(o => (
-                                            <option key={o.id} value={o.id}>{o.orgId || o.name?.substring(0,8)} - {o.name}</option>
+                                            <option key={o.id} value={o.id}>{o.name}</option>
                                           ))}
                                         </select>
                                       </div>
@@ -22759,9 +22750,10 @@ ${invoiceHtml}
                                   <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', width: '70px'}}>Code</th>
                                   <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', minWidth: '120px'}}>Client Name</th>
                                   <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', width: '100px'}}>Task</th>
-                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', width: '90px'}}>Org ID</th>
                                   <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', minWidth: '160px'}}>Narration</th>
                                   <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'center', width: '60px'}}>Remark</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', width: '80px'}}>Period</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', minWidth: '150px'}}>Organisation</th>
                                   <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'right', width: '80px'}}>Agreed</th>
                                   <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'right', width: '90px'}}>Amount</th>
                                   <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'right', width: '70px'}}>Disc</th>
@@ -22803,22 +22795,6 @@ ${invoiceHtml}
                                       <td style={{padding: '12px 10px', fontWeight: '600', color: '#1e293b', fontSize: '12px'}}>{row.clientName}</td>
                                       <td style={{padding: '12px 10px', fontSize: '11px'}}>{row.taskType}</td>
                                       <td style={{padding: '12px 10px'}}>
-                                        <select
-                                          value={row.organizationId}
-                                          onChange={(e) => {
-                                            const updated = [...bulkBillingData];
-                                            updated[idx].organizationId = e.target.value;
-                                            setBulkBillingData(updated);
-                                          }}
-                                          style={{width: '100%', padding: '6px 8px', border: '1px solid #d1fae5', borderRadius: '6px', fontSize: '10px', background: '#f0fdf4', fontFamily: 'monospace', fontWeight: '600'}}
-                                        >
-                                          <option value="">Select</option>
-                                          {(data.organizations || []).map(o => (
-                                            <option key={o.id} value={o.id}>{o.orgId || o.name?.substring(0,8)}</option>
-                                          ))}
-                                        </select>
-                                      </td>
-                                      <td style={{padding: '12px 10px'}}>
                                         <input
                                           type="text"
                                           value={row.narration || ''}
@@ -22850,6 +22826,23 @@ ${invoiceHtml}
                                         >
                                           {row.remark ? '📝' : '+'}
                                         </button>
+                                      </td>
+                                      <td style={{padding: '12px 10px', fontSize: '11px'}}>{row.subPeriod || row.period}</td>
+                                      <td style={{padding: '12px 10px'}}>
+                                        <select
+                                          value={row.organizationId}
+                                          onChange={(e) => {
+                                            const updated = [...bulkBillingData];
+                                            updated[idx].organizationId = e.target.value;
+                                            setBulkBillingData(updated);
+                                          }}
+                                          style={{width: '100%', padding: '6px 8px', border: '1px solid #d1fae5', borderRadius: '6px', fontSize: '11px', background: '#f0fdf4'}}
+                                        >
+                                          <option value="">Select</option>
+                                          {(data.organizations || []).map(o => (
+                                            <option key={o.id} value={o.id}>{o.name}</option>
+                                          ))}
+                                        </select>
                                       </td>
                                       <td style={{padding: '12px 10px', textAlign: 'right', color: '#64748b', fontSize: '11px'}}>
                                         ₹{(row.agreedFees || 0).toLocaleString('en-IN')}
@@ -24316,11 +24309,11 @@ ${invoiceHtml}
                               <th style={{padding: '12px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', width: '40px'}}>S.No</th>
                               <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', minWidth: '100px'}}>Client</th>
                               <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', minWidth: '100px'}}>Task</th>
-                              <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', width: '100px'}}>Org ID *</th>
-                              <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', minWidth: '150px'}}>Narration</th>
-                              <th style={{padding: '12px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', width: '70px'}}>Remarks</th>
+                              <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', minWidth: '140px'}}>Organization *</th>
                               <th style={{padding: '12px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', width: '80px'}}>Agreed</th>
                               <th style={{padding: '12px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', width: '100px'}}>Amount *</th>
+                              <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', minWidth: '150px'}}>Narration</th>
+                              <th style={{padding: '12px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', width: '70px'}}>Remarks</th>
                               <th style={{padding: '12px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', width: '80px'}}>GST</th>
                               <th style={{padding: '12px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', width: '90px'}}>Total</th>
                             </tr>
@@ -24367,13 +24360,33 @@ ${invoiceHtml}
                                         }
                                       }));
                                     }}
-                                    style={{width: '100%', padding: '6px 8px', border: '2px solid #e2e8f0', borderRadius: '6px', fontSize: '10px', background: taskDetail.orgId ? '#f0fdf4' : '#fff', fontFamily: 'monospace', fontWeight: '600'}}
+                                    style={{width: '100%', padding: '6px 8px', border: '2px solid #e2e8f0', borderRadius: '6px', fontSize: '10px', background: taskDetail.orgId ? '#f0fdf4' : '#fff'}}
                                   >
-                                    <option value="">Select</option>
+                                    <option value="">Select Org</option>
                                     {(data.organizations || []).map(org => (
-                                      <option key={org.id} value={org.id}>{org.orgId || org.name?.substring(0,8)}</option>
+                                      <option key={org.id} value={org.id}>{org.name}</option>
                                     ))}
                                   </select>
+                                </td>
+                                <td style={{padding: '8px', textAlign: 'right', color: '#64748b', fontSize: '10px'}}>
+                                  ₹{(parseFloat(task.agreedFees) || getClientAgreedFee(task.clientId, task.parentTask || task.taskType, task.childTask || task.subTask) || 0).toLocaleString('en-IN')}
+                                </td>
+                                <td style={{padding: '6px'}}>
+                                  <input
+                                    type="number"
+                                    value={taskDetail.amount}
+                                    onChange={(e) => {
+                                      setUnbilledTaskDetails(prev => ({
+                                        ...prev, 
+                                        [task.id]: {
+                                          ...prev[task.id],
+                                          amount: e.target.value
+                                        }
+                                      }));
+                                    }}
+                                    placeholder="0"
+                                    style={{width: '100%', padding: '6px 8px', border: '2px solid #e2e8f0', borderRadius: '6px', fontSize: '11px', textAlign: 'right', background: taskDetail.amount > 0 ? '#f0fdf4' : '#fff'}}
+                                  />
                                 </td>
                                 <td style={{padding: '6px'}}>
                                   <input
@@ -24416,26 +24429,6 @@ ${invoiceHtml}
                                     {taskDetail.remark ? '📝' : '+'} 
                                   </button>
                                 </td>
-                                <td style={{padding: '8px', textAlign: 'right', color: '#64748b', fontSize: '10px'}}>
-                                  ₹{(parseFloat(task.agreedFees) || getClientAgreedFee(task.clientId, task.parentTask || task.taskType, task.childTask || task.subTask) || 0).toLocaleString('en-IN')}
-                                </td>
-                                <td style={{padding: '6px'}}>
-                                  <input
-                                    type="number"
-                                    value={taskDetail.amount}
-                                    onChange={(e) => {
-                                      setUnbilledTaskDetails(prev => ({
-                                        ...prev, 
-                                        [task.id]: {
-                                          ...prev[task.id],
-                                          amount: e.target.value
-                                        }
-                                      }));
-                                    }}
-                                    placeholder="0"
-                                    style={{width: '100%', padding: '6px 8px', border: '2px solid #e2e8f0', borderRadius: '6px', fontSize: '11px', textAlign: 'right', background: taskDetail.amount > 0 ? '#f0fdf4' : '#fff'}}
-                                  />
-                                </td>
                                 <td style={{padding: '8px', textAlign: 'right'}}>
                                   <div style={{fontSize: '11px', fontWeight: '600', color: gstApplicable ? '#059669' : '#94a3b8'}}>
                                     ₹{calculatedTax.toLocaleString('en-IN')}
@@ -24466,10 +24459,11 @@ ${invoiceHtml}
                               
                               return (
                                 <tr style={{background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)'}}>
-                                  <td colSpan={7} style={{padding: '14px', textAlign: 'right', fontWeight: '700', color: '#065f46', fontSize: '13px'}}>Grand Total:</td>
+                                  <td colSpan={5} style={{padding: '14px', textAlign: 'right', fontWeight: '700', color: '#065f46', fontSize: '13px'}}>Grand Total:</td>
                                   <td style={{padding: '14px', textAlign: 'right', fontWeight: '700', color: '#047857', fontSize: '14px'}}>
                                     ₹{totalAmount.toLocaleString('en-IN')}
                                   </td>
+                                  <td colSpan={2} style={{padding: '14px'}}></td>
                                   <td style={{padding: '14px', textAlign: 'right', fontWeight: '700', color: '#d97706', fontSize: '14px'}}>
                                     ₹{totalTax.toLocaleString('en-IN')}
                                   </td>
@@ -28000,18 +27994,6 @@ ${invoiceHtml}
                   <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px'}}>
                     <div>
                       <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '4px'}}>
-                        Org ID <span style={{color: '#4f46e5', fontSize: '10px'}}>(e.g., ORG001)</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={orgForm.orgId || ''}
-                        onChange={(e) => setOrgForm({...orgForm, orgId: e.target.value.toUpperCase()})}
-                        placeholder="ORG001"
-                        style={{width: '100%', padding: '10px', border: '2px solid #4f46e5', borderRadius: '6px', fontSize: '13px', fontWeight: '600', fontFamily: 'monospace', background: '#f5f3ff'}}
-                      />
-                    </div>
-                    <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '4px'}}>
                         Organization Name <span style={{color: '#ef4444'}}>*</span>
                       </label>
                       <input
@@ -28022,14 +28004,20 @@ ${invoiceHtml}
                       />
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '4px'}}>
-                        Tagline <span style={{color: '#64748b', fontSize: '10px'}}>(e.g., Chartered Accountants)</span>
-                      </label>
+                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '4px'}}>Website</label>
                       <input
                         type="text"
-                        value={orgForm.tagline || ''}
-                        onChange={(e) => setOrgForm({...orgForm, tagline: e.target.value})}
-                        placeholder="Chartered Accountants"
+                        value={orgForm.website}
+                        onChange={(e) => setOrgForm({...orgForm, website: e.target.value})}
+                        style={{width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'}}
+                      />
+                    </div>
+                    <div>
+                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '4px'}}>FAX No.</label>
+                      <input
+                        type="text"
+                        value={orgForm.faxNo}
+                        onChange={(e) => setOrgForm({...orgForm, faxNo: e.target.value})}
                         style={{width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'}}
                       />
                     </div>
@@ -28492,6 +28480,94 @@ ${invoiceHtml}
                   style={{flex: 1, padding: '12px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500'}}
                 >
                   {editingOrg ? 'Update Organization' : 'Save Organization'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Custom Remark Dialog Modal - Inside InvoicingView */}
+        {remarkDialog.show && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999
+          }}>
+            <div style={{
+              background: '#fff',
+              borderRadius: '16px',
+              width: '450px',
+              maxWidth: '95%',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                padding: '16px 20px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <h4 style={{margin: 0, fontSize: '15px', fontWeight: '700', color: '#fff'}}>
+                  📝 {remarkDialog.title || 'Enter Remark'}
+                </h4>
+                <button 
+                  onClick={() => setRemarkDialog({ show: false, value: '', onSave: null, title: '' })}
+                  style={{background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '6px', padding: '6px 10px', cursor: 'pointer', color: '#fff', fontWeight: '600'}}
+                >
+                  ✕
+                </button>
+              </div>
+              <div style={{padding: '20px'}}>
+                <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '8px', color: '#065f46'}}>
+                  Remark / Additional Notes
+                </label>
+                <textarea
+                  value={remarkDialog.value}
+                  onChange={(e) => setRemarkDialog(prev => ({...prev, value: e.target.value}))}
+                  rows={4}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '2px solid #d1fae5',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    resize: 'vertical',
+                    background: '#f0fdf4'
+                  }}
+                  placeholder="Enter your remarks here..."
+                  autoFocus
+                />
+              </div>
+              <div style={{
+                padding: '16px 20px',
+                borderTop: '1px solid #e2e8f0',
+                display: 'flex',
+                gap: '12px',
+                justifyContent: 'flex-end',
+                background: '#f8fafc'
+              }}>
+                <button
+                  onClick={() => setRemarkDialog({ show: false, value: '', onSave: null, title: '' })}
+                  style={{padding: '10px 20px', background: '#e2e8f0', color: '#64748b', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px'}}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (remarkDialog.onSave) remarkDialog.onSave(remarkDialog.value);
+                    setRemarkDialog({ show: false, value: '', onSave: null, title: '' });
+                  }}
+                  style={{padding: '10px 24px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '13px'}}
+                >
+                  Save Remark
                 </button>
               </div>
             </div>
@@ -40980,123 +41056,6 @@ ${invoiceHtml}
           }
         }
       `}</style>
-
-      {/* Custom Remark Dialog Modal - Replaces browser prompt */}
-      {remarkDialog.show && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999
-        }}>
-          <div style={{
-            background: '#fff',
-            borderRadius: '16px',
-            width: '450px',
-            maxWidth: '95%',
-            boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
-            overflow: 'hidden'
-          }}>
-            {/* Header */}
-            <div style={{
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              padding: '16px 20px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <h4 style={{margin: 0, fontSize: '15px', fontWeight: '700', color: '#fff'}}>
-                📝 {remarkDialog.title || 'Enter Remark'}
-              </h4>
-              <button 
-                onClick={() => setRemarkDialog({ show: false, value: '', onSave: null, title: '' })}
-                style={{background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '6px', padding: '6px 10px', cursor: 'pointer', color: '#fff', fontWeight: '600'}}
-              >
-                ✕
-              </button>
-            </div>
-            
-            {/* Content */}
-            <div style={{padding: '20px'}}>
-              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '8px', color: '#065f46'}}>
-                Remark / Additional Notes
-              </label>
-              <textarea
-                value={remarkDialog.value}
-                onChange={(e) => setRemarkDialog(prev => ({...prev, value: e.target.value}))}
-                rows={4}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '2px solid #d1fae5',
-                  borderRadius: '8px',
-                  fontSize: '13px',
-                  resize: 'vertical',
-                  background: '#f0fdf4'
-                }}
-                placeholder="Enter your remarks here..."
-                autoFocus
-              />
-              <p style={{fontSize: '11px', color: '#64748b', marginTop: '8px'}}>
-                This remark will be displayed on the invoice below the description.
-              </p>
-            </div>
-            
-            {/* Actions */}
-            <div style={{
-              padding: '16px 20px',
-              borderTop: '1px solid #e2e8f0',
-              display: 'flex',
-              gap: '12px',
-              justifyContent: 'flex-end',
-              background: '#f8fafc'
-            }}>
-              <button
-                onClick={() => setRemarkDialog({ show: false, value: '', onSave: null, title: '' })}
-                style={{
-                  padding: '10px 20px',
-                  background: '#e2e8f0',
-                  color: '#64748b',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  fontSize: '13px'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  if (remarkDialog.onSave) {
-                    remarkDialog.onSave(remarkDialog.value);
-                  }
-                  setRemarkDialog({ show: false, value: '', onSave: null, title: '' });
-                }}
-                style={{
-                  padding: '10px 24px',
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: '700',
-                  fontSize: '13px',
-                  boxShadow: '0 4px 12px rgba(16,185,129,0.4)'
-                }}
-              >
-                Save Remark
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
     </div>
   );
