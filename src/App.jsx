@@ -1410,19 +1410,25 @@ const PracticeManagementApp = () => {
     // Determine invoice type - check invoiceFormat first, then fall back to GST check
     const invoiceFormat = invoice.invoiceFormat || org.invoiceFormat || '';
     const isProforma = invoiceFormat === 'proformaInvoice';
-    const isBillOfSupply = invoiceFormat === 'billOfSupply' || invoiceFormat === 'billOfSupplyBlue' ||
+    const isBillOfSupply = invoiceFormat === 'billOfSupply' || invoiceFormat === 'billOfSupplyBlue' || invoiceFormat === 'billOfSupplyPurple' ||
                            (!isProforma && (invoice.gstApplicable === false || 
                            (org.gstApplicable !== 'yes' && org.gstApplicable !== true && !invoice.gstApplicable)));
+    const isPurple = invoiceFormat === 'billOfSupplyPurple';
     
     // Color scheme based on invoice type
-    // Green for Tax Invoice and Proforma, Blue for Bill of Supply
+    // Green for Tax Invoice and Proforma, Blue/Purple for Bill of Supply
     let primaryColor = '#10b981'; // Green
     let lightBg = '#dcfce7';
     let invoiceTitle = 'TAX INVOICE';
     
     if (isBillOfSupply) {
-      primaryColor = '#3b82f6'; // Blue
-      lightBg = '#dbeafe';
+      if (isPurple) {
+        primaryColor = '#8b5cf6'; // Purple
+        lightBg = '#ede9fe';
+      } else {
+        primaryColor = '#3b82f6'; // Blue
+        lightBg = '#dbeafe';
+      }
       invoiceTitle = 'BILL OF SUPPLY';
     } else if (isProforma) {
       primaryColor = '#10b981'; // Green
@@ -18053,14 +18059,20 @@ ${invoiceHtml}
       const invoiceFormat = invoice.invoiceFormat || org.invoiceFormat || '';
       const isProforma = invoiceFormat === 'proformaInvoice';
       const gstApplicable = invoice.gstApplicable !== false && (org.gstApplicable === 'yes' || org.gstApplicable === true);
-      const isBillOfSupply = invoiceFormat === 'billOfSupply' || invoiceFormat === 'billOfSupplyBlue' ||
+      const isBillOfSupply = invoiceFormat === 'billOfSupply' || invoiceFormat === 'billOfSupplyBlue' || invoiceFormat === 'billOfSupplyPurple' ||
                              (!isProforma && !gstApplicable);
+      const isPurple = invoiceFormat === 'billOfSupplyPurple';
+      const isBlue = invoiceFormat === 'billOfSupplyBlue';
       
-      // Color scheme
+      // Color scheme - Green for Tax/Proforma, Blue/Purple for Bill of Supply
       let primaryColor = '#10b981';
       let invoiceTitle = 'TAX INVOICE';
       if (isBillOfSupply) {
-        primaryColor = '#3b82f6';
+        if (isPurple) {
+          primaryColor = '#8b5cf6'; // Purple
+        } else {
+          primaryColor = '#3b82f6'; // Blue
+        }
         invoiceTitle = 'BILL OF SUPPLY';
       } else if (isProforma) {
         invoiceTitle = 'PROFORMA INVOICE';
@@ -18135,25 +18147,24 @@ ${invoiceHtml}
       
       return `
         <div class="invoice-container" style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 30px; background: #fff;">
-          <!-- Header -->
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-            <!-- Left - Logo and Org Details -->
-            <div style="flex: 1;">
-              ${orgLogo ? `<img src="${orgLogo}" crossorigin="anonymous" style="max-height: 70px; max-width: 150px; margin-bottom: 12px; object-fit: contain;" />` : ''}
-              <div style="font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 4px;">${orgName}</div>
-              <div style="font-size: 12px; color: #64748b; line-height: 1.5;">${orgAddress}</div>
-              ${gstApplicable && orgGstin ? `<div style="font-size: 12px; color: #64748b; margin-top: 2px;">GSTIN: ${orgGstin}</div>` : ''}
-              ${orgPan ? `<div style="font-size: 12px; color: #64748b;">PAN: ${orgPan}</div>` : ''}
-            </div>
-            
-            <!-- Right - Invoice Title and Details -->
-            <div style="text-align: right;">
-              <div style="font-size: 26px; font-weight: 700; color: ${primaryColor}; margin-bottom: 8px;">${invoiceTitle}</div>
-              <div style="font-size: 13px; color: #374151;"><strong>Invoice No:</strong> ${invoice.invoiceNo}</div>
-              <div style="font-size: 13px; color: #374151;"><strong>Date:</strong> ${invoiceDate}</div>
-              ${clientCode ? `<div style="font-size: 13px; color: #374151;"><strong>Client Code:</strong> ${clientCode}</div>` : ''}
-            </div>
-          </div>
+          <!-- Header using table for better PDF support -->
+          <table style="width: 100%; margin-bottom: 20px; border-collapse: collapse;">
+            <tr>
+              <td style="vertical-align: top; width: 60%;">
+                ${orgLogo ? `<img src="${orgLogo}" style="max-height: 70px; max-width: 150px; margin-bottom: 12px; object-fit: contain; display: block;" />` : ''}
+                <div style="font-size: 20px; font-weight: 700; color: #1e293b; margin-bottom: 4px;">${orgName}</div>
+                <div style="font-size: 12px; color: #64748b; line-height: 1.5;">${orgAddress}</div>
+                ${gstApplicable && orgGstin ? `<div style="font-size: 12px; color: #64748b; margin-top: 2px;">GSTIN: ${orgGstin}</div>` : ''}
+                ${orgPan ? `<div style="font-size: 12px; color: #64748b;">PAN: ${orgPan}</div>` : ''}
+              </td>
+              <td style="vertical-align: top; text-align: right; width: 40%;">
+                <div style="font-size: 26px; font-weight: 700; color: ${primaryColor}; margin-bottom: 8px;">${invoiceTitle}</div>
+                <div style="font-size: 13px; color: #374151;"><strong>Invoice No:</strong> ${invoice.invoiceNo}</div>
+                <div style="font-size: 13px; color: #374151;"><strong>Date:</strong> ${invoiceDate}</div>
+                ${clientCode ? `<div style="font-size: 13px; color: #374151;"><strong>Client Code:</strong> ${clientCode}</div>` : ''}
+              </td>
+            </tr>
+          </table>
           
           <!-- Bill To Section -->
           <div style="margin-bottom: 20px; padding: 14px 16px; background: #f8fafc; border-radius: 8px; border-left: 4px solid ${primaryColor};">
@@ -18178,39 +18189,44 @@ ${invoiceHtml}
             </tbody>
           </table>
           
-          <!-- Totals Section -->
-          <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
-            <div style="width: 300px;">
-              <div style="display: flex; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">
-                <span style="font-size: 13px; color: #64748b;">Subtotal:</span>
-                <span style="font-size: 13px; color: #1e293b; font-weight: 500;">₹${netAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
-              </div>
-              ${discount > 0 ? `
-              <div style="display: flex; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">
-                <span style="font-size: 13px; color: #64748b;">Discount:</span>
-                <span style="font-size: 13px; color: #dc2626; font-weight: 500;">- ₹${discount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
-              </div>` : ''}
-              ${cgst > 0 ? `
-              <div style="display: flex; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">
-                <span style="font-size: 13px; color: #64748b;">CGST @9%:</span>
-                <span style="font-size: 13px; color: #1e293b; font-weight: 500;">₹${cgst.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
-              </div>` : ''}
-              ${sgst > 0 ? `
-              <div style="display: flex; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">
-                <span style="font-size: 13px; color: #64748b;">SGST @9%:</span>
-                <span style="font-size: 13px; color: #1e293b; font-weight: 500;">₹${sgst.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
-              </div>` : ''}
-              ${igst > 0 ? `
-              <div style="display: flex; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">
-                <span style="font-size: 13px; color: #64748b;">IGST @18%:</span>
-                <span style="font-size: 13px; color: #1e293b; font-weight: 500;">₹${igst.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
-              </div>` : ''}
-              <div style="display: flex; justify-content: space-between; padding: 12px; background: ${primaryColor}; border-radius: 0 0 8px 8px;">
-                <span style="font-size: 14px; color: #fff; font-weight: 700;">TOTAL:</span>
-                <span style="font-size: 14px; color: #fff; font-weight: 700;">₹${totalAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
-              </div>
-            </div>
-          </div>
+          <!-- Totals Section using table -->
+          <table style="width: 100%; margin-bottom: 20px; border-collapse: collapse;">
+            <tr>
+              <td style="width: 55%;"></td>
+              <td style="width: 45%;">
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #64748b;">Subtotal:</td>
+                    <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-size: 13px; color: #1e293b; font-weight: 500;">₹${netAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                  </tr>
+                  ${discount > 0 ? `
+                  <tr>
+                    <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #64748b;">Discount:</td>
+                    <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-size: 13px; color: #dc2626; font-weight: 500;">- ₹${discount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                  </tr>` : ''}
+                  ${cgst > 0 ? `
+                  <tr>
+                    <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #64748b;">CGST @9%:</td>
+                    <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-size: 13px; color: #1e293b; font-weight: 500;">₹${cgst.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                  </tr>` : ''}
+                  ${sgst > 0 ? `
+                  <tr>
+                    <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #64748b;">SGST @9%:</td>
+                    <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-size: 13px; color: #1e293b; font-weight: 500;">₹${sgst.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                  </tr>` : ''}
+                  ${igst > 0 ? `
+                  <tr>
+                    <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #64748b;">IGST @18%:</td>
+                    <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-size: 13px; color: #1e293b; font-weight: 500;">₹${igst.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                  </tr>` : ''}
+                  <tr style="background: ${primaryColor};">
+                    <td style="padding: 12px; font-size: 14px; color: #fff; font-weight: 700;">TOTAL:</td>
+                    <td style="padding: 12px; text-align: right; font-size: 14px; color: #fff; font-weight: 700;">₹${totalAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
           
           <!-- Amount in Words -->
           <div style="margin-bottom: 20px; padding: 12px 16px; background: #f8fafc; border-radius: 8px; border-left: 4px solid ${primaryColor};">
@@ -18231,7 +18247,7 @@ ${invoiceHtml}
           
           <!-- Signature -->
           <div style="text-align: right; margin-top: 40px;">
-            ${orgSignature ? `<img src="${orgSignature}" crossorigin="anonymous" style="height: 50px; margin-bottom: 8px;" />` : '<div style="height: 50px;"></div>'}
+            ${orgSignature ? `<img src="${orgSignature}" style="height: 50px; margin-bottom: 8px; display: inline-block;" />` : '<div style="height: 50px;"></div>'}
             <div style="font-size: 13px; font-weight: 600; color: #1e293b;">For ${orgName}</div>
             ${orgSignatory ? `<div style="font-size: 12px; color: #64748b;">${orgSignatory}</div>` : ''}
             <div style="font-size: 11px; color: #64748b;">Authorized Signatory</div>
@@ -28120,6 +28136,7 @@ ${invoiceHtml}
                           <>
                             <option value="billOfSupply">Bill of Supply (Green)</option>
                             <option value="billOfSupplyBlue">Bill of Supply (Blue)</option>
+                            <option value="billOfSupplyPurple">Bill of Supply (Purple)</option>
                           </>
                         )}
                       </select>
