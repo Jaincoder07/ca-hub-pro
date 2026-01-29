@@ -1407,11 +1407,12 @@ const PracticeManagementApp = () => {
     const org = organizations?.find(o => o.id === (invoice.organizationId || invoice.orgId)) || {};
     const client = clients?.find(c => c.name?.toLowerCase() === invoice.clientName?.toLowerCase() || c.id === invoice.clientId) || {};
     
-    // Determine invoice type
-    const isBillOfSupply = invoice.invoiceFormat === 'billOfSupply' || 
-                           invoice.gstApplicable === false || 
-                           (org.gstApplicable !== 'yes' && org.gstApplicable !== true && !invoice.gstApplicable);
-    const isProforma = invoice.invoiceFormat === 'proformaInvoice';
+    // Determine invoice type - check invoiceFormat first, then fall back to GST check
+    const invoiceFormat = invoice.invoiceFormat || org.invoiceFormat || '';
+    const isProforma = invoiceFormat === 'proformaInvoice';
+    const isBillOfSupply = invoiceFormat === 'billOfSupply' || invoiceFormat === 'billOfSupplyBlue' ||
+                           (!isProforma && (invoice.gstApplicable === false || 
+                           (org.gstApplicable !== 'yes' && org.gstApplicable !== true && !invoice.gstApplicable)));
     
     // Color scheme based on invoice type
     // Green for Tax Invoice and Proforma, Blue for Bill of Supply
@@ -1440,6 +1441,7 @@ const PracticeManagementApp = () => {
     const orgBankAccount = invoice.orgBankAccount || org.bankAccount || org.bankAccountNo || '';
     const orgBankIfsc = invoice.orgBankIfsc || org.bankIfsc || '';
     const orgBankBranch = invoice.orgBankBranch || org.bankBranch || '';
+    const orgTagline = org.tagline || '';
     
     // Get client details
     const clientAddress = invoice.clientAddress || client.address || '';
@@ -1471,6 +1473,7 @@ const PracticeManagementApp = () => {
               <img src={orgLogo} alt="Logo" style={{maxHeight: '70px', maxWidth: '150px', marginBottom: '12px', objectFit: 'contain'}} />
             )}
             <div style={{fontSize: '20px', fontWeight: '700', color: '#1e293b', marginBottom: '4px'}}>{orgName}</div>
+            {orgTagline && <div style={{fontSize: '13px', fontWeight: '500', color: '#64748b', marginBottom: '4px'}}>{orgTagline}</div>}
             <div style={{fontSize: '12px', color: '#64748b', lineHeight: '1.5'}}>{orgAddress}</div>
             {orgGstin && <div style={{fontSize: '12px', color: '#64748b', marginTop: '2px'}}>GSTIN: {orgGstin}</div>}
             {orgPan && <div style={{fontSize: '12px', color: '#64748b'}}>PAN: {orgPan}</div>}
@@ -1598,7 +1601,7 @@ const PracticeManagementApp = () => {
             )}
             <div style={{borderTop: '1px solid #374151', paddingTop: '8px'}}>
               <div style={{fontSize: '12px', fontWeight: '600', color: '#374151'}}>Authorized Signatory</div>
-              <div style={{fontSize: '11px', color: '#64748b'}}>{orgName}</div>
+              <div style={{fontSize: '11px', color: '#64748b'}}>{orgName}{orgTagline ? ` | ${orgTagline}` : ''}</div>
             </div>
           </div>
         </div>
@@ -17940,199 +17943,32 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const downloadInvoicePDF = (invoice, orgs, clients) => {
       if (!invoice) return;
       
-      const currentOrg = orgs?.find(o => o.id === (invoice.orgId || invoice.organizationId)) || {};
-      const client = clients?.find(c => c.id === invoice.clientId) || {};
+      // Use the unified format from generateInvoiceHtmlForPdf
+      const invoiceHtml = generateInvoiceHtmlForPdf(invoice, orgs, clients);
       
-      const gstApplicable = invoice.gstApplicable !== false && currentOrg.gstApplicable === 'yes';
-      const invoiceFormat = invoice.invoiceFormat || (gstApplicable ? 'taxInvoice' : 'billOfSupply');
-      const isDarkTheme = invoiceFormat === 'billOfSupply';
-      
-      const primaryColor = isDarkTheme ? '#374151' : '#111827';
-      const headerBg = isDarkTheme ? '#374151' : '#111827';
-      
-      let invoiceTitle = 'TAX INVOICE';
-      if (invoiceFormat === 'billOfSupply') invoiceTitle = 'BILL OF SUPPLY';
-      else if (invoiceFormat === 'proformaInvoice') invoiceTitle = 'PROFORMA INVOICE';
-      
-      const showGst = gstApplicable && invoiceFormat !== 'billOfSupply';
-      
-      const displayOrg = {
-        name: currentOrg.name || invoice.orgName || invoice.organizationName,
-        address: currentOrg.address || invoice.orgAddress,
-        mobile: currentOrg.mobile || invoice.orgMobile,
-        email: currentOrg.email || invoice.orgEmail,
-        gstin: currentOrg.gstin || invoice.orgGstin,
-        pan: currentOrg.pan || invoice.orgPan,
-        logo: currentOrg.logo || invoice.orgLogo,
-        signature: currentOrg.signature || invoice.orgSignature,
-        signatory: currentOrg.signatory || invoice.orgSignatory,
-        bankName: currentOrg.bankName || invoice.orgBankName,
-        bankAccount: currentOrg.bankAccount || invoice.orgBankAccount,
-        bankIfsc: currentOrg.bankIfsc || invoice.orgBankIfsc,
-      };
-      
-      const displayClient = {
-        name: invoice.clientName || client.name,
-        address: invoice.clientAddress || client.address,
-        gstin: invoice.clientGstin || client.gstin,
-        pan: invoice.clientPan || client.pan,
-        state: invoice.clientState || client.state,
-      };
-      
-      const invoiceDate = new Date(invoice.invoiceDate).toLocaleDateString('en-IN', {day: '2-digit', month: 'short', year: 'numeric'});
-      const netAmount = (invoice.netAmount || invoice.amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2});
-      const totalAmount = (invoice.totalAmount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2});
-      
-      // Build GST rows HTML
-      let gstRowsHtml = '';
-      if (showGst) {
-        if (invoice.cgst > 0 || invoice.sgst > 0) {
-          gstRowsHtml = `
-            <tr><td style="padding:8px 12px;text-align:right;font-size:13px;border-bottom:1px solid #e5e7eb;">CGST @9%:</td><td style="padding:8px 12px;text-align:right;font-size:13px;border-bottom:1px solid #e5e7eb;">₹${(invoice.cgst || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>
-            <tr><td style="padding:8px 12px;text-align:right;font-size:13px;border-bottom:1px solid #e5e7eb;">SGST @9%:</td><td style="padding:8px 12px;text-align:right;font-size:13px;border-bottom:1px solid #e5e7eb;">₹${(invoice.sgst || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>
-          `;
-        } else if (invoice.igst > 0) {
-          gstRowsHtml = `
-            <tr><td style="padding:8px 12px;text-align:right;font-size:13px;border-bottom:1px solid #e5e7eb;">IGST @18%:</td><td style="padding:8px 12px;text-align:right;font-size:13px;border-bottom:1px solid #e5e7eb;">₹${(invoice.igst || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>
-          `;
-        } else if ((invoice.gstAmount || invoice.taxAmount) > 0) {
-          gstRowsHtml = `
-            <tr><td style="padding:8px 12px;text-align:right;font-size:13px;border-bottom:1px solid #e5e7eb;">GST @18%:</td><td style="padding:8px 12px;text-align:right;font-size:13px;border-bottom:1px solid #e5e7eb;">₹${(invoice.gstAmount || invoice.taxAmount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>
-          `;
-        }
-      }
-      
-      const invoiceHtml = `<!DOCTYPE html>
+      const fullHtml = `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <title>Invoice ${invoice.invoiceNo}</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: Arial, Helvetica, sans-serif; background: #fff; color: #000; font-size: 12px; }
-  @page { size: A4 portrait; margin: 15mm; }
+  body { font-family: Arial, Helvetica, sans-serif; background: #fff; }
+  @page { size: A4 portrait; margin: 10mm; }
   @media print {
     body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    .no-print { display: none !important; }
   }
-  .invoice-box { max-width: 800px; margin: 0 auto; border: 2px solid ${primaryColor}; }
-  .header { background-color: ${headerBg}; color: #fff; padding: 20px; }
-  .header-content { display: table; width: 100%; }
-  .header-left { display: table-cell; vertical-align: middle; }
-  .header-right { display: table-cell; vertical-align: middle; text-align: right; }
-  .logo { height: 60px; vertical-align: middle; background: #fff; padding: 4px; border-radius: 4px; margin-right: 15px; }
-  .org-name { font-size: 22px; font-weight: bold; margin-bottom: 4px; }
-  .org-address { font-size: 11px; opacity: 0.9; }
-  .invoice-title { font-size: 20px; font-weight: bold; letter-spacing: 2px; color: #10b981; }
-  .gstin { font-size: 11px; margin-top: 4px; opacity: 0.9; }
-  .details-row { display: table; width: 100%; padding: 16px 20px; background: #f8fafc; border-bottom: 1px solid ${primaryColor}; }
-  .details-left, .details-right { display: table-cell; vertical-align: middle; }
-  .details-right { text-align: right; }
-  .label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
-  .value { font-size: 16px; font-weight: bold; margin-top: 4px; }
-  .bill-to { padding: 16px 20px; border-bottom: 1px solid ${primaryColor}; }
-  .bill-to-label { font-size: 10px; color: #64748b; text-transform: uppercase; margin-bottom: 8px; }
-  .client-name { font-size: 16px; font-weight: bold; }
-  .client-address { font-size: 12px; color: #64748b; margin-top: 4px; }
-  .client-gstin { font-size: 11px; color: #64748b; margin-top: 4px; }
-  .items-section { padding: 16px 20px; }
-  .items-table { width: 100%; border-collapse: collapse; }
-  .items-header { background-color: ${primaryColor}; color: #fff; }
-  .items-header th { padding: 12px; text-align: left; font-weight: 600; }
-  .items-header th:last-child { text-align: right; }
-  .items-body td { padding: 14px 12px; border-bottom: 1px solid #e5e7eb; }
-  .items-body td:last-child { text-align: right; }
-  .totals-section { padding: 16px 20px; background: #f8fafc; border-top: 1px solid ${primaryColor}; }
-  .totals-table { width: 300px; margin-left: auto; border-collapse: collapse; }
-  .totals-table td { padding: 8px 12px; }
-  .totals-table .total-row td { font-size: 16px; font-weight: bold; border-top: 2px solid ${primaryColor}; padding-top: 12px; }
-  .totals-table .total-row td:last-child { color: #10b981; }
-  .footer { display: table; width: 100%; padding: 16px 20px; border-top: 1px solid ${primaryColor}; }
-  .bank-details { display: table-cell; vertical-align: top; font-size: 11px; }
-  .bank-label { font-weight: bold; margin-bottom: 4px; }
-  .signature { display: table-cell; vertical-align: top; text-align: right; }
-  .signature img { height: 50px; margin-bottom: 4px; }
-  .signature-text { font-size: 12px; font-weight: 600; }
 </style>
 </head>
 <body>
-<div class="invoice-box">
-  <div class="header">
-    <div class="header-content">
-      <div class="header-left">
-        ${displayOrg.logo ? `<img src="${displayOrg.logo}" class="logo" alt="" />` : ''}
-        <span style="display:inline-block;vertical-align:middle;">
-          <div class="org-name">${displayOrg.name}</div>
-          <div class="org-address">${displayOrg.address || ''}</div>
-        </span>
-      </div>
-      <div class="header-right">
-        <div class="invoice-title">${invoiceTitle}</div>
-        ${displayOrg.gstin && showGst ? `<div class="gstin">GSTIN: ${displayOrg.gstin}</div>` : ''}
-      </div>
-    </div>
-  </div>
-  
-  <div class="details-row">
-    <div class="details-left">
-      <div class="label">Invoice Number</div>
-      <div class="value">${invoice.invoiceNo}</div>
-    </div>
-    <div class="details-right">
-      <div class="label">Invoice Date</div>
-      <div class="value">${invoiceDate}</div>
-    </div>
-  </div>
-  
-  <div class="bill-to">
-    <div class="bill-to-label">Bill To</div>
-    <div class="client-name">${displayClient.name}</div>
-    ${displayClient.address ? `<div class="client-address">${displayClient.address}</div>` : ''}
-    ${displayClient.gstin && showGst ? `<div class="client-gstin">GSTIN: ${displayClient.gstin}</div>` : ''}
-  </div>
-  
-  <div class="items-section">
-    <table class="items-table">
-      <thead class="items-header">
-        <tr><th>Description</th><th>Amount</th></tr>
-      </thead>
-      <tbody class="items-body">
-        <tr><td>${invoice.serviceDescription || invoice.narration || invoice.description || 'Professional Services'}</td><td>₹${netAmount}</td></tr>
-      </tbody>
-    </table>
-  </div>
-  
-  <div class="totals-section">
-    <table class="totals-table">
-      <tr><td style="text-align:right;">Subtotal:</td><td style="text-align:right;">₹${netAmount}</td></tr>
-      ${gstRowsHtml}
-      <tr class="total-row"><td style="text-align:right;">Total:</td><td style="text-align:right;">₹${totalAmount}</td></tr>
-    </table>
-  </div>
-  
-  <div class="footer">
-    ${displayOrg.bankName ? `
-      <div class="bank-details">
-        <div class="bank-label">Bank Details:</div>
-        <div>Bank: ${displayOrg.bankName}</div>
-        <div>A/C No: ${displayOrg.bankAccount || ''}</div>
-        <div>IFSC: ${displayOrg.bankIfsc || ''}</div>
-      </div>
-    ` : '<div></div>'}
-    <div class="signature">
-      ${displayOrg.signature ? `<img src="${displayOrg.signature}" alt="Signature" />` : ''}
-      <div class="signature-text">For ${displayOrg.name}</div>
-      ${displayOrg.signatory ? `<div style="font-size:11px;color:#64748b;">${displayOrg.signatory}</div>` : ''}
-    </div>
-  </div>
-</div>
+${invoiceHtml}
 <script>window.onload=function(){setTimeout(function(){window.print();},300);};</script>
 </body>
 </html>`;
       
       // Open in new window and trigger print
       const printWindow = window.open('', '_blank', 'width=850,height=1100');
-      printWindow.document.write(invoiceHtml);
+      printWindow.document.write(fullHtml);
       printWindow.document.close();
     };
     
@@ -21950,8 +21786,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                           <thead>
                                             <tr style={{background: '#f0fdf4'}}>
                                               <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5'}}>Task</th>
-                                              <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5'}}>Description</th>
-                                              <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5', minWidth: '200px'}}>Narration</th>
+                                              <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5', minWidth: '180px'}}>Narration</th>
+                                              <th style={{padding: '12px', textAlign: 'center', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5', width: '60px'}}>Remark</th>
                                               <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5'}}>Agreed</th>
                                               <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5', width: '100px'}}>Amount</th>
                                               <th style={{padding: '12px', textAlign: 'right', fontWeight: '600', color: '#065f46', borderBottom: '2px solid #d1fae5', width: '90px'}}>Discount</th>
@@ -21964,10 +21800,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                               return (
                                                 <tr key={taskIdx} style={{borderBottom: '1px solid #e2e8f0', background: taskIdx % 2 === 0 ? '#fff' : '#f8fafc'}}>
                                                   <td style={{padding: '12px'}}>
-                                                    <div style={{fontWeight: '600', color: '#1e293b'}}>{task.taskType}</div>
+                                                    <div style={{fontWeight: '600', color: '#1e293b', fontSize: '11px'}}>{task.taskType}</div>
                                                     <div style={{fontSize: '10px', color: '#64748b'}}>{task.period} {task.subPeriod}</div>
+                                                    <div style={{fontSize: '9px', color: '#94a3b8'}}>{task.taskDescription || ''}</div>
                                                   </td>
-                                                  <td style={{padding: '12px', color: '#64748b', fontSize: '11px'}}>{task.taskDescription || '-'}</td>
                                                   <td style={{padding: '12px'}}>
                                                     <input
                                                       type="text"
@@ -21985,6 +21821,28 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                                       }}
                                                       style={{width: '100%', padding: '8px 10px', border: '1px solid #d1fae5', borderRadius: '6px', fontSize: '11px', background: '#f0fdf4'}}
                                                     />
+                                                  </td>
+                                                  <td style={{padding: '12px', textAlign: 'center'}}>
+                                                    <button
+                                                      onClick={() => {
+                                                        const newRemark = prompt('Enter Remark:', task.remark || '');
+                                                        if (newRemark !== null) {
+                                                          const updated = multipleTaskClientBilling.map(cb => {
+                                                            if (cb.clientName === client.name) {
+                                                              const newTasks = [...cb.tasks];
+                                                              newTasks[taskIdx] = {...newTasks[taskIdx], remark: newRemark};
+                                                              return {...cb, tasks: newTasks};
+                                                            }
+                                                            return cb;
+                                                          });
+                                                          setMultipleTaskClientBilling(updated);
+                                                        }
+                                                      }}
+                                                      title={task.remark || 'Click to add remark'}
+                                                      style={{padding: '4px 8px', background: task.remark ? '#f0fdf4' : '#f1f5f9', border: task.remark ? '2px solid #10b981' : '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', color: task.remark ? '#059669' : '#64748b'}}
+                                                    >
+                                                      {task.remark ? '📝' : '+'}
+                                                    </button>
                                                   </td>
                                                   <td style={{padding: '12px', textAlign: 'right', color: '#64748b', fontSize: '11px'}}>₹{(task.agreedFees || 0).toLocaleString('en-IN')}</td>
                                                   <td style={{padding: '12px', textAlign: 'right'}}>
@@ -23116,18 +22974,18 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                   <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'center', width: '50px'}}>S.No</th>
                                   <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'center', width: '50px'}}>Grp</th>
                                   <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', width: '70px'}}>Code</th>
-                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', minWidth: '150px'}}>Client Name</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', minWidth: '120px'}}>Client Name</th>
                                   <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', width: '100px'}}>Task</th>
-                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', minWidth: '150px'}}>Task Description</th>
-                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', minWidth: '180px'}}>Narration</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', minWidth: '160px'}}>Narration</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'center', width: '60px'}}>Remark</th>
                                   <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', width: '80px'}}>Period</th>
-                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', minWidth: '180px'}}>Organisation</th>
-                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'right', width: '100px'}}>Agreed Fees</th>
-                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'right', width: '100px'}}>Amount</th>
-                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'right', width: '80px'}}>Disc</th>
-                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'right', width: '90px'}}>Net</th>
-                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'right', width: '80px'}}>GST</th>
-                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'right', width: '100px'}}>Total</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', minWidth: '150px'}}>Organisation</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'right', width: '80px'}}>Agreed</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'right', width: '90px'}}>Amount</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'right', width: '70px'}}>Disc</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'right', width: '80px'}}>Net</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'right', width: '70px'}}>GST</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'right', width: '90px'}}>Total</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -23159,10 +23017,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                       </td>
                                       <td style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600'}}>{idx + 1}</td>
                                       <td style={{padding: '12px 10px', textAlign: 'center', fontWeight: '700', color: '#10b981'}}>{row.groupNo || '-'}</td>
-                                      <td style={{padding: '12px 10px', fontSize: '12px', color: '#64748b'}}>{row.clientCode}</td>
-                                      <td style={{padding: '12px 10px', fontWeight: '600', color: '#1e293b'}}>{row.clientName}</td>
-                                      <td style={{padding: '12px 10px', fontSize: '12px'}}>{row.taskType}</td>
-                                      <td style={{padding: '12px 10px', fontSize: '12px', color: '#64748b'}}>{row.taskDescription || '-'}</td>
+                                      <td style={{padding: '12px 10px', fontSize: '11px', color: '#64748b'}}>{row.clientCode}</td>
+                                      <td style={{padding: '12px 10px', fontWeight: '600', color: '#1e293b', fontSize: '12px'}}>{row.clientName}</td>
+                                      <td style={{padding: '12px 10px', fontSize: '11px'}}>{row.taskType}</td>
                                       <td style={{padding: '12px 10px'}}>
                                         <input
                                           type="text"
@@ -23172,11 +23029,27 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                             updated[idx].narration = e.target.value;
                                             setBulkBillingData(updated);
                                           }}
-                                          style={{width: '100%', padding: '8px 10px', border: '1px solid #d1fae5', borderRadius: '6px', fontSize: '12px', background: '#f0fdf4'}}
+                                          style={{width: '100%', padding: '6px 8px', border: '1px solid #d1fae5', borderRadius: '6px', fontSize: '11px', background: '#f0fdf4'}}
                                           placeholder="Auto-generated"
                                         />
                                       </td>
-                                      <td style={{padding: '12px 10px', fontSize: '12px'}}>{row.subPeriod || row.period}</td>
+                                      <td style={{padding: '12px 10px', textAlign: 'center'}}>
+                                        <button
+                                          onClick={() => {
+                                            const newRemark = prompt('Enter Remark:', row.remark || '');
+                                            if (newRemark !== null) {
+                                              const updated = [...bulkBillingData];
+                                              updated[idx].remark = newRemark;
+                                              setBulkBillingData(updated);
+                                            }
+                                          }}
+                                          title={row.remark || 'Click to add remark'}
+                                          style={{padding: '4px 8px', background: row.remark ? '#f0fdf4' : '#f1f5f9', border: row.remark ? '2px solid #10b981' : '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', color: row.remark ? '#059669' : '#64748b'}}
+                                        >
+                                          {row.remark ? '📝' : '+'}
+                                        </button>
+                                      </td>
+                                      <td style={{padding: '12px 10px', fontSize: '11px'}}>{row.subPeriod || row.period}</td>
                                       <td style={{padding: '12px 10px'}}>
                                         <select
                                           value={row.organizationId}
@@ -23185,7 +23058,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                             updated[idx].organizationId = e.target.value;
                                             setBulkBillingData(updated);
                                           }}
-                                          style={{width: '100%', padding: '8px 10px', border: '1px solid #d1fae5', borderRadius: '6px', fontSize: '12px', background: '#f0fdf4'}}
+                                          style={{width: '100%', padding: '6px 8px', border: '1px solid #d1fae5', borderRadius: '6px', fontSize: '11px', background: '#f0fdf4'}}
                                         >
                                           <option value="">Select</option>
                                           {(data.organizations || []).map(o => (
@@ -23193,7 +23066,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                           ))}
                                         </select>
                                       </td>
-                                      <td style={{padding: '12px 10px', textAlign: 'right', color: '#64748b'}}>
+                                      <td style={{padding: '12px 10px', textAlign: 'right', color: '#64748b', fontSize: '11px'}}>
                                         ₹{(row.agreedFees || 0).toLocaleString('en-IN')}
                                       </td>
                                       <td style={{padding: '12px 10px', textAlign: 'right'}}>
@@ -23820,10 +23693,16 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           </div>
                         </div>
 
-                        {/* Row 5: Narration */}
-                        <div style={{marginBottom: '16px'}}>
-                          <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Service Description / Narration</label>
-                          <textarea value={editingGeneratedInvoice.narration || editingGeneratedInvoice.serviceDescription || ''} onChange={(e) => setEditingGeneratedInvoice(p => ({...p, narration: e.target.value, serviceDescription: e.target.value}))} rows={2} style={{width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', resize: 'vertical'}} />
+                        {/* Row 5: Narration and Remarks */}
+                        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px'}}>
+                          <div>
+                            <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Service Description / Narration</label>
+                            <textarea value={editingGeneratedInvoice.narration || editingGeneratedInvoice.serviceDescription || ''} onChange={(e) => setEditingGeneratedInvoice(p => ({...p, narration: e.target.value, serviceDescription: e.target.value}))} rows={2} style={{width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', resize: 'vertical'}} />
+                          </div>
+                          <div>
+                            <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '4px', color: '#065f46'}}>Remarks (Optional)</label>
+                            <textarea value={editingGeneratedInvoice.remark || editingGeneratedInvoice.remarks || ''} onChange={(e) => setEditingGeneratedInvoice(p => ({...p, remark: e.target.value, remarks: e.target.value}))} rows={2} style={{width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', resize: 'vertical'}} placeholder="Add any additional remarks for the invoice..." />
+                          </div>
                         </div>
 
                         {/* Action Buttons */}
@@ -24649,21 +24528,21 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                           <thead>
                             <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
-                              <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', width: '45px'}}>S.No</th>
-                              <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', minWidth: '120px'}}>Client</th>
-                              <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', minWidth: '120px'}}>Task</th>
-                              <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', minWidth: '150px'}}>Task Description</th>
-                              <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', minWidth: '160px'}}>Organization *</th>
-                              <th style={{padding: '12px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', width: '90px'}}>Agreed Fees</th>
-                              <th style={{padding: '12px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', width: '110px'}}>Amount *</th>
-                              <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', minWidth: '120px'}}>Remarks</th>
-                              <th style={{padding: '12px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', width: '100px'}}>GST (Auto)</th>
-                              <th style={{padding: '12px 10px', textAlign: 'right', fontWeight: '600', color: '#fff', width: '100px'}}>Total</th>
+                              <th style={{padding: '12px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', width: '40px'}}>S.No</th>
+                              <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', minWidth: '100px'}}>Client</th>
+                              <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', minWidth: '100px'}}>Task</th>
+                              <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', minWidth: '140px'}}>Organization *</th>
+                              <th style={{padding: '12px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', width: '80px'}}>Agreed</th>
+                              <th style={{padding: '12px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', width: '100px'}}>Amount *</th>
+                              <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', minWidth: '150px'}}>Narration</th>
+                              <th style={{padding: '12px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', width: '70px'}}>Remarks</th>
+                              <th style={{padding: '12px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', width: '80px'}}>GST</th>
+                              <th style={{padding: '12px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', width: '90px'}}>Total</th>
                             </tr>
                           </thead>
                           <tbody>
                             {(data.tasks || []).filter(t => unbilledSelectedIds.includes(t.id)).map((task, idx) => {
-                              const taskDetail = unbilledTaskDetails[task.id] || {orgId: '', amount: 0, tax: 0, remark: ''};
+                              const taskDetail = unbilledTaskDetails[task.id] || {orgId: '', amount: 0, tax: 0, remark: '', narration: ''};
                               const selectedOrg = (data.organizations || []).find(o => o.id === taskDetail.orgId);
                               const client = (data.clients || []).find(c => c.name === task.clientName);
                               
@@ -24681,20 +24560,17 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               
                               return (
                               <tr key={task.id} style={{borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? '#fff' : '#f8fafc'}}>
-                                <td style={{padding: '10px', textAlign: 'center', color: '#64748b', fontWeight: '500'}}>{idx + 1}</td>
-                                <td style={{padding: '10px'}}>
-                                  <div style={{fontWeight: '600', fontSize: '12px', color: '#1e293b'}}>{task.clientName}</div>
-                                  <div style={{fontSize: '11px', color: '#4f46e5', fontFamily: 'monospace'}}>{task.fileNo || '-'}</div>
+                                <td style={{padding: '8px', textAlign: 'center', color: '#64748b', fontWeight: '500'}}>{idx + 1}</td>
+                                <td style={{padding: '8px'}}>
+                                  <div style={{fontWeight: '600', fontSize: '11px', color: '#1e293b'}}>{task.clientName}</div>
+                                  <div style={{fontSize: '10px', color: '#4f46e5', fontFamily: 'monospace'}}>{task.fileNo || '-'}</div>
                                 </td>
-                                <td style={{padding: '10px'}}>
-                                  <div style={{color: '#166534', fontSize: '11px', fontWeight: '600'}}>{task.parentTask}</div>
-                                  <div style={{fontSize: '11px', color: '#475569'}}>{task.childTask}</div>
-                                  <div style={{fontSize: '10px', color: '#94a3b8'}}>{task.financialYear} • {task.period}</div>
+                                <td style={{padding: '8px'}}>
+                                  <div style={{color: '#166534', fontSize: '10px', fontWeight: '600'}}>{task.parentTask}</div>
+                                  <div style={{fontSize: '10px', color: '#475569'}}>{task.childTask}</div>
+                                  <div style={{fontSize: '9px', color: '#94a3b8'}}>{task.financialYear}</div>
                                 </td>
-                                <td style={{padding: '10px'}}>
-                                  <div style={{fontSize: '11px', color: '#64748b', lineHeight: '1.4'}}>{task.taskDescription || '-'}</div>
-                                </td>
-                                <td style={{padding: '8px 10px'}}>
+                                <td style={{padding: '6px'}}>
                                   <select
                                     value={taskDetail.orgId || ''}
                                     onChange={(e) => {
@@ -24702,14 +24578,11 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                         ...prev, 
                                         [task.id]: {
                                           ...prev[task.id],
-                                          orgId: e.target.value,
-                                          amount: prev[task.id]?.amount || 0,
-                                          tax: prev[task.id]?.tax || 0,
-                                          remark: prev[task.id]?.remark || ''
+                                          orgId: e.target.value
                                         }
                                       }));
                                     }}
-                                    style={{width: '100%', padding: '8px 10px', border: '2px solid #e2e8f0', borderRadius: '6px', fontSize: '11px', background: taskDetail.orgId ? '#f0fdf4' : '#fff'}}
+                                    style={{width: '100%', padding: '6px 8px', border: '2px solid #e2e8f0', borderRadius: '6px', fontSize: '10px', background: taskDetail.orgId ? '#f0fdf4' : '#fff'}}
                                   >
                                     <option value="">Select Org</option>
                                     {(data.organizations || []).map(org => (
@@ -24717,10 +24590,10 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                     ))}
                                   </select>
                                 </td>
-                                <td style={{padding: '10px', textAlign: 'right', color: '#64748b', fontSize: '11px'}}>
+                                <td style={{padding: '8px', textAlign: 'right', color: '#64748b', fontSize: '10px'}}>
                                   ₹{(parseFloat(task.agreedFees) || getClientAgreedFee(task.clientId, task.parentTask || task.taskType, task.childTask || task.subTask) || 0).toLocaleString('en-IN')}
                                 </td>
-                                <td style={{padding: '8px 10px'}}>
+                                <td style={{padding: '6px'}}>
                                   <input
                                     type="number"
                                     value={taskDetail.amount}
@@ -24729,44 +24602,58 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                         ...prev, 
                                         [task.id]: {
                                           ...prev[task.id],
-                                          orgId: prev[task.id]?.orgId || '',
-                                          amount: e.target.value,
-                                          tax: prev[task.id]?.tax || 0,
-                                          remark: prev[task.id]?.remark || ''
+                                          amount: e.target.value
                                         }
                                       }));
                                     }}
                                     placeholder="0"
-                                    style={{width: '100%', padding: '8px 10px', border: '2px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', textAlign: 'right', background: taskDetail.amount > 0 ? '#f0fdf4' : '#fff'}}
+                                    style={{width: '100%', padding: '6px 8px', border: '2px solid #e2e8f0', borderRadius: '6px', fontSize: '11px', textAlign: 'right', background: taskDetail.amount > 0 ? '#f0fdf4' : '#fff'}}
                                   />
                                 </td>
-                                <td style={{padding: '8px 10px'}}>
+                                <td style={{padding: '6px'}}>
                                   <input
                                     type="text"
-                                    value={taskDetail.remark || ''}
+                                    value={taskDetail.narration || `${task.parentTask} - ${task.childTask} (${task.financialYear})`}
                                     onChange={(e) => {
                                       setUnbilledTaskDetails(prev => ({
                                         ...prev, 
                                         [task.id]: {
                                           ...prev[task.id],
-                                          orgId: prev[task.id]?.orgId || '',
-                                          amount: prev[task.id]?.amount || 0,
-                                          tax: prev[task.id]?.tax || 0,
-                                          remark: e.target.value
+                                          narration: e.target.value
                                         }
                                       }));
                                     }}
-                                    placeholder="Remarks..."
-                                    style={{width: '100%', padding: '8px 10px', border: '2px solid #e2e8f0', borderRadius: '6px', fontSize: '11px', background: taskDetail.remark ? '#f0fdf4' : '#fff'}}
+                                    placeholder="Narration..."
+                                    style={{width: '100%', padding: '6px 8px', border: '2px solid #e2e8f0', borderRadius: '6px', fontSize: '10px', background: '#fff'}}
                                   />
                                 </td>
-                                <td style={{padding: '10px', textAlign: 'right'}}>
-                                  <div style={{fontSize: '12px', fontWeight: '600', color: gstApplicable ? '#059669' : '#94a3b8'}}>
+                                <td style={{padding: '6px', textAlign: 'center'}}>
+                                  <button
+                                    onClick={() => {
+                                      const newRemark = prompt('Enter Remarks:', taskDetail.remark || '');
+                                      if (newRemark !== null) {
+                                        setUnbilledTaskDetails(prev => ({
+                                          ...prev, 
+                                          [task.id]: {
+                                            ...prev[task.id],
+                                            remark: newRemark
+                                          }
+                                        }));
+                                      }
+                                    }}
+                                    title={taskDetail.remark || 'Click to add remarks'}
+                                    style={{padding: '4px 8px', background: taskDetail.remark ? '#f0fdf4' : '#f1f5f9', border: taskDetail.remark ? '2px solid #10b981' : '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', color: taskDetail.remark ? '#059669' : '#64748b'}}
+                                  >
+                                    {taskDetail.remark ? '📝' : '+'} 
+                                  </button>
+                                </td>
+                                <td style={{padding: '8px', textAlign: 'right'}}>
+                                  <div style={{fontSize: '11px', fontWeight: '600', color: gstApplicable ? '#059669' : '#94a3b8'}}>
                                     ₹{calculatedTax.toLocaleString('en-IN')}
                                   </div>
-                                  <div style={{fontSize: '9px', color: '#64748b'}}>{gstLabel}</div>
+                                  <div style={{fontSize: '8px', color: '#64748b'}}>{gstLabel}</div>
                                 </td>
-                                <td style={{padding: '10px', textAlign: 'right', fontWeight: '700', color: '#10b981', fontSize: '13px'}}>
+                                <td style={{padding: '8px', textAlign: 'right', fontWeight: '700', color: '#10b981', fontSize: '12px'}}>
                                   ₹{rowTotal.toLocaleString('en-IN')}
                                 </td>
                               </tr>
@@ -24790,10 +24677,11 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               
                               return (
                                 <tr style={{background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)'}}>
-                                  <td colSpan={6} style={{padding: '14px', textAlign: 'right', fontWeight: '700', color: '#065f46', fontSize: '13px'}}>Grand Total:</td>
+                                  <td colSpan={5} style={{padding: '14px', textAlign: 'right', fontWeight: '700', color: '#065f46', fontSize: '13px'}}>Grand Total:</td>
                                   <td style={{padding: '14px', textAlign: 'right', fontWeight: '700', color: '#047857', fontSize: '14px'}}>
                                     ₹{totalAmount.toLocaleString('en-IN')}
                                   </td>
+                                  <td colSpan={2} style={{padding: '14px'}}></td>
                                   <td style={{padding: '14px', textAlign: 'right', fontWeight: '700', color: '#d97706', fontSize: '14px'}}>
                                     ₹{totalTax.toLocaleString('en-IN')}
                                   </td>
@@ -24856,7 +24744,8 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               ...task,
                               invoiceAmount: taskAmount,
                               taxAmount: taskTax,
-                              remark: detail.remark || ''
+                              remark: detail.remark || '',
+                              narration: detail.narration || `${task.parentTask} - ${task.childTask} (${task.financialYear})`
                             });
                           });
                           
@@ -24934,7 +24823,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               financialYear: group.tasks[0]?.financialYear || '',
                               taskIds: group.tasks.map(t => t.id),
                               lineItems: group.tasks.map(t => ({
-                                description: `${t.parentTask} - ${t.childTask} (${t.financialYear})${t.taskDescription ? ' - ' + t.taskDescription : ''}`,
+                                description: t.narration || `${t.parentTask} - ${t.childTask} (${t.financialYear})${t.taskDescription ? ' - ' + t.taskDescription : ''}`,
                                 amount: t.invoiceAmount,
                                 tax: t.taxAmount,
                                 remark: t.remark || ''
