@@ -256,20 +256,20 @@ const PracticeManagementApp = () => {
     gradientHover: 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)',
     border: '#93c5fd',
     shadow: 'rgba(59, 130, 246, 0.3)',
-    success: themeColors.primary, // Keep success green
-    successLight: themeColors.primaryLight
+    success: '#10b981',
+    successLight: '#dcfce7'
   } : {
-    primary: themeColors.primary,
-    primaryDark: themeColors.primaryDark,
-    primaryLight: themeColors.primaryLight,
-    primaryLighter: themeColors.primaryLighter,
+    primary: '#10b981',
+    primaryDark: '#059669',
+    primaryLight: '#dcfce7',
+    primaryLighter: '#f0fdf4',
     primaryText: '#065f46',
-    gradient: '${themeColors.gradient}',
+    gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
     gradientHover: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
     border: '#6ee7b7',
-    shadow: '${themeColors.shadow}',
-    success: themeColors.primary,
-    successLight: themeColors.primaryLight
+    shadow: 'rgba(16, 185, 129, 0.3)',
+    success: '#10b981',
+    successLight: '#dcfce7'
   };
   
   // Save theme to localStorage when it changes
@@ -1144,7 +1144,7 @@ const PracticeManagementApp = () => {
           boxShadow: '0 20px 60px rgba(0,0,0,0.1)'
         }}>
           <div style={{
-            background: '${themeColors.gradient}',
+            background: themeColors.gradient,
             padding: '28px',
             textAlign: 'center',
             color: '#fff',
@@ -2340,7 +2340,7 @@ const PracticeManagementApp = () => {
               padding: '12px 16px',
               cursor: 'pointer',
               color: invoicingExpanded || currentView.startsWith('invoicing') ? themeColors.primary : '#94a3b8',
-              background: invoicingExpanded ? (appTheme === 'blue' ? 'rgba(59, 130, 246, 0.1)' : '${appTheme === 'blue' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(16, 185, 129, 0.1)'}') : 'transparent',
+              background: invoicingExpanded ? (appTheme === 'blue' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(16, 185, 129, 0.1)') : 'transparent',
               borderRadius: '8px',
               margin: '4px 8px',
               transition: 'all 0.15s'
@@ -2477,7 +2477,7 @@ const PracticeManagementApp = () => {
             title={`Switch to ${appTheme === 'green' ? 'Blue' : 'Green'} Theme`}
             style={{
               padding: '8px',
-              background: appTheme === 'green' ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : '${themeColors.gradient}',
+              background: appTheme === 'green' ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : themeColors.gradient,
               border: 'none',
               borderRadius: '8px',
               cursor: 'pointer',
@@ -3044,7 +3044,7 @@ const PracticeManagementApp = () => {
               </div>
               <div style={{fontSize: '11px', color: '#64748b', marginTop: '8px'}}>{kpis.openTasks} open • {kpis.inProgressTasks} in progress</div>
             </div>
-            <div className="dashboard-card" style={{background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)'}', borderRadius: '12px', padding: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, transition: 'all 0.3s ease', cursor: 'pointer'}}
+            <div className="dashboard-card" style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '12px', padding: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, transition: 'all 0.3s ease', cursor: 'pointer'}}
               onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(16, 185, 129, 0.25)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
@@ -3511,7 +3511,7 @@ const PracticeManagementApp = () => {
               </div>
               <div style={{fontSize: '11px', color: '#64748b', marginTop: '8px'}}>{kpis.openTasks} open • {kpis.inProgressTasks} in progress</div>
             </div>
-            <div style={{background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)'}', borderRadius: '12px', padding: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+            <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '12px', padding: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                 <div>
                   <div style={{fontSize: '28px', fontWeight: '700', color: '#166534'}}>{kpis.completedTasks}</div>
@@ -3938,7 +3938,7 @@ const PracticeManagementApp = () => {
             </div>
           </div>
 
-          <div style={{background: kpis.overdueTasks > 0 ? 'linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%)' : '${appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)'}', borderRadius: '16px', padding: '24px', border: kpis.overdueTasks > 0 ? '1px solid #fecaca' : `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+          <div style={{background: kpis.overdueTasks > 0 ? 'linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%)' : (appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)'), borderRadius: '16px', padding: '24px', border: kpis.overdueTasks > 0 ? '1px solid #fecaca' : `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
               <div>
                 <div style={{fontSize: '36px', fontWeight: '700', color: kpis.overdueTasks > 0 ? '#b91c1c' : '#166534'}}>{kpis.overdueTasks}</div>
@@ -3955,7 +3955,7 @@ const PracticeManagementApp = () => {
             )}
           </div>
 
-          <div style={{background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)'}', borderRadius: '16px', padding: '24px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+          <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '16px', padding: '24px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
               <div>
                 <div style={{fontSize: '36px', fontWeight: '700', color: '#166534'}}>{kpis.efficiency}%</div>
@@ -5213,7 +5213,7 @@ const PracticeManagementApp = () => {
             <div 
               onClick={() => setActiveStatusFilter(activeStatusFilter === 'Open' ? '' : 'Open')}
               style={{
-                background: activeStatusFilter === 'Open' ? '${themeColors.gradient}' : 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+                background: activeStatusFilter === 'Open' ? themeColors.gradient : 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
                 color: activeStatusFilter === 'Open' ? '#fff' : '#065f46',
                 padding: '8px 12px',
                 borderRadius: '10px',
@@ -5399,7 +5399,7 @@ const PracticeManagementApp = () => {
           }}>
             <table style={{borderCollapse: 'collapse', fontSize: '10px', width: '100%'}}>
               <thead>
-                <tr style={{background: '${themeColors.gradient}'}}>
+                <tr style={{background: themeColors.gradient}}>
                   <th style={{padding: '6px 8px', textAlign: 'left', border: `1px solid ${themeColors.primaryDark}`, fontWeight: '700', fontSize: '10px', color: '#fff'}}>Month</th>
                   {years.map(fy => (
                     <th key={fy} colSpan={2} style={{padding: '6px 4px', textAlign: 'center', border: `1px solid ${themeColors.primaryDark}`, fontWeight: '700', fontSize: '9px', color: '#fff'}}>{fy.replace('FY ', '').replace('Previous years', 'Prev')}</th>
@@ -5563,7 +5563,7 @@ const PracticeManagementApp = () => {
         <div className="tasks-table-wrapper" style={{background: '#fff', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', border: `1px solid ${themeColors.primary}`}}>
           <table className="tasks-table" style={{fontSize: '12px', borderCollapse: 'collapse', width: '100%'}}>
             <thead>
-              <tr style={{background: '${themeColors.gradient}'}}>
+              <tr style={{background: themeColors.gradient}}>
                 <th style={{width: '35px', padding: '10px 6px', color: '#fff', fontWeight: '700', border: `1px solid ${themeColors.primaryDark}`, fontSize: '11px'}}>
                   <input 
                     type="checkbox" 
@@ -6789,7 +6789,7 @@ const PracticeManagementApp = () => {
 
                   <table className="fees-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
-                      <tr style={{ background: '${themeColors.gradient}' }}>
+                      <tr style={{ background: themeColors.gradient }}>
                         <th style={{ padding: '10px 8px', color: '#fff', fontSize: '11px', textTransform: 'uppercase', fontWeight: '600', width: '50px' }}>Sr.</th>
                         <th style={{ padding: '10px 8px', color: '#fff', fontSize: '11px', textTransform: 'uppercase', fontWeight: '600', minWidth: '140px' }}>Parent Task</th>
                         <th style={{ padding: '10px 8px', color: '#fff', fontSize: '11px', textTransform: 'uppercase', fontWeight: '600', minWidth: '160px' }}>Child Task</th>
@@ -7597,7 +7597,7 @@ const PracticeManagementApp = () => {
                 <div className="clients-table-wrapper" style={{border: `1px solid ${themeColors.primary}`, borderRadius: '8px', overflow: 'hidden'}}>
                   <table className="clients-table" style={{borderCollapse: 'collapse', width: '100%', fontSize: '12px'}}>
                     <thead>
-                      <tr style={{background: '${themeColors.gradient}'}}>
+                      <tr style={{background: themeColors.gradient}}>
                         <th style={{padding: '10px 6px', color: '#fff', fontWeight: '700', border: `1px solid ${themeColors.primaryDark}`, fontSize: '11px', width: '35px'}}><input type="checkbox" onChange={(e) => {
                           if (e.target.checked) {
                             setSelectedClients(filteredEnabledClients.map(c => c.id));
@@ -7683,7 +7683,7 @@ const PracticeManagementApp = () => {
                 <div className="clients-table-wrapper" style={{border: `1px solid ${themeColors.primary}`, borderRadius: '8px', overflow: 'hidden'}}>
                   <table className="clients-table" style={{borderCollapse: 'collapse', width: '100%', fontSize: '12px'}}>
                     <thead>
-                      <tr style={{background: '${themeColors.gradient}'}}>
+                      <tr style={{background: themeColors.gradient}}>
                         <th style={{padding: '10px 8px', color: '#fff', fontWeight: '700', border: `1px solid ${themeColors.primaryDark}`, fontSize: '11px'}}>Sr.</th>
                         <th style={{padding: '10px 8px', color: '#fff', fontWeight: '700', border: `1px solid ${themeColors.primaryDark}`, fontSize: '11px'}}>Code</th>
                         <th style={{padding: '10px 8px', color: '#fff', fontWeight: '700', border: `1px solid ${themeColors.primaryDark}`, fontSize: '11px'}}>Client Name</th>
@@ -7832,7 +7832,7 @@ const PracticeManagementApp = () => {
               {/* Modal Header */}
               <div style={{
                 padding: '20px 24px',
-                background: '${themeColors.gradient}',
+                background: themeColors.gradient,
                 color: '#fff',
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -8128,7 +8128,7 @@ const PracticeManagementApp = () => {
                       </h3>
                       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
-                          <tr style={{ background: '${themeColors.gradient}' }}>
+                          <tr style={{ background: themeColors.gradient }}>
                             <th style={{ padding: '12px', textAlign: 'left', fontSize: '11px', fontWeight: '600', color: '#fff', textTransform: 'uppercase' }}>Parent Task</th>
                             <th style={{ padding: '12px', textAlign: 'left', fontSize: '11px', fontWeight: '600', color: '#fff', textTransform: 'uppercase' }}>Child Task</th>
                             <th style={{ padding: '12px', textAlign: 'right', fontSize: '11px', fontWeight: '600', color: '#fff', textTransform: 'uppercase' }}>Agreed Fees</th>
@@ -9029,7 +9029,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000}}>
           <div style={{background: '#fff', borderRadius: '12px', width: '95%', maxWidth: '1000px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column'}}>
             {/* Header */}
-            <div style={{padding: '16px 24px', borderBottom: '1px solid #e2e8f0', background: '${themeColors.gradient}', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+            <div style={{padding: '16px 24px', borderBottom: '1px solid #e2e8f0', background: themeColors.gradient, color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
               <div>
                 <h3 style={{margin: 0, fontSize: '18px', fontWeight: '600'}}>
                   Assign Controls to {controllingStaff.name}
@@ -9984,7 +9984,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               )}
 
               {/* Info Bar - Green Theme */}
-              <div style={{display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '12px', marginBottom: '20px', padding: '16px', background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}', borderRadius: '10px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '12px', marginBottom: '20px', padding: '16px', background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '10px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
                 <div>
                   <label style={{fontSize: '10px', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '4px', textTransform: 'uppercase'}}>Status</label>
                   <select value={attendanceStatus} onChange={(e) => setAttendanceStatus(e.target.value)}
@@ -10030,7 +10030,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <div style={{background: '#fff', borderRadius: '10px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
                     <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                       <thead>
-                        <tr style={{background: '${themeColors.gradient}'}}>
+                        <tr style={{background: themeColors.gradient}}>
                           <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', width: '90px'}}>Start</th>
                           <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', width: '90px'}}>End</th>
                           <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', width: '70px'}}>Total</th>
@@ -10173,7 +10173,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       <button onClick={() => addEntry('Billable')} style={{padding: '8px 16px', background: themeColors.primary, color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>+ Billable</button>
                       <button onClick={() => addEntry('Non-Billable')} style={{padding: '8px 16px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>+ Non-Billable</button>
                     </div>
-                    <button onClick={handleSaveTimesheet} disabled={filledEntries.length === 0} style={{padding: '10px 24px', background: filledEntries.length === 0 ? '#94a3b8' : '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '700', cursor: filledEntries.length === 0 ? 'not-allowed' : 'pointer', boxShadow: filledEntries.length > 0 ? '0 2px 8px ${themeColors.shadow}' : 'none'}}>
+                    <button onClick={handleSaveTimesheet} disabled={filledEntries.length === 0} style={{padding: '10px 24px', background: filledEntries.length === 0 ? '#94a3b8' : themeColors.gradient, color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '700', cursor: filledEntries.length === 0 ? 'not-allowed' : 'pointer', boxShadow: filledEntries.length > 0 ? '0 2px 8px ${themeColors.shadow}' : 'none'}}>
                       {isEditMode ? 'Update Timesheet' : 'Save Timesheet'}
                     </button>
                   </div>
@@ -10183,7 +10183,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <div style={{fontSize: '60px', marginBottom: '12px'}}>🏖️</div>
                   <h3 style={{margin: '0 0 8px', fontSize: '18px', fontWeight: '600', color: '#166534'}}>Full Day Leave</h3>
                   <p style={{margin: '0 0 20px', color: '#64748b', fontSize: '13px'}}>No entries required.</p>
-                  <button onClick={handleSaveTimesheet} style={{padding: '12px 28px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 2px 8px ${themeColors.shadow}'}}>
+                  <button onClick={handleSaveTimesheet} style={{padding: '12px 28px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', boxShadow: `0 2px 8px ${themeColors.shadow}`}}>
                     {isEditMode ? 'Update Leave' : 'Record Leave'} for {timesheetDate}
                   </button>
                 </div>
@@ -10195,7 +10195,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           {activeTab === 'view' && !viewingTimesheet && (
             <div style={{padding: '16px'}}>
               {/* Filters */}
-              <div style={{display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '12px', padding: '10px 14px', background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}', borderRadius: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
+              <div style={{display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '12px', padding: '10px 14px', background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '8px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
                 <div>
                   <label style={{fontSize: '10px', fontWeight: '600', color: '#166534', display: 'block', marginBottom: '3px', textTransform: 'uppercase'}}>Employee</label>
                   <div style={{padding: '6px 12px', background: '#fff', borderRadius: '5px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, fontSize: '12px', fontWeight: '600', color: '#374151'}}>{viewEmployee}</div>
@@ -10211,7 +10211,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 <div style={{maxHeight: '400px', overflowY: 'auto'}}>
                   <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
                     <thead style={{position: 'sticky', top: 0, zIndex: 10}}>
-                      <tr style={{background: '${themeColors.gradient}'}}>
+                      <tr style={{background: themeColors.gradient}}>
                         <th style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Date</th>
                         <th style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Day</th>
                         <th style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', color: '#fff'}}>Status</th>
@@ -10279,7 +10279,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 </div>
                 
                 {/* Summary Row */}
-                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr', background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}', borderTop: `2px solid ${themeColors.primary}`, padding: '8px 0'}}>
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr', background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderTop: `2px solid ${themeColors.primary}`, padding: '8px 0'}}>
                   <div style={{textAlign: 'center', fontSize: '11px', fontWeight: '700', color: '#166534', gridColumn: 'span 3'}}>Monthly Total</div>
                   <div style={{textAlign: 'center', fontSize: '11px', fontWeight: '700', color: '#374151'}}>{daysInMonth.reduce((sum, d) => sum + (getTimesheetForDate(d.date)?.billableHours || 0), 0).toFixed(1)}</div>
                   <div style={{textAlign: 'center', fontSize: '11px', fontWeight: '700', color: '#374151'}}>{daysInMonth.reduce((sum, d) => sum + (getTimesheetForDate(d.date)?.nonBillableHours || 0), 0).toFixed(1)}</div>
@@ -10303,7 +10303,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           {activeTab === 'view' && viewingTimesheet && (
             <div style={{padding: '20px'}}>
               {/* Header */}
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: '12px 16px', background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}', borderRadius: '10px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: '12px 16px', background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '10px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
                 <button onClick={() => setViewingTimesheet(null)} style={{padding: '6px 12px', background: '#fff', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`, borderRadius: '6px', fontSize: '12px', fontWeight: '500', color: '#166534', cursor: 'pointer'}}>← Back</button>
                 <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#166534'}}>📅 Timesheet: {viewingTimesheet.date}</h3>
                 <button onClick={() => handleEditFromView(viewingTimesheet)} style={{padding: '6px 12px', background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '6px', fontSize: '12px', fontWeight: '500', color: '#92400e', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'}}>
@@ -10328,7 +10328,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <div style={{fontSize: '10px', opacity: 0.9, fontWeight: '500', marginBottom: '4px'}}>Total</div>
                   <div style={{fontSize: '18px', fontWeight: '700'}}>{viewingTimesheet.totalHours?.toFixed(2) || 0} Hrs</div>
                 </div>
-                <div style={{background: '${themeColors.gradient}', borderRadius: '8px', padding: '12px', textAlign: 'center', color: '#fff'}}>
+                <div style={{background: themeColors.gradient, borderRadius: '8px', padding: '12px', textAlign: 'center', color: '#fff'}}>
                   <div style={{fontSize: '10px', opacity: 0.9, fontWeight: '500', marginBottom: '4px'}}>Billable</div>
                   <div style={{fontSize: '18px', fontWeight: '700'}}>{viewingTimesheet.billableHours?.toFixed(2) || 0} Hrs</div>
                 </div>
@@ -10409,7 +10409,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
           {descriptionDialog.open && (
             <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center'}} onClick={() => setDescriptionDialog({ open: false, entryId: null, value: '' })}>
               <div style={{background: '#fff', borderRadius: '12px', width: '500px', maxWidth: '90%', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'}} onClick={(e) => e.stopPropagation()}>
-                <div style={{padding: '16px 20px', background: '${themeColors.gradient}', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <div style={{padding: '16px 20px', background: themeColors.gradient, color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                   <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}><MessageSquare size={16} /> Work Description</h3>
                   <button onClick={() => setDescriptionDialog({ open: false, entryId: null, value: '' })} style={{background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '4px', padding: '4px 8px', color: '#fff', cursor: 'pointer'}}><X size={16} /></button>
                 </div>
@@ -10425,7 +10425,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 </div>
                 <div style={{padding: '12px 20px', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end', gap: '10px', borderTop: '1px solid #e2e8f0'}}>
                   <button onClick={() => setDescriptionDialog({ open: false, entryId: null, value: '' })} style={{padding: '8px 16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', fontWeight: '500', cursor: 'pointer'}}>Cancel</button>
-                  <button onClick={saveDescription} style={{padding: '8px 16px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>Save Description</button>
+                  <button onClick={saveDescription} style={{padding: '8px 16px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'}}>Save Description</button>
                 </div>
               </div>
             </div>
@@ -10695,7 +10695,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               onClick={() => { setReportType(tab.id); setExpandedItem(null); setDayWiseView(null); }}
               style={{
                 padding: '10px 20px',
-                background: reportType === tab.id ? '${themeColors.gradient}' : '#fff',
+                background: reportType === tab.id ? themeColors.gradient : '#fff',
                 color: reportType === tab.id ? '#fff' : '#374151',
                 border: reportType === tab.id ? 'none' : '1px solid #e2e8f0',
                 borderRadius: '8px',
@@ -10742,7 +10742,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         {dayWiseView && (
           <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'}} onClick={() => setDayWiseView(null)}>
             <div style={{background: '#fff', borderRadius: '12px', width: '100%', maxWidth: '900px', maxHeight: '85vh', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'}} onClick={(e) => e.stopPropagation()}>
-              <div style={{background: '${themeColors.gradient}', padding: '16px 20px', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <div style={{background: themeColors.gradient, padding: '16px 20px', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                 <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'}}>
                   {dayWiseView.type === 'client' && <><Briefcase size={18} /> Client: {dayWiseView.name}</>}
                   {dayWiseView.type === 'task' && <><FileText size={18} /> Task: {dayWiseView.name}</>}
@@ -11201,7 +11201,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               onClick={() => setActiveReportTab(tab.id)}
               style={{
                 padding: '10px 20px',
-                background: activeReportTab === tab.id ? '${themeColors.gradient}' : '#f8fafc',
+                background: activeReportTab === tab.id ? themeColors.gradient : '#f8fafc',
                 color: activeReportTab === tab.id ? '#fff' : '#374151',
                 border: activeReportTab === tab.id ? 'none' : '1px solid #e2e8f0',
                 borderRadius: '8px',
@@ -11238,7 +11238,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   />
                   <button 
                     onClick={() => setReportFilters({...reportFilters, snapshotDate: new Date().toISOString().split('T')[0]})}
-                    style={{padding: '8px 16px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500'}}
+                    style={{padding: '8px 16px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500'}}
                   >
                     Today
                   </button>
@@ -11340,7 +11340,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       <div style={{fontSize: '32px', fontWeight: '700', color: '#7c3aed'}}>{clientsCreated.length}</div>
                       <div style={{fontSize: '11px', color: '#64748b', marginTop: '4px'}}>{clientsDisabled.length} disabled</div>
                     </div>
-                    <div style={{background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)'}', borderRadius: '12px', padding: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+                    <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '12px', padding: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
                       <div style={{fontSize: '11px', color: '#16a34a', fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px'}}>📄 Billing</div>
                       <div style={{fontSize: '32px', fontWeight: '700', color: '#166534'}}>{invoicesCreated.length}</div>
                       <div style={{fontSize: '11px', color: '#16a34a', marginTop: '4px'}}>₹{totalInvoiceAmount.toLocaleString('en-IN')}</div>
@@ -11366,7 +11366,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         <div style={{maxHeight: '220px', overflowY: 'auto'}}>
                           <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
                             <thead style={{position: 'sticky', top: 0}}>
-                              <tr style={{background: '${themeColors.gradient}'}}>
+                              <tr style={{background: themeColors.gradient}}>
                                 <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Task ID</th>
                                 <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Code</th>
                                 <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
@@ -11470,7 +11470,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         <div style={{maxHeight: '220px', overflowY: 'auto'}}>
                           <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
                             <thead style={{position: 'sticky', top: 0}}>
-                              <tr style={{background: '${themeColors.gradient}'}}>
+                              <tr style={{background: themeColors.gradient}}>
                                 <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Code</th>
                                 <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
                                 <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Parent Task</th>
@@ -11538,7 +11538,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         <div style={{maxHeight: '220px', overflowY: 'auto'}}>
                           <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
                             <thead style={{position: 'sticky', top: 0}}>
-                              <tr style={{background: '${themeColors.gradient}'}}>
+                              <tr style={{background: themeColors.gradient}}>
                                 <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Invoice No.</th>
                                 <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Code</th>
                                 <th style={{padding: '8px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
@@ -11649,7 +11649,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           <div style={{fontSize: '20px', fontWeight: '700', color: '#1d4ed8'}}>{allTasks.length}</div>
                           <div style={{fontSize: '10px', color: '#3b82f6', fontWeight: '500'}}>Total Tasks</div>
                         </div>
-                        <div style={{padding: '12px', background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)'}', borderRadius: '8px', textAlign: 'center', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+                        <div style={{padding: '12px', background: appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '8px', textAlign: 'center', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
                           <div style={{fontSize: '20px', fontWeight: '700', color: '#166534'}}>{allTasks.filter(t => t.status === 'Completed' || t.completedCheck).length}</div>
                           <div style={{fontSize: '10px', color: '#16a34a', fontWeight: '500'}}>Completed</div>
                         </div>
@@ -11683,7 +11683,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
                     if (reportFilters.billingStatus === 'Unbilled' && t.billed) return false;
                     return true;
-                  }), 'task_report', ['clientName', 'parentTask', 'childTask', 'taskDescription', 'taskManager', 'startDate', 'financialYear', 'billed', 'status'])} style={{padding: '8px 14px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'}}><Download size={14} /> Export CSV</button>
+                  }), 'task_report', ['clientName', 'parentTask', 'childTask', 'taskDescription', 'taskManager', 'startDate', 'financialYear', 'billed', 'status'])} style={{padding: '8px 14px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'}}><Download size={14} /> Export CSV</button>
                 </div>
               </div>
               <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '12px'}}>
@@ -11763,7 +11763,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               </div>
               <div 
                 onClick={() => setReportFilters({...reportFilters, taskCardFilter: reportFilters.taskCardFilter === 'completed' ? '' : 'completed'})}
-                style={{background: reportFilters.taskCardFilter === 'completed' ? '${themeColors.gradient}' : '${appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)'}', borderRadius: '10px', padding: '16px', border: reportFilters.taskCardFilter === 'completed' ? `2px solid ${themeColors.primaryDark}` : `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, cursor: 'pointer', transition: 'all 0.2s', transform: reportFilters.taskCardFilter === 'completed' ? 'scale(1.02)' : 'scale(1)'}}>
+                style={{background: reportFilters.taskCardFilter === 'completed' ? themeColors.gradient : (appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)'), borderRadius: '10px', padding: '16px', border: reportFilters.taskCardFilter === 'completed' ? `2px solid ${themeColors.primaryDark}` : `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, cursor: 'pointer', transition: 'all 0.2s', transform: reportFilters.taskCardFilter === 'completed' ? 'scale(1.02)' : 'scale(1)'}}>
                 <div style={{fontSize: '28px', fontWeight: '700', color: reportFilters.taskCardFilter === 'completed' ? '#fff' : '#166534'}}>{filteredTasks.filter(t => {
                   if (reportFilters.reportingManager && (t.taskManager !== reportFilters.reportingManager && t.reportingManager !== reportFilters.reportingManager)) return false;
                   if (reportFilters.billingStatus === 'Billed' && !t.billed) return false;
@@ -11813,7 +11813,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               <div style={{maxHeight: '500px', overflowY: 'auto', overflowX: 'auto'}}>
                 <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: '1400px'}}>
                   <thead style={{position: 'sticky', top: 0}}>
-                    <tr style={{background: '${themeColors.gradient}'}}>
+                    <tr style={{background: themeColors.gradient}}>
                       <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '40px'}}>Sr.</th>
                       <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '80px'}}>Task ID</th>
                       <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '70px'}}>Code</th>
@@ -11945,7 +11945,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     
                     return (
                       <>
-                        <div style={{background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)'}', borderRadius: '12px', padding: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+                        <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '12px', padding: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
                           <div style={{fontSize: '11px', color: '#16a34a', fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px'}}>🏆 Best Performer</div>
                           <div style={{fontSize: '18px', fontWeight: '700', color: '#166534'}}>{bestPerformer?.name || '-'}</div>
                           <div style={{fontSize: '12px', color: '#16a34a', marginTop: '4px'}}>{Math.round(bestPerformer?.completionRate || 0)}% completion</div>
@@ -12007,7 +12007,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                   <span style={{fontSize: '11px', fontWeight: '600', color: '#166534'}}>{staff.tasks} tasks</span>
                                 </div>
                                 <div style={{height: '8px', background: themeColors.primaryLight, borderRadius: '4px', overflow: 'hidden'}}>
-                                  <div style={{height: '100%', width: `${(staff.tasks / maxVal) * 100}%`, background: '${themeColors.gradient.replace('135deg', '90deg')}', borderRadius: '4px'}}></div>
+                                  <div style={{height: '100%', width: `${(staff.tasks / maxVal) * 100}%`, background: themeColors.gradient.replace('135deg', '90deg'), borderRadius: '4px'}}></div>
                                 </div>
                               </div>
                             );
@@ -12026,7 +12026,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                   <span style={{fontSize: '11px', fontWeight: '600', color: '#166534'}}>{staff.completed} done</span>
                                 </div>
                                 <div style={{height: '8px', background: themeColors.primaryLight, borderRadius: '4px', overflow: 'hidden'}}>
-                                  <div style={{height: '100%', width: `${(staff.completed / maxVal) * 100}%`, background: '${themeColors.gradient.replace('135deg', '90deg')}', borderRadius: '4px'}}></div>
+                                  <div style={{height: '100%', width: `${(staff.completed / maxVal) * 100}%`, background: themeColors.gradient.replace('135deg', '90deg'), borderRadius: '4px'}}></div>
                                 </div>
                               </div>
                             );
@@ -12060,13 +12060,13 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 
                 {/* All Staff Performance Table - Green Theme */}
                 <div style={{background: '#fff', borderRadius: '10px', border: `1px solid ${themeColors.primary}`, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
-                  <div style={{padding: '16px 20px', borderBottom: `1px solid ${themeColors.primary}`, background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}'}}>
+                  <div style={{padding: '16px 20px', borderBottom: `1px solid ${themeColors.primary}`, background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}}>
                     <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#166534'}}>👥 All Staff Performance</h3>
                   </div>
                   <div style={{maxHeight: '500px', overflowY: 'auto', overflowX: 'auto'}}>
                     <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: '1100px'}}>
                       <thead style={{position: 'sticky', top: 0}}>
-                        <tr style={{background: '${themeColors.gradient}'}}>
+                        <tr style={{background: themeColors.gradient}}>
                           <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '40px'}}>Sr.</th>
                           <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`}}>Employee</th>
                           <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`}}>Role</th>
@@ -12114,7 +12114,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 <span style={{padding: '3px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: '600', background: rate >= 80 ? themeColors.primaryLight : rate >= 50 ? '#fef3c7' : '#fee2e2', color: rate >= 80 ? '#166534' : rate >= 50 ? '#92400e' : '#dc2626'}}>{rate}%</span>
                               </td>
                               <td style={{padding: '8px', border: `1px solid ${themeColors.primaryLight}`, textAlign: 'center'}}>
-                                <button onClick={() => setReportFilters({...reportFilters, staff: staff.name})} style={{padding: '5px 12px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '10px', fontWeight: '500'}}>View Tasks</button>
+                                <button onClick={() => setReportFilters({...reportFilters, staff: staff.name})} style={{padding: '5px 12px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '10px', fontWeight: '500'}}>View Tasks</button>
                               </td>
                             </tr>
                           );
@@ -12130,7 +12130,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
             {reportFilters.staff && (
               <>
                 {/* Filters Bar - Green Theme */}
-                <div style={{background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}', borderRadius: '12px', padding: '20px', marginBottom: '20px', border: `1px solid ${themeColors.primary}`}}>
+                <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '12px', padding: '20px', marginBottom: '20px', border: `1px solid ${themeColors.primary}`}}>
                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
                     <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
                       <button onClick={() => setReportFilters({...reportFilters, staff: '', parentTask: '', childTask: ''})} style={{padding: '8px 16px', background: '#fff', border: `1px solid ${themeColors.primary}`, borderRadius: '6px', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', color: '#166534', fontWeight: '500'}}>← Back to Dashboard</button>
@@ -12150,7 +12150,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         billingStatus: t.billed ? 'Billed' : 'Unbilled',
                         status: t.status === 'Completed' || t.completedCheck ? 'Completed' : t.status || 'Open'
                       })), `${reportFilters.staff}_tasks`, ['clientCode', 'client', 'parentTask', 'childTask', 'description', 'startDate', 'dueDate', 'financialYear', 'billingStatus', 'status']);
-                    }} style={{padding: '8px 14px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'}}><Download size={14} /> Export CSV</button>
+                    }} style={{padding: '8px 14px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'}}><Download size={14} /> Export CSV</button>
                   </div>
                   <div style={{display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px'}}>
                     <div>
@@ -12212,7 +12212,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                         <div style={{maxHeight: '500px', overflowY: 'auto', overflowX: 'auto'}}>
                           <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: '1350px'}}>
                             <thead style={{position: 'sticky', top: 0}}>
-                              <tr style={{background: '${themeColors.gradient}'}}>
+                              <tr style={{background: themeColors.gradient}}>
                                 <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '40px'}}>Sr.</th>
                                 <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '80px'}}>Task ID</th>
                                 <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '70px'}}>Code</th>
@@ -12304,7 +12304,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       <div style={{fontSize: '16px', fontWeight: '700', color: '#1e40af'}}>{topBilledClients[0]?.name || '-'}</div>
                       <div style={{fontSize: '12px', color: '#3b82f6', marginTop: '4px'}}>₹{Math.round(topBilledClients[0]?.totalInvoiced || 0).toLocaleString('en-IN')}</div>
                     </div>
-                    <div style={{background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)'}', borderRadius: '12px', padding: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+                    <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '12px', padding: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
                       <div style={{fontSize: '11px', color: '#16a34a', fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px'}}>🏆 Top Receipt</div>
                       <div style={{fontSize: '16px', fontWeight: '700', color: '#166534'}}>{topReceiptClients[0]?.name || '-'}</div>
                       <div style={{fontSize: '12px', color: '#16a34a', marginTop: '4px'}}>₹{Math.round(topReceiptClients[0]?.totalReceived || 0).toLocaleString('en-IN')}</div>
@@ -12368,7 +12368,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               <span style={{fontSize: '11px', fontWeight: '600', color: '#166534'}}>₹{client.totalInvoiced.toLocaleString('en-IN')}</span>
                             </div>
                             <div style={{height: '8px', background: themeColors.primaryLight, borderRadius: '4px', overflow: 'hidden'}}>
-                              <div style={{height: '100%', width: `${(client.totalInvoiced / maxVal) * 100}%`, background: '${themeColors.gradient.replace('135deg', '90deg')}', borderRadius: '4px'}}></div>
+                              <div style={{height: '100%', width: `${(client.totalInvoiced / maxVal) * 100}%`, background: themeColors.gradient.replace('135deg', '90deg'), borderRadius: '4px'}}></div>
                             </div>
                           </div>
                         );
@@ -12387,7 +12387,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               <span style={{fontSize: '11px', fontWeight: '600', color: '#166534'}}>₹{client.totalReceived.toLocaleString('en-IN')}</span>
                             </div>
                             <div style={{height: '8px', background: themeColors.primaryLight, borderRadius: '4px', overflow: 'hidden'}}>
-                              <div style={{height: '100%', width: `${(client.totalReceived / maxVal) * 100}%`, background: '${themeColors.gradient.replace('135deg', '90deg')}', borderRadius: '4px'}}></div>
+                              <div style={{height: '100%', width: `${(client.totalReceived / maxVal) * 100}%`, background: themeColors.gradient.replace('135deg', '90deg'), borderRadius: '4px'}}></div>
                             </div>
                           </div>
                         );
@@ -12446,7 +12446,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     };
                   }).filter(d => d.invoiced > 0 || d.openingBalance > 0 || d.outstanding !== 0);
                   exportToCSV(debtorsData, 'debtors_report', ['clientCode', 'groupNo', 'clientName', 'reportingManager', 'openingBalance', 'invoiced', 'receipts', 'outstanding']);
-                }} style={{padding: '8px 14px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'}}><Download size={14} /> Export CSV</button>
+                }} style={{padding: '8px 14px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'}}><Download size={14} /> Export CSV</button>
               </div>
               <div style={{display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px'}}>
                 <div>
@@ -12504,7 +12504,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
               <div style={{maxHeight: '500px', overflowY: 'auto', overflowX: 'auto'}}>
                 <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: '1400px'}}>
                   <thead style={{position: 'sticky', top: 0}}>
-                    <tr style={{background: '${themeColors.gradient}'}}>
+                    <tr style={{background: themeColors.gradient}}>
                       <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '40px'}}>Sr.</th>
                       <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '70px'}}>Code</th>
                       <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '50px'}}>Grp</th>
@@ -12690,7 +12690,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           <div style={{fontSize: '16px', fontWeight: '700', color: '#1e40af'}}>{topTaskClients[0]?.name || '-'}</div>
                           <div style={{fontSize: '12px', color: '#3b82f6', marginTop: '4px'}}>{topTaskClients[0]?.tasks || 0} tasks</div>
                         </div>
-                        <div style={{background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)'}', borderRadius: '12px', padding: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
+                        <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '12px', padding: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`}}>
                           <div style={{fontSize: '11px', color: '#16a34a', fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px'}}>💰 Highest Billed</div>
                           <div style={{fontSize: '16px', fontWeight: '700', color: '#166534'}}>{topBilledClients[0]?.name || '-'}</div>
                           <div style={{fontSize: '12px', color: '#16a34a', marginTop: '4px'}}>₹{Math.round(topBilledClients[0]?.totalBilled || 0).toLocaleString('en-IN')}</div>
@@ -12726,7 +12726,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                   <span style={{fontSize: '11px', fontWeight: '600', color: '#166534'}}>{client.tasks}</span>
                                 </div>
                                 <div style={{height: '8px', background: themeColors.primaryLight, borderRadius: '4px', overflow: 'hidden'}}>
-                                  <div style={{height: '100%', width: `${(client.tasks / maxVal) * 100}%`, background: '${themeColors.gradient.replace('135deg', '90deg')}', borderRadius: '4px'}}></div>
+                                  <div style={{height: '100%', width: `${(client.tasks / maxVal) * 100}%`, background: themeColors.gradient.replace('135deg', '90deg'), borderRadius: '4px'}}></div>
                                 </div>
                               </div>
                             );
@@ -12745,7 +12745,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                   <span style={{fontSize: '11px', fontWeight: '600', color: '#166534'}}>₹{client.totalBilled.toLocaleString('en-IN')}</span>
                                 </div>
                                 <div style={{height: '8px', background: themeColors.primaryLight, borderRadius: '4px', overflow: 'hidden'}}>
-                                  <div style={{height: '100%', width: `${(client.totalBilled / maxVal) * 100}%`, background: '${themeColors.gradient.replace('135deg', '90deg')}', borderRadius: '4px'}}></div>
+                                  <div style={{height: '100%', width: `${(client.totalBilled / maxVal) * 100}%`, background: themeColors.gradient.replace('135deg', '90deg'), borderRadius: '4px'}}></div>
                                 </div>
                               </div>
                             );
@@ -12777,7 +12777,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                 
                 {/* Client Selection Table */}
                 <div style={{background: '#fff', borderRadius: '10px', border: `1px solid ${themeColors.primary}`, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
-                  <div style={{padding: '16px 20px', borderBottom: `1px solid ${themeColors.primary}`, background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}'}}>
+                  <div style={{padding: '16px 20px', borderBottom: `1px solid ${themeColors.primary}`, background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}}>
                     <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                       <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#166534'}}>🏢 All Clients</h3>
                       <input 
@@ -12792,7 +12792,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   <div style={{maxHeight: '500px', overflowY: 'auto', overflowX: 'auto'}}>
                     <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: '1100px'}}>
                       <thead style={{position: 'sticky', top: 0}}>
-                        <tr style={{background: '${themeColors.gradient}'}}>
+                        <tr style={{background: themeColors.gradient}}>
                           <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '40px'}}>Sr.</th>
                           <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '70px'}}>Code</th>
                           <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '50px'}}>Grp</th>
@@ -12833,7 +12833,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                               <td style={{padding: '8px', border: `1px solid ${themeColors.primaryLight}`, textAlign: 'right', color: '#374151', fontWeight: '500'}}>{totalBilled > 0 ? `₹${totalBilled.toLocaleString('en-IN')}` : '-'}</td>
                               <td style={{padding: '8px', border: `1px solid ${themeColors.primaryLight}`, textAlign: 'right', fontWeight: '600', color: totalBilled - totalReceived > 0 ? '#dc2626' : totalBilled - totalReceived < 0 ? '#166534' : '#374151'}}>{totalBilled - totalReceived !== 0 ? `₹${(totalBilled - totalReceived).toLocaleString('en-IN')}` : '-'}</td>
                               <td style={{padding: '8px', border: `1px solid ${themeColors.primaryLight}`, textAlign: 'center'}}>
-                                <button onClick={() => setReportFilters({...reportFilters, client: client.name})} style={{padding: '5px 12px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '10px', fontWeight: '500'}}>View</button>
+                                <button onClick={() => setReportFilters({...reportFilters, client: client.name})} style={{padding: '5px 12px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '10px', fontWeight: '500'}}>View</button>
                               </td>
                             </tr>
                           );
@@ -12878,7 +12878,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   return (
                     <>
                       {/* Header with Back Button - Green Theme */}
-                      <div style={{background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}', borderRadius: '12px', padding: '20px', marginBottom: '20px', border: `1px solid ${themeColors.primary}`}}>
+                      <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '12px', padding: '20px', marginBottom: '20px', border: `1px solid ${themeColors.primary}`}}>
                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
                           <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
                             <button onClick={() => setReportFilters({...reportFilters, client: '', parentTask: '', childTask: '', status: '', financialYear: ''})} style={{padding: '8px 16px', background: '#fff', border: `1px solid ${themeColors.primary}`, borderRadius: '6px', cursor: 'pointer', fontSize: '12px', color: '#166534', fontWeight: '500'}}>← Back to Dashboard</button>
@@ -12903,7 +12903,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                                 receiptStatus: taskReceipt ? 'Received' : (taskInvoice ? 'Pending' : 'N/A')
                               };
                             }), `${client.name}_tasks`, ['parentTask', 'childTask', 'description', 'reportingManager', 'startDate', 'financialYear', 'status', 'billingStatus', 'receiptStatus']);
-                          }} style={{padding: '8px 14px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'}}><Download size={14} /> Export Tasks</button>
+                          }} style={{padding: '8px 14px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'}}><Download size={14} /> Export Tasks</button>
                         </div>
                         <div style={{display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px'}}>
                           <div>
@@ -12944,13 +12944,13 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       
                       {/* Tasks Table - Green Theme like main table */}
                       <div style={{background: '#fff', borderRadius: '10px', border: `1px solid ${themeColors.primary}`, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
-                        <div style={{padding: '16px 20px', borderBottom: `1px solid ${themeColors.primary}`, background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}'}}>
+                        <div style={{padding: '16px 20px', borderBottom: `1px solid ${themeColors.primary}`, background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}}>
                           <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#166534'}}>📋 All Tasks ({clientTasks.length})</h3>
                         </div>
                         <div style={{maxHeight: '500px', overflowY: 'auto', overflowX: 'auto'}}>
                           <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: '1400px'}}>
                             <thead style={{position: 'sticky', top: 0}}>
-                              <tr style={{background: '${themeColors.gradient}'}}>
+                              <tr style={{background: themeColors.gradient}}>
                                 <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '40px'}}>Sr.</th>
                                 <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '80px'}}>Task ID</th>
                                 <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, minWidth: '100px'}}>Parent Task</th>
@@ -13020,7 +13020,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         {activeReportTab === 'rmReport' && (
           <div>
             {/* Filters & Header - Green Theme */}
-            <div style={{background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}', borderRadius: '12px', padding: '20px', marginBottom: '20px', border: `1px solid ${themeColors.primary}`}}>
+            <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '12px', padding: '20px', marginBottom: '20px', border: `1px solid ${themeColors.primary}`}}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
                 <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
                   {reportFilters.selectedRM && (
@@ -13045,7 +13045,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     };
                   });
                   exportToCSV(rmData, 'rm_report', ['rmName', 'clientsMapped', 'totalTasks', 'completedTasks', 'pendingTasks', 'totalBilling', 'totalCollection']);
-                }} style={{padding: '8px 14px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'}}><Download size={14} /> Export CSV</button>
+                }} style={{padding: '8px 14px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px'}}><Download size={14} /> Export CSV</button>
               </div>
               {!reportFilters.selectedRM && (
                 <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px'}}>
@@ -13093,7 +13093,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                     <div key={rm.id} style={{background: '#fff', borderRadius: '12px', padding: '24px', border: `1px solid ${themeColors.primary}`}}>
                       {/* RM Header - Clickable */}
                       <div onClick={() => setReportFilters({...reportFilters, selectedRM: rm.name, rmDetailView: 'clients'})} style={{display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px', paddingBottom: '16px', borderBottom: `1px solid ${themeColors.primaryLight}`, cursor: 'pointer'}}>
-                        <div style={{width: '56px', height: '56px', borderRadius: '50%', background: '${themeColors.gradient}', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: '600'}}>{rm.name.charAt(0)}</div>
+                        <div style={{width: '56px', height: '56px', borderRadius: '50%', background: themeColors.gradient, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: '600'}}>{rm.name.charAt(0)}</div>
                         <div style={{flex: 1}}>
                           <div style={{fontWeight: '600', fontSize: '16px', color: '#166534'}}>{rm.name}</div>
                           <div style={{fontSize: '12px', color: '#64748b'}}>Click to view details</div>
@@ -13193,7 +13193,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                             key={view.id}
                             onClick={() => setReportFilters({...reportFilters, rmDetailView: view.id})}
                             style={{
-                              background: reportFilters.rmDetailView === view.id ? '${themeColors.gradient}' : '#fff', 
+                              background: reportFilters.rmDetailView === view.id ? themeColors.gradient : '#fff', 
                               borderRadius: '10px', 
                               padding: '16px', 
                               border: reportFilters.rmDetailView === view.id ? 'none' : `1px solid ${themeColors.primary}`,
@@ -13209,7 +13209,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                       
                       {/* Detail Table based on selected view */}
                       <div style={{background: '#fff', borderRadius: '10px', border: `1px solid ${themeColors.primary}`, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)'}}>
-                        <div style={{padding: '16px 20px', borderBottom: `1px solid ${themeColors.primary}`, background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}'}}>
+                        <div style={{padding: '16px 20px', borderBottom: `1px solid ${themeColors.primary}`, background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}}>
                           <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#166534'}}>
                             {reportFilters.rmDetailView === 'clients' && '🏢 Clients Mapped to ' + rm.name}
                             {reportFilters.rmDetailView === 'completed' && '✅ Completed Tasks'}
@@ -13225,7 +13225,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           {reportFilters.rmDetailView === 'clients' && (
                             <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: '900px'}}>
                               <thead style={{position: 'sticky', top: 0}}>
-                                <tr style={{background: '${themeColors.gradient}'}}>
+                                <tr style={{background: themeColors.gradient}}>
                                   <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '40px'}}>Sr.</th>
                                   <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '70px'}}>Code</th>
                                   <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '50px'}}>Grp</th>
@@ -13267,7 +13267,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           {(reportFilters.rmDetailView === 'completed' || reportFilters.rmDetailView === 'pending' || reportFilters.rmDetailView === 'overdue') && (
                             <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: '1000px'}}>
                               <thead style={{position: 'sticky', top: 0}}>
-                                <tr style={{background: '${themeColors.gradient}'}}>
+                                <tr style={{background: themeColors.gradient}}>
                                   <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '40px'}}>Sr.</th>
                                   <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '80px'}}>Task ID</th>
                                   <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '70px'}}>Code</th>
@@ -13314,7 +13314,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           {reportFilters.rmDetailView === 'billing' && (
                             <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: '900px'}}>
                               <thead style={{position: 'sticky', top: 0}}>
-                                <tr style={{background: '${themeColors.gradient}'}}>
+                                <tr style={{background: themeColors.gradient}}>
                                   <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '40px'}}>Sr.</th>
                                   <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '100px'}}>Invoice No.</th>
                                   <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '70px'}}>Code</th>
@@ -13347,7 +13347,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           {reportFilters.rmDetailView === 'collection' && (
                             <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: '950px'}}>
                               <thead style={{position: 'sticky', top: 0}}>
-                                <tr style={{background: '${themeColors.gradient}'}}>
+                                <tr style={{background: themeColors.gradient}}>
                                   <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '40px'}}>Sr.</th>
                                   <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '100px'}}>Receipt No.</th>
                                   <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '70px'}}>Code</th>
@@ -13382,7 +13382,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                           {reportFilters.rmDetailView === 'outstanding' && (
                             <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px', minWidth: '800px'}}>
                               <thead style={{position: 'sticky', top: 0}}>
-                                <tr style={{background: '${themeColors.gradient}'}}>
+                                <tr style={{background: themeColors.gradient}}>
                                   <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '40px'}}>Sr.</th>
                                   <th style={{padding: '10px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '70px'}}>Code</th>
                                   <th style={{padding: '10px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '50px'}}>Grp</th>
@@ -13436,7 +13436,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
         {activeReportTab === 'receiptReport' && (
           <div>
             {/* Header & Filters */}
-            <div style={{background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}', borderRadius: '12px', padding: '20px', marginBottom: '20px', border: `1px solid ${themeColors.primary}`}}>
+            <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '12px', padding: '20px', marginBottom: '20px', border: `1px solid ${themeColors.primary}`}}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
                 <h3 style={{margin: 0, fontSize: '16px', fontWeight: '700', color: '#166534'}}>🧾 Receipt Report - Billing vs Collection Analysis</h3>
                 <button 
@@ -13648,7 +13648,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   
                   {/* Report Table */}
                   <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', border: `1px solid ${themeColors.primary}`, boxShadow: '0 2px 8px rgba(0,0,0,0.06)'}}>
-                    <div style={{padding: '16px 20px', background: '${themeColors.gradient}', color: '#fff'}}>
+                    <div style={{padding: '16px 20px', background: themeColors.gradient, color: '#fff'}}>
                       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                         <h4 style={{margin: 0, fontSize: '14px', fontWeight: '600'}}>
                           {receiptReportFilters.parentTask} → {receiptReportFilters.childTask}
@@ -15429,7 +15429,7 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
                   
                   <div style={{ maxHeight: '250px', overflow: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
-                      <thead style={{ background: '${themeColors.gradient}', position: 'sticky', top: 0 }}>
+                      <thead style={{ background: themeColors.gradient, position: 'sticky', top: 0 }}>
                         <tr>
                           <th style={{ padding: '8px 6px', textAlign: 'left', color: '#fff', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>#</th>
                           <th style={{ padding: '8px 6px', textAlign: 'left', color: '#fff', fontWeight: '600', fontSize: '10px', textTransform: 'uppercase' }}>Client</th>
@@ -18872,14 +18872,14 @@ ${invoiceHtml}
                     <div>
                       {/* Organization Wise */}
                       <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: '20px', border: '1px solid #e5e7eb'}}>
-                        <div style={{padding: '14px 18px', borderBottom: '1px solid #e5e7eb', background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}'}}>
+                        <div style={{padding: '14px 18px', borderBottom: '1px solid #e5e7eb', background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}}>
                           <h3 style={{margin: 0, fontSize: '15px', fontWeight: '700', color: '#065f46'}}>🏢 Organization Wise Billing & Collection</h3>
                         </div>
                         <div style={{overflowX: 'auto'}}>
                           <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
                             <thead>
                               {/* Main Headers Row */}
-                              <tr style={{background: '${themeColors.gradient}'}}>
+                              <tr style={{background: themeColors.gradient}}>
                                 <th rowSpan={2} style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, verticalAlign: 'middle'}}>Organization</th>
                                 <th colSpan={3} style={{padding: '8px 12px', textAlign: 'center', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`}}>Total Billing</th>
                                 <th colSpan={4} style={{padding: '8px 12px', textAlign: 'center', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`}}>Total Collection</th>
@@ -18955,14 +18955,14 @@ ${invoiceHtml}
                       
                       {/* Child Task Wise Breakdown */}
                       <div style={{background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb'}}>
-                        <div style={{padding: '14px 18px', borderBottom: '1px solid #e5e7eb', background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}'}}>
+                        <div style={{padding: '14px 18px', borderBottom: '1px solid #e5e7eb', background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}}>
                           <h3 style={{margin: 0, fontSize: '15px', fontWeight: '700', color: '#065f46'}}>📋 Task Type Wise Billing & Collection</h3>
                         </div>
                         <div style={{overflowX: 'auto'}}>
                           <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
                             <thead>
                               {/* Main Headers Row */}
-                              <tr style={{background: '${themeColors.gradient}'}}>
+                              <tr style={{background: themeColors.gradient}}>
                                 <th rowSpan={2} style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, verticalAlign: 'middle'}}>Parent Task</th>
                                 <th rowSpan={2} style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, verticalAlign: 'middle'}}>Child Task</th>
                                 <th rowSpan={2} style={{padding: '10px 12px', textAlign: 'center', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, verticalAlign: 'middle'}}>Invoices</th>
@@ -19217,7 +19217,7 @@ ${invoiceHtml}
                       <div style={{overflowX: 'auto'}}>
                         <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
                           <thead>
-                            <tr style={{background: '${themeColors.gradient}'}}>
+                            <tr style={{background: themeColors.gradient}}>
                               <th style={{padding: '8px 6px', textAlign: 'center', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '30px'}}>
                                 <input type="checkbox" onChange={(e) => {
                                   // Get filtered invoices for select all
@@ -19816,7 +19816,7 @@ ${invoiceHtml}
                                 setBulkDownloadItems([]);
                                 setSelectedBillIds([]);
                               }}
-                              style={{padding: '16px 20px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'flex-start'}}
+                              style={{padding: '16px 20px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'flex-start'}}
                             >
                               <span style={{background: 'rgba(255,255,255,0.2)', padding: '8px', borderRadius: '8px'}}>📄</span>
                               <div style={{textAlign: 'left'}}>
@@ -19952,7 +19952,7 @@ ${invoiceHtml}
                   alignItems: 'center',
                   gap: '8px',
                   padding: '10px 20px',
-                  background: '${themeColors.gradient}',
+                  background: themeColors.gradient,
                   color: '#fff',
                   border: 'none',
                   borderRadius: '8px',
@@ -19971,7 +19971,7 @@ ${invoiceHtml}
               <div style={{overflowX: 'auto'}}>
                 <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                   <thead>
-                    <tr style={{background: '${themeColors.gradient}'}}>
+                    <tr style={{background: themeColors.gradient}}>
                       <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`}}>Organization</th>
                       <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`}}>Address Details</th>
                       <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`}}>Contact Details</th>
@@ -20074,7 +20074,7 @@ ${invoiceHtml}
                 <p style={{color: '#64748b'}}>Please add an organization first before creating invoices.</p>
                 <button
                   onClick={() => setSelectedInvoicingTab('organizations')}
-                  style={{marginTop: '12px', padding: '10px 20px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600'}}
+                  style={{marginTop: '12px', padding: '10px 20px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600'}}
                 >
                   Go to Organization
                 </button>
@@ -20086,7 +20086,7 @@ ${invoiceHtml}
                   display: 'flex',
                   gap: '0',
                   marginBottom: '24px',
-                  background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}',
+                  background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
                   borderRadius: '12px',
                   overflow: 'hidden',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
@@ -20104,7 +20104,7 @@ ${invoiceHtml}
                       style={{
                         flex: 1,
                         padding: '16px 20px',
-                        background: billingMode === mode.id ? '${themeColors.gradient}' : 'transparent',
+                        background: billingMode === mode.id ? themeColors.gradient : 'transparent',
                         color: billingMode === mode.id ? '#fff' : '#065f46',
                         border: 'none',
                         borderRight: idx < 3 ? `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}` : 'none',
@@ -20141,7 +20141,7 @@ ${invoiceHtml}
                         onClick={() => { setSingleTaskMode('withTask'); setHasSearched(false); setSearchedTasks([]); setSelectedBillingTask(null); }}
                         style={{
                           padding: '12px 28px',
-                          background: singleTaskMode === 'withTask' ? '${themeColors.gradient}' : '#fff',
+                          background: singleTaskMode === 'withTask' ? themeColors.gradient : '#fff',
                           color: singleTaskMode === 'withTask' ? '#fff' : '#64748b',
                           border: 'none',
                           borderRight: '1px solid #e2e8f0',
@@ -20160,7 +20160,7 @@ ${invoiceHtml}
                         }); }}
                         style={{
                           padding: '12px 28px',
-                          background: singleTaskMode === 'withoutTask' ? '${themeColors.gradient}' : '#fff',
+                          background: singleTaskMode === 'withoutTask' ? themeColors.gradient : '#fff',
                           color: singleTaskMode === 'withoutTask' ? '#fff' : '#64748b',
                           border: 'none',
                           cursor: 'pointer',
@@ -20377,7 +20377,7 @@ ${invoiceHtml}
                                   setSearchedTasks(filtered);
                                   setHasSearched(true);
                                 }}
-                                style={{flex: 1, padding: '10px 20px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', boxShadow: '0 2px 8px ${themeColors.shadow}'}}
+                                style={{flex: 1, padding: '10px 20px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', boxShadow: `0 2px 8px ${themeColors.shadow}`}}
                               >
                                 🔍 Search Tasks
                               </button>
@@ -20440,7 +20440,7 @@ ${invoiceHtml}
                               <div style={{border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden'}}>
                                 <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                                   <thead>
-                                    <tr style={{background: '${themeColors.gradient}'}}>
+                                    <tr style={{background: themeColors.gradient}}>
                                       <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', width: '80px'}}>Task ID</th>
                                       <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Client</th>
                                       <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Task</th>
@@ -20480,7 +20480,7 @@ ${invoiceHtml}
                                           ) : (
                                           <button
                                             onClick={() => setSelectedBillingTask(task)}
-                                            style={{padding: '6px 16px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '600'}}
+                                            style={{padding: '6px 16px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: '600'}}
                                           >
                                             Generate Invoice
                                           </button>
@@ -20758,7 +20758,7 @@ ${invoiceHtml}
                                   });
                                   setSearchedTasks(prev => prev.filter(t => t.id !== task.id));
                                 }}
-                                style={{padding: '12px 32px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '700', boxShadow: '0 4px 12px ${themeColors.shadow}'}}
+                                style={{padding: '12px 32px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '700', boxShadow: `0 4px 12px ${themeColors.shadow}`}}
                               >
                                 ✓ Generate Invoice
                               </button>
@@ -20781,7 +20781,7 @@ ${invoiceHtml}
                         </div>
                         
                         {/* Client Selection Section */}
-                        <div style={{background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}', padding: '20px', borderRadius: '12px', marginBottom: '24px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
+                        <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', padding: '20px', borderRadius: '12px', marginBottom: '24px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
                           <h4 style={{margin: '0 0 16px 0', fontSize: '14px', fontWeight: '600', color: '#065f46'}}>📋 Client Selection</h4>
                           <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px'}}>
                             {/* Group No. with Typeahead */}
@@ -20977,7 +20977,7 @@ ${invoiceHtml}
                         </div>
                         
                         {/* Summary & Actions */}
-                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}', padding: '16px 20px', borderRadius: '12px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', padding: '16px 20px', borderRadius: '12px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
                           <div>
                             {(() => {
                               const amount = parseFloat(withoutTaskForm.amount) || 0;
@@ -21136,7 +21136,7 @@ ${invoiceHtml}
                                   invoiceDate: new Date().toISOString().split('T')[0], narration: '', amount: '', discount: '', remark: ''
                                 });
                               }}
-                              style={{padding: '10px 28px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '700', boxShadow: '0 2px 8px ${themeColors.shadow}'}}
+                              style={{padding: '10px 28px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '700', boxShadow: `0 2px 8px ${themeColors.shadow}`}}
                             >
                               ✓ Generate Invoice
                             </button>
@@ -21160,7 +21160,7 @@ ${invoiceHtml}
                           <p style={{margin: '8px 0 0', fontSize: '13px', color: '#64748b'}}>Select a group to view all clients with unbilled tasks</p>
                         </div>
                         
-                        <div style={{background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
+                        <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
                           <h4 style={{margin: '0 0 16px 0', fontSize: '14px', fontWeight: '600', color: '#065f46'}}>📋 Select Group No.</h4>
                           <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', alignItems: 'end'}}>
                             <div>
@@ -21243,7 +21243,7 @@ ${invoiceHtml}
                             disabled={!multipleTaskFilters.groupName}
                             style={{
                               padding: '14px 32px',
-                              background: multipleTaskFilters.groupName ? '${themeColors.gradient}' : '#e2e8f0',
+                              background: multipleTaskFilters.groupName ? themeColors.gradient : '#e2e8f0',
                               color: multipleTaskFilters.groupName ? '#fff' : '#94a3b8',
                               border: 'none',
                               borderRadius: '8px',
@@ -21315,7 +21315,7 @@ ${invoiceHtml}
                               <div style={{border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden'}}>
                                 <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
                                   <thead>
-                                    <tr style={{background: '${themeColors.gradient}'}}>
+                                    <tr style={{background: themeColors.gradient}}>
                                       <th style={{padding: '14px 12px', textAlign: 'center', width: '50px'}}>
                                         <input
                                           type="checkbox"
@@ -21392,7 +21392,7 @@ ${invoiceHtml}
                               
                               {/* Proceed Button */}
                               {multipleTaskSelectedClients.length > 0 && (
-                                <div style={{position: 'sticky', bottom: 0, background: '${themeColors.gradient}', padding: '16px 24px', borderRadius: '12px', marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#fff', boxShadow: '0 -4px 20px ${themeColors.shadow}'}}>
+                                <div style={{position: 'sticky', bottom: 0, background: themeColors.gradient, padding: '16px 24px', borderRadius: '12px', marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#fff', boxShadow: `0 -4px 20px ${themeColors.shadow}`}}>
                                   <div>
                                     <span style={{fontSize: '15px', fontWeight: '600'}}>{multipleTaskSelectedClients.length} client(s) selected</span>
                                     <span style={{fontSize: '13px', marginLeft: '16px', opacity: 0.9}}>
@@ -21509,7 +21509,7 @@ ${invoiceHtml}
                             return (
                               <div key={key} style={{marginBottom: '20px', background: '#fff', borderRadius: '12px', overflow: 'hidden', border: showBillingForm ? `2px solid ${themeColors.primary}` : '1px solid #e2e8f0', boxShadow: showBillingForm ? '0 4px 12px rgba(16,185,129,0.15)' : 'none'}}>
                                 {/* Client Header - Green Theme */}
-                                <div style={{padding: '14px 20px', background: '${themeColors.gradient}', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                                <div style={{padding: '14px 20px', background: themeColors.gradient, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                                   <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
                                     <input
                                       type="checkbox"
@@ -21944,7 +21944,7 @@ ${invoiceHtml}
                         
                         {/* Summary Bar - Different modes for tasks vs billing */}
                         {multipleTaskSelectedTasks.length > 0 && (
-                          <div style={{position: 'sticky', bottom: 0, background: '${themeColors.gradient}', padding: '16px 24px', borderRadius: '12px', marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#fff', boxShadow: '0 -4px 20px ${themeColors.shadow}'}}>
+                          <div style={{position: 'sticky', bottom: 0, background: themeColors.gradient, padding: '16px 24px', borderRadius: '12px', marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#fff', boxShadow: `0 -4px 20px ${themeColors.shadow}`}}>
                             {multipleTaskBillingStep === 'tasks' ? (
                               <>
                                 <div>
@@ -22251,7 +22251,7 @@ ${invoiceHtml}
                     {multipleTaskClient && !multipleTaskClient.groupMode && multipleTaskSelectedTasks.length === 0 && (
                       <div style={{background: '#fff', padding: '28px', borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', border: '1px solid #e2e8f0'}}>
                         {/* Client Info Header - Green Theme */}
-                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '16px 20px', background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}', borderRadius: '12px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '16px 20px', background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', borderRadius: '12px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
                           <div>
                             <h3 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: '#065f46'}}>{multipleTaskClient.name}</h3>
                             <div style={{fontSize: '13px', color: '#047857', marginTop: '4px'}}>
@@ -22396,7 +22396,7 @@ ${invoiceHtml}
                             disabled={multipleTaskTempSelected.length === 0}
                             style={{
                               padding: '10px 24px',
-                              background: multipleTaskTempSelected.length > 0 ? '${themeColors.gradient}' : '#e2e8f0',
+                              background: multipleTaskTempSelected.length > 0 ? themeColors.gradient : '#e2e8f0',
                               color: multipleTaskTempSelected.length > 0 ? '#fff' : '#94a3b8',
                               border: 'none',
                               borderRadius: '8px',
@@ -22429,7 +22429,7 @@ ${invoiceHtml}
                         onClick={() => setBulkTaskStep('filter')}
                         style={{
                           padding: '10px 20px',
-                          background: bulkTaskStep === 'filter' || bulkTaskStep === 'select' || bulkTaskStep === 'billing' ? '${themeColors.gradient}' : '#f1f5f9',
+                          background: bulkTaskStep === 'filter' || bulkTaskStep === 'select' || bulkTaskStep === 'billing' ? themeColors.gradient : '#f1f5f9',
                           color: bulkTaskStep === 'filter' || bulkTaskStep === 'select' || bulkTaskStep === 'billing' ? '#fff' : '#64748b',
                           border: 'none',
                           borderRadius: '8px',
@@ -22444,7 +22444,7 @@ ${invoiceHtml}
                         onClick={() => setBulkTaskStep('batches')}
                         style={{
                           padding: '10px 20px',
-                          background: bulkTaskStep === 'batches' ? '${themeColors.gradient}' : '#f1f5f9',
+                          background: bulkTaskStep === 'batches' ? themeColors.gradient : '#f1f5f9',
                           color: bulkTaskStep === 'batches' ? '#fff' : '#64748b',
                           border: 'none',
                           borderRadius: '8px',
@@ -22676,9 +22676,9 @@ ${invoiceHtml}
                         <div style={{border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden'}}>
                           <div style={{maxHeight: '400px', overflowY: 'auto'}}>
                             <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
-                              <thead style={{background: '${themeColors.gradient}', position: 'sticky', top: 0}}>
+                              <thead style={{background: themeColors.gradient, position: 'sticky', top: 0}}>
                                 <tr>
-                                  <th style={{padding: '12px 8px', textAlign: 'center', borderBottom: `2px solid ${themeColors.primary}`, width: '40px', background: '${themeColors.gradient}'}}>
+                                  <th style={{padding: '12px 8px', textAlign: 'center', borderBottom: `2px solid ${themeColors.primary}`, width: '40px', background: themeColors.gradient}}>
                                     <input
                                       type="checkbox"
                                       checked={bulkSelectedTaskIds.length === bulkFilteredTasks.length && bulkFilteredTasks.length > 0}
@@ -22786,7 +22786,7 @@ ${invoiceHtml}
                             <button
                               type="button"
                               onClick={handleBulkPostBill}
-                              style={{padding: '12px 24px', background: themeColors.primary, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '700', boxShadow: '0 2px 8px ${themeColors.shadow}'}}
+                              style={{padding: '12px 24px', background: themeColors.primary, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '700', boxShadow: `0 2px 8px ${themeColors.shadow}`}}
                             >
                               ✓ POST BILL
                             </button>
@@ -22826,7 +22826,7 @@ ${invoiceHtml}
                         <div style={{border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden'}}>
                           <div style={{maxHeight: '550px', overflowY: 'auto', overflowX: 'auto'}}>
                             <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '1400px'}}>
-                              <thead style={{background: '${themeColors.gradient}', position: 'sticky', top: 0}}>
+                              <thead style={{background: themeColors.gradient, position: 'sticky', top: 0}}>
                                 <tr>
                                   <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'center', width: '40px'}}>✓</th>
                                   <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'center', width: '50px'}}>S.No</th>
@@ -23011,7 +23011,7 @@ ${invoiceHtml}
                             <div style={{fontSize: '14px', color: '#64748b', marginBottom: '24px'}}>Create your first bulk invoice batch to see it here</div>
                             <button
                               onClick={() => setBulkTaskStep('filter')}
-                              style={{padding: '12px 24px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600'}}
+                              style={{padding: '12px 24px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600'}}
                             >
                               + Create First Batch
                             </button>
@@ -23022,7 +23022,7 @@ ${invoiceHtml}
                               <div style={{background: '#fff', borderRadius: '16px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 2px 12px rgba(0,0,0,0.06)'}}>
                                 <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
                                   <thead>
-                                    <tr style={{background: '${themeColors.gradient}'}}>
+                                    <tr style={{background: themeColors.gradient}}>
                                       <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Batch ID</th>
                                       <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Date</th>
                                       <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Task Type</th>
@@ -23123,7 +23123,7 @@ ${invoiceHtml}
                                 </button>
                                 
                                 {/* Batch Header */}
-                                <div style={{background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}', padding: '20px', borderRadius: '16px', marginBottom: '20px', border: '2px solid #86efac'}}>
+                                <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', padding: '20px', borderRadius: '16px', marginBottom: '20px', border: '2px solid #86efac'}}>
                                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                                     <div>
                                       <h4 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: '#065f46'}}>
@@ -23155,7 +23155,7 @@ ${invoiceHtml}
                                           const batchInvoices = (data.invoices || []).filter(inv => viewingBulkBatch.invoiceIds?.includes(inv.id));
                                           downloadInvoicesAsZip(batchInvoices, data.organizations, data.clients, `Batch_${viewingBulkBatch.id?.substring(6, 14)}`);
                                         }}
-                                        style={{padding: '10px 20px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 8px ${themeColors.shadow}'}}
+                                        style={{padding: '10px 20px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: `0 2px 8px ${themeColors.shadow}`}}
                                       >
                                         <Download size={14} /> Download ZIP (PDFs)
                                       </button>
@@ -23221,7 +23221,7 @@ ${invoiceHtml}
                                 })()}
                                 
                                 {/* Summary */}
-                                <div style={{background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'}', padding: '16px 20px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
+                                <div style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', padding: '16px 20px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#86efac'}`}}>
                                   <div style={{fontSize: '14px', color: '#065f46'}}>
                                     <strong>Total Invoices:</strong> {viewingBulkBatch.invoiceCount || (data.invoices || []).filter(inv => viewingBulkBatch.invoiceIds?.includes(inv.id)).length}
                                   </div>
@@ -23327,7 +23327,7 @@ ${invoiceHtml}
                               });
                               downloadInvoicesAsZip(filtered, data.organizations, data.clients, `Invoices_${new Date().toISOString().split('T')[0]}`);
                             }}
-                            style={{padding: '8px 16px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'}}
+                            style={{padding: '8px 16px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px'}}
                           >
                             <Download size={14} /> ZIP
                           </button>
@@ -23611,7 +23611,7 @@ ${invoiceHtml}
                                 alert(`📋 Invoice edit request sent for Superadmin approval.\nInvoice No: ${editingGeneratedInvoice.invoiceNo}`);
                               }
                             }
-                          }} style={{padding: '10px 24px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600'}}>💾 Save Changes</button>
+                          }} style={{padding: '10px 24px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600'}}>💾 Save Changes</button>
                         </div>
                       </div>
                     ) : (() => {
@@ -23645,7 +23645,7 @@ ${invoiceHtml}
                           <div style={{border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden'}}>
                             <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                               <thead>
-                                <tr style={{background: '${themeColors.gradient}'}}>
+                                <tr style={{background: themeColors.gradient}}>
                                   <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', fontSize: '11px'}}>#</th>
                                   <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', fontSize: '11px'}}>Invoice No</th>
                                   <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', fontSize: '11px'}}>Date</th>
@@ -23922,7 +23922,7 @@ ${invoiceHtml}
                 <div style={{overflowX: 'auto'}}>
                   <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px', minWidth: '1500px'}}>
                     <thead>
-                      <tr style={{background: '${themeColors.gradient}'}}>
+                      <tr style={{background: themeColors.gradient}}>
                         <th style={{padding: '12px 8px', width: '40px', borderRight: '1px solid #34d399'}}>
                           <input 
                             type="checkbox"
@@ -24339,7 +24339,7 @@ ${invoiceHtml}
               <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000}}>
                 <div style={{background: '#fff', borderRadius: '12px', width: '95%', maxWidth: '1200px', maxHeight: '90vh', overflow: 'auto', border: `2px solid ${themeColors.primary}`}}>
                   {/* Green Header */}
-                  <div style={{padding: '20px 24px', background: '${themeColors.gradient}', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                  <div style={{padding: '20px 24px', background: themeColors.gradient, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                     <h3 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: '#fff', display: 'flex', alignItems: 'center', gap: '10px'}}>
                       <FileText size={22} />
                       Generate Invoice for {unbilledSelectedIds.length} Task(s)
@@ -24389,7 +24389,7 @@ ${invoiceHtml}
                       <div style={{border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden'}}>
                         <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                           <thead>
-                            <tr style={{background: '${themeColors.gradient}'}}>
+                            <tr style={{background: themeColors.gradient}}>
                               <th style={{padding: '12px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', width: '40px'}}>S.No</th>
                               <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', minWidth: '100px'}}>Client</th>
                               <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', minWidth: '100px'}}>Task</th>
@@ -24730,7 +24730,7 @@ ${invoiceHtml}
                           setUnbilledTaskDetails({});
                           alert(`${invoices.length} invoice(s) generated successfully!\n\nTotal Amount: ₹${totalAmountGenerated.toLocaleString('en-IN')}\nTotal GST: ₹${totalTaxGenerated.toLocaleString('en-IN')}`);
                         }}
-                        style={{padding: '12px 28px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '13px', boxShadow: '0 4px 12px ${themeColors.shadow}'}}
+                        style={{padding: '12px 28px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '13px', boxShadow: `0 4px 12px ${themeColors.shadow}`}}
                       >
                         ✓ Generate Invoice(s)
                       </button>
@@ -25223,7 +25223,7 @@ ${invoiceHtml}
                 onClick={() => setReceiptMode('post')}
                 style={{
                   padding: '12px 28px',
-                  background: receiptMode === 'post' ? '${themeColors.gradient}' : '#f1f5f9',
+                  background: receiptMode === 'post' ? themeColors.gradient : '#f1f5f9',
                   color: receiptMode === 'post' ? '#fff' : '#64748b',
                   border: 'none',
                   borderRadius: '8px',
@@ -25239,7 +25239,7 @@ ${invoiceHtml}
                 onClick={() => setReceiptMode('view')}
                 style={{
                   padding: '12px 28px',
-                  background: receiptMode === 'view' ? '${themeColors.gradient}' : '#f1f5f9',
+                  background: receiptMode === 'view' ? themeColors.gradient : '#f1f5f9',
                   color: receiptMode === 'view' ? '#fff' : '#64748b',
                   border: 'none',
                   borderRadius: '8px',
@@ -25324,7 +25324,7 @@ ${invoiceHtml}
                 {/* Invoice Selection - Multi-select */}
                 {selectedClientsForReceipt.length === 0 && (
                   <div style={{background: '#fff', borderRadius: '10px', overflow: 'hidden', marginBottom: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0'}}>
-                    <div style={{padding: '12px 20px', background: '${themeColors.gradient}', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                    <div style={{padding: '12px 20px', background: themeColors.gradient, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                       <h3 style={{margin: 0, fontSize: '13px', fontWeight: '600', color: '#fff'}}>
                         📋 Select Invoices for Receipt (Multiple Selection Allowed - One Receipt per Client)
                       </h3>
@@ -25468,7 +25468,7 @@ ${invoiceHtml}
                             const uniqueClients = [...new Set(selectedInvs.map(inv => inv.clientName))];
                             setSelectedClientsForReceipt(uniqueClients);
                           }}
-                          style={{padding: '8px 20px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px'}}
+                          style={{padding: '8px 20px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px'}}
                         >
                           Proceed to Enter Amounts →
                         </button>
@@ -25531,7 +25531,7 @@ ${invoiceHtml}
                       
                       return (
                         <div key={clientName} style={{background: '#fff', borderRadius: '10px', overflow: 'hidden', marginBottom: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0'}}>
-                          <div style={{padding: '12px 16px', background: '${themeColors.gradient}', color: '#fff'}}>
+                          <div style={{padding: '12px 16px', background: themeColors.gradient, color: '#fff'}}>
                             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                               <div>
                                 <h4 style={{margin: 0, fontSize: '14px', fontWeight: '600'}}>{clientName}</h4>
@@ -25778,7 +25778,7 @@ ${invoiceHtml}
                               setSelectedInvoicesForReceipt([]);
                               setInvoiceReceiptAmounts({});
                             }}
-                            style={{padding: '8px 20px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '700', boxShadow: '0 4px 12px ${themeColors.shadow}'}}
+                            style={{padding: '8px 20px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '700', boxShadow: `0 4px 12px ${themeColors.shadow}`}}
                           >
                             ✓ Submit ({selectedClientsForReceipt.length} Receipt(s))
                           </button>
@@ -25830,7 +25830,7 @@ ${invoiceHtml}
                     
                     <div style={{display: 'flex', gap: '12px', justifyContent: 'center'}}>
                       <button onClick={() => { setShowReceiptSummary(false); setGeneratedReceipts([]); }} style={{padding: '10px 20px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px'}}>Post More</button>
-                      <button onClick={() => setReceiptMode('view')} style={{padding: '10px 20px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600'}}>View All Receipts</button>
+                      <button onClick={() => setReceiptMode('view')} style={{padding: '10px 20px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600'}}>View All Receipts</button>
                     </div>
                   </div>
                 )}
@@ -25889,7 +25889,7 @@ ${invoiceHtml}
                 <div style={{background: '#fff', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0'}}>
                   <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                     <thead>
-                      <tr style={{background: '${themeColors.gradient}'}}>
+                      <tr style={{background: themeColors.gradient}}>
                         <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Receipt No</th>
                         <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff'}}>Date</th>
                         <th style={{padding: '12px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', width: '50px'}}>Grp</th>
@@ -26072,7 +26072,7 @@ ${invoiceHtml}
                     </div>
                     <div style={{fontSize: '11px', color: '#64748b', marginTop: '8px'}}>Need follow-up</div>
                   </div>
-                  <div className="dashboard-card" style={{background: '${appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)'}', borderRadius: '12px', padding: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, transition: 'all 0.3s ease', cursor: 'pointer'}}
+                  <div className="dashboard-card" style={{background: appTheme === 'blue' ? 'linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)' : 'linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%)', borderRadius: '12px', padding: '20px', border: `1px solid ${appTheme === 'blue' ? '#93c5fd' : '#bbf7d0'}`, transition: 'all 0.3s ease', cursor: 'pointer'}}
                     onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(16, 185, 129, 0.25)'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
                     <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
@@ -26152,7 +26152,7 @@ ${invoiceHtml}
                   <div style={{overflowX: 'auto'}}>
                     <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '11px'}}>
                       <thead>
-                        <tr style={{background: '${themeColors.gradient}'}}>
+                        <tr style={{background: themeColors.gradient}}>
                           <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`}}>S.No</th>
                           <th style={{padding: '8px 10px', textAlign: 'center', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`, width: '50px'}}>Grp</th>
                           <th style={{padding: '8px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`}}>Client Code</th>
@@ -26201,7 +26201,7 @@ ${invoiceHtml}
                               <td style={{padding: '6px 8px', textAlign: 'center', border: '1px solid #e2e8f0'}}>
                                 <button
                                   onClick={() => openDebtorLedger(debtor)}
-                                  style={{padding: '5px 10px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: '500'}}
+                                  style={{padding: '5px 10px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', fontWeight: '500'}}
                                 >
                                   Ledger →
                                 </button>
@@ -26963,7 +26963,7 @@ ${invoiceHtml}
 
                   {/* 1. INVOICES TABLE - Green */}
                   <div style={{background: '#fff', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: '16px', border: '1px solid #e2e8f0'}}>
-                    <div style={{padding: '10px 14px', background: '${themeColors.gradient}'}}>
+                    <div style={{padding: '10px 14px', background: themeColors.gradient}}>
                       <h3 style={{margin: 0, fontSize: '14px', fontWeight: '600', color: '#fff', display: 'flex', alignItems: 'center', gap: '6px'}}>
                         <FileText size={16} /> Invoices
                       </h3>
@@ -27413,7 +27413,7 @@ ${invoiceHtml}
                   gap: '12px',
                   marginBottom: '20px',
                   padding: '16px 20px',
-                  background: (viewingInvoice.invoiceFormat === 'billOfSupplyBlue' ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : '${themeColors.gradient}'),
+                  background: (viewingInvoice.invoiceFormat === 'billOfSupplyBlue' ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : themeColors.gradient),
                   borderRadius: '12px'
                 }}>
                   <button
@@ -28594,7 +28594,7 @@ ${invoiceHtml}
               overflow: 'hidden'
             }}>
               <div style={{
-                background: '${themeColors.gradient}',
+                background: themeColors.gradient,
                 padding: '16px 20px',
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -28650,7 +28650,7 @@ ${invoiceHtml}
                     if (remarkDialog.onSave) remarkDialog.onSave(remarkDialog.value);
                     setRemarkDialog({ show: false, value: '', onSave: null, title: '' });
                   }}
-                  style={{padding: '10px 24px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '13px'}}
+                  style={{padding: '10px 24px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '13px'}}
                 >
                   Save Remark
                 </button>
@@ -29340,7 +29340,7 @@ ${invoiceHtml}
         {/* Header */}
         <div style={{marginBottom: '24px'}}>
           <h1 style={{fontSize: '24px', fontWeight: '700', color: '#1e293b', margin: 0, display: 'flex', alignItems: 'center', gap: '12px'}}>
-            <div style={{width: '40px', height: '40px', borderRadius: '10px', background: '${themeColors.gradient}', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+            <div style={{width: '40px', height: '40px', borderRadius: '10px', background: themeColors.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
               <CheckCircle size={22} color="#fff" />
             </div>
             Approvals
@@ -29433,7 +29433,7 @@ ${invoiceHtml}
             ) : (
               <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '13px'}}>
                 <thead>
-                  <tr style={{background: '${themeColors.gradient}'}}>
+                  <tr style={{background: themeColors.gradient}}>
                     <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff', fontSize: '12px'}}>#</th>
                     <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff', fontSize: '12px'}}>Type / Description</th>
                     <th style={{padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#fff', fontSize: '12px'}}>Details</th>
@@ -29455,7 +29455,7 @@ ${invoiceHtml}
         {viewingApproval && (
           <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px'}}>
             <div style={{background: '#f8fafc', borderRadius: '16px', width: '100%', maxWidth: '900px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column'}}>
-              <div style={{padding: '20px 24px', background: '${themeColors.gradient}', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <div style={{padding: '20px 24px', background: themeColors.gradient, display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                 <div>
                   <h3 style={{margin: 0, fontSize: '18px', fontWeight: '700', color: '#fff'}}>{getTypeLabel(viewingApproval.type, viewingApproval.data)}</h3>
                   <div style={{fontSize: '12px', color: 'rgba(255,255,255,0.8)', marginTop: '4px'}}>
@@ -29718,7 +29718,7 @@ ${invoiceHtml}
                   Cancel
                 </button>
                 <button onClick={() => { handleApprovalAction(editingApproval.id, 'approved', editedData); setEditingApproval(null); setEditedData(null); }}
-                  style={{padding: '10px 24px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600'}}>
+                  style={{padding: '10px 24px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600'}}>
                   ✓ Approve with Changes
                 </button>
               </div>
@@ -30201,7 +30201,7 @@ ${invoiceHtml}
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1300px', fontSize: '12px' }}>
                 <thead>
-                  <tr style={{ background: '${themeColors.gradient}' }}>
+                  <tr style={{ background: themeColors.gradient }}>
                     <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>Client / Holder</th>
                     <th style={{ padding: '12px 10px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>Client Code</th>
                     <th style={{ padding: '12px 10px', textAlign: 'left', fontSize: '11px', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px', borderRight: '1px solid #34d399' }}>Group Code</th>
@@ -31241,7 +31241,7 @@ ${invoiceHtml}
           <div 
             onClick={() => setPackageFilter('all')}
             style={{
-              background: packageFilter === 'all' ? '${themeColors.gradient}' : 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+              background: packageFilter === 'all' ? themeColors.gradient : 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
               color: packageFilter === 'all' ? '#fff' : '#065f46',
               padding: '16px 20px',
               borderRadius: '12px',
@@ -31340,7 +31340,7 @@ ${invoiceHtml}
         <div style={{background: '#fff', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb'}}>
           <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
             <thead>
-              <tr style={{background: '${themeColors.gradient}'}}>
+              <tr style={{background: themeColors.gradient}}>
                 <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`}}>S.No</th>
                 <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`}}>Group No.</th>
                 <th style={{padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#fff', border: `1px solid ${themeColors.primaryDark}`}}>Client Code</th>
@@ -32071,7 +32071,7 @@ ${invoiceHtml}
               width: '32px',
               height: '32px',
               borderRadius: '50%',
-              background: '${themeColors.gradient}',
+              background: themeColors.gradient,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -32616,7 +32616,7 @@ ${invoiceHtml}
         <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2100}} onClick={() => setShowTaskCloseExpenseModal(false)}>
           <div style={{background: '#fff', borderRadius: '16px', width: '95%', maxWidth: '700px', maxHeight: '90vh', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)'}} onClick={(e) => e.stopPropagation()}>
             {/* Header */}
-            <div style={{background: '${themeColors.gradient}', padding: '20px 24px', color: '#fff'}}>
+            <div style={{background: themeColors.gradient, padding: '20px 24px', color: '#fff'}}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                 <h2 style={{margin: 0, fontSize: '18px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '10px'}}>
                   <CheckCircle size={22} /> Complete Task
@@ -32773,7 +32773,7 @@ ${invoiceHtml}
                   setShowTaskCloseExpenseModal(false);
                   setTaskCloseExpenseData(null);
                 }}
-                style={{padding: '10px 24px', background: '${themeColors.gradient}', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer'}}
+                style={{padding: '10px 24px', background: themeColors.gradient, color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer'}}
               >
                 ✓ Complete Task
               </button>
