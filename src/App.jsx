@@ -247,6 +247,9 @@ const PracticeManagementApp = () => {
   const [configExpanded, setConfigExpanded] = useState(false);
   const [activeConfigOption, setActiveConfigOption] = useState(''); // categories, batches, checklists
   
+  // Remark Dialog State (replaces browser prompt) - used across multiple components
+  const [remarkDialog, setRemarkDialog] = useState({ show: false, value: '', onSave: null, title: 'Enter Remark' });
+  
   // Recurring Batches State
   const [selectedBatch, setSelectedBatch] = useState(null);
   const [showBatchForm, setShowBatchForm] = useState(false);
@@ -16110,9 +16113,6 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const [unbilledInvoiceDate, setUnbilledInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
     const [unbilledTaskDetails, setUnbilledTaskDetails] = useState({}); // {taskId: {orgId, amount, tax}}
     const [viewingUnbilledTask, setViewingUnbilledTask] = useState(null); // Task being viewed
-    
-    // Remark Dialog State (replaces browser prompt)
-    const [remarkDialog, setRemarkDialog] = useState({ show: false, value: '', onSave: null, title: 'Enter Remark' });
     
     // Billing States
     const [billingMode, setBillingMode] = useState('single'); // 'single', 'multiple', 'bulk'
