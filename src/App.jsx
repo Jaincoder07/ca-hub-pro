@@ -28851,6 +28851,12 @@ ${invoiceHtml}
     const [editFormData, setEditFormData] = useState(null);
     const [filters, setFilters] = useState({ status: 'all', createdBy: 'all', search: '' });
     
+    // Search states stored separately to avoid re-render issues
+    const [taskClientSearch, setTaskClientSearch] = useState({});
+    const [taskClientDropdown, setTaskClientDropdown] = useState({});
+    const [teamTaskSearch, setTeamTaskSearch] = useState({});
+    const [teamTaskDropdown, setTeamTaskDropdown] = useState({});
+    
     const userRole = getCurrentUserRole();
     const isSuperAdmin = currentUser?.isSuperAdmin || userRole === 'Superadmin';
     const isRM = userRole === 'Reporting Manager';
@@ -28860,7 +28866,7 @@ ${invoiceHtml}
     const allClientEntries = data.pendingClientEntries || [];
     const allTeamMemberEntries = data.pendingTeamMemberEntries || [];
     
-    // ===== HELPER FUNCTIONS FOR GROUPS =====
+    // Group helpers
     const getExistingGroups = () => {
       const groups = new Set();
       data.clients.forEach(c => {
@@ -28876,8 +28882,7 @@ ${invoiceHtml}
       const groups = getExistingGroups();
       const pendingGroups = allClientEntries.filter(e => e.status !== 'approved' && e.groupMode === 'new' && e.groupNo).map(e => parseInt(e.groupNo));
       const allGroups = [...groups, ...pendingGroups];
-      if (allGroups.length === 0) return 1;
-      return Math.max(...allGroups) + 1;
+      return allGroups.length === 0 ? 1 : Math.max(...allGroups) + 1;
     };
     
     const getNextClientCode = (groupCode) => {
@@ -28885,14 +28890,13 @@ ${invoiceHtml}
       const pendingInGroup = allClientEntries.filter(e => e.status !== 'approved' && e.groupNo === String(groupCode));
       const existingCodes = groupClients.map(c => { const p = c.fileNo.split('.'); return p.length === 2 ? parseInt(p[1]) : 0; }).filter(n => !isNaN(n));
       const pendingCodes = pendingInGroup.map(e => { const p = (e.fileNo || '').split('.'); return p.length === 2 ? parseInt(p[1]) : 0; }).filter(n => !isNaN(n));
-      const allCodes = [...existingCodes, ...pendingCodes];
-      const maxCode = allCodes.length > 0 ? Math.max(...allCodes) : 0;
+      const maxCode = Math.max(0, ...existingCodes, ...pendingCodes);
       return `${groupCode}.${String(maxCode + 1).padStart(2, '0')}`;
     };
     
     const getGroupClientCount = (groupCode) => data.clients.filter(c => c.fileNo && c.fileNo.split('.')[0] === String(groupCode)).length;
     
-    // ===== FILTER HELPERS =====
+    // Filter helpers
     const getVisibleTaskEntries = () => {
       let entries = allTaskEntries;
       if (!canApprove) entries = entries.filter(e => e.createdBy === currentUser?.name);
@@ -28928,41 +28932,48 @@ ${invoiceHtml}
       return entries;
     };
     
-    // ===== SUB-PERIOD LOGIC =====
+    // Sub-period logic
     const getSubPeriods = (period) => {
       const months = ['April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December', 'January', 'February', 'March'];
-      const quarters = ['Q1 (Apr-Jun)', 'Q2 (Jul-Sep)', 'Q3 (Oct-Dec)', 'Q4 (Jan-Mar)'];
-      const halfYears = ['H1 (Apr-Sep)', 'H2 (Oct-Mar)'];
       if (period === 'Monthly') return months;
-      if (period === 'Quarterly') return quarters;
-      if (period === 'Half-Yearly') return halfYears;
+      if (period === 'Quarterly') return ['Q1 (Apr-Jun)', 'Q2 (Jul-Sep)', 'Q3 (Oct-Dec)', 'Q4 (Jan-Mar)'];
+      if (period === 'Half-Yearly') return ['H1 (Apr-Sep)', 'H2 (Oct-Mar)'];
       return [];
     };
     
-    // ===== ADD FUNCTIONS =====
+    // Search helpers
+    const getFilteredClients = (searchTerm) => {
+      if (!searchTerm || searchTerm.length < 2) return [];
+      const term = searchTerm.toLowerCase();
+      return data.clients.filter(c => !c.disabled && (c.name?.toLowerCase().includes(term) || c.fileNo?.toLowerCase().includes(term) || c.pan?.toLowerCase().includes(term))).slice(0, 15);
+    };
+    
+    const getFilteredTasks = (searchTerm) => {
+      if (!searchTerm || searchTerm.length < 2) return [];
+      const term = searchTerm.toLowerCase();
+      return data.tasks.filter(t => t.clientName?.toLowerCase().includes(term) || t.taskCode?.toLowerCase().includes(term) || t.parentTask?.toLowerCase().includes(term)).slice(0, 15);
+    };
+    
+    // Add functions
     const addTaskEntry = () => {
+      const id = generateId();
       const newEntry = {
-        id: generateId(),
-        serialNo: allTaskEntries.length + 1,
+        id, serialNo: allTaskEntries.length + 1,
         clientId: '', clientName: '', fileNo: '', groupName: '',
-        clientSearchTerm: '', showClientDropdown: false,
         parentTask: '', childTask: '', financialYear: 'FY 2024-25', period: '', subPeriod: '',
         taskLeader: '', taskManager: '', primaryAssignedUser: '', teamMembers: [],
         startDate: '', expectedCompletionDate: '', taskDescription: '',
         status: 'draft', createdBy: currentUser?.name || 'Unknown', createdAt: new Date().toISOString()
       };
       setData(prev => ({ ...prev, pendingTaskEntries: [...(prev.pendingTaskEntries || []), newEntry] }));
+      setTaskClientSearch(prev => ({ ...prev, [id]: '' }));
     };
     
     const addClientEntry = () => {
       const nextGroup = getNextNewGroup();
       const newEntry = {
-        id: generateId(),
-        serialNo: allClientEntries.length + 1,
-        groupMode: 'new', // 'new' or 'existing'
-        selectedGroup: '',
-        groupNo: String(nextGroup),
-        fileNo: `${nextGroup}.01`,
+        id: generateId(), serialNo: allClientEntries.length + 1,
+        groupMode: 'new', selectedGroup: '', groupNo: String(nextGroup), fileNo: `${nextGroup}.01`,
         name: '', email: '', phone: '', address: '', pan: '', gstin: '', state: '', typeOfClient: '', reportingManager: '',
         dateOfEnrollment: new Date().toISOString().split('T')[0],
         status: 'draft', createdBy: currentUser?.name || 'Unknown', createdAt: new Date().toISOString()
@@ -28971,17 +28982,17 @@ ${invoiceHtml}
     };
     
     const addTeamMemberEntry = () => {
+      const id = generateId();
       const newEntry = {
-        id: generateId(),
-        taskId: '', taskCode: '', clientName: '', parentTask: '', childTask: '',
-        taskSearchTerm: '', showTaskDropdown: false,
+        id, taskId: '', taskCode: '', clientName: '', parentTask: '', childTask: '',
         currentPrimaryUser: '', newPrimaryUser: '', additionalMembers: [], changePrimary: false,
         status: 'draft', createdBy: currentUser?.name || 'Unknown', createdAt: new Date().toISOString()
       };
       setData(prev => ({ ...prev, pendingTeamMemberEntries: [...(prev.pendingTeamMemberEntries || []), newEntry] }));
+      setTeamTaskSearch(prev => ({ ...prev, [id]: '' }));
     };
     
-    // ===== UPDATE FUNCTIONS =====
+    // Update functions
     const updateTaskEntry = (entryId, field, value) => {
       setData(prev => ({
         ...prev,
@@ -29003,13 +29014,12 @@ ${invoiceHtml}
       }));
     };
     
-    const updateClientEntry = (entryId, field, value) => {
+    const updateClientEntryField = (entryId, field, value) => {
       setData(prev => ({
         ...prev,
         pendingClientEntries: (prev.pendingClientEntries || []).map(entry => {
           if (entry.id !== entryId) return entry;
           let updated = { ...entry, [field]: value };
-          // Handle group mode change
           if (field === 'groupMode') {
             if (value === 'new') {
               const nextGroup = getNextNewGroup();
@@ -29023,7 +29033,6 @@ ${invoiceHtml}
               updated.fileNo = updated.selectedGroup ? getNextClientCode(updated.selectedGroup) : '';
             }
           }
-          // Handle existing group selection
           if (field === 'selectedGroup' && value) {
             updated.groupNo = value;
             updated.fileNo = getNextClientCode(value);
@@ -29054,7 +29063,7 @@ ${invoiceHtml}
       }));
     };
     
-    // ===== DELETE / SAVE =====
+    // Delete/Save
     const deleteEntry = (type, entryId) => {
       if (!window.confirm('Delete this entry?')) return;
       const key = type === 'tasks' ? 'pendingTaskEntries' : type === 'clients' ? 'pendingClientEntries' : 'pendingTeamMemberEntries';
@@ -29067,7 +29076,7 @@ ${invoiceHtml}
       setData(prev => ({ ...prev, [key]: (prev[key] || []).map(e => e.id === entryId ? { ...e, status: 'pending' } : e) }));
     };
     
-    // ===== EDIT MODAL =====
+    // Edit modal
     const openEditModal = (entry, type) => { setEditingEntry({ ...entry, type }); setEditFormData({ ...entry }); };
     const saveEdit = () => {
       if (!editingEntry || !editFormData) return;
@@ -29076,7 +29085,7 @@ ${invoiceHtml}
       setEditingEntry(null); setEditFormData(null);
     };
     
-    // ===== APPROVE FUNCTIONS =====
+    // Approve functions
     const approveAndPostTask = (entry) => {
       const newTask = {
         id: generateId(), taskCode: generateTaskCode(data.tasks, new Date()),
@@ -29124,7 +29133,7 @@ ${invoiceHtml}
       alert('✅ Team member changes applied!');
     };
     
-    // ===== BULK APPROVE =====
+    // Bulk approve
     const bulkApprove = () => {
       if (selectedItems.length === 0) return alert('Select entries to approve');
       if (!window.confirm(`Approve ${selectedItems.length} entries?`)) return;
@@ -29143,7 +29152,7 @@ ${invoiceHtml}
     };
     const getCreators = () => [...new Set((activeTab === 'tasks' ? allTaskEntries : activeTab === 'clients' ? allClientEntries : allTeamMemberEntries).map(e => e.createdBy).filter(Boolean))];
     
-    // ===== CONSTANTS =====
+    // Constants
     const PARENT_CHILD_TASKS = data.parentChildTasks || {};
     const financialYears = ['FY 2023-24', 'FY 2024-25', 'FY 2025-26', 'FY 2026-27'];
     const periods = ['Monthly', 'Quarterly', 'Half-Yearly', 'Annual', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December', 'January', 'February', 'March', 'Q1', 'Q2', 'Q3', 'Q4', 'H1', 'H2'];
@@ -29154,20 +29163,6 @@ ${invoiceHtml}
     const activeRMs = data.staff.filter(s => s.role === 'Reporting Manager' && s.status === 'Active');
     const activeStaff = data.staff.filter(s => s.status === 'Active');
     
-    // ===== SEARCH HELPERS (CLIENT) =====
-    const getFilteredClients = (searchTerm) => {
-      if (!searchTerm || searchTerm.length < 2) return [];
-      const term = searchTerm.toLowerCase();
-      return data.clients.filter(c => !c.disabled && (c.name?.toLowerCase().includes(term) || c.fileNo?.toLowerCase().includes(term) || c.pan?.toLowerCase().includes(term))).slice(0, 15);
-    };
-    
-    // ===== SEARCH HELPERS (TASK) =====
-    const getFilteredTasks = (searchTerm) => {
-      if (!searchTerm || searchTerm.length < 2) return [];
-      const term = searchTerm.toLowerCase();
-      return data.tasks.filter(t => t.clientName?.toLowerCase().includes(term) || t.taskCode?.toLowerCase().includes(term) || t.parentTask?.toLowerCase().includes(term)).slice(0, 15);
-    };
-    
     const getStatusBadge = (status) => {
       const styles = { draft: { bg: '#f1f5f9', color: '#64748b', text: 'Draft' }, pending: { bg: '#fef3c7', color: '#d97706', text: 'Pending' }, approved: { bg: themeColors.primaryLight, color: themeColors.primary, text: 'Approved' } };
       const s = styles[status] || styles.draft;
@@ -29176,165 +29171,20 @@ ${invoiceHtml}
     
     const inputStyle = {width: '100%', padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'};
     const thStyle = {padding: '12px 8px', color: '#fff', fontWeight: '600', fontSize: '13px', textAlign: 'left'};
-    const tdStyle = {padding: '10px 8px', fontSize: '13px'};
+    const tdStyle = {padding: '10px 8px', fontSize: '13px', verticalAlign: 'top'};
 
-    // ===== TASK ROW COMPONENT =====
-    const TaskEntryRow = ({ entry, idx }) => {
-      const [localSearch, setLocalSearch] = useState(entry.clientName ? `${entry.fileNo} - ${entry.clientName}` : '');
-      const [showDropdown, setShowDropdown] = useState(false);
-      
-      const handleClientSelect = (client) => {
-        updateTaskEntry(entry.id, 'clientId', client.id);
-        setLocalSearch(`${client.fileNo} - ${client.name}`);
-        setShowDropdown(false);
-      };
-      
-      return (
-        <tr style={{borderBottom: '1px solid #e5e7eb', background: idx % 2 === 0 ? '#fff' : '#f9fafb'}}>
-          {canApprove && <td style={{...tdStyle, textAlign: 'center'}}>{entry.status === 'pending' && <input type="checkbox" checked={selectedItems.includes(entry.id)} onChange={() => toggleSelection(entry.id)} />}</td>}
-          <td style={{...tdStyle, textAlign: 'center', fontWeight: '600', color: '#64748b'}}>{idx + 1}</td>
-          <td style={{...tdStyle, position: 'relative'}}>
-            {entry.status === 'draft' ? (
-              <div>
-                <input type="text" placeholder="Type 2+ letters..." value={localSearch}
-                  onChange={(e) => { setLocalSearch(e.target.value); setShowDropdown(e.target.value.length >= 2); }}
-                  onFocus={() => localSearch.length >= 2 && setShowDropdown(true)}
-                  onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-                  style={inputStyle} />
-                {showDropdown && getFilteredClients(localSearch).length > 0 && (
-                  <div style={{position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', maxHeight: '200px', overflowY: 'auto', zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'}}>
-                    {getFilteredClients(localSearch).map(c => (
-                      <div key={c.id} onMouseDown={() => handleClientSelect(c)} style={{padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9'}}
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'} onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}>
-                        <div style={{fontWeight: '500', fontSize: '13px'}}>{c.name}</div>
-                        <div style={{fontSize: '11px', color: '#64748b'}}>{c.fileNo} | {c.pan || 'No PAN'}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : <span>{entry.fileNo} - {entry.clientName}</span>}
-          </td>
-          <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.parentTask} onChange={(e) => updateTaskEntry(entry.id, 'parentTask', e.target.value)} style={inputStyle}><option value="">Select</option>{Object.keys(PARENT_CHILD_TASKS).map(p => <option key={p} value={p}>{p}</option>)}</select> : entry.parentTask}</td>
-          <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.childTask} onChange={(e) => updateTaskEntry(entry.id, 'childTask', e.target.value)} disabled={!entry.parentTask} style={inputStyle}><option value="">Select</option>{(PARENT_CHILD_TASKS[entry.parentTask] || []).map(c => <option key={c} value={c}>{c}</option>)}</select> : entry.childTask}</td>
-          <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.financialYear} onChange={(e) => updateTaskEntry(entry.id, 'financialYear', e.target.value)} style={inputStyle}>{financialYears.map(fy => <option key={fy} value={fy}>{fy}</option>)}</select> : entry.financialYear}</td>
-          <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.period} onChange={(e) => updateTaskEntry(entry.id, 'period', e.target.value)} style={inputStyle}><option value="">Select</option>{periods.map(p => <option key={p} value={p}>{p}</option>)}</select> : entry.period}</td>
-          <td style={tdStyle}>{entry.status === 'draft' ? (getSubPeriods(entry.period).length > 0 ? <select value={entry.subPeriod} onChange={(e) => updateTaskEntry(entry.id, 'subPeriod', e.target.value)} style={inputStyle}><option value="">Select</option>{getSubPeriods(entry.period).map(sp => <option key={sp} value={sp}>{sp}</option>)}</select> : <input type="text" value={entry.subPeriod || ''} onChange={(e) => updateTaskEntry(entry.id, 'subPeriod', e.target.value)} placeholder="Optional" style={inputStyle} />) : entry.subPeriod || '-'}</td>
-          <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.taskLeader} onChange={(e) => updateTaskEntry(entry.id, 'taskLeader', e.target.value)} style={inputStyle}><option value="">Select</option>{superAdmins.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : entry.taskLeader || '-'}</td>
-          <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.taskManager} onChange={(e) => updateTaskEntry(entry.id, 'taskManager', e.target.value)} style={inputStyle}><option value="">Select</option>{activeRMs.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : entry.taskManager || '-'}</td>
-          <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.primaryAssignedUser} onChange={(e) => updateTaskEntry(entry.id, 'primaryAssignedUser', e.target.value)} style={inputStyle}><option value="">Select</option>{activeStaff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : entry.primaryAssignedUser || '-'}</td>
-          <td style={tdStyle}>{entry.status === 'draft' ? <select multiple value={entry.teamMembers || []} onChange={(e) => updateTaskEntry(entry.id, 'teamMembers', Array.from(e.target.selectedOptions, o => o.value))} style={{...inputStyle, height: '60px', fontSize: '11px'}}>{activeStaff.filter(s => s.name !== entry.primaryAssignedUser).map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (entry.teamMembers?.length || 0) > 0 ? <span style={{fontSize: '11px'}}>{entry.teamMembers.join(', ')}</span> : '-'}</td>
-          <td style={tdStyle}>{entry.status === 'draft' ? <input type="text" value={entry.taskDescription || ''} onChange={(e) => updateTaskEntry(entry.id, 'taskDescription', e.target.value)} placeholder="Description" style={inputStyle} /> : entry.taskDescription || '-'}</td>
-          <td style={{...tdStyle, textAlign: 'center'}}>{getStatusBadge(entry.status)}</td>
-          <td style={{...tdStyle, textAlign: 'center'}}>
-            <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
-              {entry.status === 'draft' && (<><button onClick={() => saveEntry('tasks', entry.id)} disabled={!entry.clientId || !entry.parentTask || !entry.childTask} style={{padding: '5px 10px', background: entry.clientId && entry.parentTask && entry.childTask ? themeColors.primary : '#cbd5e1', color: '#fff', border: 'none', borderRadius: '4px', cursor: entry.clientId && entry.parentTask && entry.childTask ? 'pointer' : 'not-allowed', fontSize: '12px'}}>Save</button><button onClick={() => deleteEntry('tasks', entry.id)} style={{padding: '5px 8px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Trash2 size={12} /></button></>)}
-              {entry.status === 'pending' && canApprove && (<><button onClick={() => openEditModal(entry, 'tasks')} style={{padding: '5px 8px', background: themeColors.secondary, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Edit size={12} /></button><button onClick={() => approveAndPostTask(entry)} style={{padding: '5px 10px', background: themeColors.primary, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}}>✓</button></>)}
-              {entry.status === 'approved' && <span style={{fontSize: '12px', color: themeColors.primary, fontWeight: '600'}}>✓ Posted</span>}
-            </div>
-          </td>
-        </tr>
-      );
+    // Client select handler for task entries
+    const handleTaskClientSelect = (entryId, client) => {
+      updateTaskEntry(entryId, 'clientId', client.id);
+      setTaskClientSearch(prev => ({ ...prev, [entryId]: `${client.fileNo} - ${client.name}` }));
+      setTaskClientDropdown(prev => ({ ...prev, [entryId]: false }));
     };
-
-    // ===== CLIENT ROW COMPONENT =====
-    const ClientEntryRow = ({ entry, idx }) => (
-      <tr style={{borderBottom: '1px solid #e5e7eb', background: idx % 2 === 0 ? '#fff' : '#f9fafb'}}>
-        {canApprove && <td style={{...tdStyle, textAlign: 'center'}}>{entry.status === 'pending' && <input type="checkbox" checked={selectedItems.includes(entry.id)} onChange={() => toggleSelection(entry.id)} />}</td>}
-        <td style={{...tdStyle, textAlign: 'center', fontWeight: '600', color: '#64748b'}}>{idx + 1}</td>
-        <td style={tdStyle}>
-          {entry.status === 'draft' ? (
-            <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
-              <label style={{display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '12px'}}>
-                <input type="radio" checked={entry.groupMode === 'new'} onChange={() => updateClientEntry(entry.id, 'groupMode', 'new')} style={{accentColor: themeColors.primary}} /> New
-              </label>
-              <label style={{display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '12px'}}>
-                <input type="radio" checked={entry.groupMode === 'existing'} onChange={() => updateClientEntry(entry.id, 'groupMode', 'existing')} style={{accentColor: themeColors.primary}} /> Existing
-              </label>
-            </div>
-          ) : <span style={{fontSize: '12px', fontWeight: '500'}}>{entry.groupMode === 'new' ? 'New' : 'Existing'}</span>}
-        </td>
-        <td style={tdStyle}>
-          {entry.status === 'draft' && entry.groupMode === 'existing' ? (
-            <select value={entry.selectedGroup} onChange={(e) => updateClientEntry(entry.id, 'selectedGroup', e.target.value)} style={{...inputStyle, width: '100px'}}>
-              <option value="">Select</option>
-              {getExistingGroups().map(g => <option key={g} value={g}>Grp {g} ({getGroupClientCount(g)})</option>)}
-            </select>
-          ) : <span style={{fontWeight: '500'}}>{entry.groupNo}</span>}
-        </td>
-        <td style={{...tdStyle, fontWeight: '600', color: themeColors.primary}}>{entry.fileNo}</td>
-        <td style={tdStyle}>{entry.status === 'draft' ? <input type="text" value={entry.name || ''} onChange={(e) => updateClientEntry(entry.id, 'name', e.target.value)} placeholder="Client Name *" style={inputStyle} /> : entry.name}</td>
-        <td style={tdStyle}>{entry.status === 'draft' ? <input type="text" value={entry.pan || ''} onChange={(e) => updateClientEntry(entry.id, 'pan', e.target.value.toUpperCase())} placeholder="PAN" maxLength={10} style={{...inputStyle, textTransform: 'uppercase'}} /> : entry.pan || '-'}</td>
-        <td style={tdStyle}>{entry.status === 'draft' ? <input type="text" value={entry.gstin || ''} onChange={(e) => updateClientEntry(entry.id, 'gstin', e.target.value.toUpperCase())} placeholder="GSTIN" maxLength={15} style={{...inputStyle, textTransform: 'uppercase'}} /> : entry.gstin || '-'}</td>
-        <td style={tdStyle}>{entry.status === 'draft' ? <input type="tel" value={entry.phone || ''} onChange={(e) => updateClientEntry(entry.id, 'phone', e.target.value)} placeholder="Phone" style={inputStyle} /> : entry.phone || '-'}</td>
-        <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.typeOfClient || ''} onChange={(e) => updateClientEntry(entry.id, 'typeOfClient', e.target.value)} style={inputStyle}><option value="">Select</option>{clientTypes.map(t => <option key={t} value={t}>{t}</option>)}</select> : entry.typeOfClient || '-'}</td>
-        <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.state || ''} onChange={(e) => updateClientEntry(entry.id, 'state', e.target.value)} style={inputStyle}><option value="">Select</option>{states.map(s => <option key={s} value={s}>{s}</option>)}</select> : entry.state || '-'}</td>
-        <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.reportingManager || ''} onChange={(e) => updateClientEntry(entry.id, 'reportingManager', e.target.value)} style={inputStyle}><option value="">Select</option>{activeRMs.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : entry.reportingManager || '-'}</td>
-        <td style={{...tdStyle, textAlign: 'center'}}>{getStatusBadge(entry.status)}</td>
-        <td style={{...tdStyle, textAlign: 'center'}}>
-          <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
-            {entry.status === 'draft' && (<><button onClick={() => saveEntry('clients', entry.id)} disabled={!entry.name} style={{padding: '5px 10px', background: entry.name ? themeColors.primary : '#cbd5e1', color: '#fff', border: 'none', borderRadius: '4px', cursor: entry.name ? 'pointer' : 'not-allowed', fontSize: '12px'}}>Save</button><button onClick={() => deleteEntry('clients', entry.id)} style={{padding: '5px 8px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Trash2 size={12} /></button></>)}
-            {entry.status === 'pending' && canApprove && (<><button onClick={() => openEditModal(entry, 'clients')} style={{padding: '5px 8px', background: themeColors.secondary, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Edit size={12} /></button><button onClick={() => approveAndPostClient(entry)} style={{padding: '5px 10px', background: themeColors.primary, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}}>✓</button></>)}
-            {entry.status === 'approved' && <span style={{fontSize: '12px', color: themeColors.primary, fontWeight: '600'}}>✓ {entry.generatedFileNo || entry.fileNo}</span>}
-          </div>
-        </td>
-      </tr>
-    );
-
-    // ===== TEAM MEMBER ROW COMPONENT =====
-    const TeamMemberEntryRow = ({ entry, idx }) => {
-      const [localSearch, setLocalSearch] = useState(entry.taskCode ? `${entry.taskCode} - ${entry.clientName}` : '');
-      const [showDropdown, setShowDropdown] = useState(false);
-      
-      const handleTaskSelect = (task) => {
-        updateTeamMemberEntry(entry.id, 'taskId', task.id);
-        setLocalSearch(`${task.taskCode} - ${task.clientName}`);
-        setShowDropdown(false);
-      };
-      
-      return (
-        <tr style={{borderBottom: '1px solid #e5e7eb', background: idx % 2 === 0 ? '#fff' : '#f9fafb'}}>
-          {canApprove && <td style={{...tdStyle, textAlign: 'center'}}>{entry.status === 'pending' && <input type="checkbox" checked={selectedItems.includes(entry.id)} onChange={() => toggleSelection(entry.id)} />}</td>}
-          <td style={{...tdStyle, textAlign: 'center', fontWeight: '600', color: '#64748b'}}>{idx + 1}</td>
-          <td style={{...tdStyle, position: 'relative'}}>
-            {entry.status === 'draft' ? (
-              <div>
-                <input type="text" placeholder="Type task code or client..." value={localSearch}
-                  onChange={(e) => { setLocalSearch(e.target.value); setShowDropdown(e.target.value.length >= 2); }}
-                  onFocus={() => localSearch.length >= 2 && setShowDropdown(true)}
-                  onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-                  style={inputStyle} />
-                {showDropdown && getFilteredTasks(localSearch).length > 0 && (
-                  <div style={{position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', maxHeight: '200px', overflowY: 'auto', zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'}}>
-                    {getFilteredTasks(localSearch).map(t => (
-                      <div key={t.id} onMouseDown={() => handleTaskSelect(t)} style={{padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9'}}
-                        onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'} onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}>
-                        <div style={{fontWeight: '600', color: themeColors.primary, fontSize: '13px'}}>{t.taskCode}</div>
-                        <div style={{fontSize: '13px'}}>{t.clientName}</div>
-                        <div style={{fontSize: '11px', color: '#64748b'}}>{t.parentTask} → {t.childTask}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : <span>{entry.taskCode} - {entry.clientName}</span>}
-          </td>
-          <td style={{...tdStyle, fontWeight: '600', color: themeColors.primary}}>{entry.taskCode || '-'}</td>
-          <td style={tdStyle}>{entry.clientName || '-'}</td>
-          <td style={tdStyle}>{entry.currentPrimaryUser || '-'}</td>
-          <td style={{...tdStyle, textAlign: 'center'}}>{entry.status === 'draft' && entry.taskId ? <input type="checkbox" checked={entry.changePrimary || false} onChange={(e) => updateTeamMemberEntry(entry.id, 'changePrimary', e.target.checked)} /> : entry.changePrimary ? 'Yes' : 'No'}</td>
-          <td style={tdStyle}>{entry.status === 'draft' && entry.changePrimary ? <select value={entry.newPrimaryUser || ''} onChange={(e) => updateTeamMemberEntry(entry.id, 'newPrimaryUser', e.target.value)} style={inputStyle}><option value="">Select</option>{activeStaff.filter(s => s.name !== entry.currentPrimaryUser).map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : entry.newPrimaryUser || '-'}</td>
-          <td style={tdStyle}>{entry.status === 'draft' && entry.taskId ? <select multiple value={entry.additionalMembers || []} onChange={(e) => updateTeamMemberEntry(entry.id, 'additionalMembers', Array.from(e.target.selectedOptions, o => o.value))} style={{...inputStyle, height: '70px', fontSize: '12px'}}>{activeStaff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (entry.additionalMembers?.length || 0) > 0 ? <span style={{fontSize: '12px'}}>{entry.additionalMembers.join(', ')}</span> : '-'}</td>
-          <td style={{...tdStyle, textAlign: 'center'}}>{getStatusBadge(entry.status)}</td>
-          <td style={{...tdStyle, textAlign: 'center'}}>
-            <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
-              {entry.status === 'draft' && (<><button onClick={() => saveEntry('teamMembers', entry.id)} disabled={!entry.taskId || (!entry.changePrimary && (!entry.additionalMembers || entry.additionalMembers.length === 0))} style={{padding: '5px 10px', background: entry.taskId && (entry.changePrimary || entry.additionalMembers?.length > 0) ? themeColors.primary : '#cbd5e1', color: '#fff', border: 'none', borderRadius: '4px', cursor: entry.taskId && (entry.changePrimary || entry.additionalMembers?.length > 0) ? 'pointer' : 'not-allowed', fontSize: '12px'}}>Save</button><button onClick={() => deleteEntry('teamMembers', entry.id)} style={{padding: '5px 8px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Trash2 size={12} /></button></>)}
-              {entry.status === 'pending' && canApprove && (<><button onClick={() => openEditModal(entry, 'teamMembers')} style={{padding: '5px 8px', background: themeColors.secondary, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Edit size={12} /></button><button onClick={() => approveTeamMemberEntry(entry)} style={{padding: '5px 10px', background: themeColors.primary, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}}>✓</button></>)}
-              {entry.status === 'approved' && <span style={{fontSize: '12px', color: themeColors.primary, fontWeight: '600'}}>✓ Applied</span>}
-            </div>
-          </td>
-        </tr>
-      );
+    
+    // Task select handler for team member entries
+    const handleTeamTaskSelect = (entryId, task) => {
+      updateTeamMemberEntry(entryId, 'taskId', task.id);
+      setTeamTaskSearch(prev => ({ ...prev, [entryId]: `${task.taskCode} - ${task.clientName}` }));
+      setTeamTaskDropdown(prev => ({ ...prev, [entryId]: false }));
     };
 
     return (
@@ -29378,7 +29228,7 @@ ${invoiceHtml}
                 <thead><tr style={{background: themeColors.gradient}}>
                   {canApprove && <th style={{...thStyle, width: '40px', textAlign: 'center'}}><input type="checkbox" checked={selectedItems.length > 0} onChange={selectAllVisible} /></th>}
                   <th style={{...thStyle, width: '50px', textAlign: 'center'}}>S.No</th>
-                  <th style={{...thStyle, minWidth: '180px'}}>Client (Search)</th>
+                  <th style={{...thStyle, minWidth: '200px'}}>Client (Type to search)</th>
                   <th style={{...thStyle, minWidth: '120px'}}>Parent Task</th>
                   <th style={{...thStyle, minWidth: '120px'}}>Child Task</th>
                   <th style={{...thStyle, width: '100px'}}>FY</th>
@@ -29394,7 +29244,65 @@ ${invoiceHtml}
                 </tr></thead>
                 <tbody>
                   {getVisibleTaskEntries().length === 0 ? <tr><td colSpan={canApprove ? 15 : 14} style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>No entries. Click "Add Task" to create one.</td></tr>
-                  : getVisibleTaskEntries().map((entry, idx) => <TaskEntryRow key={entry.id} entry={entry} idx={idx} />)}
+                  : getVisibleTaskEntries().map((entry, idx) => (
+                    <tr key={entry.id} style={{borderBottom: '1px solid #e5e7eb', background: idx % 2 === 0 ? '#fff' : '#f9fafb'}}>
+                      {canApprove && <td style={{...tdStyle, textAlign: 'center'}}>{entry.status === 'pending' && <input type="checkbox" checked={selectedItems.includes(entry.id)} onChange={() => toggleSelection(entry.id)} />}</td>}
+                      <td style={{...tdStyle, textAlign: 'center', fontWeight: '600', color: '#64748b'}}>{idx + 1}</td>
+                      <td style={{...tdStyle, position: 'relative'}}>
+                        {entry.status === 'draft' ? (
+                          <div>
+                            <input 
+                              type="text" 
+                              placeholder="Type 2+ letters to search..." 
+                              value={taskClientSearch[entry.id] !== undefined ? taskClientSearch[entry.id] : (entry.clientName ? `${entry.fileNo} - ${entry.clientName}` : '')}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setTaskClientSearch(prev => ({ ...prev, [entry.id]: val }));
+                                setTaskClientDropdown(prev => ({ ...prev, [entry.id]: val.length >= 2 }));
+                              }}
+                              onFocus={() => {
+                                const val = taskClientSearch[entry.id] || '';
+                                if (val.length >= 2) setTaskClientDropdown(prev => ({ ...prev, [entry.id]: true }));
+                              }}
+                              onBlur={() => setTimeout(() => setTaskClientDropdown(prev => ({ ...prev, [entry.id]: false })), 200)}
+                              style={inputStyle} 
+                            />
+                            {taskClientDropdown[entry.id] && getFilteredClients(taskClientSearch[entry.id] || '').length > 0 && (
+                              <div style={{position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', maxHeight: '200px', overflowY: 'auto', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'}}>
+                                {getFilteredClients(taskClientSearch[entry.id] || '').map(c => (
+                                  <div key={c.id} onMouseDown={(e) => { e.preventDefault(); handleTaskClientSelect(entry.id, c); }} 
+                                    style={{padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9'}}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'} 
+                                    onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}>
+                                    <div style={{fontWeight: '500', fontSize: '13px'}}>{c.name}</div>
+                                    <div style={{fontSize: '11px', color: '#64748b'}}>{c.fileNo} | {c.pan || 'No PAN'}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ) : <span>{entry.fileNo} - {entry.clientName}</span>}
+                      </td>
+                      <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.parentTask} onChange={(e) => updateTaskEntry(entry.id, 'parentTask', e.target.value)} style={inputStyle}><option value="">Select</option>{Object.keys(PARENT_CHILD_TASKS).map(p => <option key={p} value={p}>{p}</option>)}</select> : entry.parentTask}</td>
+                      <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.childTask} onChange={(e) => updateTaskEntry(entry.id, 'childTask', e.target.value)} disabled={!entry.parentTask} style={inputStyle}><option value="">Select</option>{(PARENT_CHILD_TASKS[entry.parentTask] || []).map(c => <option key={c} value={c}>{c}</option>)}</select> : entry.childTask}</td>
+                      <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.financialYear} onChange={(e) => updateTaskEntry(entry.id, 'financialYear', e.target.value)} style={inputStyle}>{financialYears.map(fy => <option key={fy} value={fy}>{fy}</option>)}</select> : entry.financialYear}</td>
+                      <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.period} onChange={(e) => updateTaskEntry(entry.id, 'period', e.target.value)} style={inputStyle}><option value="">Select</option>{periods.map(p => <option key={p} value={p}>{p}</option>)}</select> : entry.period}</td>
+                      <td style={tdStyle}>{entry.status === 'draft' ? (getSubPeriods(entry.period).length > 0 ? <select value={entry.subPeriod} onChange={(e) => updateTaskEntry(entry.id, 'subPeriod', e.target.value)} style={inputStyle}><option value="">Select</option>{getSubPeriods(entry.period).map(sp => <option key={sp} value={sp}>{sp}</option>)}</select> : <input type="text" value={entry.subPeriod || ''} onChange={(e) => updateTaskEntry(entry.id, 'subPeriod', e.target.value)} placeholder="Optional" style={inputStyle} />) : entry.subPeriod || '-'}</td>
+                      <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.taskLeader} onChange={(e) => updateTaskEntry(entry.id, 'taskLeader', e.target.value)} style={inputStyle}><option value="">Select</option>{superAdmins.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : entry.taskLeader || '-'}</td>
+                      <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.taskManager} onChange={(e) => updateTaskEntry(entry.id, 'taskManager', e.target.value)} style={inputStyle}><option value="">Select</option>{activeRMs.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : entry.taskManager || '-'}</td>
+                      <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.primaryAssignedUser} onChange={(e) => updateTaskEntry(entry.id, 'primaryAssignedUser', e.target.value)} style={inputStyle}><option value="">Select</option>{activeStaff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : entry.primaryAssignedUser || '-'}</td>
+                      <td style={tdStyle}>{entry.status === 'draft' ? <select multiple value={entry.teamMembers || []} onChange={(e) => updateTaskEntry(entry.id, 'teamMembers', Array.from(e.target.selectedOptions, o => o.value))} style={{...inputStyle, height: '60px', fontSize: '11px'}}>{activeStaff.filter(s => s.name !== entry.primaryAssignedUser).map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (entry.teamMembers?.length || 0) > 0 ? <span style={{fontSize: '11px'}}>{entry.teamMembers.join(', ')}</span> : '-'}</td>
+                      <td style={tdStyle}>{entry.status === 'draft' ? <input type="text" value={entry.taskDescription || ''} onChange={(e) => updateTaskEntry(entry.id, 'taskDescription', e.target.value)} placeholder="Description" style={inputStyle} /> : entry.taskDescription || '-'}</td>
+                      <td style={{...tdStyle, textAlign: 'center'}}>{getStatusBadge(entry.status)}</td>
+                      <td style={{...tdStyle, textAlign: 'center'}}>
+                        <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
+                          {entry.status === 'draft' && (<><button onClick={() => saveEntry('tasks', entry.id)} disabled={!entry.clientId || !entry.parentTask || !entry.childTask} style={{padding: '5px 10px', background: entry.clientId && entry.parentTask && entry.childTask ? themeColors.primary : '#cbd5e1', color: '#fff', border: 'none', borderRadius: '4px', cursor: entry.clientId && entry.parentTask && entry.childTask ? 'pointer' : 'not-allowed', fontSize: '12px'}}>Save</button><button onClick={() => deleteEntry('tasks', entry.id)} style={{padding: '5px 8px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Trash2 size={12} /></button></>)}
+                          {entry.status === 'pending' && canApprove && (<><button onClick={() => openEditModal(entry, 'tasks')} style={{padding: '5px 8px', background: themeColors.secondary, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Edit size={12} /></button><button onClick={() => approveAndPostTask(entry)} style={{padding: '5px 10px', background: themeColors.primary, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}}>✓</button></>)}
+                          {entry.status === 'approved' && <span style={{fontSize: '12px', color: themeColors.primary, fontWeight: '600'}}>✓ Posted</span>}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -29424,7 +29332,48 @@ ${invoiceHtml}
                 </tr></thead>
                 <tbody>
                   {getVisibleClientEntries().length === 0 ? <tr><td colSpan={canApprove ? 14 : 13} style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>No entries. Click "Add Client" to create one.</td></tr>
-                  : getVisibleClientEntries().map((entry, idx) => <ClientEntryRow key={entry.id} entry={entry} idx={idx} />)}
+                  : getVisibleClientEntries().map((entry, idx) => (
+                    <tr key={entry.id} style={{borderBottom: '1px solid #e5e7eb', background: idx % 2 === 0 ? '#fff' : '#f9fafb'}}>
+                      {canApprove && <td style={{...tdStyle, textAlign: 'center'}}>{entry.status === 'pending' && <input type="checkbox" checked={selectedItems.includes(entry.id)} onChange={() => toggleSelection(entry.id)} />}</td>}
+                      <td style={{...tdStyle, textAlign: 'center', fontWeight: '600', color: '#64748b'}}>{idx + 1}</td>
+                      <td style={tdStyle}>
+                        {entry.status === 'draft' ? (
+                          <div style={{display: 'flex', gap: '6px', alignItems: 'center'}}>
+                            <label style={{display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer', fontSize: '11px'}}>
+                              <input type="radio" name={`grp-${entry.id}`} checked={entry.groupMode === 'new'} onChange={() => updateClientEntryField(entry.id, 'groupMode', 'new')} style={{accentColor: themeColors.primary}} /> New
+                            </label>
+                            <label style={{display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer', fontSize: '11px'}}>
+                              <input type="radio" name={`grp-${entry.id}`} checked={entry.groupMode === 'existing'} onChange={() => updateClientEntryField(entry.id, 'groupMode', 'existing')} style={{accentColor: themeColors.primary}} /> Existing
+                            </label>
+                          </div>
+                        ) : <span style={{fontSize: '12px', fontWeight: '500'}}>{entry.groupMode === 'new' ? 'New' : 'Existing'}</span>}
+                      </td>
+                      <td style={tdStyle}>
+                        {entry.status === 'draft' && entry.groupMode === 'existing' ? (
+                          <select value={entry.selectedGroup || ''} onChange={(e) => updateClientEntryField(entry.id, 'selectedGroup', e.target.value)} style={{...inputStyle, width: '90px', fontSize: '12px'}}>
+                            <option value="">Select</option>
+                            {getExistingGroups().map(g => <option key={g} value={g}>Grp {g} ({getGroupClientCount(g)})</option>)}
+                          </select>
+                        ) : <span style={{fontWeight: '500'}}>{entry.groupNo}</span>}
+                      </td>
+                      <td style={{...tdStyle, fontWeight: '600', color: themeColors.primary}}>{entry.fileNo}</td>
+                      <td style={tdStyle}>{entry.status === 'draft' ? <input type="text" value={entry.name || ''} onChange={(e) => updateClientEntryField(entry.id, 'name', e.target.value)} placeholder="Client Name *" style={inputStyle} /> : entry.name}</td>
+                      <td style={tdStyle}>{entry.status === 'draft' ? <input type="text" value={entry.pan || ''} onChange={(e) => updateClientEntryField(entry.id, 'pan', e.target.value.toUpperCase())} placeholder="PAN" maxLength={10} style={{...inputStyle, textTransform: 'uppercase'}} /> : entry.pan || '-'}</td>
+                      <td style={tdStyle}>{entry.status === 'draft' ? <input type="text" value={entry.gstin || ''} onChange={(e) => updateClientEntryField(entry.id, 'gstin', e.target.value.toUpperCase())} placeholder="GSTIN" maxLength={15} style={{...inputStyle, textTransform: 'uppercase'}} /> : entry.gstin || '-'}</td>
+                      <td style={tdStyle}>{entry.status === 'draft' ? <input type="tel" value={entry.phone || ''} onChange={(e) => updateClientEntryField(entry.id, 'phone', e.target.value)} placeholder="Phone" style={inputStyle} /> : entry.phone || '-'}</td>
+                      <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.typeOfClient || ''} onChange={(e) => updateClientEntryField(entry.id, 'typeOfClient', e.target.value)} style={inputStyle}><option value="">Select</option>{clientTypes.map(t => <option key={t} value={t}>{t}</option>)}</select> : entry.typeOfClient || '-'}</td>
+                      <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.state || ''} onChange={(e) => updateClientEntryField(entry.id, 'state', e.target.value)} style={inputStyle}><option value="">Select</option>{states.map(s => <option key={s} value={s}>{s}</option>)}</select> : entry.state || '-'}</td>
+                      <td style={tdStyle}>{entry.status === 'draft' ? <select value={entry.reportingManager || ''} onChange={(e) => updateClientEntryField(entry.id, 'reportingManager', e.target.value)} style={inputStyle}><option value="">Select</option>{activeRMs.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : entry.reportingManager || '-'}</td>
+                      <td style={{...tdStyle, textAlign: 'center'}}>{getStatusBadge(entry.status)}</td>
+                      <td style={{...tdStyle, textAlign: 'center'}}>
+                        <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
+                          {entry.status === 'draft' && (<><button onClick={() => saveEntry('clients', entry.id)} disabled={!entry.name} style={{padding: '5px 10px', background: entry.name ? themeColors.primary : '#cbd5e1', color: '#fff', border: 'none', borderRadius: '4px', cursor: entry.name ? 'pointer' : 'not-allowed', fontSize: '12px'}}>Save</button><button onClick={() => deleteEntry('clients', entry.id)} style={{padding: '5px 8px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Trash2 size={12} /></button></>)}
+                          {entry.status === 'pending' && canApprove && (<><button onClick={() => openEditModal(entry, 'clients')} style={{padding: '5px 8px', background: themeColors.secondary, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Edit size={12} /></button><button onClick={() => approveAndPostClient(entry)} style={{padding: '5px 10px', background: themeColors.primary, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}}>✓</button></>)}
+                          {entry.status === 'approved' && <span style={{fontSize: '12px', color: themeColors.primary, fontWeight: '600'}}>✓ {entry.generatedFileNo || entry.fileNo}</span>}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -29439,7 +29388,7 @@ ${invoiceHtml}
                 <thead><tr style={{background: themeColors.gradient}}>
                   {canApprove && <th style={{...thStyle, width: '40px', textAlign: 'center'}}><input type="checkbox" checked={selectedItems.length > 0} onChange={selectAllVisible} /></th>}
                   <th style={{...thStyle, width: '50px', textAlign: 'center'}}>S.No</th>
-                  <th style={{...thStyle, minWidth: '220px'}}>Task (Search)</th>
+                  <th style={{...thStyle, minWidth: '220px'}}>Task (Type to search)</th>
                   <th style={{...thStyle, width: '100px'}}>Task Code</th>
                   <th style={{...thStyle, minWidth: '150px'}}>Client</th>
                   <th style={{...thStyle, width: '130px'}}>Current Primary</th>
@@ -29451,7 +29400,62 @@ ${invoiceHtml}
                 </tr></thead>
                 <tbody>
                   {getVisibleTeamMemberEntries().length === 0 ? <tr><td colSpan={canApprove ? 11 : 10} style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>No entries. Click "Add Team Member" to add members to existing tasks.</td></tr>
-                  : getVisibleTeamMemberEntries().map((entry, idx) => <TeamMemberEntryRow key={entry.id} entry={entry} idx={idx} />)}
+                  : getVisibleTeamMemberEntries().map((entry, idx) => (
+                    <tr key={entry.id} style={{borderBottom: '1px solid #e5e7eb', background: idx % 2 === 0 ? '#fff' : '#f9fafb'}}>
+                      {canApprove && <td style={{...tdStyle, textAlign: 'center'}}>{entry.status === 'pending' && <input type="checkbox" checked={selectedItems.includes(entry.id)} onChange={() => toggleSelection(entry.id)} />}</td>}
+                      <td style={{...tdStyle, textAlign: 'center', fontWeight: '600', color: '#64748b'}}>{idx + 1}</td>
+                      <td style={{...tdStyle, position: 'relative'}}>
+                        {entry.status === 'draft' ? (
+                          <div>
+                            <input 
+                              type="text" 
+                              placeholder="Type task code or client..." 
+                              value={teamTaskSearch[entry.id] !== undefined ? teamTaskSearch[entry.id] : (entry.taskCode ? `${entry.taskCode} - ${entry.clientName}` : '')}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setTeamTaskSearch(prev => ({ ...prev, [entry.id]: val }));
+                                setTeamTaskDropdown(prev => ({ ...prev, [entry.id]: val.length >= 2 }));
+                              }}
+                              onFocus={() => {
+                                const val = teamTaskSearch[entry.id] || '';
+                                if (val.length >= 2) setTeamTaskDropdown(prev => ({ ...prev, [entry.id]: true }));
+                              }}
+                              onBlur={() => setTimeout(() => setTeamTaskDropdown(prev => ({ ...prev, [entry.id]: false })), 200)}
+                              style={inputStyle} 
+                            />
+                            {teamTaskDropdown[entry.id] && getFilteredTasks(teamTaskSearch[entry.id] || '').length > 0 && (
+                              <div style={{position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', maxHeight: '200px', overflowY: 'auto', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'}}>
+                                {getFilteredTasks(teamTaskSearch[entry.id] || '').map(t => (
+                                  <div key={t.id} onMouseDown={(e) => { e.preventDefault(); handleTeamTaskSelect(entry.id, t); }} 
+                                    style={{padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9'}}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'} 
+                                    onMouseLeave={(e) => e.currentTarget.style.background = '#fff'}>
+                                    <div style={{fontWeight: '600', color: themeColors.primary, fontSize: '13px'}}>{t.taskCode}</div>
+                                    <div style={{fontSize: '13px'}}>{t.clientName}</div>
+                                    <div style={{fontSize: '11px', color: '#64748b'}}>{t.parentTask} → {t.childTask}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ) : <span>{entry.taskCode} - {entry.clientName}</span>}
+                      </td>
+                      <td style={{...tdStyle, fontWeight: '600', color: themeColors.primary}}>{entry.taskCode || '-'}</td>
+                      <td style={tdStyle}>{entry.clientName || '-'}</td>
+                      <td style={tdStyle}>{entry.currentPrimaryUser || '-'}</td>
+                      <td style={{...tdStyle, textAlign: 'center'}}>{entry.status === 'draft' && entry.taskId ? <input type="checkbox" checked={entry.changePrimary || false} onChange={(e) => updateTeamMemberEntry(entry.id, 'changePrimary', e.target.checked)} /> : entry.changePrimary ? 'Yes' : 'No'}</td>
+                      <td style={tdStyle}>{entry.status === 'draft' && entry.changePrimary ? <select value={entry.newPrimaryUser || ''} onChange={(e) => updateTeamMemberEntry(entry.id, 'newPrimaryUser', e.target.value)} style={inputStyle}><option value="">Select</option>{activeStaff.filter(s => s.name !== entry.currentPrimaryUser).map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : entry.newPrimaryUser || '-'}</td>
+                      <td style={tdStyle}>{entry.status === 'draft' && entry.taskId ? <select multiple value={entry.additionalMembers || []} onChange={(e) => updateTeamMemberEntry(entry.id, 'additionalMembers', Array.from(e.target.selectedOptions, o => o.value))} style={{...inputStyle, height: '70px', fontSize: '12px'}}>{activeStaff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (entry.additionalMembers?.length || 0) > 0 ? <span style={{fontSize: '12px'}}>{entry.additionalMembers.join(', ')}</span> : '-'}</td>
+                      <td style={{...tdStyle, textAlign: 'center'}}>{getStatusBadge(entry.status)}</td>
+                      <td style={{...tdStyle, textAlign: 'center'}}>
+                        <div style={{display: 'flex', gap: '4px', justifyContent: 'center'}}>
+                          {entry.status === 'draft' && (<><button onClick={() => saveEntry('teamMembers', entry.id)} disabled={!entry.taskId || (!entry.changePrimary && (!entry.additionalMembers || entry.additionalMembers.length === 0))} style={{padding: '5px 10px', background: entry.taskId && (entry.changePrimary || entry.additionalMembers?.length > 0) ? themeColors.primary : '#cbd5e1', color: '#fff', border: 'none', borderRadius: '4px', cursor: entry.taskId && (entry.changePrimary || entry.additionalMembers?.length > 0) ? 'pointer' : 'not-allowed', fontSize: '12px'}}>Save</button><button onClick={() => deleteEntry('teamMembers', entry.id)} style={{padding: '5px 8px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Trash2 size={12} /></button></>)}
+                          {entry.status === 'pending' && canApprove && (<><button onClick={() => openEditModal(entry, 'teamMembers')} style={{padding: '5px 8px', background: themeColors.secondary, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer'}}><Edit size={12} /></button><button onClick={() => approveTeamMemberEntry(entry)} style={{padding: '5px 10px', background: themeColors.primary, color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'}}>✓</button></>)}
+                          {entry.status === 'approved' && <span style={{fontSize: '12px', color: themeColors.primary, fontWeight: '600'}}>✓ Applied</span>}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -29473,8 +29477,8 @@ ${invoiceHtml}
         
         {/* Edit Modal */}
         {editingEntry && editFormData && (
-          <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000}}>
-            <div style={{background: '#fff', borderRadius: '12px', width: '90%', maxWidth: '700px', maxHeight: '85vh', overflow: 'auto'}}>
+          <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000}} onClick={() => { setEditingEntry(null); setEditFormData(null); }}>
+            <div style={{background: '#fff', borderRadius: '12px', width: '90%', maxWidth: '700px', maxHeight: '85vh', overflow: 'auto'}} onClick={(e) => e.stopPropagation()}>
               <div style={{padding: '20px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: '#fff'}}>
                 <h3 style={{margin: 0, fontSize: '18px', fontWeight: '600'}}>Edit {editingEntry.type === 'tasks' ? 'Task' : editingEntry.type === 'clients' ? 'Client' : 'Team Member'} Entry</h3>
                 <button onClick={() => { setEditingEntry(null); setEditFormData(null); }} style={{background: 'none', border: 'none', cursor: 'pointer'}}><X size={20} /></button>
@@ -29488,7 +29492,7 @@ ${invoiceHtml}
                     <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Financial Year</label><select value={editFormData.financialYear} onChange={(e) => setEditFormData({...editFormData, financialYear: e.target.value})} style={inputStyle}>{financialYears.map(fy => <option key={fy} value={fy}>{fy}</option>)}</select></div>
                     <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Period</label><select value={editFormData.period} onChange={(e) => setEditFormData({...editFormData, period: e.target.value, subPeriod: ''})} style={inputStyle}>{periods.map(p => <option key={p} value={p}>{p}</option>)}</select></div>
                     <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Sub-Period</label>{getSubPeriods(editFormData.period).length > 0 ? <select value={editFormData.subPeriod} onChange={(e) => setEditFormData({...editFormData, subPeriod: e.target.value})} style={inputStyle}><option value="">Select</option>{getSubPeriods(editFormData.period).map(sp => <option key={sp} value={sp}>{sp}</option>)}</select> : <input type="text" value={editFormData.subPeriod || ''} onChange={(e) => setEditFormData({...editFormData, subPeriod: e.target.value})} style={inputStyle} />}</div>
-                    <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Task Leader (Superadmin)</label><select value={editFormData.taskLeader} onChange={(e) => setEditFormData({...editFormData, taskLeader: e.target.value})} style={inputStyle}><option value="">Select</option>{superAdmins.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
+                    <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Task Leader</label><select value={editFormData.taskLeader} onChange={(e) => setEditFormData({...editFormData, taskLeader: e.target.value})} style={inputStyle}><option value="">Select</option>{superAdmins.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
                     <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Task Manager</label><select value={editFormData.taskManager} onChange={(e) => setEditFormData({...editFormData, taskManager: e.target.value})} style={inputStyle}><option value="">Select</option>{activeRMs.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
                     <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Primary Assigned User</label><select value={editFormData.primaryAssignedUser} onChange={(e) => setEditFormData({...editFormData, primaryAssignedUser: e.target.value})} style={inputStyle}><option value="">Select</option>{activeStaff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
                     <div><label style={{fontSize: '13px', fontWeight: '500', color: '#374151', display: 'block', marginBottom: '6px'}}>Team Members</label><select multiple value={editFormData.teamMembers || []} onChange={(e) => setEditFormData({...editFormData, teamMembers: Array.from(e.target.selectedOptions, o => o.value)})} style={{...inputStyle, height: '80px'}}>{activeStaff.filter(s => s.name !== editFormData.primaryAssignedUser).map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
