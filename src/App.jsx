@@ -16111,6 +16111,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const [unbilledTaskDetails, setUnbilledTaskDetails] = useState({}); // {taskId: {orgId, amount, tax}}
     const [viewingUnbilledTask, setViewingUnbilledTask] = useState(null); // Task being viewed
     
+    // Remark Dialog State (replaces browser prompt)
+    const [remarkDialog, setRemarkDialog] = useState({ show: false, value: '', onSave: null, title: 'Enter Remark' });
+    
     // Billing States
     const [billingMode, setBillingMode] = useState('single'); // 'single', 'multiple', 'bulk'
     const [singleTaskMode, setSingleTaskMode] = useState('withTask'); // 'withTask', 'withoutTask'
@@ -16443,7 +16446,9 @@ Rohan Desai,rohan.desai@example.com,9876543224,Reporting Manager,2019-03-25,1989
     const [editingGeneratedInvoice, setEditingGeneratedInvoice] = useState(null);
     
     const [orgForm, setOrgForm] = useState({
+      orgId: '', // User-defined Organization ID (e.g., ORG001)
       name: '',
+      tagline: '', // e.g., "Chartered Accountants"
       website: '',
       faxNo: '',
       authorizedSignatory: '',
@@ -17977,7 +17982,7 @@ ${invoiceHtml}
       if (!invoices || invoices.length === 0) return;
       
       if (asSingle) {
-        // Build combined HTML with proper formatting
+        // Build combined HTML using the unified green/blue format
         let combinedHtml = `
           <!DOCTYPE html>
           <html>
@@ -17987,53 +17992,9 @@ ${invoiceHtml}
             <style>
               * { margin: 0; padding: 0; box-sizing: border-box; }
               body { font-family: Arial, Helvetica, sans-serif; background: #fff; color: #1f2937; font-size: 12px; }
-              .invoice-wrapper { max-width: 800px; margin: 0 auto; }
-              .invoice-container { border: 2px solid #111827; margin-bottom: 20px; background: #fff; }
-              .header { background: #111827; color: #fff; padding: 20px 25px; }
-              .header-content { display: table; width: 100%; }
-              .header-left { display: table-cell; vertical-align: middle; }
-              .header-right { display: table-cell; text-align: right; vertical-align: middle; }
-              .org-name { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
-              .org-address { font-size: 11px; opacity: 0.9; max-width: 300px; }
-              .invoice-title { font-size: 24px; font-weight: bold; letter-spacing: 2px; }
-              .org-contact { font-size: 11px; opacity: 0.9; margin-top: 5px; }
-              .meta-row { display: table; width: 100%; background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
-              .meta-cell { display: table-cell; padding: 12px 15px; border-right: 1px solid #e5e7eb; width: 25%; }
-              .meta-cell:last-child { border-right: none; }
-              .meta-label { font-size: 9px; color: #6b7280; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
-              .meta-value { font-size: 14px; font-weight: 700; color: #111827; margin-top: 2px; }
-              .party-row { display: table; width: 100%; border-bottom: 1px solid #e5e7eb; }
-              .party-cell { display: table-cell; padding: 15px 20px; vertical-align: top; width: 50%; }
-              .party-cell:first-child { border-right: 1px solid #e5e7eb; }
-              .party-label { font-size: 10px; color: #fff; background: #111827; display: inline-block; padding: 2px 8px; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 8px; }
-              .party-name { font-size: 14px; font-weight: 600; color: #1f2937; }
-              .party-detail { font-size: 11px; color: #6b7280; margin-top: 3px; }
-              .items-table { width: 100%; border-collapse: collapse; }
-              .items-header { background: #111827; }
-              .items-header th { padding: 10px 12px; text-align: left; color: #fff; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; border-right: 1px solid rgba(255,255,255,0.2); }
-              .items-header th:last-child { border-right: none; text-align: right; }
-              .items-header th:first-child { text-align: center; width: 40px; }
-              .items-row td { padding: 14px 12px; border-bottom: 1px solid #e5e7eb; }
-              .bottom-row { display: table; width: 100%; border-top: 1px solid #374151; }
-              .bottom-left { display: table-cell; padding: 15px 20px; vertical-align: top; width: 55%; border-right: 1px solid #e5e7eb; }
-              .bottom-right { display: table-cell; padding: 0; vertical-align: top; width: 45%; }
-              .section-label { font-size: 10px; color: #fff; background: #374151; display: inline-block; padding: 2px 8px; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 6px; }
-              .amount-words { font-size: 12px; font-weight: 500; color: #1f2937; font-style: italic; margin-bottom: 12px; }
-              .bank-details { font-size: 11px; color: #4b5563; line-height: 1.6; }
-              .totals-table { width: 100%; border-collapse: collapse; }
-              .totals-table td { padding: 8px 15px; border-bottom: 1px solid #e5e7eb; }
-              .total-row { background: #111827; }
-              .total-row td { color: #fff; font-size: 14px; font-weight: 700; padding: 12px 15px; border: none; }
-              .signature-row { display: table; width: 100%; border-top: 1px solid #e5e7eb; }
-              .signature-cell { display: table-cell; padding: 15px 20px; text-align: right; vertical-align: bottom; }
-              .signature-name { font-size: 12px; font-weight: 600; color: #1f2937; }
-              .signatory { font-size: 11px; color: #6b7280; }
-              .footer { background: #111827; padding: 8px 20px; font-size: 9px; color: #fff; text-align: center; }
               @media print {
                 body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                 .page-break { page-break-after: always; }
-                .invoice-container { border: 2px solid #111827 !important; margin-bottom: 0; }
-                .header, .items-header, .total-row, .party-label, .section-label, .footer { background: #111827 !important; -webkit-print-color-adjust: exact !important; }
               }
             </style>
           </head>
@@ -18041,192 +18002,10 @@ ${invoiceHtml}
         `;
         
         invoices.forEach((invoice, idx) => {
-          const currentOrg = orgs?.find(o => o.id === (invoice.orgId || invoice.organizationId)) || {};
-          const client = clients?.find(c => c.id === invoice.clientId) || {};
-          
-          const gstApplicable = invoice.gstApplicable !== false && currentOrg.gstApplicable === 'yes';
-          const invoiceFormat = invoice.invoiceFormat || (gstApplicable ? 'taxInvoice' : 'billOfSupply');
-          const showGst = gstApplicable && invoiceFormat !== 'billOfSupply';
-          
-          let invoiceTitle = 'TAX INVOICE';
-          if (invoiceFormat === 'billOfSupply') invoiceTitle = 'BILL OF SUPPLY';
-          else if (invoiceFormat === 'proformaInvoice') invoiceTitle = 'PROFORMA INVOICE';
-          
-          const displayOrg = {
-            name: currentOrg.name || invoice.orgName || invoice.organizationName || '',
-            address: currentOrg.address || invoice.orgAddress || '',
-            mobile: currentOrg.mobile || '',
-            gstin: currentOrg.gstin || invoice.orgGstin || '',
-            pan: currentOrg.pan || '',
-            bankName: currentOrg.bankName || '',
-            bankAccount: currentOrg.bankAccount || currentOrg.bankAccountNo || '',
-            bankIfsc: currentOrg.bankIfsc || '',
-            signatory: currentOrg.signatory || '',
-          };
-          
-          const displayClient = {
-            name: invoice.clientName || client.name || '',
-            address: invoice.clientAddress || client.address || '',
-            gstin: invoice.clientGstin || client.gstin || '',
-            state: invoice.clientState || client.state || '',
-            code: invoice.clientCode || '',
-          };
-          
-          const invoiceDate = new Date(invoice.invoiceDate).toLocaleDateString('en-IN', {day: '2-digit', month: 'short', year: 'numeric'});
-          const netAmount = invoice.netAmount || invoice.amount || 0;
-          const totalAmount = invoice.totalAmount || 0;
-          
-          // Build line items
-          let lineItemsHtml = '';
-          if (invoice.lineItems && invoice.lineItems.length > 0) {
-            invoice.lineItems.forEach((item, i) => {
-              lineItemsHtml += `
-                <tr class="items-row" style="background: ${i % 2 === 0 ? '#fff' : '#f9fafb'};">
-                  <td style="text-align: center; color: #6b7280; border-right: 1px solid #e5e7eb;">${i + 1}</td>
-                  <td style="font-weight: 500; color: #1f2937; border-right: 1px solid #e5e7eb;">${item.description || 'Professional Services'}</td>
-                  ${showGst ? `<td style="text-align: center; color: #6b7280; border-right: 1px solid #e5e7eb;">998231</td>` : ''}
-                  ${showGst ? `<td style="text-align: center; color: #6b7280; border-right: 1px solid #e5e7eb;">18%</td>` : ''}
-                  <td style="text-align: right; font-weight: 600; color: #1f2937;">₹${(item.netAmount || item.amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                </tr>
-              `;
-            });
-          } else {
-            lineItemsHtml = `
-              <tr class="items-row">
-                <td style="text-align: center; color: #6b7280; border-right: 1px solid #e5e7eb;">1</td>
-                <td style="font-weight: 500; color: #1f2937; border-right: 1px solid #e5e7eb;">${invoice.serviceDescription || invoice.narration || 'Professional Services'}</td>
-                ${showGst ? `<td style="text-align: center; color: #6b7280; border-right: 1px solid #e5e7eb;">${invoice.sac || '998231'}</td>` : ''}
-                ${showGst ? `<td style="text-align: center; color: #6b7280; border-right: 1px solid #e5e7eb;">18%</td>` : ''}
-                <td style="text-align: right; font-weight: 600; color: #1f2937;">₹${netAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-              </tr>
-            `;
-          }
-          
-          // GST rows
-          let gstRowsHtml = '';
-          if (showGst) {
-            if (invoice.cgst > 0) gstRowsHtml += `<tr><td style="color: #6b7280;">CGST @9%</td><td style="text-align: right; font-weight: 600;">₹${(invoice.cgst || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>`;
-            if (invoice.sgst > 0) gstRowsHtml += `<tr><td style="color: #6b7280;">SGST @9%</td><td style="text-align: right; font-weight: 600;">₹${(invoice.sgst || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>`;
-            if (invoice.igst > 0) gstRowsHtml += `<tr><td style="color: #6b7280;">IGST @18%</td><td style="text-align: right; font-weight: 600;">₹${(invoice.igst || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>`;
-          }
-          
+          const invoiceHtml = generateInvoiceHtmlForPdf(invoice, orgs, clients);
           combinedHtml += `
-            <div class="invoice-wrapper ${idx < invoices.length - 1 ? 'page-break' : ''}">
-              <div class="invoice-container">
-                <!-- Header -->
-                <div class="header">
-                  <div class="header-content">
-                    <div class="header-left">
-                      <div class="org-name">${displayOrg.name}</div>
-                      <div class="org-address">${displayOrg.address}</div>
-                    </div>
-                    <div class="header-right">
-                      <div class="invoice-title">${invoiceTitle}</div>
-                      ${displayOrg.mobile ? `<div class="org-contact">Tel: ${displayOrg.mobile}</div>` : ''}
-                      ${showGst && displayOrg.gstin ? `<div style="font-size: 11px; margin-top: 3px;">GSTIN: ${displayOrg.gstin}</div>` : ''}
-                    </div>
-                  </div>
-                </div>
-                
-                <!-- Invoice Meta -->
-                <div class="meta-row">
-                  <div class="meta-cell">
-                    <div class="meta-label">Invoice No.</div>
-                    <div class="meta-value">${invoice.invoiceNo}</div>
-                  </div>
-                  <div class="meta-cell">
-                    <div class="meta-label">Date</div>
-                    <div class="meta-value">${invoiceDate}</div>
-                  </div>
-                  <div class="meta-cell">
-                    <div class="meta-label">Place of Supply</div>
-                    <div class="meta-value">${displayClient.state || '-'}</div>
-                  </div>
-                  <div class="meta-cell">
-                    <div class="meta-label">Client Code</div>
-                    <div class="meta-value">${displayClient.code || '-'}</div>
-                  </div>
-                </div>
-                
-                <!-- Party Details -->
-                <div class="party-row">
-                  <div class="party-cell">
-                    <div class="party-label">FROM</div>
-                    <div class="party-name">${displayOrg.name}</div>
-                    ${showGst && displayOrg.gstin ? `<div class="party-detail">GSTIN: <strong>${displayOrg.gstin}</strong></div>` : ''}
-                    ${displayOrg.pan ? `<div class="party-detail">PAN: <strong>${displayOrg.pan}</strong></div>` : ''}
-                  </div>
-                  <div class="party-cell">
-                    <div class="party-label">BILL TO</div>
-                    <div class="party-name">${displayClient.name}</div>
-                    ${displayClient.address ? `<div class="party-detail">${displayClient.address}</div>` : ''}
-                    ${showGst && displayClient.gstin ? `<div class="party-detail">GSTIN: <strong>${displayClient.gstin}</strong></div>` : ''}
-                  </div>
-                </div>
-                
-                <!-- Items Table -->
-                <table class="items-table">
-                  <thead>
-                    <tr class="items-header">
-                      <th style="text-align: center; width: 40px;">S.No</th>
-                      <th>Description of Services</th>
-                      ${showGst ? '<th style="text-align: center; width: 70px;">SAC</th>' : ''}
-                      ${showGst ? '<th style="text-align: center; width: 50px;">Tax%</th>' : ''}
-                      <th style="text-align: right; width: 120px;">Amount (₹)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${lineItemsHtml}
-                  </tbody>
-                </table>
-                
-                <!-- Bottom Section -->
-                <div class="bottom-row">
-                  <div class="bottom-left">
-                    <div style="margin-bottom: 12px;">
-                      <div class="section-label">AMOUNT IN WORDS</div>
-                      <div class="amount-words">${invoice.amountInWords || 'Rupees ' + numberToWords(Math.round(totalAmount)) + ' Only'}</div>
-                    </div>
-                    <div>
-                      <div class="section-label">BANK DETAILS</div>
-                      <div class="bank-details">
-                        <div>Bank: <strong>${displayOrg.bankName || '-'}</strong></div>
-                        <div>A/C No: <strong>${displayOrg.bankAccount || '-'}</strong></div>
-                        <div>IFSC: <strong>${displayOrg.bankIfsc || '-'}</strong></div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="bottom-right">
-                    <table class="totals-table">
-                      <tr>
-                        <td style="color: #6b7280;">Subtotal</td>
-                        <td style="text-align: right; font-weight: 600;">₹${netAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                      </tr>
-                      ${invoice.discount > 0 ? `<tr><td style="color: #6b7280;">Discount</td><td style="text-align: right; font-weight: 600; color: #dc2626;">- ₹${(invoice.discount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>` : ''}
-                      ${gstRowsHtml}
-                      <tr class="total-row">
-                        <td>TOTAL</td>
-                        <td style="text-align: right;">₹${totalAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                      </tr>
-                    </table>
-                  </div>
-                </div>
-                
-                <!-- Signature -->
-                <div class="signature-row">
-                  <div class="signature-cell">
-                    <div style="margin-bottom: 30px;"></div>
-                    <div class="signature-name">For ${displayOrg.name}</div>
-                    ${displayOrg.signatory ? `<div class="signatory">${displayOrg.signatory}</div>` : ''}
-                    <div class="signatory">Authorized Signatory</div>
-                  </div>
-                </div>
-                
-                <!-- Footer -->
-                <div class="footer">
-                  Computer generated ${invoiceTitle.toLowerCase()}. ${showGst ? 'Subject to local jurisdiction.' : 'GST Not Applicable.'}
-                </div>
-              </div>
+            <div style="margin-bottom: 40px;" class="${idx < invoices.length - 1 ? 'page-break' : ''}">
+              ${invoiceHtml}
             </div>
           `;
         });
@@ -18707,7 +18486,9 @@ ${invoiceHtml}
       // Create clean org data with Storage URLs instead of base64
       const orgData = {
         id: orgId,
+        orgId: orgForm.orgId || '', // User-defined Org ID (e.g., ORG001)
         name: orgForm.name || '',
+        tagline: orgForm.tagline || '', // e.g., "Chartered Accountants"
         website: orgForm.website || '',
         faxNo: orgForm.faxNo || '',
         authorizedSignatory: orgForm.authorizedSignatory || '',
@@ -20122,10 +19903,10 @@ ${invoiceHtml}
                 <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '12px'}}>
                   <thead>
                     <tr style={{background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'}}>
+                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669', width: '80px'}}>Org ID</th>
                       <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Organization</th>
                       <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Address Details</th>
                       <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Contact Details</th>
-                      <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Website Details</th>
                       <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>GSTIN/PAN No.</th>
                       <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Bank Details</th>
                       <th style={{padding: '12px 10px', textAlign: 'left', fontWeight: '600', color: '#fff', border: '1px solid #059669'}}>Authorized Signatory</th>
@@ -20143,7 +19924,11 @@ ${invoiceHtml}
                     ) : (
                       (data.organizations || []).map((org, idx) => (
                         <tr key={org.id} style={{background: idx % 2 === 0 ? '#fff' : '#f8fafc'}}>
-                          <td style={{padding: '10px', border: '1px solid #e5e7eb', fontWeight: '600', color: '#10b981'}}>{org.name}</td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb', fontWeight: '700', color: '#4f46e5', fontFamily: 'monospace', fontSize: '11px'}}>{org.orgId || '-'}</td>
+                          <td style={{padding: '10px', border: '1px solid #e5e7eb'}}>
+                            <div style={{fontWeight: '600', color: '#10b981'}}>{org.name}</div>
+                            {org.tagline && <div style={{fontSize: '10px', color: '#64748b', fontStyle: 'italic'}}>{org.tagline}</div>}
+                          </td>
                           <td style={{padding: '10px', border: '1px solid #e5e7eb'}}>
                             <div style={{fontSize: '11px', color: '#374151'}}>
                               <div><strong style={{color: '#64748b'}}>Address:</strong> {org.address || '-'}</div>
@@ -20155,12 +19940,6 @@ ${invoiceHtml}
                               <div><strong style={{color: '#64748b'}}>Phone:</strong> {org.phoneNo || '-'}</div>
                               <div><strong style={{color: '#64748b'}}>Mobile:</strong> {org.mobileNo || '-'}</div>
                               <div><strong style={{color: '#64748b'}}>Email:</strong> {org.emailId || '-'}</div>
-                            </div>
-                          </td>
-                          <td style={{padding: '10px', border: '1px solid #e5e7eb'}}>
-                            <div style={{fontSize: '11px', color: '#374151'}}>
-                              <div><strong style={{color: '#64748b'}}>Website:</strong> {org.website || '-'}</div>
-                              <div><strong style={{color: '#64748b'}}>Fax:</strong> {org.faxNo || '-'}</div>
                             </div>
                           </td>
                           <td style={{padding: '10px', border: '1px solid #e5e7eb'}}>
@@ -21756,7 +21535,7 @@ ${invoiceHtml}
                                     {/* Organization Selector */}
                                     <div style={{marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '16px'}}>
                                       <div style={{flex: 1, maxWidth: '300px'}}>
-                                        <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Organisation *</label>
+                                        <label style={{display: 'block', fontSize: '11px', fontWeight: '600', marginBottom: '6px', color: '#065f46'}}>Org ID *</label>
                                         <select
                                           value={clientBillingData.organizationId}
                                           onChange={(e) => {
@@ -21765,11 +21544,11 @@ ${invoiceHtml}
                                             );
                                             setMultipleTaskClientBilling(updated);
                                           }}
-                                          style={{width: '100%', padding: '10px 12px', border: '2px solid #10b981', borderRadius: '8px', fontSize: '13px', background: '#fff', fontWeight: '500'}}
+                                          style={{width: '100%', padding: '10px 12px', border: '2px solid #10b981', borderRadius: '8px', fontSize: '13px', background: '#fff', fontWeight: '600', fontFamily: 'monospace'}}
                                         >
-                                          <option value="">Select Organisation</option>
+                                          <option value="">Select Org ID</option>
                                           {(data.organizations || []).map(o => (
-                                            <option key={o.id} value={o.id}>{o.name}</option>
+                                            <option key={o.id} value={o.id}>{o.orgId || o.name?.substring(0,8)} - {o.name}</option>
                                           ))}
                                         </select>
                                       </div>
@@ -21825,23 +21604,28 @@ ${invoiceHtml}
                                                   <td style={{padding: '12px', textAlign: 'center'}}>
                                                     <button
                                                       onClick={() => {
-                                                        const newRemark = prompt('Enter Remark:', task.remark || '');
-                                                        if (newRemark !== null) {
-                                                          const updated = multipleTaskClientBilling.map(cb => {
-                                                            if (cb.clientName === client.name) {
-                                                              const newTasks = [...cb.tasks];
-                                                              newTasks[taskIdx] = {...newTasks[taskIdx], remark: newRemark};
-                                                              return {...cb, tasks: newTasks};
-                                                            }
-                                                            return cb;
-                                                          });
-                                                          setMultipleTaskClientBilling(updated);
-                                                        }
+                                                        setRemarkDialog({
+                                                          show: true,
+                                                          value: task.remark || '',
+                                                          title: `Remarks for ${task.taskType}`,
+                                                          onSave: (newRemark) => {
+                                                            const updated = multipleTaskClientBilling.map(cb => {
+                                                              if (cb.clientName === client.name) {
+                                                                const newTasks = [...cb.tasks];
+                                                                newTasks[taskIdx] = {...newTasks[taskIdx], remark: newRemark};
+                                                                return {...cb, tasks: newTasks};
+                                                              }
+                                                              return cb;
+                                                            });
+                                                            setMultipleTaskClientBilling(updated);
+                                                          }
+                                                        });
                                                       }}
                                                       title={task.remark || 'Click to add remark'}
                                                       style={{padding: '4px 8px', background: task.remark ? '#f0fdf4' : '#f1f5f9', border: task.remark ? '2px solid #10b981' : '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', color: task.remark ? '#059669' : '#64748b'}}
                                                     >
                                                       {task.remark ? '📝' : '+'}
+                                                    </button>
                                                     </button>
                                                   </td>
                                                   <td style={{padding: '12px', textAlign: 'right', color: '#64748b', fontSize: '11px'}}>₹{(task.agreedFees || 0).toLocaleString('en-IN')}</td>
@@ -22976,10 +22760,9 @@ ${invoiceHtml}
                                   <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', width: '70px'}}>Code</th>
                                   <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', minWidth: '120px'}}>Client Name</th>
                                   <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', width: '100px'}}>Task</th>
+                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', width: '90px'}}>Org ID</th>
                                   <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', minWidth: '160px'}}>Narration</th>
                                   <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'center', width: '60px'}}>Remark</th>
-                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', width: '80px'}}>Period</th>
-                                  <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'left', minWidth: '150px'}}>Organisation</th>
                                   <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'right', width: '80px'}}>Agreed</th>
                                   <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'right', width: '90px'}}>Amount</th>
                                   <th style={{padding: '14px 10px', color: '#fff', fontWeight: '600', textAlign: 'right', width: '70px'}}>Disc</th>
@@ -23021,6 +22804,22 @@ ${invoiceHtml}
                                       <td style={{padding: '12px 10px', fontWeight: '600', color: '#1e293b', fontSize: '12px'}}>{row.clientName}</td>
                                       <td style={{padding: '12px 10px', fontSize: '11px'}}>{row.taskType}</td>
                                       <td style={{padding: '12px 10px'}}>
+                                        <select
+                                          value={row.organizationId}
+                                          onChange={(e) => {
+                                            const updated = [...bulkBillingData];
+                                            updated[idx].organizationId = e.target.value;
+                                            setBulkBillingData(updated);
+                                          }}
+                                          style={{width: '100%', padding: '6px 8px', border: '1px solid #d1fae5', borderRadius: '6px', fontSize: '10px', background: '#f0fdf4', fontFamily: 'monospace', fontWeight: '600'}}
+                                        >
+                                          <option value="">Select</option>
+                                          {(data.organizations || []).map(o => (
+                                            <option key={o.id} value={o.id}>{o.orgId || o.name?.substring(0,8)}</option>
+                                          ))}
+                                        </select>
+                                      </td>
+                                      <td style={{padding: '12px 10px'}}>
                                         <input
                                           type="text"
                                           value={row.narration || ''}
@@ -23036,35 +22835,22 @@ ${invoiceHtml}
                                       <td style={{padding: '12px 10px', textAlign: 'center'}}>
                                         <button
                                           onClick={() => {
-                                            const newRemark = prompt('Enter Remark:', row.remark || '');
-                                            if (newRemark !== null) {
-                                              const updated = [...bulkBillingData];
-                                              updated[idx].remark = newRemark;
-                                              setBulkBillingData(updated);
-                                            }
+                                            setRemarkDialog({
+                                              show: true,
+                                              value: row.remark || '',
+                                              title: `Remarks for ${row.clientName}`,
+                                              onSave: (newRemark) => {
+                                                const updated = [...bulkBillingData];
+                                                updated[idx].remark = newRemark;
+                                                setBulkBillingData(updated);
+                                              }
+                                            });
                                           }}
                                           title={row.remark || 'Click to add remark'}
                                           style={{padding: '4px 8px', background: row.remark ? '#f0fdf4' : '#f1f5f9', border: row.remark ? '2px solid #10b981' : '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', color: row.remark ? '#059669' : '#64748b'}}
                                         >
                                           {row.remark ? '📝' : '+'}
                                         </button>
-                                      </td>
-                                      <td style={{padding: '12px 10px', fontSize: '11px'}}>{row.subPeriod || row.period}</td>
-                                      <td style={{padding: '12px 10px'}}>
-                                        <select
-                                          value={row.organizationId}
-                                          onChange={(e) => {
-                                            const updated = [...bulkBillingData];
-                                            updated[idx].organizationId = e.target.value;
-                                            setBulkBillingData(updated);
-                                          }}
-                                          style={{width: '100%', padding: '6px 8px', border: '1px solid #d1fae5', borderRadius: '6px', fontSize: '11px', background: '#f0fdf4'}}
-                                        >
-                                          <option value="">Select</option>
-                                          {(data.organizations || []).map(o => (
-                                            <option key={o.id} value={o.id}>{o.name}</option>
-                                          ))}
-                                        </select>
                                       </td>
                                       <td style={{padding: '12px 10px', textAlign: 'right', color: '#64748b', fontSize: '11px'}}>
                                         ₹{(row.agreedFees || 0).toLocaleString('en-IN')}
@@ -24531,11 +24317,11 @@ ${invoiceHtml}
                               <th style={{padding: '12px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', width: '40px'}}>S.No</th>
                               <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', minWidth: '100px'}}>Client</th>
                               <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', minWidth: '100px'}}>Task</th>
-                              <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', minWidth: '140px'}}>Organization *</th>
-                              <th style={{padding: '12px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', width: '80px'}}>Agreed</th>
-                              <th style={{padding: '12px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', width: '100px'}}>Amount *</th>
+                              <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', width: '100px'}}>Org ID *</th>
                               <th style={{padding: '12px 8px', textAlign: 'left', fontWeight: '600', color: '#fff', minWidth: '150px'}}>Narration</th>
                               <th style={{padding: '12px 8px', textAlign: 'center', fontWeight: '600', color: '#fff', width: '70px'}}>Remarks</th>
+                              <th style={{padding: '12px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', width: '80px'}}>Agreed</th>
+                              <th style={{padding: '12px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', width: '100px'}}>Amount *</th>
                               <th style={{padding: '12px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', width: '80px'}}>GST</th>
                               <th style={{padding: '12px 8px', textAlign: 'right', fontWeight: '600', color: '#fff', width: '90px'}}>Total</th>
                             </tr>
@@ -24582,33 +24368,13 @@ ${invoiceHtml}
                                         }
                                       }));
                                     }}
-                                    style={{width: '100%', padding: '6px 8px', border: '2px solid #e2e8f0', borderRadius: '6px', fontSize: '10px', background: taskDetail.orgId ? '#f0fdf4' : '#fff'}}
+                                    style={{width: '100%', padding: '6px 8px', border: '2px solid #e2e8f0', borderRadius: '6px', fontSize: '10px', background: taskDetail.orgId ? '#f0fdf4' : '#fff', fontFamily: 'monospace', fontWeight: '600'}}
                                   >
-                                    <option value="">Select Org</option>
+                                    <option value="">Select</option>
                                     {(data.organizations || []).map(org => (
-                                      <option key={org.id} value={org.id}>{org.name}</option>
+                                      <option key={org.id} value={org.id}>{org.orgId || org.name?.substring(0,8)}</option>
                                     ))}
                                   </select>
-                                </td>
-                                <td style={{padding: '8px', textAlign: 'right', color: '#64748b', fontSize: '10px'}}>
-                                  ₹{(parseFloat(task.agreedFees) || getClientAgreedFee(task.clientId, task.parentTask || task.taskType, task.childTask || task.subTask) || 0).toLocaleString('en-IN')}
-                                </td>
-                                <td style={{padding: '6px'}}>
-                                  <input
-                                    type="number"
-                                    value={taskDetail.amount}
-                                    onChange={(e) => {
-                                      setUnbilledTaskDetails(prev => ({
-                                        ...prev, 
-                                        [task.id]: {
-                                          ...prev[task.id],
-                                          amount: e.target.value
-                                        }
-                                      }));
-                                    }}
-                                    placeholder="0"
-                                    style={{width: '100%', padding: '6px 8px', border: '2px solid #e2e8f0', borderRadius: '6px', fontSize: '11px', textAlign: 'right', background: taskDetail.amount > 0 ? '#f0fdf4' : '#fff'}}
-                                  />
                                 </td>
                                 <td style={{padding: '6px'}}>
                                   <input
@@ -24630,22 +24396,46 @@ ${invoiceHtml}
                                 <td style={{padding: '6px', textAlign: 'center'}}>
                                   <button
                                     onClick={() => {
-                                      const newRemark = prompt('Enter Remarks:', taskDetail.remark || '');
-                                      if (newRemark !== null) {
-                                        setUnbilledTaskDetails(prev => ({
-                                          ...prev, 
-                                          [task.id]: {
-                                            ...prev[task.id],
-                                            remark: newRemark
-                                          }
-                                        }));
-                                      }
+                                      setRemarkDialog({
+                                        show: true,
+                                        value: taskDetail.remark || '',
+                                        title: `Remarks for ${task.clientName} - ${task.childTask}`,
+                                        onSave: (newRemark) => {
+                                          setUnbilledTaskDetails(prev => ({
+                                            ...prev, 
+                                            [task.id]: {
+                                              ...prev[task.id],
+                                              remark: newRemark
+                                            }
+                                          }));
+                                        }
+                                      });
                                     }}
                                     title={taskDetail.remark || 'Click to add remarks'}
                                     style={{padding: '4px 8px', background: taskDetail.remark ? '#f0fdf4' : '#f1f5f9', border: taskDetail.remark ? '2px solid #10b981' : '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer', fontSize: '10px', color: taskDetail.remark ? '#059669' : '#64748b'}}
                                   >
                                     {taskDetail.remark ? '📝' : '+'} 
                                   </button>
+                                </td>
+                                <td style={{padding: '8px', textAlign: 'right', color: '#64748b', fontSize: '10px'}}>
+                                  ₹{(parseFloat(task.agreedFees) || getClientAgreedFee(task.clientId, task.parentTask || task.taskType, task.childTask || task.subTask) || 0).toLocaleString('en-IN')}
+                                </td>
+                                <td style={{padding: '6px'}}>
+                                  <input
+                                    type="number"
+                                    value={taskDetail.amount}
+                                    onChange={(e) => {
+                                      setUnbilledTaskDetails(prev => ({
+                                        ...prev, 
+                                        [task.id]: {
+                                          ...prev[task.id],
+                                          amount: e.target.value
+                                        }
+                                      }));
+                                    }}
+                                    placeholder="0"
+                                    style={{width: '100%', padding: '6px 8px', border: '2px solid #e2e8f0', borderRadius: '6px', fontSize: '11px', textAlign: 'right', background: taskDetail.amount > 0 ? '#f0fdf4' : '#fff'}}
+                                  />
                                 </td>
                                 <td style={{padding: '8px', textAlign: 'right'}}>
                                   <div style={{fontSize: '11px', fontWeight: '600', color: gstApplicable ? '#059669' : '#94a3b8'}}>
@@ -24677,11 +24467,10 @@ ${invoiceHtml}
                               
                               return (
                                 <tr style={{background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)'}}>
-                                  <td colSpan={5} style={{padding: '14px', textAlign: 'right', fontWeight: '700', color: '#065f46', fontSize: '13px'}}>Grand Total:</td>
+                                  <td colSpan={7} style={{padding: '14px', textAlign: 'right', fontWeight: '700', color: '#065f46', fontSize: '13px'}}>Grand Total:</td>
                                   <td style={{padding: '14px', textAlign: 'right', fontWeight: '700', color: '#047857', fontSize: '14px'}}>
                                     ₹{totalAmount.toLocaleString('en-IN')}
                                   </td>
-                                  <td colSpan={2} style={{padding: '14px'}}></td>
                                   <td style={{padding: '14px', textAlign: 'right', fontWeight: '700', color: '#d97706', fontSize: '14px'}}>
                                     ₹{totalTax.toLocaleString('en-IN')}
                                   </td>
@@ -28212,6 +28001,18 @@ ${invoiceHtml}
                   <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px'}}>
                     <div>
                       <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '4px'}}>
+                        Org ID <span style={{color: '#4f46e5', fontSize: '10px'}}>(e.g., ORG001)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={orgForm.orgId || ''}
+                        onChange={(e) => setOrgForm({...orgForm, orgId: e.target.value.toUpperCase()})}
+                        placeholder="ORG001"
+                        style={{width: '100%', padding: '10px', border: '2px solid #4f46e5', borderRadius: '6px', fontSize: '13px', fontWeight: '600', fontFamily: 'monospace', background: '#f5f3ff'}}
+                      />
+                    </div>
+                    <div>
+                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '4px'}}>
                         Organization Name <span style={{color: '#ef4444'}}>*</span>
                       </label>
                       <input
@@ -28222,20 +28023,14 @@ ${invoiceHtml}
                       />
                     </div>
                     <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '4px'}}>Website</label>
+                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '4px'}}>
+                        Tagline <span style={{color: '#64748b', fontSize: '10px'}}>(e.g., Chartered Accountants)</span>
+                      </label>
                       <input
                         type="text"
-                        value={orgForm.website}
-                        onChange={(e) => setOrgForm({...orgForm, website: e.target.value})}
-                        style={{width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'}}
-                      />
-                    </div>
-                    <div>
-                      <label style={{display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '4px'}}>FAX No.</label>
-                      <input
-                        type="text"
-                        value={orgForm.faxNo}
-                        onChange={(e) => setOrgForm({...orgForm, faxNo: e.target.value})}
+                        value={orgForm.tagline || ''}
+                        onChange={(e) => setOrgForm({...orgForm, tagline: e.target.value})}
+                        placeholder="Chartered Accountants"
                         style={{width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px'}}
                       />
                     </div>
@@ -41186,6 +40981,123 @@ ${invoiceHtml}
           }
         }
       `}</style>
+
+      {/* Custom Remark Dialog Modal - Replaces browser prompt */}
+      {remarkDialog.show && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: '16px',
+            width: '450px',
+            maxWidth: '95%',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
+            overflow: 'hidden'
+          }}>
+            {/* Header */}
+            <div style={{
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              padding: '16px 20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <h4 style={{margin: 0, fontSize: '15px', fontWeight: '700', color: '#fff'}}>
+                📝 {remarkDialog.title || 'Enter Remark'}
+              </h4>
+              <button 
+                onClick={() => setRemarkDialog({ show: false, value: '', onSave: null, title: '' })}
+                style={{background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '6px', padding: '6px 10px', cursor: 'pointer', color: '#fff', fontWeight: '600'}}
+              >
+                ✕
+              </button>
+            </div>
+            
+            {/* Content */}
+            <div style={{padding: '20px'}}>
+              <label style={{display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '8px', color: '#065f46'}}>
+                Remark / Additional Notes
+              </label>
+              <textarea
+                value={remarkDialog.value}
+                onChange={(e) => setRemarkDialog(prev => ({...prev, value: e.target.value}))}
+                rows={4}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '2px solid #d1fae5',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  resize: 'vertical',
+                  background: '#f0fdf4'
+                }}
+                placeholder="Enter your remarks here..."
+                autoFocus
+              />
+              <p style={{fontSize: '11px', color: '#64748b', marginTop: '8px'}}>
+                This remark will be displayed on the invoice below the description.
+              </p>
+            </div>
+            
+            {/* Actions */}
+            <div style={{
+              padding: '16px 20px',
+              borderTop: '1px solid #e2e8f0',
+              display: 'flex',
+              gap: '12px',
+              justifyContent: 'flex-end',
+              background: '#f8fafc'
+            }}>
+              <button
+                onClick={() => setRemarkDialog({ show: false, value: '', onSave: null, title: '' })}
+                style={{
+                  padding: '10px 20px',
+                  background: '#e2e8f0',
+                  color: '#64748b',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '13px'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (remarkDialog.onSave) {
+                    remarkDialog.onSave(remarkDialog.value);
+                  }
+                  setRemarkDialog({ show: false, value: '', onSave: null, title: '' });
+                }}
+                style={{
+                  padding: '10px 24px',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '700',
+                  fontSize: '13px',
+                  boxShadow: '0 4px 12px rgba(16,185,129,0.4)'
+                }}
+              >
+                Save Remark
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
