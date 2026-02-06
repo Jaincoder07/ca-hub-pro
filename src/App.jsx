@@ -28964,10 +28964,6 @@ ${invoiceHtml}
     
     // ===== ADD FUNCTIONS (add to local state) =====
     const addTask = () => {
-      // Reset search state when adding new row
-      setClientSearchOpen(null);
-      setClientSearchTerm('');
-      
       const entry = {
         id: generateId(), status: 'draft', createdBy: currentUser?.name,
         clientId: '', clientName: '', fileNo: '', groupName: '', clientSearch: '',
@@ -28988,10 +28984,6 @@ ${invoiceHtml}
     };
     
     const addTeamMember = () => {
-      // Reset search state when adding new row
-      setTaskSearchOpen(null);
-      setTaskSearchTerm('');
-      
       const entry = {
         id: generateId(), status: 'draft', createdBy: currentUser?.name,
         taskId: '', taskCode: '', clientName: '', taskSearch: '', currentPrimary: '',
@@ -29298,32 +29290,26 @@ ${invoiceHtml}
                               value={clientSearchOpen === e.id ? clientSearchTerm : (e.clientSearch || '')}
                               onChange={(ev) => {
                                 const term = ev.target.value;
-                                // Always update both states together
                                 setClientSearchOpen(e.id);
                                 setClientSearchTerm(term);
                                 updateDraftTask(e.id, 'clientSearch', term);
                               }}
                               onFocus={() => {
-                                // Reset and initialize for this row
                                 setClientSearchOpen(e.id);
                                 setClientSearchTerm(e.clientSearch || '');
                               }}
-                              onBlur={() => setTimeout(() => {
-                                // Only close if this row is still the active one
-                                setClientSearchOpen(prev => prev === e.id ? null : prev);
-                              }, 200)}
+                              onBlur={() => setTimeout(() => setClientSearchOpen(null), 200)}
                               placeholder="Type 2+ letters..."
                               style={inp}
                             />
-                            {clientSearchOpen === e.id && clientSearchTerm.length >= 2 && searchClients(clientSearchTerm).length > 0 && (
+                            {clientSearchOpen === e.id && clientSearchTerm.length >= 2 && (
                               <div style={{position: 'absolute', top: '100%', left: 8, right: 8, background: '#fff', border: '1px solid #ddd', borderRadius: '4px', maxHeight: '200px', overflowY: 'auto', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'}}>
-                                {searchClients(clientSearchTerm).map(c => (
+                                {searchClients(clientSearchTerm).length > 0 ? searchClients(clientSearchTerm).map(c => (
                                   <div key={c.id} 
                                     onMouseDown={(ev) => { 
                                       ev.preventDefault(); 
                                       updateDraftTask(e.id, 'clientId', c.id);
                                       updateDraftTask(e.id, 'clientSearch', `${c.fileNo} - ${getClientName(c)}`);
-                                      setClientSearchTerm(`${c.fileNo} - ${getClientName(c)}`);
                                       setClientSearchOpen(null);
                                     }}
                                     style={{padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0'}}
@@ -29332,12 +29318,9 @@ ${invoiceHtml}
                                     <div style={{fontWeight: '500', fontSize: '13px'}}>{getClientName(c)}</div>
                                     <div style={{fontSize: '11px', color: '#666'}}>{c.fileNo}</div>
                                   </div>
-                                ))}
-                              </div>
-                            )}
-                            {clientSearchOpen === e.id && clientSearchTerm.length >= 2 && searchClients(clientSearchTerm).length === 0 && (
-                              <div style={{position: 'absolute', top: '100%', left: 8, right: 8, background: '#fff', border: '1px solid #ddd', borderRadius: '4px', padding: '10px', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', color: '#999', fontSize: '12px'}}>
-                                No clients found matching "{clientSearchTerm}"
+                                )) : (
+                                  <div style={{padding: '10px', color: '#999', fontSize: '12px'}}>No clients found</div>
+                                )}
                               </div>
                             )}
                           </>
@@ -29502,32 +29485,26 @@ ${invoiceHtml}
                               value={taskSearchOpen === e.id ? taskSearchTerm : (e.taskSearch || '')}
                               onChange={(ev) => {
                                 const term = ev.target.value;
-                                // Always update both states together
                                 setTaskSearchOpen(e.id);
                                 setTaskSearchTerm(term);
                                 updateDraftTeam(e.id, 'taskSearch', term);
                               }}
                               onFocus={() => {
-                                // Reset and initialize for this row
                                 setTaskSearchOpen(e.id);
                                 setTaskSearchTerm(e.taskSearch || '');
                               }}
-                              onBlur={() => setTimeout(() => {
-                                // Only close if this row is still the active one
-                                setTaskSearchOpen(prev => prev === e.id ? null : prev);
-                              }, 200)}
+                              onBlur={() => setTimeout(() => setTaskSearchOpen(null), 200)}
                               placeholder="Type task code or client..."
                               style={inp}
                             />
-                            {taskSearchOpen === e.id && taskSearchTerm.length >= 2 && searchTasks(taskSearchTerm).length > 0 && (
+                            {taskSearchOpen === e.id && taskSearchTerm.length >= 2 && (
                               <div style={{position: 'absolute', top: '100%', left: 8, right: 8, background: '#fff', border: '1px solid #ddd', borderRadius: '4px', maxHeight: '200px', overflowY: 'auto', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'}}>
-                                {searchTasks(taskSearchTerm).map(t => (
+                                {searchTasks(taskSearchTerm).length > 0 ? searchTasks(taskSearchTerm).map(t => (
                                   <div key={t.id}
                                     onMouseDown={(ev) => {
                                       ev.preventDefault();
                                       updateDraftTeam(e.id, 'taskId', t.id);
                                       updateDraftTeam(e.id, 'taskSearch', `${t.taskCode} - ${t.clientName}`);
-                                      setTaskSearchTerm(`${t.taskCode} - ${t.clientName}`);
                                       setTaskSearchOpen(null);
                                     }}
                                     style={{padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0'}}
@@ -29536,12 +29513,9 @@ ${invoiceHtml}
                                     <div style={{fontWeight: '600', color: themeColors.primary, fontSize: '12px'}}>{t.taskCode}</div>
                                     <div style={{fontSize: '11px'}}>{t.clientName} - {t.childTask}</div>
                                   </div>
-                                ))}
-                              </div>
-                            )}
-                            {taskSearchOpen === e.id && taskSearchTerm.length >= 2 && searchTasks(taskSearchTerm).length === 0 && (
-                              <div style={{position: 'absolute', top: '100%', left: 8, right: 8, background: '#fff', border: '1px solid #ddd', borderRadius: '4px', padding: '10px', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', color: '#999', fontSize: '12px'}}>
-                                No tasks found (tasks with pending requests are excluded)
+                                )) : (
+                                  <div style={{padding: '10px', color: '#999', fontSize: '12px'}}>No tasks found (tasks with pending requests are excluded)</div>
+                                )}
                               </div>
                             )}
                           </>
