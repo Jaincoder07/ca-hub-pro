@@ -29261,6 +29261,11 @@ ${invoiceHtml}
                                 ))}
                               </div>
                             )}
+                            {clientDropdown?.id === e.id && searchClients(clientDropdown.term).length === 0 && clientDropdown.term.length >= 2 && (
+                              <div style={{position: 'absolute', top: '100%', left: 8, right: 8, background: '#fff', border: '1px solid #ddd', borderRadius: '4px', padding: '10px', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', color: '#999', fontSize: '12px'}}>
+                                No clients found matching "{clientDropdown.term}"
+                              </div>
+                            )}
                           </>
                         ) : <span style={{fontSize: '12px'}}>{e.fileNo} - {e.clientName}</span>}
                       </td>
