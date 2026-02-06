@@ -28964,6 +28964,10 @@ ${invoiceHtml}
     
     // ===== ADD FUNCTIONS (add to local state) =====
     const addTask = () => {
+      // Reset search state when adding new row
+      setClientSearchOpen(null);
+      setClientSearchTerm('');
+      
       const entry = {
         id: generateId(), status: 'draft', createdBy: currentUser?.name,
         clientId: '', clientName: '', fileNo: '', groupName: '', clientSearch: '',
@@ -28984,6 +28988,10 @@ ${invoiceHtml}
     };
     
     const addTeamMember = () => {
+      // Reset search state when adding new row
+      setTaskSearchOpen(null);
+      setTaskSearchTerm('');
+      
       const entry = {
         id: generateId(), status: 'draft', createdBy: currentUser?.name,
         taskId: '', taskCode: '', clientName: '', taskSearch: '', currentPrimary: '',
@@ -29290,15 +29298,20 @@ ${invoiceHtml}
                               value={clientSearchOpen === e.id ? clientSearchTerm : (e.clientSearch || '')}
                               onChange={(ev) => {
                                 const term = ev.target.value;
-                                setClientSearchTerm(term);
+                                // Always update both states together
                                 setClientSearchOpen(e.id);
+                                setClientSearchTerm(term);
                                 updateDraftTask(e.id, 'clientSearch', term);
                               }}
-                              onFocus={(ev) => {
-                                setClientSearchTerm(e.clientSearch || '');
+                              onFocus={() => {
+                                // Reset and initialize for this row
                                 setClientSearchOpen(e.id);
+                                setClientSearchTerm(e.clientSearch || '');
                               }}
-                              onBlur={() => setTimeout(() => setClientSearchOpen(null), 200)}
+                              onBlur={() => setTimeout(() => {
+                                // Only close if this row is still the active one
+                                setClientSearchOpen(prev => prev === e.id ? null : prev);
+                              }, 200)}
                               placeholder="Type 2+ letters..."
                               style={inp}
                             />
@@ -29310,6 +29323,7 @@ ${invoiceHtml}
                                       ev.preventDefault(); 
                                       updateDraftTask(e.id, 'clientId', c.id);
                                       updateDraftTask(e.id, 'clientSearch', `${c.fileNo} - ${getClientName(c)}`);
+                                      setClientSearchTerm(`${c.fileNo} - ${getClientName(c)}`);
                                       setClientSearchOpen(null);
                                     }}
                                     style={{padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0'}}
@@ -29488,15 +29502,20 @@ ${invoiceHtml}
                               value={taskSearchOpen === e.id ? taskSearchTerm : (e.taskSearch || '')}
                               onChange={(ev) => {
                                 const term = ev.target.value;
-                                setTaskSearchTerm(term);
+                                // Always update both states together
                                 setTaskSearchOpen(e.id);
+                                setTaskSearchTerm(term);
                                 updateDraftTeam(e.id, 'taskSearch', term);
                               }}
-                              onFocus={(ev) => {
-                                setTaskSearchTerm(e.taskSearch || '');
+                              onFocus={() => {
+                                // Reset and initialize for this row
                                 setTaskSearchOpen(e.id);
+                                setTaskSearchTerm(e.taskSearch || '');
                               }}
-                              onBlur={() => setTimeout(() => setTaskSearchOpen(null), 200)}
+                              onBlur={() => setTimeout(() => {
+                                // Only close if this row is still the active one
+                                setTaskSearchOpen(prev => prev === e.id ? null : prev);
+                              }, 200)}
                               placeholder="Type task code or client..."
                               style={inp}
                             />
@@ -29508,6 +29527,7 @@ ${invoiceHtml}
                                       ev.preventDefault();
                                       updateDraftTeam(e.id, 'taskId', t.id);
                                       updateDraftTeam(e.id, 'taskSearch', `${t.taskCode} - ${t.clientName}`);
+                                      setTaskSearchTerm(`${t.taskCode} - ${t.clientName}`);
                                       setTaskSearchOpen(null);
                                     }}
                                     style={{padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0'}}
