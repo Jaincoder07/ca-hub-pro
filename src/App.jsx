@@ -242,10 +242,6 @@ const PracticeManagementApp = () => {
   const [currentView, setCurrentView] = useState('login'); // Start with login view
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [newEntriesTab, setNewEntriesTab] = useState('tasks'); // Tab state for New Entries view
-  const [newEntriesClientSearch, setNewEntriesClientSearch] = useState({}); // Client search terms by entry ID
-  const [newEntriesClientDropdowns, setNewEntriesClientDropdowns] = useState({}); // Client dropdown visibility
-  const [newEntriesTaskSearch, setNewEntriesTaskSearch] = useState({}); // Task search terms by entry ID  
-  const [newEntriesTaskDropdowns, setNewEntriesTaskDropdowns] = useState({}); // Task dropdown visibility
   
   // App Theme State - 'green' or 'blue'
   const [appTheme, setAppTheme] = useState(() => {
@@ -28856,34 +28852,38 @@ ${invoiceHtml}
 
   // ========== NEW ENTRIES VIEW ==========
   const NewEntriesView = () => {
-    // Use parent-level states to prevent reset on re-render
+    // Use parent-level tab state to prevent reset on re-render
     const activeTab = newEntriesTab;
     const setActiveTab = setNewEntriesTab;
-    const clientSearchTerms = newEntriesClientSearch;
-    const setClientSearchTerms = setNewEntriesClientSearch;
-    const clientDropdowns = newEntriesClientDropdowns;
-    const setClientDropdowns = setNewEntriesClientDropdowns;
-    const taskSearchTerms = newEntriesTaskSearch;
-    const setTaskSearchTerms = setNewEntriesTaskSearch;
-    const taskDropdowns = newEntriesTaskDropdowns;
-    const setTaskDropdowns = setNewEntriesTaskDropdowns;
     
-    const [selectedItems, setSelectedItems] = useState([]);
+    // LOCAL state for draft entries - editing these won't trigger Firebase save
+    const [draftTasks, setDraftTasks] = useState([]);
+    const [draftClients, setDraftClients] = useState([]);
+    const [draftTeamMembers, setDraftTeamMembers] = useState([]);
+    
+    // Search dropdowns
+    const [clientDropdown, setClientDropdown] = useState(null); // entry id or null
+    const [taskDropdown, setTaskDropdown] = useState(null);
     
     const userRole = getCurrentUserRole();
     const canApprove = currentUser?.isSuperAdmin || userRole === 'Superadmin' || userRole === 'Reporting Manager';
     
-    // Get entries from data
-    const taskEntries = data.pendingTaskEntries || [];
-    const clientEntries = data.pendingClientEntries || [];
-    const teamEntries = data.pendingTeamMemberEntries || [];
+    // Get SAVED entries from data (pending/approved only)
+    const savedTaskEntries = (data.pendingTaskEntries || []).filter(e => e.status !== 'draft');
+    const savedClientEntries = (data.pendingClientEntries || []).filter(e => e.status !== 'draft');
+    const savedTeamEntries = (data.pendingTeamMemberEntries || []).filter(e => e.status !== 'draft');
+    
+    // Combine drafts (local) + saved (from data)
+    const allTaskEntries = [...draftTasks, ...savedTaskEntries];
+    const allClientEntries = [...draftClients, ...savedClientEntries];
+    const allTeamEntries = [...draftTeamMembers, ...savedTeamEntries];
     
     // Constants
     const TASKS = data.parentChildTasks || {};
-    const FYs = ['FY 2023-24', 'FY 2024-25', 'FY 2025-26'];
+    const FYs = ['FY 2023-24', 'FY 2024-25', 'FY 2025-26', 'FY 2026-27'];
     const PERIODS = ['Monthly', 'Quarterly', 'Half-Yearly', 'Annual', 'Q1', 'Q2', 'Q3', 'Q4'];
     const TYPES = ['Individual', 'Partnership', 'LLP', 'Private Limited', 'Public Limited', 'HUF', 'Trust'];
-    const STATES = ['Delhi', 'Maharashtra', 'Karnataka', 'Tamil Nadu', 'Gujarat', 'Uttar Pradesh', 'Rajasthan', 'West Bengal', 'Telangana', 'Kerala'];
+    const STATES = ['Delhi', 'Maharashtra', 'Karnataka', 'Tamil Nadu', 'Gujarat', 'Uttar Pradesh', 'Rajasthan', 'West Bengal', 'Telangana', 'Kerala', 'Andhra Pradesh', 'Punjab', 'Haryana'];
     
     const superAdmins = data.staff.filter(s => s.isSuperAdmin && s.status === 'Active');
     const rms = data.staff.filter(s => s.role === 'Reporting Manager' && s.status === 'Active');
@@ -28903,27 +28903,19 @@ ${invoiceHtml}
     
     const getNextGroup = () => {
       const groups = getGroups();
-      const pending = clientEntries.filter(e => e.groupMode === 'new' && e.groupNo).map(e => parseInt(e.groupNo));
+      const pending = [...draftClients, ...savedClientEntries].filter(e => e.groupMode === 'new' && e.groupNo).map(e => parseInt(e.groupNo));
       const all = [...groups, ...pending];
       return all.length === 0 ? 1 : Math.max(...all) + 1;
     };
     
     const getNextCode = (grp) => {
       const existing = data.clients.filter(c => c.fileNo?.startsWith(grp + '.')).map(c => parseInt(c.fileNo.split('.')[1]) || 0);
-      const pending = clientEntries.filter(e => e.groupNo === String(grp)).map(e => parseInt((e.fileNo || '').split('.')[1]) || 0);
+      const pending = [...draftClients, ...savedClientEntries].filter(e => e.groupNo === String(grp)).map(e => parseInt((e.fileNo || '').split('.')[1]) || 0);
       const max = Math.max(0, ...existing, ...pending);
       return `${grp}.${String(max + 1).padStart(2, '0')}`;
     };
     
     const getGroupCount = (grp) => data.clients.filter(c => c.fileNo?.startsWith(grp + '.')).length;
-    
-    // Sub-periods
-    const getSubPeriods = (p) => {
-      if (p === 'Monthly') return ['April','May','June','July','August','September','October','November','December','January','February','March'];
-      if (p === 'Quarterly') return ['Q1 (Apr-Jun)','Q2 (Jul-Sep)','Q3 (Oct-Dec)','Q4 (Jan-Mar)'];
-      if (p === 'Half-Yearly') return ['H1 (Apr-Sep)','H2 (Oct-Mar)'];
-      return [];
-    };
     
     // Search helpers
     const searchClients = (term) => {
@@ -28938,17 +28930,15 @@ ${invoiceHtml}
       return data.tasks.filter(x => x.taskCode?.toLowerCase().includes(t) || x.clientName?.toLowerCase().includes(t)).slice(0, 10);
     };
     
-    // ===== ADD FUNCTIONS =====
+    // ===== ADD FUNCTIONS (add to local state) =====
     const addTask = () => {
-      const id = generateId();
       const entry = {
-        id, status: 'draft', createdBy: currentUser?.name,
-        clientId: '', clientName: '', fileNo: '', groupName: '',
+        id: generateId(), status: 'draft', createdBy: currentUser?.name,
+        clientId: '', clientName: '', fileNo: '', groupName: '', clientSearch: '',
         parentTask: '', childTask: '', financialYear: 'FY 2024-25', period: '', subPeriod: '',
         taskLeader: '', taskManager: '', assignedUser: '', teamMembers: [], description: ''
       };
-      setData(p => ({...p, pendingTaskEntries: [...(p.pendingTaskEntries||[]), entry]}));
-      setClientSearchTerms(p => ({...p, [id]: ''}));
+      setDraftTasks(prev => [...prev, entry]);
     };
     
     const addClient = () => {
@@ -28958,112 +28948,96 @@ ${invoiceHtml}
         groupMode: 'new', selectedGroup: '', groupNo: String(ng), fileNo: `${ng}.01`,
         name: '', pan: '', gstin: '', phone: '', email: '', typeOfClient: '', state: '', reportingManager: ''
       };
-      setData(p => ({...p, pendingClientEntries: [...(p.pendingClientEntries||[]), entry]}));
+      setDraftClients(prev => [...prev, entry]);
     };
     
     const addTeamMember = () => {
-      const id = generateId();
       const entry = {
-        id, status: 'draft', createdBy: currentUser?.name,
-        taskId: '', taskCode: '', clientName: '', currentPrimary: '',
+        id: generateId(), status: 'draft', createdBy: currentUser?.name,
+        taskId: '', taskCode: '', clientName: '', taskSearch: '', currentPrimary: '',
         changePrimary: false, newPrimary: '', addMembers: []
       };
-      setData(p => ({...p, pendingTeamMemberEntries: [...(p.pendingTeamMemberEntries||[]), entry]}));
-      setTaskSearchTerms(p => ({...p, [id]: ''}));
+      setDraftTeamMembers(prev => [...prev, entry]);
     };
     
-    // ===== UPDATE FUNCTIONS - Using functional updates to avoid stale state =====
-    const updateTask = (id, field, val) => {
-      setData(p => ({
-        ...p,
-        pendingTaskEntries: (p.pendingTaskEntries||[]).map(e => {
-          if (e.id !== id) return e;
-          const u = {...e, [field]: val};
-          if (field === 'clientId' && val) {
-            const c = p.clients.find(x => x.id === val);
-            if (c) { u.clientName = c.name; u.fileNo = c.fileNo; u.groupName = c.groupName || c.name; }
-          }
-          if (field === 'parentTask') u.childTask = '';
-          if (field === 'period') u.subPeriod = '';
-          return u;
-        })
+    // ===== UPDATE DRAFT FUNCTIONS (local state only - no Firebase) =====
+    const updateDraftTask = (id, field, val) => {
+      setDraftTasks(prev => prev.map(e => {
+        if (e.id !== id) return e;
+        const u = {...e, [field]: val};
+        if (field === 'clientId' && val) {
+          const c = data.clients.find(x => x.id === val);
+          if (c) { u.clientName = c.name; u.fileNo = c.fileNo; u.groupName = c.groupName || c.name; }
+        }
+        if (field === 'parentTask') u.childTask = '';
+        if (field === 'period') u.subPeriod = '';
+        return u;
       }));
     };
     
-    const updateClient = (id, field, val) => {
-      setData(p => {
-        // Calculate groups inside the updater
-        const groups = [];
-        p.clients.forEach(c => {
-          if (c.fileNo) {
-            const parts = c.fileNo.split('.');
-            if (parts.length === 2) {
-              const g = parseInt(parts[0]);
-              if (!isNaN(g) && !groups.includes(g)) groups.push(g);
-            }
+    const updateDraftClient = (id, field, val) => {
+      setDraftClients(prev => prev.map(e => {
+        if (e.id !== id) return e;
+        const u = {...e, [field]: val};
+        if (field === 'groupMode') {
+          if (val === 'new') {
+            const ng = getNextGroup();
+            u.groupNo = String(ng); u.fileNo = `${ng}.01`; u.selectedGroup = '';
+          } else {
+            const groups = getGroups();
+            const first = groups[0] || '';
+            u.selectedGroup = String(first); u.groupNo = String(first);
+            u.fileNo = first ? getNextCode(first) : '';
           }
-        });
-        groups.sort((a,b) => a-b);
-        
-        const pendingGroups = (p.pendingClientEntries||[]).filter(e => e.groupMode === 'new' && e.groupNo).map(e => parseInt(e.groupNo));
-        const allGroups = [...groups, ...pendingGroups];
-        const nextGroup = allGroups.length === 0 ? 1 : Math.max(...allGroups) + 1;
-        
-        const calcNextCode = (grp) => {
-          const existing = p.clients.filter(c => c.fileNo?.startsWith(grp + '.')).map(c => parseInt(c.fileNo.split('.')[1]) || 0);
-          const pending = (p.pendingClientEntries||[]).filter(e => e.groupNo === String(grp)).map(e => parseInt((e.fileNo || '').split('.')[1]) || 0);
-          const max = Math.max(0, ...existing, ...pending);
-          return `${grp}.${String(max + 1).padStart(2, '0')}`;
-        };
-        
-        return {
-          ...p,
-          pendingClientEntries: (p.pendingClientEntries||[]).map(e => {
-            if (e.id !== id) return e;
-            const u = {...e, [field]: val};
-            if (field === 'groupMode') {
-              if (val === 'new') {
-                u.groupNo = String(nextGroup); u.fileNo = `${nextGroup}.01`; u.selectedGroup = '';
-              } else {
-                const first = groups[0] || '';
-                u.selectedGroup = String(first); u.groupNo = String(first);
-                u.fileNo = first ? calcNextCode(first) : '';
-              }
-            }
-            if (field === 'selectedGroup' && val) {
-              u.groupNo = val; u.fileNo = calcNextCode(val);
-            }
-            return u;
-          })
-        };
-      });
-    };
-    
-    const updateTeam = (id, field, val) => {
-      setData(p => ({
-        ...p,
-        pendingTeamMemberEntries: (p.pendingTeamMemberEntries||[]).map(e => {
-          if (e.id !== id) return e;
-          const u = {...e, [field]: val};
-          if (field === 'taskId' && val) {
-            const t = p.tasks.find(x => x.id === val);
-            if (t) { u.taskCode = t.taskCode; u.clientName = t.clientName; u.currentPrimary = t.primaryAssignedUser || t.assignedTo; }
-          }
-          return u;
-        })
+        }
+        if (field === 'selectedGroup' && val) {
+          u.groupNo = val; u.fileNo = getNextCode(val);
+        }
+        return u;
       }));
     };
     
-    // ===== DELETE/SAVE =====
-    const deleteEntry = (type, id) => {
-      if (!confirm('Delete?')) return;
-      const key = type === 'task' ? 'pendingTaskEntries' : type === 'client' ? 'pendingClientEntries' : 'pendingTeamMemberEntries';
-      setData(p => ({...p, [key]: (p[key]||[]).filter(e => e.id !== id)}));
+    const updateDraftTeam = (id, field, val) => {
+      setDraftTeamMembers(prev => prev.map(e => {
+        if (e.id !== id) return e;
+        const u = {...e, [field]: val};
+        if (field === 'taskId' && val) {
+          const t = data.tasks.find(x => x.id === val);
+          if (t) { u.taskCode = t.taskCode; u.clientName = t.clientName; u.currentPrimary = t.primaryAssignedUser || t.assignedTo; }
+        }
+        return u;
+      }));
     };
     
-    const saveEntry = (type, id) => {
-      const key = type === 'task' ? 'pendingTaskEntries' : type === 'client' ? 'pendingClientEntries' : 'pendingTeamMemberEntries';
-      setData(p => ({...p, [key]: (p[key]||[]).map(e => e.id === id ? {...e, status: 'pending'} : e)}));
+    // ===== DELETE DRAFT =====
+    const deleteDraft = (type, id) => {
+      if (!confirm('Delete this draft?')) return;
+      if (type === 'task') setDraftTasks(prev => prev.filter(e => e.id !== id));
+      else if (type === 'client') setDraftClients(prev => prev.filter(e => e.id !== id));
+      else setDraftTeamMembers(prev => prev.filter(e => e.id !== id));
+    };
+    
+    // ===== SAVE DRAFT (move to data with pending status) =====
+    const saveDraft = (type, id) => {
+      if (type === 'task') {
+        const entry = draftTasks.find(e => e.id === id);
+        if (!entry) return;
+        const saved = {...entry, status: 'pending', clientSearch: undefined};
+        setData(p => ({...p, pendingTaskEntries: [...(p.pendingTaskEntries||[]), saved]}));
+        setDraftTasks(prev => prev.filter(e => e.id !== id));
+      } else if (type === 'client') {
+        const entry = draftClients.find(e => e.id === id);
+        if (!entry) return;
+        const saved = {...entry, status: 'pending'};
+        setData(p => ({...p, pendingClientEntries: [...(p.pendingClientEntries||[]), saved]}));
+        setDraftClients(prev => prev.filter(e => e.id !== id));
+      } else {
+        const entry = draftTeamMembers.find(e => e.id === id);
+        if (!entry) return;
+        const saved = {...entry, status: 'pending', taskSearch: undefined};
+        setData(p => ({...p, pendingTeamMemberEntries: [...(p.pendingTeamMemberEntries||[]), saved]}));
+        setDraftTeamMembers(prev => prev.filter(e => e.id !== id));
+      }
     };
     
     // ===== APPROVE =====
@@ -29116,21 +29090,15 @@ ${invoiceHtml}
     const th = {padding: '10px 8px', background: themeColors.gradient, color: '#fff', fontSize: '12px', fontWeight: '600', textAlign: 'left'};
     const td = {padding: '8px', fontSize: '13px', borderBottom: '1px solid #e5e7eb', verticalAlign: 'top'};
     const inp = {width: '100%', padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '12px'};
-    const btn = (bg, disabled) => ({padding: '4px 8px', background: disabled ? '#ccc' : bg, color: '#fff', border: 'none', borderRadius: '4px', cursor: disabled ? 'not-allowed' : 'pointer', fontSize: '11px'});
+    const btn = (bg, disabled) => ({padding: '4px 10px', background: disabled ? '#ccc' : bg, color: '#fff', border: 'none', borderRadius: '4px', cursor: disabled ? 'not-allowed' : 'pointer', fontSize: '11px', fontWeight: '500'});
     const badge = (status) => ({padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', background: status === 'draft' ? '#f1f5f9' : status === 'pending' ? '#fef3c7' : '#dcfce7', color: status === 'draft' ? '#64748b' : status === 'pending' ? '#d97706' : '#16a34a'});
 
-    // Handle client selection
-    const selectClient = (entryId, client) => {
-      updateTask(entryId, 'clientId', client.id);
-      setClientSearchTerms(p => ({...p, [entryId]: `${client.fileNo} - ${client.name}`}));
-      setClientDropdowns(p => ({...p, [entryId]: false}));
-    };
-    
-    // Handle task selection
-    const selectTask = (entryId, task) => {
-      updateTeam(entryId, 'taskId', task.id);
-      setTaskSearchTerms(p => ({...p, [entryId]: `${task.taskCode} - ${task.clientName}`}));
-      setTaskDropdowns(p => ({...p, [entryId]: false}));
+    // Get sub-periods
+    const getSubPeriods = (p) => {
+      if (p === 'Monthly') return ['April','May','June','July','August','September','October','November','December','January','February','March'];
+      if (p === 'Quarterly') return ['Q1 (Apr-Jun)','Q2 (Jul-Sep)','Q3 (Oct-Dec)','Q4 (Jan-Mar)'];
+      if (p === 'Half-Yearly') return ['H1 (Apr-Sep)','H2 (Oct-Mar)'];
+      return [];
     };
 
     return (
@@ -29143,7 +29111,7 @@ ${invoiceHtml}
           {['tasks', 'clients', 'teamMembers'].map(t => (
             <button key={t} onClick={() => setActiveTab(t)}
               style={{padding: '10px 20px', background: activeTab === t ? themeColors.primary : '#f1f5f9', color: activeTab === t ? '#fff' : '#666', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600'}}>
-              {t === 'tasks' ? `New Tasks (${taskEntries.length})` : t === 'clients' ? `New Clients (${clientEntries.length})` : `Team Members (${teamEntries.length})`}
+              {t === 'tasks' ? `New Tasks (${allTaskEntries.length})` : t === 'clients' ? `New Clients (${allClientEntries.length})` : `Team Members (${allTeamEntries.length})`}
             </button>
           ))}
         </div>
@@ -29162,7 +29130,7 @@ ${invoiceHtml}
                 <thead>
                   <tr>
                     <th style={{...th, width: '40px'}}>#</th>
-                    <th style={{...th, width: '200px'}}>Client (Search)</th>
+                    <th style={{...th, width: '200px'}}>Client</th>
                     <th style={{...th, width: '120px'}}>Parent Task</th>
                     <th style={{...th, width: '120px'}}>Child Task</th>
                     <th style={{...th, width: '100px'}}>FY</th>
@@ -29172,13 +29140,13 @@ ${invoiceHtml}
                     <th style={{...th, width: '100px'}}>Manager</th>
                     <th style={{...th, width: '100px'}}>Assigned</th>
                     <th style={{...th, width: '70px'}}>Status</th>
-                    <th style={{...th, width: '100px'}}>Actions</th>
+                    <th style={{...th, width: '120px'}}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {taskEntries.length === 0 ? (
+                  {allTaskEntries.length === 0 ? (
                     <tr><td colSpan={12} style={{padding: '40px', textAlign: 'center', color: '#999'}}>No entries. Click "+ Add Task" to create one.</td></tr>
-                  ) : taskEntries.map((e, i) => (
+                  ) : allTaskEntries.map((e, i) => (
                     <tr key={e.id} style={{background: i % 2 ? '#f9fafb' : '#fff'}}>
                       <td style={td}>{i + 1}</td>
                       <td style={{...td, position: 'relative'}}>
@@ -29186,30 +29154,31 @@ ${invoiceHtml}
                           <>
                             <input
                               type="text"
-                              value={clientSearchTerms[e.id] !== undefined ? clientSearchTerms[e.id] : (e.clientName ? `${e.fileNo} - ${e.clientName}` : '')}
+                              value={e.clientSearch || ''}
                               onChange={(ev) => {
-                                const val = ev.target.value;
-                                setClientSearchTerms(p => ({...p, [e.id]: val}));
-                                setClientDropdowns(p => ({...p, [e.id]: val.length >= 2}));
+                                updateDraftTask(e.id, 'clientSearch', ev.target.value);
+                                setClientDropdown(ev.target.value.length >= 2 ? e.id : null);
                               }}
-                              onFocus={() => {
-                                const val = clientSearchTerms[e.id] || '';
-                                if (val.length >= 2) setClientDropdowns(p => ({...p, [e.id]: true}));
-                              }}
-                              onBlur={() => setTimeout(() => setClientDropdowns(p => ({...p, [e.id]: false})), 200)}
+                              onFocus={() => e.clientSearch?.length >= 2 && setClientDropdown(e.id)}
+                              onBlur={() => setTimeout(() => setClientDropdown(null), 200)}
                               placeholder="Type 2+ letters..."
                               style={inp}
                             />
-                            {clientDropdowns[e.id] && searchClients(clientSearchTerms[e.id]).length > 0 && (
+                            {clientDropdown === e.id && searchClients(e.clientSearch).length > 0 && (
                               <div style={{position: 'absolute', top: '100%', left: 8, right: 8, background: '#fff', border: '1px solid #ddd', borderRadius: '4px', maxHeight: '200px', overflowY: 'auto', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'}}>
-                                {searchClients(clientSearchTerms[e.id]).map(c => (
+                                {searchClients(e.clientSearch).map(c => (
                                   <div key={c.id} 
-                                    onMouseDown={(ev) => { ev.preventDefault(); selectClient(e.id, c); }}
+                                    onMouseDown={(ev) => { 
+                                      ev.preventDefault(); 
+                                      updateDraftTask(e.id, 'clientId', c.id);
+                                      updateDraftTask(e.id, 'clientSearch', `${c.fileNo} - ${c.name}`);
+                                      setClientDropdown(null);
+                                    }}
                                     style={{padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0'}}
                                     onMouseEnter={(ev) => ev.currentTarget.style.background = '#f5f5f5'}
                                     onMouseLeave={(ev) => ev.currentTarget.style.background = '#fff'}>
                                     <div style={{fontWeight: '500', fontSize: '13px'}}>{c.name}</div>
-                                    <div style={{fontSize: '11px', color: '#666'}}>{c.fileNo} | {c.pan || 'No PAN'}</div>
+                                    <div style={{fontSize: '11px', color: '#666'}}>{c.fileNo}</div>
                                   </div>
                                 ))}
                               </div>
@@ -29217,20 +29186,20 @@ ${invoiceHtml}
                           </>
                         ) : <span style={{fontSize: '12px'}}>{e.fileNo} - {e.clientName}</span>}
                       </td>
-                      <td style={td}>{e.status === 'draft' ? <select value={e.parentTask} onChange={(x) => updateTask(e.id, 'parentTask', x.target.value)} style={inp}><option value="">Select</option>{Object.keys(TASKS).map(p => <option key={p}>{p}</option>)}</select> : e.parentTask}</td>
-                      <td style={td}>{e.status === 'draft' ? <select value={e.childTask} onChange={(x) => updateTask(e.id, 'childTask', x.target.value)} style={inp} disabled={!e.parentTask}><option value="">Select</option>{(TASKS[e.parentTask]||[]).map(c => <option key={c}>{c}</option>)}</select> : e.childTask}</td>
-                      <td style={td}>{e.status === 'draft' ? <select value={e.financialYear} onChange={(x) => updateTask(e.id, 'financialYear', x.target.value)} style={inp}>{FYs.map(f => <option key={f}>{f}</option>)}</select> : e.financialYear}</td>
-                      <td style={td}>{e.status === 'draft' ? <select value={e.period} onChange={(x) => updateTask(e.id, 'period', x.target.value)} style={inp}><option value="">Select</option>{PERIODS.map(p => <option key={p}>{p}</option>)}</select> : e.period}</td>
-                      <td style={td}>{e.status === 'draft' && getSubPeriods(e.period).length > 0 ? <select value={e.subPeriod} onChange={(x) => updateTask(e.id, 'subPeriod', x.target.value)} style={inp}><option value="">Select</option>{getSubPeriods(e.period).map(s => <option key={s}>{s}</option>)}</select> : (e.subPeriod || '-')}</td>
-                      <td style={td}>{e.status === 'draft' ? <select value={e.taskLeader} onChange={(x) => updateTask(e.id, 'taskLeader', x.target.value)} style={inp}><option value="">Select</option>{superAdmins.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.taskLeader || '-')}</td>
-                      <td style={td}>{e.status === 'draft' ? <select value={e.taskManager} onChange={(x) => updateTask(e.id, 'taskManager', x.target.value)} style={inp}><option value="">Select</option>{rms.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.taskManager || '-')}</td>
-                      <td style={td}>{e.status === 'draft' ? <select value={e.assignedUser} onChange={(x) => updateTask(e.id, 'assignedUser', x.target.value)} style={inp}><option value="">Select</option>{staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.assignedUser || '-')}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.parentTask} onChange={(x) => updateDraftTask(e.id, 'parentTask', x.target.value)} style={inp}><option value="">Select</option>{Object.keys(TASKS).map(p => <option key={p}>{p}</option>)}</select> : e.parentTask}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.childTask} onChange={(x) => updateDraftTask(e.id, 'childTask', x.target.value)} style={inp} disabled={!e.parentTask}><option value="">Select</option>{(TASKS[e.parentTask]||[]).map(c => <option key={c}>{c}</option>)}</select> : e.childTask}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.financialYear} onChange={(x) => updateDraftTask(e.id, 'financialYear', x.target.value)} style={inp}>{FYs.map(f => <option key={f}>{f}</option>)}</select> : e.financialYear}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.period} onChange={(x) => updateDraftTask(e.id, 'period', x.target.value)} style={inp}><option value="">Select</option>{PERIODS.map(p => <option key={p}>{p}</option>)}</select> : e.period}</td>
+                      <td style={td}>{e.status === 'draft' && getSubPeriods(e.period).length > 0 ? <select value={e.subPeriod} onChange={(x) => updateDraftTask(e.id, 'subPeriod', x.target.value)} style={inp}><option value="">Select</option>{getSubPeriods(e.period).map(s => <option key={s}>{s}</option>)}</select> : (e.subPeriod || '-')}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.taskLeader} onChange={(x) => updateDraftTask(e.id, 'taskLeader', x.target.value)} style={inp}><option value="">Select</option>{superAdmins.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.taskLeader || '-')}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.taskManager} onChange={(x) => updateDraftTask(e.id, 'taskManager', x.target.value)} style={inp}><option value="">Select</option>{rms.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.taskManager || '-')}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.assignedUser} onChange={(x) => updateDraftTask(e.id, 'assignedUser', x.target.value)} style={inp}><option value="">Select</option>{staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.assignedUser || '-')}</td>
                       <td style={td}><span style={badge(e.status)}>{e.status}</span></td>
                       <td style={td}>
                         {e.status === 'draft' && (
                           <div style={{display: 'flex', gap: '4px'}}>
-                            <button onClick={() => saveEntry('task', e.id)} disabled={!e.clientId || !e.parentTask || !e.childTask} style={btn(themeColors.primary, !e.clientId || !e.parentTask || !e.childTask)}>Save</button>
-                            <button onClick={() => deleteEntry('task', e.id)} style={btn('#ef4444', false)}>×</button>
+                            <button onClick={() => saveDraft('task', e.id)} disabled={!e.clientId || !e.parentTask || !e.childTask} style={btn(themeColors.primary, !e.clientId || !e.parentTask || !e.childTask)}>Save</button>
+                            <button onClick={() => deleteDraft('task', e.id)} style={btn('#ef4444', false)}>×</button>
                           </div>
                         )}
                         {e.status === 'pending' && canApprove && <button onClick={() => approveTask(e)} style={btn('#16a34a', false)}>Approve</button>}
@@ -29263,24 +29232,24 @@ ${invoiceHtml}
                     <th style={{...th, width: '100px'}}>State</th>
                     <th style={{...th, width: '100px'}}>RM</th>
                     <th style={{...th, width: '70px'}}>Status</th>
-                    <th style={{...th, width: '100px'}}>Actions</th>
+                    <th style={{...th, width: '120px'}}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {clientEntries.length === 0 ? (
+                  {allClientEntries.length === 0 ? (
                     <tr><td colSpan={13} style={{padding: '40px', textAlign: 'center', color: '#999'}}>No entries. Click "+ Add Client" to create one.</td></tr>
-                  ) : clientEntries.map((e, i) => (
+                  ) : allClientEntries.map((e, i) => (
                     <tr key={e.id} style={{background: i % 2 ? '#f9fafb' : '#fff'}}>
                       <td style={td}>{i + 1}</td>
                       <td style={td}>
                         {e.status === 'draft' ? (
                           <div style={{display: 'flex', gap: '6px'}}>
                             <label style={{display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px', cursor: 'pointer'}}>
-                              <input type="radio" name={`grp_${e.id}`} checked={e.groupMode === 'new'} onChange={() => updateClient(e.id, 'groupMode', 'new')} style={{margin: 0}} />
+                              <input type="radio" name={`grp_${e.id}`} checked={e.groupMode === 'new'} onChange={() => updateDraftClient(e.id, 'groupMode', 'new')} style={{margin: 0}} />
                               New
                             </label>
                             <label style={{display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px', cursor: 'pointer'}}>
-                              <input type="radio" name={`grp_${e.id}`} checked={e.groupMode === 'existing'} onChange={() => updateClient(e.id, 'groupMode', 'existing')} style={{margin: 0}} />
+                              <input type="radio" name={`grp_${e.id}`} checked={e.groupMode === 'existing'} onChange={() => updateDraftClient(e.id, 'groupMode', 'existing')} style={{margin: 0}} />
                               Existing
                             </label>
                           </div>
@@ -29288,26 +29257,26 @@ ${invoiceHtml}
                       </td>
                       <td style={td}>
                         {e.status === 'draft' && e.groupMode === 'existing' ? (
-                          <select value={e.selectedGroup || ''} onChange={(x) => updateClient(e.id, 'selectedGroup', x.target.value)} style={{...inp, width: '85px'}}>
+                          <select value={e.selectedGroup || ''} onChange={(x) => updateDraftClient(e.id, 'selectedGroup', x.target.value)} style={{...inp, width: '85px'}}>
                             <option value="">Select</option>
                             {getGroups().map(g => <option key={g} value={g}>Grp {g} ({getGroupCount(g)})</option>)}
                           </select>
                         ) : <span style={{fontWeight: '500'}}>{e.groupNo}</span>}
                       </td>
                       <td style={{...td, fontWeight: '600', color: themeColors.primary}}>{e.fileNo}</td>
-                      <td style={td}>{e.status === 'draft' ? <input value={e.name || ''} onChange={(x) => updateClient(e.id, 'name', x.target.value)} placeholder="Client Name *" style={inp} /> : e.name}</td>
-                      <td style={td}>{e.status === 'draft' ? <input value={e.pan || ''} onChange={(x) => updateClient(e.id, 'pan', x.target.value.toUpperCase())} maxLength={10} placeholder="PAN" style={{...inp, textTransform: 'uppercase'}} /> : (e.pan || '-')}</td>
-                      <td style={td}>{e.status === 'draft' ? <input value={e.gstin || ''} onChange={(x) => updateClient(e.id, 'gstin', x.target.value.toUpperCase())} maxLength={15} placeholder="GSTIN" style={{...inp, textTransform: 'uppercase'}} /> : (e.gstin || '-')}</td>
-                      <td style={td}>{e.status === 'draft' ? <input value={e.phone || ''} onChange={(x) => updateClient(e.id, 'phone', x.target.value)} placeholder="Phone" style={inp} /> : (e.phone || '-')}</td>
-                      <td style={td}>{e.status === 'draft' ? <select value={e.typeOfClient || ''} onChange={(x) => updateClient(e.id, 'typeOfClient', x.target.value)} style={inp}><option value="">Select</option>{TYPES.map(t => <option key={t}>{t}</option>)}</select> : (e.typeOfClient || '-')}</td>
-                      <td style={td}>{e.status === 'draft' ? <select value={e.state || ''} onChange={(x) => updateClient(e.id, 'state', x.target.value)} style={inp}><option value="">Select</option>{STATES.map(s => <option key={s}>{s}</option>)}</select> : (e.state || '-')}</td>
-                      <td style={td}>{e.status === 'draft' ? <select value={e.reportingManager || ''} onChange={(x) => updateClient(e.id, 'reportingManager', x.target.value)} style={inp}><option value="">Select</option>{rms.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}</select> : (e.reportingManager || '-')}</td>
+                      <td style={td}>{e.status === 'draft' ? <input value={e.name || ''} onChange={(x) => updateDraftClient(e.id, 'name', x.target.value)} placeholder="Client Name *" style={inp} /> : e.name}</td>
+                      <td style={td}>{e.status === 'draft' ? <input value={e.pan || ''} onChange={(x) => updateDraftClient(e.id, 'pan', x.target.value.toUpperCase())} maxLength={10} placeholder="PAN" style={{...inp, textTransform: 'uppercase'}} /> : (e.pan || '-')}</td>
+                      <td style={td}>{e.status === 'draft' ? <input value={e.gstin || ''} onChange={(x) => updateDraftClient(e.id, 'gstin', x.target.value.toUpperCase())} maxLength={15} placeholder="GSTIN" style={{...inp, textTransform: 'uppercase'}} /> : (e.gstin || '-')}</td>
+                      <td style={td}>{e.status === 'draft' ? <input value={e.phone || ''} onChange={(x) => updateDraftClient(e.id, 'phone', x.target.value)} placeholder="Phone" style={inp} /> : (e.phone || '-')}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.typeOfClient || ''} onChange={(x) => updateDraftClient(e.id, 'typeOfClient', x.target.value)} style={inp}><option value="">Select</option>{TYPES.map(t => <option key={t}>{t}</option>)}</select> : (e.typeOfClient || '-')}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.state || ''} onChange={(x) => updateDraftClient(e.id, 'state', x.target.value)} style={inp}><option value="">Select</option>{STATES.map(s => <option key={s}>{s}</option>)}</select> : (e.state || '-')}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.reportingManager || ''} onChange={(x) => updateDraftClient(e.id, 'reportingManager', x.target.value)} style={inp}><option value="">Select</option>{rms.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}</select> : (e.reportingManager || '-')}</td>
                       <td style={td}><span style={badge(e.status)}>{e.status}</span></td>
                       <td style={td}>
                         {e.status === 'draft' && (
                           <div style={{display: 'flex', gap: '4px'}}>
-                            <button onClick={() => saveEntry('client', e.id)} disabled={!e.name} style={btn(themeColors.primary, !e.name)}>Save</button>
-                            <button onClick={() => deleteEntry('client', e.id)} style={btn('#ef4444', false)}>×</button>
+                            <button onClick={() => saveDraft('client', e.id)} disabled={!e.name} style={btn(themeColors.primary, !e.name)}>Save</button>
+                            <button onClick={() => deleteDraft('client', e.id)} style={btn('#ef4444', false)}>×</button>
                           </div>
                         )}
                         {e.status === 'pending' && canApprove && <button onClick={() => approveClient(e)} style={btn('#16a34a', false)}>Approve</button>}
@@ -29329,7 +29298,7 @@ ${invoiceHtml}
                 <thead>
                   <tr>
                     <th style={{...th, width: '40px'}}>#</th>
-                    <th style={{...th, width: '220px'}}>Task (Search)</th>
+                    <th style={{...th, width: '220px'}}>Task</th>
                     <th style={{...th, width: '100px'}}>Task Code</th>
                     <th style={{...th, width: '140px'}}>Client</th>
                     <th style={{...th, width: '120px'}}>Current Primary</th>
@@ -29337,13 +29306,13 @@ ${invoiceHtml}
                     <th style={{...th, width: '120px'}}>New Primary</th>
                     <th style={{...th, width: '150px'}}>Add Members</th>
                     <th style={{...th, width: '70px'}}>Status</th>
-                    <th style={{...th, width: '100px'}}>Actions</th>
+                    <th style={{...th, width: '120px'}}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {teamEntries.length === 0 ? (
+                  {allTeamEntries.length === 0 ? (
                     <tr><td colSpan={10} style={{padding: '40px', textAlign: 'center', color: '#999'}}>No entries. Click "+ Add Team Member" to modify team assignments.</td></tr>
-                  ) : teamEntries.map((e, i) => (
+                  ) : allTeamEntries.map((e, i) => (
                     <tr key={e.id} style={{background: i % 2 ? '#f9fafb' : '#fff'}}>
                       <td style={td}>{i + 1}</td>
                       <td style={{...td, position: 'relative'}}>
@@ -29351,25 +29320,26 @@ ${invoiceHtml}
                           <>
                             <input
                               type="text"
-                              value={taskSearchTerms[e.id] !== undefined ? taskSearchTerms[e.id] : (e.taskCode ? `${e.taskCode} - ${e.clientName}` : '')}
+                              value={e.taskSearch || ''}
                               onChange={(ev) => {
-                                const val = ev.target.value;
-                                setTaskSearchTerms(p => ({...p, [e.id]: val}));
-                                setTaskDropdowns(p => ({...p, [e.id]: val.length >= 2}));
+                                updateDraftTeam(e.id, 'taskSearch', ev.target.value);
+                                setTaskDropdown(ev.target.value.length >= 2 ? e.id : null);
                               }}
-                              onFocus={() => {
-                                const val = taskSearchTerms[e.id] || '';
-                                if (val.length >= 2) setTaskDropdowns(p => ({...p, [e.id]: true}));
-                              }}
-                              onBlur={() => setTimeout(() => setTaskDropdowns(p => ({...p, [e.id]: false})), 200)}
+                              onFocus={() => e.taskSearch?.length >= 2 && setTaskDropdown(e.id)}
+                              onBlur={() => setTimeout(() => setTaskDropdown(null), 200)}
                               placeholder="Type task code or client..."
                               style={inp}
                             />
-                            {taskDropdowns[e.id] && searchTasks(taskSearchTerms[e.id]).length > 0 && (
+                            {taskDropdown === e.id && searchTasks(e.taskSearch).length > 0 && (
                               <div style={{position: 'absolute', top: '100%', left: 8, right: 8, background: '#fff', border: '1px solid #ddd', borderRadius: '4px', maxHeight: '200px', overflowY: 'auto', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'}}>
-                                {searchTasks(taskSearchTerms[e.id]).map(t => (
+                                {searchTasks(e.taskSearch).map(t => (
                                   <div key={t.id}
-                                    onMouseDown={(ev) => { ev.preventDefault(); selectTask(e.id, t); }}
+                                    onMouseDown={(ev) => {
+                                      ev.preventDefault();
+                                      updateDraftTeam(e.id, 'taskId', t.id);
+                                      updateDraftTeam(e.id, 'taskSearch', `${t.taskCode} - ${t.clientName}`);
+                                      setTaskDropdown(null);
+                                    }}
                                     style={{padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0'}}
                                     onMouseEnter={(ev) => ev.currentTarget.style.background = '#f5f5f5'}
                                     onMouseLeave={(ev) => ev.currentTarget.style.background = '#fff'}>
@@ -29385,15 +29355,15 @@ ${invoiceHtml}
                       <td style={{...td, fontWeight: '600', color: themeColors.primary}}>{e.taskCode || '-'}</td>
                       <td style={td}>{e.clientName || '-'}</td>
                       <td style={td}>{e.currentPrimary || '-'}</td>
-                      <td style={{...td, textAlign: 'center'}}>{e.status === 'draft' && e.taskId ? <input type="checkbox" checked={e.changePrimary || false} onChange={(x) => updateTeam(e.id, 'changePrimary', x.target.checked)} /> : (e.changePrimary ? 'Yes' : 'No')}</td>
-                      <td style={td}>{e.status === 'draft' && e.changePrimary ? <select value={e.newPrimary || ''} onChange={(x) => updateTeam(e.id, 'newPrimary', x.target.value)} style={inp}><option value="">Select</option>{staff.filter(s => s.name !== e.currentPrimary).map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.newPrimary || '-')}</td>
-                      <td style={td}>{e.status === 'draft' && e.taskId ? <select multiple value={e.addMembers||[]} onChange={(x) => updateTeam(e.id, 'addMembers', Array.from(x.target.selectedOptions, o => o.value))} style={{...inp, height: '60px', fontSize: '11px'}}>{staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.addMembers?.join(', ') || '-')}</td>
+                      <td style={{...td, textAlign: 'center'}}>{e.status === 'draft' && e.taskId ? <input type="checkbox" checked={e.changePrimary || false} onChange={(x) => updateDraftTeam(e.id, 'changePrimary', x.target.checked)} /> : (e.changePrimary ? 'Yes' : 'No')}</td>
+                      <td style={td}>{e.status === 'draft' && e.changePrimary ? <select value={e.newPrimary || ''} onChange={(x) => updateDraftTeam(e.id, 'newPrimary', x.target.value)} style={inp}><option value="">Select</option>{staff.filter(s => s.name !== e.currentPrimary).map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.newPrimary || '-')}</td>
+                      <td style={td}>{e.status === 'draft' && e.taskId ? <select multiple value={e.addMembers||[]} onChange={(x) => updateDraftTeam(e.id, 'addMembers', Array.from(x.target.selectedOptions, o => o.value))} style={{...inp, height: '60px', fontSize: '11px'}}>{staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.addMembers?.join(', ') || '-')}</td>
                       <td style={td}><span style={badge(e.status)}>{e.status}</span></td>
                       <td style={td}>
                         {e.status === 'draft' && (
                           <div style={{display: 'flex', gap: '4px'}}>
-                            <button onClick={() => saveEntry('team', e.id)} disabled={!e.taskId || (!e.changePrimary && !e.addMembers?.length)} style={btn(themeColors.primary, !e.taskId || (!e.changePrimary && !e.addMembers?.length))}>Save</button>
-                            <button onClick={() => deleteEntry('team', e.id)} style={btn('#ef4444', false)}>×</button>
+                            <button onClick={() => saveDraft('team', e.id)} disabled={!e.taskId || (!e.changePrimary && !e.addMembers?.length)} style={btn(themeColors.primary, !e.taskId || (!e.changePrimary && !e.addMembers?.length))}>Save</button>
+                            <button onClick={() => deleteDraft('team', e.id)} style={btn('#ef4444', false)}>×</button>
                           </div>
                         )}
                         {e.status === 'pending' && canApprove && <button onClick={() => approveTeam(e)} style={btn('#16a34a', false)}>Approve</button>}
