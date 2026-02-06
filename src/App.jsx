@@ -28912,14 +28912,20 @@ ${invoiceHtml}
     
     const getNextGroup = () => {
       const groups = getGroups();
-      const pending = [...draftClients, ...savedClientEntries].filter(e => e.groupMode === 'new' && e.groupNo).map(e => parseInt(e.groupNo));
+      // Exclude rejected entries from pending count
+      const pending = [...draftClients, ...savedClientEntries]
+        .filter(e => e.status !== 'rejected' && e.groupMode === 'new' && e.groupNo)
+        .map(e => parseInt(e.groupNo));
       const all = [...groups, ...pending];
       return all.length === 0 ? 1 : Math.max(...all) + 1;
     };
     
     const getNextCode = (grp) => {
       const existing = data.clients.filter(c => c.fileNo?.startsWith(grp + '.')).map(c => parseInt(c.fileNo.split('.')[1]) || 0);
-      const pending = [...draftClients, ...savedClientEntries].filter(e => e.groupNo === String(grp)).map(e => parseInt((e.fileNo || '').split('.')[1]) || 0);
+      // Exclude rejected entries from pending count
+      const pending = [...draftClients, ...savedClientEntries]
+        .filter(e => e.status !== 'rejected' && e.groupNo === String(grp))
+        .map(e => parseInt((e.fileNo || '').split('.')[1]) || 0);
       const max = Math.max(0, ...existing, ...pending);
       return `${grp}.${String(max + 1).padStart(2, '0')}`;
     };
@@ -28930,7 +28936,11 @@ ${invoiceHtml}
     const searchClients = (term) => {
       if (!term || term.length < 2) return [];
       const t = term.toLowerCase();
-      return data.clients.filter(c => !c.disabled && (c.name?.toLowerCase().includes(t) || c.fileNo?.toLowerCase().includes(t))).slice(0, 10);
+      return data.clients.filter(c => !c.disabled && (
+        c.name?.toLowerCase().includes(t) || 
+        c.clientName?.toLowerCase().includes(t) || 
+        c.fileNo?.toLowerCase().includes(t)
+      )).slice(0, 10);
     };
     
     const searchTasks = (term) => {
@@ -28987,7 +28997,7 @@ ${invoiceHtml}
         const u = {...e, [field]: val};
         if (field === 'clientId' && val) {
           const c = data.clients.find(x => x.id === val);
-          if (c) { u.clientName = c.name; u.fileNo = c.fileNo; u.groupName = c.groupName || c.name; }
+          if (c) { u.clientName = c.name || c.clientName; u.fileNo = c.fileNo; u.groupName = c.groupName || c.name || c.clientName; }
         }
         if (field === 'parentTask') u.childTask = '';
         if (field === 'period') u.subPeriod = '';
@@ -29171,6 +29181,50 @@ ${invoiceHtml}
       alert('Team member entry rejected');
     };
     
+    // ===== RESUBMIT REJECTED CLIENT (regenerate codes) =====
+    const resubmitClient = (e) => {
+      // Regenerate group number and file number
+      let newGroupNo, newFileNo;
+      if (e.groupMode === 'new') {
+        newGroupNo = String(getNextGroup());
+        newFileNo = `${newGroupNo}.01`;
+      } else {
+        newGroupNo = e.groupNo;
+        newFileNo = getNextCode(parseInt(e.groupNo));
+      }
+      
+      // Update the entry with new codes and pending status
+      setData(p => ({
+        ...p,
+        pendingClientEntries: (p.pendingClientEntries||[]).map(x => 
+          x.id === e.id ? {...x, status: 'pending', groupNo: newGroupNo, fileNo: newFileNo, rejectReason: undefined} : x
+        )
+      }));
+      alert(`Resubmitted with new code: ${newFileNo}`);
+    };
+    
+    // ===== RESUBMIT REJECTED TASK =====
+    const resubmitTask = (e) => {
+      setData(p => ({
+        ...p,
+        pendingTaskEntries: (p.pendingTaskEntries||[]).map(x => 
+          x.id === e.id ? {...x, status: 'pending', rejectReason: undefined} : x
+        )
+      }));
+      alert('Task resubmitted for approval');
+    };
+    
+    // ===== RESUBMIT REJECTED TEAM MEMBER =====
+    const resubmitTeam = (e) => {
+      setData(p => ({
+        ...p,
+        pendingTeamMemberEntries: (p.pendingTeamMemberEntries||[]).map(x => 
+          x.id === e.id ? {...x, status: 'pending', rejectReason: undefined} : x
+        )
+      }));
+      alert('Team member request resubmitted for approval');
+    };
+    
     // Styles
     const th = {padding: '10px 8px', background: themeColors.gradient, color: '#fff', fontSize: '12px', fontWeight: '600', textAlign: 'left'};
     const td = {padding: '8px', fontSize: '13px', borderBottom: '1px solid #e5e7eb', verticalAlign: 'top'};
@@ -29207,7 +29261,7 @@ ${invoiceHtml}
                 <thead>
                   <tr>
                     <th style={{...th, width: '40px'}}>#</th>
-                    <th style={{...th, width: '200px'}}>Client</th>
+                    <th style={{...th, width: '200px'}}>Client Name</th>
                     <th style={{...th, width: '120px'}}>Parent Task</th>
                     <th style={{...th, width: '120px'}}>Child Task</th>
                     <th style={{...th, width: '100px'}}>FY</th>
@@ -29253,13 +29307,13 @@ ${invoiceHtml}
                                     onMouseDown={(ev) => { 
                                       ev.preventDefault(); 
                                       updateDraftTask(e.id, 'clientId', c.id);
-                                      updateDraftTask(e.id, 'clientSearch', `${c.fileNo} - ${c.name}`);
+                                      updateDraftTask(e.id, 'clientSearch', `${c.fileNo} - ${c.name || c.clientName}`);
                                       setClientSearchOpen(null);
                                     }}
                                     style={{padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0'}}
                                     onMouseEnter={(ev) => ev.currentTarget.style.background = '#f5f5f5'}
                                     onMouseLeave={(ev) => ev.currentTarget.style.background = '#fff'}>
-                                    <div style={{fontWeight: '500', fontSize: '13px'}}>{c.name}</div>
+                                    <div style={{fontWeight: '500', fontSize: '13px'}}>{c.name || c.clientName}</div>
                                     <div style={{fontSize: '11px', color: '#666'}}>{c.fileNo}</div>
                                   </div>
                                 ))}
@@ -29296,7 +29350,12 @@ ${invoiceHtml}
                           </div>
                         )}
                         {e.status === 'approved' && <span style={{color: '#16a34a', fontWeight: '600'}}>✓</span>}
-                        {e.status === 'rejected' && <span style={{color: '#dc2626', fontWeight: '600', fontSize: '11px'}}>✗ {e.rejectReason || 'Rejected'}</span>}
+                        {e.status === 'rejected' && (
+                          <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
+                            <span style={{color: '#dc2626', fontWeight: '600', fontSize: '11px'}}>✗ {e.rejectReason || 'Rejected'}</span>
+                            <button onClick={() => resubmitTask(e)} style={btn('#3b82f6', false)}>Resubmit</button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -29379,7 +29438,12 @@ ${invoiceHtml}
                           </div>
                         )}
                         {e.status === 'approved' && <span style={{color: '#16a34a', fontWeight: '600'}}>✓ {e.generatedFileNo}</span>}
-                        {e.status === 'rejected' && <span style={{color: '#dc2626', fontWeight: '600', fontSize: '11px'}}>✗ {e.rejectReason || 'Rejected'}</span>}
+                        {e.status === 'rejected' && (
+                          <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
+                            <span style={{color: '#dc2626', fontWeight: '600', fontSize: '11px'}}>✗ {e.rejectReason || 'Rejected'}</span>
+                            <button onClick={() => resubmitClient(e)} style={btn('#3b82f6', false)}>Resubmit</button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -29482,7 +29546,12 @@ ${invoiceHtml}
                           </div>
                         )}
                         {e.status === 'approved' && <span style={{color: '#16a34a', fontWeight: '600'}}>✓</span>}
-                        {e.status === 'rejected' && <span style={{color: '#dc2626', fontWeight: '600', fontSize: '11px'}}>✗ {e.rejectReason || 'Rejected'}</span>}
+                        {e.status === 'rejected' && (
+                          <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
+                            <span style={{color: '#dc2626', fontWeight: '600', fontSize: '11px'}}>✗ {e.rejectReason || 'Rejected'}</span>
+                            <button onClick={() => resubmitTeam(e)} style={btn('#3b82f6', false)}>Resubmit</button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
