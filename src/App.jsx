@@ -29271,8 +29271,8 @@ ${invoiceHtml}
         
         {/* TASKS TABLE */}
         {activeTab === 'tasks' && (
-          <div style={{background: '#fff', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb'}}>
-            <div style={{overflowX: 'auto'}}>
+          <div style={{background: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb'}}>
+            <div style={{overflowX: 'auto', overflowY: 'visible'}}>
               <table style={{width: '100%', borderCollapse: 'collapse', minWidth: '1200px'}}>
                 <thead>
                   <tr>
@@ -29296,7 +29296,7 @@ ${invoiceHtml}
                   ) : allTaskEntries.map((e, i) => (
                     <tr key={e.id} style={{background: i % 2 ? '#f9fafb' : '#fff'}}>
                       <td style={td}>{i + 1}</td>
-                      <td style={{...td, position: 'relative'}}>
+                      <td style={{...td, position: 'relative', overflow: 'visible'}}>
                         {e.status === 'draft' ? (
                           <>
                             <div 
@@ -29316,50 +29316,52 @@ ${invoiceHtml}
                               <span style={{fontSize: '10px', color: '#666'}}>▼</span>
                             </div>
                             {clientSearchOpen === e.id && (
-                              <div style={{position: 'absolute', top: '100%', left: 8, right: 8, background: '#fff', border: '1px solid #ddd', borderRadius: '4px', maxHeight: '250px', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column'}}>
-                                <div style={{padding: '6px', borderBottom: '1px solid #eee'}}>
-                                  <input
-                                    type="text"
-                                    value={clientSearchTerm}
-                                    onChange={(ev) => setClientSearchTerm(ev.target.value)}
-                                    placeholder="Search clients..."
-                                    autoFocus
-                                    style={{width: '100%', padding: '6px 8px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '12px'}}
-                                    onClick={(ev) => ev.stopPropagation()}
-                                  />
+                              <>
+                                <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9998}} onClick={() => setClientSearchOpen(null)} />
+                                <div style={{position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #ccc', borderRadius: '4px', zIndex: 9999, boxShadow: '0 4px 20px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column', marginTop: '2px'}}>
+                                  <div style={{padding: '8px', borderBottom: '1px solid #eee', background: '#f9f9f9'}}>
+                                    <input
+                                      type="text"
+                                      value={clientSearchTerm}
+                                      onChange={(ev) => setClientSearchTerm(ev.target.value)}
+                                      placeholder="Search clients..."
+                                      autoFocus
+                                      style={{width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '13px', boxSizing: 'border-box'}}
+                                      onClick={(ev) => ev.stopPropagation()}
+                                    />
+                                  </div>
+                                  <div style={{maxHeight: '200px', overflowY: 'auto'}}>
+                                    {(() => {
+                                      const filtered = data.clients.filter(c => !c.disabled && (
+                                        !clientSearchTerm || 
+                                        getClientName(c).toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
+                                        c.fileNo?.toLowerCase().includes(clientSearchTerm.toLowerCase())
+                                      )).slice(0, 50);
+                                      return filtered.length > 0 ? filtered.map(c => (
+                                        <div key={c.id}
+                                          onMouseDown={(ev) => {
+                                            ev.preventDefault();
+                                            updateDraftTask(e.id, 'clientId', c.id);
+                                            updateDraftTask(e.id, 'clientName', getClientName(c));
+                                            updateDraftTask(e.id, 'fileNo', c.fileNo);
+                                            updateDraftTask(e.id, 'groupName', c.groupName || getClientName(c));
+                                            setClientSearchOpen(null);
+                                          }}
+                                          style={{padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', background: '#fff'}}
+                                          onMouseEnter={(ev) => ev.currentTarget.style.background = '#e8f4ff'}
+                                          onMouseLeave={(ev) => ev.currentTarget.style.background = '#fff'}
+                                        >
+                                          <div style={{fontWeight: '500', fontSize: '13px', color: '#333'}}>{getClientName(c)}</div>
+                                          <div style={{fontSize: '11px', color: '#888', marginTop: '2px'}}>{c.fileNo}</div>
+                                        </div>
+                                      )) : (
+                                        <div style={{padding: '16px', color: '#999', fontSize: '13px', textAlign: 'center'}}>No clients found</div>
+                                      );
+                                    })()}
+                                  </div>
                                 </div>
-                                <div style={{overflowY: 'auto', maxHeight: '200px'}}>
-                                  {(() => {
-                                    const filtered = data.clients.filter(c => !c.disabled && (
-                                      !clientSearchTerm || 
-                                      getClientName(c).toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
-                                      c.fileNo?.toLowerCase().includes(clientSearchTerm.toLowerCase())
-                                    )).slice(0, 50);
-                                    return filtered.length > 0 ? filtered.map(c => (
-                                      <div key={c.id}
-                                        onMouseDown={(ev) => {
-                                          ev.preventDefault();
-                                          updateDraftTask(e.id, 'clientId', c.id);
-                                          updateDraftTask(e.id, 'clientName', getClientName(c));
-                                          updateDraftTask(e.id, 'fileNo', c.fileNo);
-                                          updateDraftTask(e.id, 'groupName', c.groupName || getClientName(c));
-                                          setClientSearchOpen(null);
-                                        }}
-                                        style={{padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0'}}
-                                        onMouseEnter={(ev) => ev.currentTarget.style.background = '#f0f7ff'}
-                                        onMouseLeave={(ev) => ev.currentTarget.style.background = '#fff'}
-                                      >
-                                        <div style={{fontWeight: '500', fontSize: '12px'}}>{getClientName(c)}</div>
-                                        <div style={{fontSize: '11px', color: '#666'}}>{c.fileNo}</div>
-                                      </div>
-                                    )) : (
-                                      <div style={{padding: '12px', color: '#999', fontSize: '12px', textAlign: 'center'}}>No clients found</div>
-                                    );
-                                  })()}
-                                </div>
-                              </div>
+                              </>
                             )}
-                            {clientSearchOpen === e.id && <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999}} onClick={() => setClientSearchOpen(null)} />}
                           </>
                         ) : <span style={{fontSize: '12px'}}>{e.fileNo} - {e.clientName}</span>}
                       </td>
@@ -29403,8 +29405,8 @@ ${invoiceHtml}
         
         {/* CLIENTS TABLE */}
         {activeTab === 'clients' && (
-          <div style={{background: '#fff', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb'}}>
-            <div style={{overflowX: 'auto'}}>
+          <div style={{background: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb'}}>
+            <div style={{overflowX: 'auto', overflowY: 'visible'}}>
               <table style={{width: '100%', borderCollapse: 'collapse', minWidth: '1100px'}}>
                 <thead>
                   <tr>
@@ -29491,8 +29493,8 @@ ${invoiceHtml}
         
         {/* TEAM MEMBERS TABLE */}
         {activeTab === 'teamMembers' && (
-          <div style={{background: '#fff', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb'}}>
-            <div style={{overflowX: 'auto'}}>
+          <div style={{background: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb'}}>
+            <div style={{overflowX: 'auto', overflowY: 'visible'}}>
               <table style={{width: '100%', borderCollapse: 'collapse', minWidth: '900px'}}>
                 <thead>
                   <tr>
@@ -29514,7 +29516,7 @@ ${invoiceHtml}
                   ) : allTeamEntries.map((e, i) => (
                     <tr key={e.id} style={{background: i % 2 ? '#f9fafb' : '#fff'}}>
                       <td style={td}>{i + 1}</td>
-                      <td style={{...td, position: 'relative'}}>
+                      <td style={{...td, position: 'relative', overflow: 'visible'}}>
                         {e.status === 'draft' ? (
                           <>
                             <div 
@@ -29534,52 +29536,54 @@ ${invoiceHtml}
                               <span style={{fontSize: '10px', color: '#666'}}>▼</span>
                             </div>
                             {taskSearchOpen === e.id && (
-                              <div style={{position: 'absolute', top: '100%', left: 8, right: 8, background: '#fff', border: '1px solid #ddd', borderRadius: '4px', maxHeight: '250px', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column'}}>
-                                <div style={{padding: '6px', borderBottom: '1px solid #eee'}}>
-                                  <input
-                                    type="text"
-                                    value={taskSearchTerm}
-                                    onChange={(ev) => setTaskSearchTerm(ev.target.value)}
-                                    placeholder="Search tasks..."
-                                    autoFocus
-                                    style={{width: '100%', padding: '6px 8px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '12px'}}
-                                    onClick={(ev) => ev.stopPropagation()}
-                                  />
+                              <>
+                                <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9998}} onClick={() => setTaskSearchOpen(null)} />
+                                <div style={{position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #ccc', borderRadius: '4px', zIndex: 9999, boxShadow: '0 4px 20px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column', marginTop: '2px'}}>
+                                  <div style={{padding: '8px', borderBottom: '1px solid #eee', background: '#f9f9f9'}}>
+                                    <input
+                                      type="text"
+                                      value={taskSearchTerm}
+                                      onChange={(ev) => setTaskSearchTerm(ev.target.value)}
+                                      placeholder="Search tasks..."
+                                      autoFocus
+                                      style={{width: '100%', padding: '8px 10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '13px', boxSizing: 'border-box'}}
+                                      onClick={(ev) => ev.stopPropagation()}
+                                    />
+                                  </div>
+                                  <div style={{maxHeight: '200px', overflowY: 'auto'}}>
+                                    {(() => {
+                                      const filtered = data.tasks
+                                        .filter(t => !pendingTeamTaskIds.has(t.id))
+                                        .filter(t => !taskSearchTerm || 
+                                          t.taskCode?.toLowerCase().includes(taskSearchTerm.toLowerCase()) ||
+                                          t.clientName?.toLowerCase().includes(taskSearchTerm.toLowerCase()) ||
+                                          t.childTask?.toLowerCase().includes(taskSearchTerm.toLowerCase())
+                                        ).slice(0, 50);
+                                      return filtered.length > 0 ? filtered.map(t => (
+                                        <div key={t.id}
+                                          onMouseDown={(ev) => {
+                                            ev.preventDefault();
+                                            updateDraftTeam(e.id, 'taskId', t.id);
+                                            updateDraftTeam(e.id, 'taskCode', t.taskCode);
+                                            updateDraftTeam(e.id, 'clientName', t.clientName);
+                                            updateDraftTeam(e.id, 'currentPrimary', t.primaryAssignedUser || t.assignedTo);
+                                            setTaskSearchOpen(null);
+                                          }}
+                                          style={{padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', background: '#fff'}}
+                                          onMouseEnter={(ev) => ev.currentTarget.style.background = '#e8f4ff'}
+                                          onMouseLeave={(ev) => ev.currentTarget.style.background = '#fff'}
+                                        >
+                                          <div style={{fontWeight: '600', color: themeColors.primary, fontSize: '13px'}}>{t.taskCode}</div>
+                                          <div style={{fontSize: '11px', color: '#666', marginTop: '2px'}}>{t.clientName} - {t.childTask}</div>
+                                        </div>
+                                      )) : (
+                                        <div style={{padding: '16px', color: '#999', fontSize: '13px', textAlign: 'center'}}>No tasks found (tasks with pending requests excluded)</div>
+                                      );
+                                    })()}
+                                  </div>
                                 </div>
-                                <div style={{overflowY: 'auto', maxHeight: '200px'}}>
-                                  {(() => {
-                                    const filtered = data.tasks
-                                      .filter(t => !pendingTeamTaskIds.has(t.id))
-                                      .filter(t => !taskSearchTerm || 
-                                        t.taskCode?.toLowerCase().includes(taskSearchTerm.toLowerCase()) ||
-                                        t.clientName?.toLowerCase().includes(taskSearchTerm.toLowerCase()) ||
-                                        t.childTask?.toLowerCase().includes(taskSearchTerm.toLowerCase())
-                                      ).slice(0, 50);
-                                    return filtered.length > 0 ? filtered.map(t => (
-                                      <div key={t.id}
-                                        onMouseDown={(ev) => {
-                                          ev.preventDefault();
-                                          updateDraftTeam(e.id, 'taskId', t.id);
-                                          updateDraftTeam(e.id, 'taskCode', t.taskCode);
-                                          updateDraftTeam(e.id, 'clientName', t.clientName);
-                                          updateDraftTeam(e.id, 'currentPrimary', t.primaryAssignedUser || t.assignedTo);
-                                          setTaskSearchOpen(null);
-                                        }}
-                                        style={{padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0'}}
-                                        onMouseEnter={(ev) => ev.currentTarget.style.background = '#f0f7ff'}
-                                        onMouseLeave={(ev) => ev.currentTarget.style.background = '#fff'}
-                                      >
-                                        <div style={{fontWeight: '600', color: themeColors.primary, fontSize: '12px'}}>{t.taskCode}</div>
-                                        <div style={{fontSize: '11px'}}>{t.clientName} - {t.childTask}</div>
-                                      </div>
-                                    )) : (
-                                      <div style={{padding: '12px', color: '#999', fontSize: '12px', textAlign: 'center'}}>No tasks found (tasks with pending requests excluded)</div>
-                                    );
-                                  })()}
-                                </div>
-                              </div>
+                              </>
                             )}
-                            {taskSearchOpen === e.id && <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999}} onClick={() => setTaskSearchOpen(null)} />}
                           </>
                         ) : <span style={{fontSize: '12px'}}>{e.taskCode} - {e.clientName}</span>}
                       </td>
