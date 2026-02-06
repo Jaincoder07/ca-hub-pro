@@ -242,6 +242,10 @@ const PracticeManagementApp = () => {
   const [currentView, setCurrentView] = useState('login'); // Start with login view
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [newEntriesTab, setNewEntriesTab] = useState('tasks'); // Tab state for New Entries view
+  const [neClientSearchTerm, setNeClientSearchTerm] = useState(''); // New Entries client search
+  const [neClientSearchOpen, setNeClientSearchOpen] = useState(null); // New Entries client dropdown
+  const [neTaskSearchTerm, setNeTaskSearchTerm] = useState(''); // New Entries task search
+  const [neTaskSearchOpen, setNeTaskSearchOpen] = useState(null); // New Entries task dropdown
   
   // App Theme State - 'green' or 'blue'
   const [appTheme, setAppTheme] = useState(() => {
@@ -28861,11 +28865,15 @@ ${invoiceHtml}
     const [draftClients, setDraftClients] = useState([]);
     const [draftTeamMembers, setDraftTeamMembers] = useState([]);
     
-    // Search state - separate from entry data for reliable updates
-    const [clientSearchTerm, setClientSearchTerm] = useState('');
-    const [clientSearchOpen, setClientSearchOpen] = useState(null); // entry id or null
-    const [taskSearchTerm, setTaskSearchTerm] = useState('');
-    const [taskSearchOpen, setTaskSearchOpen] = useState(null); // entry id or null
+    // Use parent-level search state (survives component re-creation)
+    const clientSearchTerm = neClientSearchTerm;
+    const setClientSearchTerm = setNeClientSearchTerm;
+    const clientSearchOpen = neClientSearchOpen;
+    const setClientSearchOpen = setNeClientSearchOpen;
+    const taskSearchTerm = neTaskSearchTerm;
+    const setTaskSearchTerm = setNeTaskSearchTerm;
+    const taskSearchOpen = neTaskSearchOpen;
+    const setTaskSearchOpen = setNeTaskSearchOpen;
     
     const userRole = getCurrentUserRole();
     const canApprove = currentUser?.isSuperAdmin || userRole === 'Superadmin' || userRole === 'Reporting Manager';
