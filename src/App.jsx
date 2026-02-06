@@ -31520,7 +31520,7 @@ ${invoiceHtml}
       case 'timesheetReports': return <TimesheetReportsView />;
       case 'templates': return <TemplatesView />;
       case 'reports': return <ReportsView />;
-      case 'newEntries': return <NewEntriesView />;
+      case 'newEntries': return NewEntriesView();
       case 'dscRegister': return <DSCRegisterView />;
       case 'packages': return <PackagesView />;
       default: return <DashboardView />;
