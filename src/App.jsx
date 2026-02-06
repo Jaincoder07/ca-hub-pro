@@ -242,10 +242,15 @@ const PracticeManagementApp = () => {
   const [currentView, setCurrentView] = useState('login'); // Start with login view
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [newEntriesTab, setNewEntriesTab] = useState('tasks'); // Tab state for New Entries view
-  const [neClientSearchTerm, setNeClientSearchTerm] = useState(''); // New Entries client search
-  const [neClientSearchOpen, setNeClientSearchOpen] = useState(null); // New Entries client dropdown
-  const [neTaskSearchTerm, setNeTaskSearchTerm] = useState(''); // New Entries task search
-  const [neTaskSearchOpen, setNeTaskSearchOpen] = useState(null); // New Entries task dropdown
+  // New Entries - search state
+  const [neClientSearchTerm, setNeClientSearchTerm] = useState('');
+  const [neClientSearchOpen, setNeClientSearchOpen] = useState(null);
+  const [neTaskSearchTerm, setNeTaskSearchTerm] = useState('');
+  const [neTaskSearchOpen, setNeTaskSearchOpen] = useState(null);
+  // New Entries - draft entries state
+  const [neDraftTasks, setNeDraftTasks] = useState([]);
+  const [neDraftClients, setNeDraftClients] = useState([]);
+  const [neDraftTeamMembers, setNeDraftTeamMembers] = useState([]);
   
   // App Theme State - 'green' or 'blue'
   const [appTheme, setAppTheme] = useState(() => {
@@ -28860,12 +28865,13 @@ ${invoiceHtml}
     const activeTab = newEntriesTab;
     const setActiveTab = setNewEntriesTab;
     
-    // LOCAL state for draft entries - editing these won't trigger Firebase save
-    const [draftTasks, setDraftTasks] = useState([]);
-    const [draftClients, setDraftClients] = useState([]);
-    const [draftTeamMembers, setDraftTeamMembers] = useState([]);
-    
-    // Use parent-level search state (survives component re-creation)
+    // Use parent-level state (survives component re-creation)
+    const draftTasks = neDraftTasks;
+    const setDraftTasks = setNeDraftTasks;
+    const draftClients = neDraftClients;
+    const setDraftClients = setNeDraftClients;
+    const draftTeamMembers = neDraftTeamMembers;
+    const setDraftTeamMembers = setNeDraftTeamMembers;
     const clientSearchTerm = neClientSearchTerm;
     const setClientSearchTerm = setNeClientSearchTerm;
     const clientSearchOpen = neClientSearchOpen;
