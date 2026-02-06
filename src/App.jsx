@@ -28932,13 +28932,15 @@ ${invoiceHtml}
     
     const getGroupCount = (grp) => data.clients.filter(c => c.fileNo?.startsWith(grp + '.')).length;
     
+    // Helper to get client display name (handles different field names)
+    const getClientName = (c) => c?.name || c?.clientName || c?.Name || c?.client || c?.Client || '';
+    
     // Search helpers - exclude tasks with pending team requests
     const searchClients = (term) => {
       if (!term || term.length < 2) return [];
       const t = term.toLowerCase();
       return data.clients.filter(c => !c.disabled && (
-        c.name?.toLowerCase().includes(t) || 
-        c.clientName?.toLowerCase().includes(t) || 
+        getClientName(c).toLowerCase().includes(t) || 
         c.fileNo?.toLowerCase().includes(t)
       )).slice(0, 10);
     };
@@ -28997,7 +28999,7 @@ ${invoiceHtml}
         const u = {...e, [field]: val};
         if (field === 'clientId' && val) {
           const c = data.clients.find(x => x.id === val);
-          if (c) { u.clientName = c.name || c.clientName; u.fileNo = c.fileNo; u.groupName = c.groupName || c.name || c.clientName; }
+          if (c) { u.clientName = getClientName(c); u.fileNo = c.fileNo; u.groupName = c.groupName || getClientName(c); }
         }
         if (field === 'parentTask') u.childTask = '';
         if (field === 'period') u.subPeriod = '';
@@ -29307,13 +29309,13 @@ ${invoiceHtml}
                                     onMouseDown={(ev) => { 
                                       ev.preventDefault(); 
                                       updateDraftTask(e.id, 'clientId', c.id);
-                                      updateDraftTask(e.id, 'clientSearch', `${c.fileNo} - ${c.name || c.clientName}`);
+                                      updateDraftTask(e.id, 'clientSearch', `${c.fileNo} - ${getClientName(c)}`);
                                       setClientSearchOpen(null);
                                     }}
                                     style={{padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0'}}
                                     onMouseEnter={(ev) => ev.currentTarget.style.background = '#f5f5f5'}
                                     onMouseLeave={(ev) => ev.currentTarget.style.background = '#fff'}>
-                                    <div style={{fontWeight: '500', fontSize: '13px'}}>{c.name || c.clientName}</div>
+                                    <div style={{fontWeight: '500', fontSize: '13px'}}>{getClientName(c)}</div>
                                     <div style={{fontSize: '11px', color: '#666'}}>{c.fileNo}</div>
                                   </div>
                                 ))}
