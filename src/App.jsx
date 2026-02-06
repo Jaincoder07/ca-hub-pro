@@ -241,6 +241,11 @@ const PracticeManagementApp = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [currentView, setCurrentView] = useState('login'); // Start with login view
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [newEntriesTab, setNewEntriesTab] = useState('tasks'); // Tab state for New Entries view
+  const [newEntriesClientSearch, setNewEntriesClientSearch] = useState({}); // Client search terms by entry ID
+  const [newEntriesClientDropdowns, setNewEntriesClientDropdowns] = useState({}); // Client dropdown visibility
+  const [newEntriesTaskSearch, setNewEntriesTaskSearch] = useState({}); // Task search terms by entry ID  
+  const [newEntriesTaskDropdowns, setNewEntriesTaskDropdowns] = useState({}); // Task dropdown visibility
   
   // App Theme State - 'green' or 'blue'
   const [appTheme, setAppTheme] = useState(() => {
@@ -28851,14 +28856,19 @@ ${invoiceHtml}
 
   // ========== NEW ENTRIES VIEW ==========
   const NewEntriesView = () => {
-    const [activeTab, setActiveTab] = useState('tasks');
-    const [selectedItems, setSelectedItems] = useState([]);
+    // Use parent-level states to prevent reset on re-render
+    const activeTab = newEntriesTab;
+    const setActiveTab = setNewEntriesTab;
+    const clientSearchTerms = newEntriesClientSearch;
+    const setClientSearchTerms = setNewEntriesClientSearch;
+    const clientDropdowns = newEntriesClientDropdowns;
+    const setClientDropdowns = setNewEntriesClientDropdowns;
+    const taskSearchTerms = newEntriesTaskSearch;
+    const setTaskSearchTerms = setNewEntriesTaskSearch;
+    const taskDropdowns = newEntriesTaskDropdowns;
+    const setTaskDropdowns = setNewEntriesTaskDropdowns;
     
-    // Store search terms keyed by entry ID - this persists across renders
-    const [clientSearchTerms, setClientSearchTerms] = useState({});
-    const [clientDropdowns, setClientDropdowns] = useState({});
-    const [taskSearchTerms, setTaskSearchTerms] = useState({});
-    const [taskDropdowns, setTaskDropdowns] = useState({});
+    const [selectedItems, setSelectedItems] = useState([]);
     
     const userRole = getCurrentUserRole();
     const canApprove = currentUser?.isSuperAdmin || userRole === 'Superadmin' || userRole === 'Reporting Manager';
