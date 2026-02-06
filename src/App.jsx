@@ -28861,9 +28861,13 @@ ${invoiceHtml}
     const [draftClients, setDraftClients] = useState([]);
     const [draftTeamMembers, setDraftTeamMembers] = useState([]);
     
-    // Search dropdowns
-    const [clientDropdown, setClientDropdown] = useState(null); // entry id or null
-    const [taskDropdown, setTaskDropdown] = useState(null);
+    // Search dropdowns - store {id, term} to avoid stale state issues
+    const [clientDropdown, setClientDropdown] = useState(null); // {id, term} or null
+    const [taskDropdown, setTaskDropdown] = useState(null); // {id, term} or null
+    
+    // Edit modal for pending entries
+    const [editModal, setEditModal] = useState(null); // {type: 'task'|'client'|'team', entry: {...}}
+    const [editData, setEditData] = useState(null);
     
     const userRole = getCurrentUserRole();
     const canApprove = currentUser?.isSuperAdmin || userRole === 'Superadmin' || userRole === 'Reporting Manager';
@@ -28872,6 +28876,13 @@ ${invoiceHtml}
     const savedTaskEntries = (data.pendingTaskEntries || []).filter(e => e.status !== 'draft');
     const savedClientEntries = (data.pendingClientEntries || []).filter(e => e.status !== 'draft');
     const savedTeamEntries = (data.pendingTeamMemberEntries || []).filter(e => e.status !== 'draft');
+    
+    // Get task IDs that have pending team member requests (not approved yet)
+    const pendingTeamTaskIds = new Set(
+      [...draftTeamMembers, ...savedTeamEntries]
+        .filter(e => e.status !== 'approved' && e.taskId)
+        .map(e => e.taskId)
+    );
     
     // Combine drafts (local) + saved (from data)
     const allTaskEntries = [...draftTasks, ...savedTaskEntries];
@@ -28917,7 +28928,7 @@ ${invoiceHtml}
     
     const getGroupCount = (grp) => data.clients.filter(c => c.fileNo?.startsWith(grp + '.')).length;
     
-    // Search helpers
+    // Search helpers - exclude tasks with pending team requests
     const searchClients = (term) => {
       if (!term || term.length < 2) return [];
       const t = term.toLowerCase();
@@ -28927,7 +28938,18 @@ ${invoiceHtml}
     const searchTasks = (term) => {
       if (!term || term.length < 2) return [];
       const t = term.toLowerCase();
-      return data.tasks.filter(x => x.taskCode?.toLowerCase().includes(t) || x.clientName?.toLowerCase().includes(t)).slice(0, 10);
+      return data.tasks
+        .filter(x => !pendingTeamTaskIds.has(x.id)) // Exclude tasks with pending requests
+        .filter(x => x.taskCode?.toLowerCase().includes(t) || x.clientName?.toLowerCase().includes(t))
+        .slice(0, 10);
+    };
+    
+    // Get sub-periods
+    const getSubPeriods = (p) => {
+      if (p === 'Monthly') return ['April','May','June','July','August','September','October','November','December','January','February','March'];
+      if (p === 'Quarterly') return ['Q1 (Apr-Jun)','Q2 (Jul-Sep)','Q3 (Oct-Dec)','Q4 (Jan-Mar)'];
+      if (p === 'Half-Yearly') return ['H1 (Apr-Sep)','H2 (Oct-Mar)'];
+      return [];
     };
     
     // ===== ADD FUNCTIONS (add to local state) =====
@@ -29009,6 +29031,40 @@ ${invoiceHtml}
       }));
     };
     
+    // ===== UPDATE PENDING FUNCTIONS (for RM/Superadmin to edit before approving) =====
+    const updatePendingTask = (id, field, val) => {
+      setData(p => ({
+        ...p,
+        pendingTaskEntries: (p.pendingTaskEntries || []).map(e => {
+          if (e.id !== id) return e;
+          const u = {...e, [field]: val};
+          if (field === 'parentTask') u.childTask = '';
+          if (field === 'period') u.subPeriod = '';
+          return u;
+        })
+      }));
+    };
+    
+    const updatePendingClient = (id, field, val) => {
+      setData(p => ({
+        ...p,
+        pendingClientEntries: (p.pendingClientEntries || []).map(e => {
+          if (e.id !== id) return e;
+          return {...e, [field]: val};
+        })
+      }));
+    };
+    
+    const updatePendingTeam = (id, field, val) => {
+      setData(p => ({
+        ...p,
+        pendingTeamMemberEntries: (p.pendingTeamMemberEntries || []).map(e => {
+          if (e.id !== id) return e;
+          return {...e, [field]: val};
+        })
+      }));
+    };
+    
     // ===== DELETE DRAFT =====
     const deleteDraft = (type, id) => {
       if (!confirm('Delete this draft?')) return;
@@ -29038,6 +29094,35 @@ ${invoiceHtml}
         setData(p => ({...p, pendingTeamMemberEntries: [...(p.pendingTeamMemberEntries||[]), saved]}));
         setDraftTeamMembers(prev => prev.filter(e => e.id !== id));
       }
+    };
+    
+    // ===== EDIT PENDING ENTRY (for RM) =====
+    const openEditModal = (type, entry) => {
+      setEditModal({type, entry});
+      setEditData({...entry});
+    };
+    
+    const saveEdit = () => {
+      if (!editModal || !editData) return;
+      const {type} = editModal;
+      if (type === 'task') {
+        setData(p => ({
+          ...p,
+          pendingTaskEntries: (p.pendingTaskEntries||[]).map(e => e.id === editData.id ? {...editData} : e)
+        }));
+      } else if (type === 'client') {
+        setData(p => ({
+          ...p,
+          pendingClientEntries: (p.pendingClientEntries||[]).map(e => e.id === editData.id ? {...editData} : e)
+        }));
+      } else {
+        setData(p => ({
+          ...p,
+          pendingTeamMemberEntries: (p.pendingTeamMemberEntries||[]).map(e => e.id === editData.id ? {...editData} : e)
+        }));
+      }
+      setEditModal(null);
+      setEditData(null);
     };
     
     // ===== APPROVE =====
@@ -29093,14 +29178,6 @@ ${invoiceHtml}
     const btn = (bg, disabled) => ({padding: '4px 10px', background: disabled ? '#ccc' : bg, color: '#fff', border: 'none', borderRadius: '4px', cursor: disabled ? 'not-allowed' : 'pointer', fontSize: '11px', fontWeight: '500'});
     const badge = (status) => ({padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', background: status === 'draft' ? '#f1f5f9' : status === 'pending' ? '#fef3c7' : '#dcfce7', color: status === 'draft' ? '#64748b' : status === 'pending' ? '#d97706' : '#16a34a'});
 
-    // Get sub-periods
-    const getSubPeriods = (p) => {
-      if (p === 'Monthly') return ['April','May','June','July','August','September','October','November','December','January','February','March'];
-      if (p === 'Quarterly') return ['Q1 (Apr-Jun)','Q2 (Jul-Sep)','Q3 (Oct-Dec)','Q4 (Jan-Mar)'];
-      if (p === 'Half-Yearly') return ['H1 (Apr-Sep)','H2 (Oct-Mar)'];
-      return [];
-    };
-
     return (
       <div style={{padding: '24px'}}>
         <h1 style={{fontSize: '22px', fontWeight: '600', marginBottom: '8px'}}>New Entries</h1>
@@ -29140,7 +29217,7 @@ ${invoiceHtml}
                     <th style={{...th, width: '100px'}}>Manager</th>
                     <th style={{...th, width: '100px'}}>Assigned</th>
                     <th style={{...th, width: '70px'}}>Status</th>
-                    <th style={{...th, width: '120px'}}>Actions</th>
+                    <th style={{...th, width: '140px'}}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -29156,17 +29233,18 @@ ${invoiceHtml}
                               type="text"
                               value={e.clientSearch || ''}
                               onChange={(ev) => {
-                                updateDraftTask(e.id, 'clientSearch', ev.target.value);
-                                setClientDropdown(ev.target.value.length >= 2 ? e.id : null);
+                                const term = ev.target.value;
+                                updateDraftTask(e.id, 'clientSearch', term);
+                                setClientDropdown(term.length >= 2 ? {id: e.id, term} : null);
                               }}
-                              onFocus={() => e.clientSearch?.length >= 2 && setClientDropdown(e.id)}
+                              onFocus={() => e.clientSearch?.length >= 2 && setClientDropdown({id: e.id, term: e.clientSearch})}
                               onBlur={() => setTimeout(() => setClientDropdown(null), 200)}
                               placeholder="Type 2+ letters..."
                               style={inp}
                             />
-                            {clientDropdown === e.id && searchClients(e.clientSearch).length > 0 && (
+                            {clientDropdown?.id === e.id && searchClients(clientDropdown.term).length > 0 && (
                               <div style={{position: 'absolute', top: '100%', left: 8, right: 8, background: '#fff', border: '1px solid #ddd', borderRadius: '4px', maxHeight: '200px', overflowY: 'auto', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'}}>
-                                {searchClients(e.clientSearch).map(c => (
+                                {searchClients(clientDropdown.term).map(c => (
                                   <div key={c.id} 
                                     onMouseDown={(ev) => { 
                                       ev.preventDefault(); 
@@ -29186,14 +29264,14 @@ ${invoiceHtml}
                           </>
                         ) : <span style={{fontSize: '12px'}}>{e.fileNo} - {e.clientName}</span>}
                       </td>
-                      <td style={td}>{e.status === 'draft' ? <select value={e.parentTask} onChange={(x) => updateDraftTask(e.id, 'parentTask', x.target.value)} style={inp}><option value="">Select</option>{Object.keys(TASKS).map(p => <option key={p}>{p}</option>)}</select> : e.parentTask}</td>
-                      <td style={td}>{e.status === 'draft' ? <select value={e.childTask} onChange={(x) => updateDraftTask(e.id, 'childTask', x.target.value)} style={inp} disabled={!e.parentTask}><option value="">Select</option>{(TASKS[e.parentTask]||[]).map(c => <option key={c}>{c}</option>)}</select> : e.childTask}</td>
-                      <td style={td}>{e.status === 'draft' ? <select value={e.financialYear} onChange={(x) => updateDraftTask(e.id, 'financialYear', x.target.value)} style={inp}>{FYs.map(f => <option key={f}>{f}</option>)}</select> : e.financialYear}</td>
-                      <td style={td}>{e.status === 'draft' ? <select value={e.period} onChange={(x) => updateDraftTask(e.id, 'period', x.target.value)} style={inp}><option value="">Select</option>{PERIODS.map(p => <option key={p}>{p}</option>)}</select> : e.period}</td>
-                      <td style={td}>{e.status === 'draft' && getSubPeriods(e.period).length > 0 ? <select value={e.subPeriod} onChange={(x) => updateDraftTask(e.id, 'subPeriod', x.target.value)} style={inp}><option value="">Select</option>{getSubPeriods(e.period).map(s => <option key={s}>{s}</option>)}</select> : (e.subPeriod || '-')}</td>
-                      <td style={td}>{e.status === 'draft' ? <select value={e.taskLeader} onChange={(x) => updateDraftTask(e.id, 'taskLeader', x.target.value)} style={inp}><option value="">Select</option>{superAdmins.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.taskLeader || '-')}</td>
-                      <td style={td}>{e.status === 'draft' ? <select value={e.taskManager} onChange={(x) => updateDraftTask(e.id, 'taskManager', x.target.value)} style={inp}><option value="">Select</option>{rms.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.taskManager || '-')}</td>
-                      <td style={td}>{e.status === 'draft' ? <select value={e.assignedUser} onChange={(x) => updateDraftTask(e.id, 'assignedUser', x.target.value)} style={inp}><option value="">Select</option>{staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.assignedUser || '-')}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.parentTask} onChange={(x) => updateDraftTask(e.id, 'parentTask', x.target.value)} style={inp}><option value="">Select</option>{Object.keys(TASKS).map(p => <option key={p}>{p}</option>)}</select> : (e.status === 'pending' && canApprove ? <select value={e.parentTask} onChange={(x) => updatePendingTask(e.id, 'parentTask', x.target.value)} style={{...inp, background: '#fefce8'}}><option value="">Select</option>{Object.keys(TASKS).map(p => <option key={p}>{p}</option>)}</select> : e.parentTask)}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.childTask} onChange={(x) => updateDraftTask(e.id, 'childTask', x.target.value)} style={inp} disabled={!e.parentTask}><option value="">Select</option>{(TASKS[e.parentTask]||[]).map(c => <option key={c}>{c}</option>)}</select> : (e.status === 'pending' && canApprove ? <select value={e.childTask} onChange={(x) => updatePendingTask(e.id, 'childTask', x.target.value)} style={{...inp, background: '#fefce8'}} disabled={!e.parentTask}><option value="">Select</option>{(TASKS[e.parentTask]||[]).map(c => <option key={c}>{c}</option>)}</select> : e.childTask)}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.financialYear} onChange={(x) => updateDraftTask(e.id, 'financialYear', x.target.value)} style={inp}>{FYs.map(f => <option key={f}>{f}</option>)}</select> : (e.status === 'pending' && canApprove ? <select value={e.financialYear} onChange={(x) => updatePendingTask(e.id, 'financialYear', x.target.value)} style={{...inp, background: '#fefce8'}}>{FYs.map(f => <option key={f}>{f}</option>)}</select> : e.financialYear)}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.period} onChange={(x) => updateDraftTask(e.id, 'period', x.target.value)} style={inp}><option value="">Select</option>{PERIODS.map(p => <option key={p}>{p}</option>)}</select> : (e.status === 'pending' && canApprove ? <select value={e.period} onChange={(x) => updatePendingTask(e.id, 'period', x.target.value)} style={{...inp, background: '#fefce8'}}><option value="">Select</option>{PERIODS.map(p => <option key={p}>{p}</option>)}</select> : e.period)}</td>
+                      <td style={td}>{(e.status === 'draft' || (e.status === 'pending' && canApprove)) && getSubPeriods(e.period).length > 0 ? <select value={e.subPeriod} onChange={(x) => e.status === 'draft' ? updateDraftTask(e.id, 'subPeriod', x.target.value) : updatePendingTask(e.id, 'subPeriod', x.target.value)} style={{...inp, background: e.status === 'pending' ? '#fefce8' : '#fff'}}><option value="">Select</option>{getSubPeriods(e.period).map(s => <option key={s}>{s}</option>)}</select> : (e.subPeriod || '-')}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.taskLeader} onChange={(x) => updateDraftTask(e.id, 'taskLeader', x.target.value)} style={inp}><option value="">Select</option>{superAdmins.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.status === 'pending' && canApprove ? <select value={e.taskLeader} onChange={(x) => updatePendingTask(e.id, 'taskLeader', x.target.value)} style={{...inp, background: '#fefce8'}}><option value="">Select</option>{superAdmins.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.taskLeader || '-'))}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.taskManager} onChange={(x) => updateDraftTask(e.id, 'taskManager', x.target.value)} style={inp}><option value="">Select</option>{rms.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.status === 'pending' && canApprove ? <select value={e.taskManager} onChange={(x) => updatePendingTask(e.id, 'taskManager', x.target.value)} style={{...inp, background: '#fefce8'}}><option value="">Select</option>{rms.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.taskManager || '-'))}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.assignedUser} onChange={(x) => updateDraftTask(e.id, 'assignedUser', x.target.value)} style={inp}><option value="">Select</option>{staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.status === 'pending' && canApprove ? <select value={e.assignedUser} onChange={(x) => updatePendingTask(e.id, 'assignedUser', x.target.value)} style={{...inp, background: '#fefce8'}}><option value="">Select</option>{staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.assignedUser || '-'))}</td>
                       <td style={td}><span style={badge(e.status)}>{e.status}</span></td>
                       <td style={td}>
                         {e.status === 'draft' && (
@@ -29202,7 +29280,12 @@ ${invoiceHtml}
                             <button onClick={() => deleteDraft('task', e.id)} style={btn('#ef4444', false)}>×</button>
                           </div>
                         )}
-                        {e.status === 'pending' && canApprove && <button onClick={() => approveTask(e)} style={btn('#16a34a', false)}>Approve</button>}
+                        {e.status === 'pending' && canApprove && (
+                          <div style={{display: 'flex', gap: '4px'}}>
+                            <button onClick={() => openEditModal('task', e)} style={btn('#3b82f6', false)}>Edit</button>
+                            <button onClick={() => approveTask(e)} style={btn('#16a34a', false)}>Approve</button>
+                          </div>
+                        )}
                         {e.status === 'approved' && <span style={{color: '#16a34a', fontWeight: '600'}}>✓</span>}
                       </td>
                     </tr>
@@ -29232,7 +29315,7 @@ ${invoiceHtml}
                     <th style={{...th, width: '100px'}}>State</th>
                     <th style={{...th, width: '100px'}}>RM</th>
                     <th style={{...th, width: '70px'}}>Status</th>
-                    <th style={{...th, width: '120px'}}>Actions</th>
+                    <th style={{...th, width: '140px'}}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -29264,13 +29347,13 @@ ${invoiceHtml}
                         ) : <span style={{fontWeight: '500'}}>{e.groupNo}</span>}
                       </td>
                       <td style={{...td, fontWeight: '600', color: themeColors.primary}}>{e.fileNo}</td>
-                      <td style={td}>{e.status === 'draft' ? <input value={e.name || ''} onChange={(x) => updateDraftClient(e.id, 'name', x.target.value)} placeholder="Client Name *" style={inp} /> : e.name}</td>
-                      <td style={td}>{e.status === 'draft' ? <input value={e.pan || ''} onChange={(x) => updateDraftClient(e.id, 'pan', x.target.value.toUpperCase())} maxLength={10} placeholder="PAN" style={{...inp, textTransform: 'uppercase'}} /> : (e.pan || '-')}</td>
-                      <td style={td}>{e.status === 'draft' ? <input value={e.gstin || ''} onChange={(x) => updateDraftClient(e.id, 'gstin', x.target.value.toUpperCase())} maxLength={15} placeholder="GSTIN" style={{...inp, textTransform: 'uppercase'}} /> : (e.gstin || '-')}</td>
-                      <td style={td}>{e.status === 'draft' ? <input value={e.phone || ''} onChange={(x) => updateDraftClient(e.id, 'phone', x.target.value)} placeholder="Phone" style={inp} /> : (e.phone || '-')}</td>
-                      <td style={td}>{e.status === 'draft' ? <select value={e.typeOfClient || ''} onChange={(x) => updateDraftClient(e.id, 'typeOfClient', x.target.value)} style={inp}><option value="">Select</option>{TYPES.map(t => <option key={t}>{t}</option>)}</select> : (e.typeOfClient || '-')}</td>
-                      <td style={td}>{e.status === 'draft' ? <select value={e.state || ''} onChange={(x) => updateDraftClient(e.id, 'state', x.target.value)} style={inp}><option value="">Select</option>{STATES.map(s => <option key={s}>{s}</option>)}</select> : (e.state || '-')}</td>
-                      <td style={td}>{e.status === 'draft' ? <select value={e.reportingManager || ''} onChange={(x) => updateDraftClient(e.id, 'reportingManager', x.target.value)} style={inp}><option value="">Select</option>{rms.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}</select> : (e.reportingManager || '-')}</td>
+                      <td style={td}>{e.status === 'draft' ? <input value={e.name || ''} onChange={(x) => updateDraftClient(e.id, 'name', x.target.value)} placeholder="Client Name *" style={inp} /> : (e.status === 'pending' && canApprove ? <input value={e.name || ''} onChange={(x) => updatePendingClient(e.id, 'name', x.target.value)} style={{...inp, background: '#fefce8'}} /> : e.name)}</td>
+                      <td style={td}>{e.status === 'draft' ? <input value={e.pan || ''} onChange={(x) => updateDraftClient(e.id, 'pan', x.target.value.toUpperCase())} maxLength={10} placeholder="PAN" style={{...inp, textTransform: 'uppercase'}} /> : (e.status === 'pending' && canApprove ? <input value={e.pan || ''} onChange={(x) => updatePendingClient(e.id, 'pan', x.target.value.toUpperCase())} maxLength={10} style={{...inp, textTransform: 'uppercase', background: '#fefce8'}} /> : (e.pan || '-'))}</td>
+                      <td style={td}>{e.status === 'draft' ? <input value={e.gstin || ''} onChange={(x) => updateDraftClient(e.id, 'gstin', x.target.value.toUpperCase())} maxLength={15} placeholder="GSTIN" style={{...inp, textTransform: 'uppercase'}} /> : (e.status === 'pending' && canApprove ? <input value={e.gstin || ''} onChange={(x) => updatePendingClient(e.id, 'gstin', x.target.value.toUpperCase())} maxLength={15} style={{...inp, textTransform: 'uppercase', background: '#fefce8'}} /> : (e.gstin || '-'))}</td>
+                      <td style={td}>{e.status === 'draft' ? <input value={e.phone || ''} onChange={(x) => updateDraftClient(e.id, 'phone', x.target.value)} placeholder="Phone" style={inp} /> : (e.status === 'pending' && canApprove ? <input value={e.phone || ''} onChange={(x) => updatePendingClient(e.id, 'phone', x.target.value)} style={{...inp, background: '#fefce8'}} /> : (e.phone || '-'))}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.typeOfClient || ''} onChange={(x) => updateDraftClient(e.id, 'typeOfClient', x.target.value)} style={inp}><option value="">Select</option>{TYPES.map(t => <option key={t}>{t}</option>)}</select> : (e.status === 'pending' && canApprove ? <select value={e.typeOfClient || ''} onChange={(x) => updatePendingClient(e.id, 'typeOfClient', x.target.value)} style={{...inp, background: '#fefce8'}}><option value="">Select</option>{TYPES.map(t => <option key={t}>{t}</option>)}</select> : (e.typeOfClient || '-'))}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.state || ''} onChange={(x) => updateDraftClient(e.id, 'state', x.target.value)} style={inp}><option value="">Select</option>{STATES.map(s => <option key={s}>{s}</option>)}</select> : (e.status === 'pending' && canApprove ? <select value={e.state || ''} onChange={(x) => updatePendingClient(e.id, 'state', x.target.value)} style={{...inp, background: '#fefce8'}}><option value="">Select</option>{STATES.map(s => <option key={s}>{s}</option>)}</select> : (e.state || '-'))}</td>
+                      <td style={td}>{e.status === 'draft' ? <select value={e.reportingManager || ''} onChange={(x) => updateDraftClient(e.id, 'reportingManager', x.target.value)} style={inp}><option value="">Select</option>{rms.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}</select> : (e.status === 'pending' && canApprove ? <select value={e.reportingManager || ''} onChange={(x) => updatePendingClient(e.id, 'reportingManager', x.target.value)} style={{...inp, background: '#fefce8'}}><option value="">Select</option>{rms.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}</select> : (e.reportingManager || '-'))}</td>
                       <td style={td}><span style={badge(e.status)}>{e.status}</span></td>
                       <td style={td}>
                         {e.status === 'draft' && (
@@ -29306,7 +29389,7 @@ ${invoiceHtml}
                     <th style={{...th, width: '120px'}}>New Primary</th>
                     <th style={{...th, width: '150px'}}>Add Members</th>
                     <th style={{...th, width: '70px'}}>Status</th>
-                    <th style={{...th, width: '120px'}}>Actions</th>
+                    <th style={{...th, width: '140px'}}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -29322,17 +29405,18 @@ ${invoiceHtml}
                               type="text"
                               value={e.taskSearch || ''}
                               onChange={(ev) => {
-                                updateDraftTeam(e.id, 'taskSearch', ev.target.value);
-                                setTaskDropdown(ev.target.value.length >= 2 ? e.id : null);
+                                const term = ev.target.value;
+                                updateDraftTeam(e.id, 'taskSearch', term);
+                                setTaskDropdown(term.length >= 2 ? {id: e.id, term} : null);
                               }}
-                              onFocus={() => e.taskSearch?.length >= 2 && setTaskDropdown(e.id)}
+                              onFocus={() => e.taskSearch?.length >= 2 && setTaskDropdown({id: e.id, term: e.taskSearch})}
                               onBlur={() => setTimeout(() => setTaskDropdown(null), 200)}
                               placeholder="Type task code or client..."
                               style={inp}
                             />
-                            {taskDropdown === e.id && searchTasks(e.taskSearch).length > 0 && (
+                            {taskDropdown?.id === e.id && searchTasks(taskDropdown.term).length > 0 && (
                               <div style={{position: 'absolute', top: '100%', left: 8, right: 8, background: '#fff', border: '1px solid #ddd', borderRadius: '4px', maxHeight: '200px', overflowY: 'auto', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'}}>
-                                {searchTasks(e.taskSearch).map(t => (
+                                {searchTasks(taskDropdown.term).map(t => (
                                   <div key={t.id}
                                     onMouseDown={(ev) => {
                                       ev.preventDefault();
@@ -29349,15 +29433,20 @@ ${invoiceHtml}
                                 ))}
                               </div>
                             )}
+                            {taskDropdown?.id === e.id && searchTasks(taskDropdown.term).length === 0 && taskDropdown.term.length >= 2 && (
+                              <div style={{position: 'absolute', top: '100%', left: 8, right: 8, background: '#fff', border: '1px solid #ddd', borderRadius: '4px', padding: '10px', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', color: '#999', fontSize: '12px'}}>
+                                No tasks found (tasks with pending requests are excluded)
+                              </div>
+                            )}
                           </>
                         ) : <span style={{fontSize: '12px'}}>{e.taskCode} - {e.clientName}</span>}
                       </td>
                       <td style={{...td, fontWeight: '600', color: themeColors.primary}}>{e.taskCode || '-'}</td>
                       <td style={td}>{e.clientName || '-'}</td>
                       <td style={td}>{e.currentPrimary || '-'}</td>
-                      <td style={{...td, textAlign: 'center'}}>{e.status === 'draft' && e.taskId ? <input type="checkbox" checked={e.changePrimary || false} onChange={(x) => updateDraftTeam(e.id, 'changePrimary', x.target.checked)} /> : (e.changePrimary ? 'Yes' : 'No')}</td>
-                      <td style={td}>{e.status === 'draft' && e.changePrimary ? <select value={e.newPrimary || ''} onChange={(x) => updateDraftTeam(e.id, 'newPrimary', x.target.value)} style={inp}><option value="">Select</option>{staff.filter(s => s.name !== e.currentPrimary).map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.newPrimary || '-')}</td>
-                      <td style={td}>{e.status === 'draft' && e.taskId ? <select multiple value={e.addMembers||[]} onChange={(x) => updateDraftTeam(e.id, 'addMembers', Array.from(x.target.selectedOptions, o => o.value))} style={{...inp, height: '60px', fontSize: '11px'}}>{staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.addMembers?.join(', ') || '-')}</td>
+                      <td style={{...td, textAlign: 'center'}}>{(e.status === 'draft' || (e.status === 'pending' && canApprove)) && e.taskId ? <input type="checkbox" checked={e.changePrimary || false} onChange={(x) => e.status === 'draft' ? updateDraftTeam(e.id, 'changePrimary', x.target.checked) : updatePendingTeam(e.id, 'changePrimary', x.target.checked)} /> : (e.changePrimary ? 'Yes' : 'No')}</td>
+                      <td style={td}>{(e.status === 'draft' || (e.status === 'pending' && canApprove)) && e.changePrimary ? <select value={e.newPrimary || ''} onChange={(x) => e.status === 'draft' ? updateDraftTeam(e.id, 'newPrimary', x.target.value) : updatePendingTeam(e.id, 'newPrimary', x.target.value)} style={{...inp, background: e.status === 'pending' ? '#fefce8' : '#fff'}}><option value="">Select</option>{staff.filter(s => s.name !== e.currentPrimary).map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.newPrimary || '-')}</td>
+                      <td style={td}>{(e.status === 'draft' || (e.status === 'pending' && canApprove)) && e.taskId ? <select multiple value={e.addMembers||[]} onChange={(x) => e.status === 'draft' ? updateDraftTeam(e.id, 'addMembers', Array.from(x.target.selectedOptions, o => o.value)) : updatePendingTeam(e.id, 'addMembers', Array.from(x.target.selectedOptions, o => o.value))} style={{...inp, height: '60px', fontSize: '11px', background: e.status === 'pending' ? '#fefce8' : '#fff'}}>{staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select> : (e.addMembers?.join(', ') || '-')}</td>
                       <td style={td}><span style={badge(e.status)}>{e.status}</span></td>
                       <td style={td}>
                         {e.status === 'draft' && (
@@ -29366,7 +29455,12 @@ ${invoiceHtml}
                             <button onClick={() => deleteDraft('team', e.id)} style={btn('#ef4444', false)}>×</button>
                           </div>
                         )}
-                        {e.status === 'pending' && canApprove && <button onClick={() => approveTeam(e)} style={btn('#16a34a', false)}>Approve</button>}
+                        {e.status === 'pending' && canApprove && (
+                          <div style={{display: 'flex', gap: '4px'}}>
+                            <button onClick={() => openEditModal('team', e)} style={btn('#3b82f6', false)}>Edit</button>
+                            <button onClick={() => approveTeam(e)} style={btn('#16a34a', false)}>Approve</button>
+                          </div>
+                        )}
                         {e.status === 'approved' && <span style={{color: '#16a34a', fontWeight: '600'}}>✓</span>}
                       </td>
                     </tr>
@@ -29380,6 +29474,81 @@ ${invoiceHtml}
         {!canApprove && (
           <div style={{marginTop: '20px', padding: '16px', background: '#f0f9ff', borderRadius: '8px', border: '1px solid #bae6fd'}}>
             <strong>Note:</strong> Add entries and click Save to submit for approval. Your manager will review and approve them.
+          </div>
+        )}
+        
+        {/* EDIT MODAL */}
+        {editModal && editData && (
+          <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000}} onClick={() => {setEditModal(null); setEditData(null);}}>
+            <div style={{background: '#fff', borderRadius: '12px', width: '90%', maxWidth: '600px', maxHeight: '80vh', overflow: 'auto'}} onClick={ev => ev.stopPropagation()}>
+              <div style={{padding: '20px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <h3 style={{margin: 0, fontSize: '18px', fontWeight: '600'}}>Edit {editModal.type === 'task' ? 'Task' : editModal.type === 'client' ? 'Client' : 'Team Member'} Entry</h3>
+                <button onClick={() => {setEditModal(null); setEditData(null);}} style={{background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#666'}}>×</button>
+              </div>
+              <div style={{padding: '20px'}}>
+                {editModal.type === 'task' && (
+                  <div style={{display: 'grid', gap: '16px'}}>
+                    <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Client</label><input value={`${editData.fileNo} - ${editData.clientName}`} disabled style={{...inp, background: '#f5f5f5'}} /></div>
+                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
+                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Parent Task</label><select value={editData.parentTask} onChange={ev => setEditData({...editData, parentTask: ev.target.value, childTask: ''})} style={inp}><option value="">Select</option>{Object.keys(TASKS).map(p => <option key={p}>{p}</option>)}</select></div>
+                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Child Task</label><select value={editData.childTask} onChange={ev => setEditData({...editData, childTask: ev.target.value})} style={inp}><option value="">Select</option>{(TASKS[editData.parentTask]||[]).map(c => <option key={c}>{c}</option>)}</select></div>
+                    </div>
+                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px'}}>
+                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>FY</label><select value={editData.financialYear} onChange={ev => setEditData({...editData, financialYear: ev.target.value})} style={inp}>{FYs.map(f => <option key={f}>{f}</option>)}</select></div>
+                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Period</label><select value={editData.period} onChange={ev => setEditData({...editData, period: ev.target.value})} style={inp}><option value="">Select</option>{PERIODS.map(p => <option key={p}>{p}</option>)}</select></div>
+                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Sub-Period</label>{getSubPeriods(editData.period).length > 0 ? <select value={editData.subPeriod} onChange={ev => setEditData({...editData, subPeriod: ev.target.value})} style={inp}><option value="">Select</option>{getSubPeriods(editData.period).map(s => <option key={s}>{s}</option>)}</select> : <input value={editData.subPeriod || ''} onChange={ev => setEditData({...editData, subPeriod: ev.target.value})} style={inp} />}</div>
+                    </div>
+                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px'}}>
+                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Task Leader</label><select value={editData.taskLeader} onChange={ev => setEditData({...editData, taskLeader: ev.target.value})} style={inp}><option value="">Select</option>{superAdmins.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
+                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Task Manager</label><select value={editData.taskManager} onChange={ev => setEditData({...editData, taskManager: ev.target.value})} style={inp}><option value="">Select</option>{rms.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
+                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Assigned To</label><select value={editData.assignedUser} onChange={ev => setEditData({...editData, assignedUser: ev.target.value})} style={inp}><option value="">Select</option>{staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
+                    </div>
+                  </div>
+                )}
+                {editModal.type === 'client' && (
+                  <div style={{display: 'grid', gap: '16px'}}>
+                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
+                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Group No</label><input value={editData.groupNo} disabled style={{...inp, background: '#f5f5f5'}} /></div>
+                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Client Code</label><input value={editData.fileNo} disabled style={{...inp, background: '#f5f5f5'}} /></div>
+                    </div>
+                    <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Client Name *</label><input value={editData.name || ''} onChange={ev => setEditData({...editData, name: ev.target.value})} style={inp} /></div>
+                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
+                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>PAN</label><input value={editData.pan || ''} onChange={ev => setEditData({...editData, pan: ev.target.value.toUpperCase()})} maxLength={10} style={{...inp, textTransform: 'uppercase'}} /></div>
+                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>GSTIN</label><input value={editData.gstin || ''} onChange={ev => setEditData({...editData, gstin: ev.target.value.toUpperCase()})} maxLength={15} style={{...inp, textTransform: 'uppercase'}} /></div>
+                    </div>
+                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
+                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Phone</label><input value={editData.phone || ''} onChange={ev => setEditData({...editData, phone: ev.target.value})} style={inp} /></div>
+                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Type</label><select value={editData.typeOfClient || ''} onChange={ev => setEditData({...editData, typeOfClient: ev.target.value})} style={inp}><option value="">Select</option>{TYPES.map(t => <option key={t}>{t}</option>)}</select></div>
+                    </div>
+                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
+                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>State</label><select value={editData.state || ''} onChange={ev => setEditData({...editData, state: ev.target.value})} style={inp}><option value="">Select</option>{STATES.map(s => <option key={s}>{s}</option>)}</select></div>
+                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Reporting Manager</label><select value={editData.reportingManager || ''} onChange={ev => setEditData({...editData, reportingManager: ev.target.value})} style={inp}><option value="">Select</option>{rms.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}</select></div>
+                    </div>
+                  </div>
+                )}
+                {editModal.type === 'team' && (
+                  <div style={{display: 'grid', gap: '16px'}}>
+                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
+                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Task Code</label><input value={editData.taskCode} disabled style={{...inp, background: '#f5f5f5'}} /></div>
+                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Client</label><input value={editData.clientName} disabled style={{...inp, background: '#f5f5f5'}} /></div>
+                    </div>
+                    <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Current Primary User</label><input value={editData.currentPrimary} disabled style={{...inp, background: '#f5f5f5'}} /></div>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                      <input type="checkbox" checked={editData.changePrimary || false} onChange={ev => setEditData({...editData, changePrimary: ev.target.checked})} id="changePrimary" />
+                      <label htmlFor="changePrimary" style={{fontWeight: '500', fontSize: '13px'}}>Change Primary User</label>
+                    </div>
+                    {editData.changePrimary && (
+                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>New Primary User</label><select value={editData.newPrimary || ''} onChange={ev => setEditData({...editData, newPrimary: ev.target.value})} style={inp}><option value="">Select</option>{staff.filter(s => s.name !== editData.currentPrimary).map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
+                    )}
+                    <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Add Team Members</label><select multiple value={editData.addMembers||[]} onChange={ev => setEditData({...editData, addMembers: Array.from(ev.target.selectedOptions, o => o.value)})} style={{...inp, height: '100px'}}>{staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
+                  </div>
+                )}
+              </div>
+              <div style={{padding: '16px 20px', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'flex-end', gap: '12px'}}>
+                <button onClick={() => {setEditModal(null); setEditData(null);}} style={{padding: '8px 16px', background: '#f1f5f9', color: '#666', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500'}}>Cancel</button>
+                <button onClick={saveEdit} style={{padding: '8px 16px', background: themeColors.primary, color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500'}}>Save Changes</button>
+              </div>
+            </div>
           </div>
         )}
       </div>
