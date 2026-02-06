@@ -28861,13 +28861,11 @@ ${invoiceHtml}
     const [draftClients, setDraftClients] = useState([]);
     const [draftTeamMembers, setDraftTeamMembers] = useState([]);
     
-    // Search dropdowns - store {id, term} to avoid stale state issues
-    const [clientDropdown, setClientDropdown] = useState(null); // {id, term} or null
-    const [taskDropdown, setTaskDropdown] = useState(null); // {id, term} or null
-    
-    // Edit modal for pending entries
-    const [editModal, setEditModal] = useState(null); // {type: 'task'|'client'|'team', entry: {...}}
-    const [editData, setEditData] = useState(null);
+    // Search state - separate from entry data for reliable updates
+    const [clientSearchTerm, setClientSearchTerm] = useState('');
+    const [clientSearchOpen, setClientSearchOpen] = useState(null); // entry id or null
+    const [taskSearchTerm, setTaskSearchTerm] = useState('');
+    const [taskSearchOpen, setTaskSearchOpen] = useState(null); // entry id or null
     
     const userRole = getCurrentUserRole();
     const canApprove = currentUser?.isSuperAdmin || userRole === 'Superadmin' || userRole === 'Reporting Manager';
@@ -29096,35 +29094,6 @@ ${invoiceHtml}
       }
     };
     
-    // ===== EDIT PENDING ENTRY (for RM) =====
-    const openEditModal = (type, entry) => {
-      setEditModal({type, entry});
-      setEditData({...entry});
-    };
-    
-    const saveEdit = () => {
-      if (!editModal || !editData) return;
-      const {type} = editModal;
-      if (type === 'task') {
-        setData(p => ({
-          ...p,
-          pendingTaskEntries: (p.pendingTaskEntries||[]).map(e => e.id === editData.id ? {...editData} : e)
-        }));
-      } else if (type === 'client') {
-        setData(p => ({
-          ...p,
-          pendingClientEntries: (p.pendingClientEntries||[]).map(e => e.id === editData.id ? {...editData} : e)
-        }));
-      } else {
-        setData(p => ({
-          ...p,
-          pendingTeamMemberEntries: (p.pendingTeamMemberEntries||[]).map(e => e.id === editData.id ? {...editData} : e)
-        }));
-      }
-      setEditModal(null);
-      setEditData(null);
-    };
-    
     // ===== APPROVE =====
     const approveTask = (e) => {
       const task = {
@@ -29171,12 +29140,43 @@ ${invoiceHtml}
       alert('Team updated!');
     };
     
+    // ===== REJECT FUNCTIONS =====
+    const rejectTask = (e) => {
+      const reason = prompt('Reason for rejection (optional):');
+      if (reason === null) return; // cancelled
+      setData(p => ({
+        ...p,
+        pendingTaskEntries: (p.pendingTaskEntries||[]).map(x => x.id === e.id ? {...x, status: 'rejected', rejectReason: reason} : x)
+      }));
+      alert('Task entry rejected');
+    };
+    
+    const rejectClient = (e) => {
+      const reason = prompt('Reason for rejection (optional):');
+      if (reason === null) return; // cancelled
+      setData(p => ({
+        ...p,
+        pendingClientEntries: (p.pendingClientEntries||[]).map(x => x.id === e.id ? {...x, status: 'rejected', rejectReason: reason} : x)
+      }));
+      alert('Client entry rejected');
+    };
+    
+    const rejectTeam = (e) => {
+      const reason = prompt('Reason for rejection (optional):');
+      if (reason === null) return; // cancelled
+      setData(p => ({
+        ...p,
+        pendingTeamMemberEntries: (p.pendingTeamMemberEntries||[]).map(x => x.id === e.id ? {...x, status: 'rejected', rejectReason: reason} : x)
+      }));
+      alert('Team member entry rejected');
+    };
+    
     // Styles
     const th = {padding: '10px 8px', background: themeColors.gradient, color: '#fff', fontSize: '12px', fontWeight: '600', textAlign: 'left'};
     const td = {padding: '8px', fontSize: '13px', borderBottom: '1px solid #e5e7eb', verticalAlign: 'top'};
     const inp = {width: '100%', padding: '6px 8px', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '12px'};
     const btn = (bg, disabled) => ({padding: '4px 10px', background: disabled ? '#ccc' : bg, color: '#fff', border: 'none', borderRadius: '4px', cursor: disabled ? 'not-allowed' : 'pointer', fontSize: '11px', fontWeight: '500'});
-    const badge = (status) => ({padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', background: status === 'draft' ? '#f1f5f9' : status === 'pending' ? '#fef3c7' : '#dcfce7', color: status === 'draft' ? '#64748b' : status === 'pending' ? '#d97706' : '#16a34a'});
+    const badge = (status) => ({padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', background: status === 'draft' ? '#f1f5f9' : status === 'pending' ? '#fef3c7' : status === 'rejected' ? '#fee2e2' : '#dcfce7', color: status === 'draft' ? '#64748b' : status === 'pending' ? '#d97706' : status === 'rejected' ? '#dc2626' : '#16a34a'});
 
     return (
       <div style={{padding: '24px'}}>
@@ -29231,26 +29231,30 @@ ${invoiceHtml}
                           <>
                             <input
                               type="text"
-                              value={e.clientSearch || ''}
+                              value={clientSearchOpen === e.id ? clientSearchTerm : (e.clientSearch || '')}
                               onChange={(ev) => {
                                 const term = ev.target.value;
+                                setClientSearchTerm(term);
+                                setClientSearchOpen(e.id);
                                 updateDraftTask(e.id, 'clientSearch', term);
-                                setClientDropdown(term.length >= 2 ? {id: e.id, term} : null);
                               }}
-                              onFocus={() => e.clientSearch?.length >= 2 && setClientDropdown({id: e.id, term: e.clientSearch})}
-                              onBlur={() => setTimeout(() => setClientDropdown(null), 200)}
+                              onFocus={(ev) => {
+                                setClientSearchTerm(e.clientSearch || '');
+                                setClientSearchOpen(e.id);
+                              }}
+                              onBlur={() => setTimeout(() => setClientSearchOpen(null), 200)}
                               placeholder="Type 2+ letters..."
                               style={inp}
                             />
-                            {clientDropdown?.id === e.id && searchClients(clientDropdown.term).length > 0 && (
+                            {clientSearchOpen === e.id && clientSearchTerm.length >= 2 && searchClients(clientSearchTerm).length > 0 && (
                               <div style={{position: 'absolute', top: '100%', left: 8, right: 8, background: '#fff', border: '1px solid #ddd', borderRadius: '4px', maxHeight: '200px', overflowY: 'auto', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'}}>
-                                {searchClients(clientDropdown.term).map(c => (
+                                {searchClients(clientSearchTerm).map(c => (
                                   <div key={c.id} 
                                     onMouseDown={(ev) => { 
                                       ev.preventDefault(); 
                                       updateDraftTask(e.id, 'clientId', c.id);
                                       updateDraftTask(e.id, 'clientSearch', `${c.fileNo} - ${c.name}`);
-                                      setClientDropdown(null);
+                                      setClientSearchOpen(null);
                                     }}
                                     style={{padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0'}}
                                     onMouseEnter={(ev) => ev.currentTarget.style.background = '#f5f5f5'}
@@ -29261,9 +29265,9 @@ ${invoiceHtml}
                                 ))}
                               </div>
                             )}
-                            {clientDropdown?.id === e.id && searchClients(clientDropdown.term).length === 0 && clientDropdown.term.length >= 2 && (
+                            {clientSearchOpen === e.id && clientSearchTerm.length >= 2 && searchClients(clientSearchTerm).length === 0 && (
                               <div style={{position: 'absolute', top: '100%', left: 8, right: 8, background: '#fff', border: '1px solid #ddd', borderRadius: '4px', padding: '10px', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', color: '#999', fontSize: '12px'}}>
-                                No clients found matching "{clientDropdown.term}"
+                                No clients found matching "{clientSearchTerm}"
                               </div>
                             )}
                           </>
@@ -29287,11 +29291,12 @@ ${invoiceHtml}
                         )}
                         {e.status === 'pending' && canApprove && (
                           <div style={{display: 'flex', gap: '4px'}}>
-                            <button onClick={() => openEditModal('task', e)} style={btn('#3b82f6', false)}>Edit</button>
                             <button onClick={() => approveTask(e)} style={btn('#16a34a', false)}>Approve</button>
+                            <button onClick={() => rejectTask(e)} style={btn('#ef4444', false)}>Reject</button>
                           </div>
                         )}
                         {e.status === 'approved' && <span style={{color: '#16a34a', fontWeight: '600'}}>✓</span>}
+                        {e.status === 'rejected' && <span style={{color: '#dc2626', fontWeight: '600', fontSize: '11px'}}>✗ {e.rejectReason || 'Rejected'}</span>}
                       </td>
                     </tr>
                   ))}
@@ -29367,8 +29372,14 @@ ${invoiceHtml}
                             <button onClick={() => deleteDraft('client', e.id)} style={btn('#ef4444', false)}>×</button>
                           </div>
                         )}
-                        {e.status === 'pending' && canApprove && <button onClick={() => approveClient(e)} style={btn('#16a34a', false)}>Approve</button>}
+                        {e.status === 'pending' && canApprove && (
+                          <div style={{display: 'flex', gap: '4px'}}>
+                            <button onClick={() => approveClient(e)} style={btn('#16a34a', false)}>Approve</button>
+                            <button onClick={() => rejectClient(e)} style={btn('#ef4444', false)}>Reject</button>
+                          </div>
+                        )}
                         {e.status === 'approved' && <span style={{color: '#16a34a', fontWeight: '600'}}>✓ {e.generatedFileNo}</span>}
+                        {e.status === 'rejected' && <span style={{color: '#dc2626', fontWeight: '600', fontSize: '11px'}}>✗ {e.rejectReason || 'Rejected'}</span>}
                       </td>
                     </tr>
                   ))}
@@ -29408,26 +29419,30 @@ ${invoiceHtml}
                           <>
                             <input
                               type="text"
-                              value={e.taskSearch || ''}
+                              value={taskSearchOpen === e.id ? taskSearchTerm : (e.taskSearch || '')}
                               onChange={(ev) => {
                                 const term = ev.target.value;
+                                setTaskSearchTerm(term);
+                                setTaskSearchOpen(e.id);
                                 updateDraftTeam(e.id, 'taskSearch', term);
-                                setTaskDropdown(term.length >= 2 ? {id: e.id, term} : null);
                               }}
-                              onFocus={() => e.taskSearch?.length >= 2 && setTaskDropdown({id: e.id, term: e.taskSearch})}
-                              onBlur={() => setTimeout(() => setTaskDropdown(null), 200)}
+                              onFocus={(ev) => {
+                                setTaskSearchTerm(e.taskSearch || '');
+                                setTaskSearchOpen(e.id);
+                              }}
+                              onBlur={() => setTimeout(() => setTaskSearchOpen(null), 200)}
                               placeholder="Type task code or client..."
                               style={inp}
                             />
-                            {taskDropdown?.id === e.id && searchTasks(taskDropdown.term).length > 0 && (
+                            {taskSearchOpen === e.id && taskSearchTerm.length >= 2 && searchTasks(taskSearchTerm).length > 0 && (
                               <div style={{position: 'absolute', top: '100%', left: 8, right: 8, background: '#fff', border: '1px solid #ddd', borderRadius: '4px', maxHeight: '200px', overflowY: 'auto', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)'}}>
-                                {searchTasks(taskDropdown.term).map(t => (
+                                {searchTasks(taskSearchTerm).map(t => (
                                   <div key={t.id}
                                     onMouseDown={(ev) => {
                                       ev.preventDefault();
                                       updateDraftTeam(e.id, 'taskId', t.id);
                                       updateDraftTeam(e.id, 'taskSearch', `${t.taskCode} - ${t.clientName}`);
-                                      setTaskDropdown(null);
+                                      setTaskSearchOpen(null);
                                     }}
                                     style={{padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0'}}
                                     onMouseEnter={(ev) => ev.currentTarget.style.background = '#f5f5f5'}
@@ -29438,7 +29453,7 @@ ${invoiceHtml}
                                 ))}
                               </div>
                             )}
-                            {taskDropdown?.id === e.id && searchTasks(taskDropdown.term).length === 0 && taskDropdown.term.length >= 2 && (
+                            {taskSearchOpen === e.id && taskSearchTerm.length >= 2 && searchTasks(taskSearchTerm).length === 0 && (
                               <div style={{position: 'absolute', top: '100%', left: 8, right: 8, background: '#fff', border: '1px solid #ddd', borderRadius: '4px', padding: '10px', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', color: '#999', fontSize: '12px'}}>
                                 No tasks found (tasks with pending requests are excluded)
                               </div>
@@ -29462,11 +29477,12 @@ ${invoiceHtml}
                         )}
                         {e.status === 'pending' && canApprove && (
                           <div style={{display: 'flex', gap: '4px'}}>
-                            <button onClick={() => openEditModal('team', e)} style={btn('#3b82f6', false)}>Edit</button>
                             <button onClick={() => approveTeam(e)} style={btn('#16a34a', false)}>Approve</button>
+                            <button onClick={() => rejectTeam(e)} style={btn('#ef4444', false)}>Reject</button>
                           </div>
                         )}
                         {e.status === 'approved' && <span style={{color: '#16a34a', fontWeight: '600'}}>✓</span>}
+                        {e.status === 'rejected' && <span style={{color: '#dc2626', fontWeight: '600', fontSize: '11px'}}>✗ {e.rejectReason || 'Rejected'}</span>}
                       </td>
                     </tr>
                   ))}
@@ -29479,81 +29495,6 @@ ${invoiceHtml}
         {!canApprove && (
           <div style={{marginTop: '20px', padding: '16px', background: '#f0f9ff', borderRadius: '8px', border: '1px solid #bae6fd'}}>
             <strong>Note:</strong> Add entries and click Save to submit for approval. Your manager will review and approve them.
-          </div>
-        )}
-        
-        {/* EDIT MODAL */}
-        {editModal && editData && (
-          <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000}} onClick={() => {setEditModal(null); setEditData(null);}}>
-            <div style={{background: '#fff', borderRadius: '12px', width: '90%', maxWidth: '600px', maxHeight: '80vh', overflow: 'auto'}} onClick={ev => ev.stopPropagation()}>
-              <div style={{padding: '20px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                <h3 style={{margin: 0, fontSize: '18px', fontWeight: '600'}}>Edit {editModal.type === 'task' ? 'Task' : editModal.type === 'client' ? 'Client' : 'Team Member'} Entry</h3>
-                <button onClick={() => {setEditModal(null); setEditData(null);}} style={{background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#666'}}>×</button>
-              </div>
-              <div style={{padding: '20px'}}>
-                {editModal.type === 'task' && (
-                  <div style={{display: 'grid', gap: '16px'}}>
-                    <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Client</label><input value={`${editData.fileNo} - ${editData.clientName}`} disabled style={{...inp, background: '#f5f5f5'}} /></div>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
-                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Parent Task</label><select value={editData.parentTask} onChange={ev => setEditData({...editData, parentTask: ev.target.value, childTask: ''})} style={inp}><option value="">Select</option>{Object.keys(TASKS).map(p => <option key={p}>{p}</option>)}</select></div>
-                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Child Task</label><select value={editData.childTask} onChange={ev => setEditData({...editData, childTask: ev.target.value})} style={inp}><option value="">Select</option>{(TASKS[editData.parentTask]||[]).map(c => <option key={c}>{c}</option>)}</select></div>
-                    </div>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px'}}>
-                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>FY</label><select value={editData.financialYear} onChange={ev => setEditData({...editData, financialYear: ev.target.value})} style={inp}>{FYs.map(f => <option key={f}>{f}</option>)}</select></div>
-                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Period</label><select value={editData.period} onChange={ev => setEditData({...editData, period: ev.target.value})} style={inp}><option value="">Select</option>{PERIODS.map(p => <option key={p}>{p}</option>)}</select></div>
-                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Sub-Period</label>{getSubPeriods(editData.period).length > 0 ? <select value={editData.subPeriod} onChange={ev => setEditData({...editData, subPeriod: ev.target.value})} style={inp}><option value="">Select</option>{getSubPeriods(editData.period).map(s => <option key={s}>{s}</option>)}</select> : <input value={editData.subPeriod || ''} onChange={ev => setEditData({...editData, subPeriod: ev.target.value})} style={inp} />}</div>
-                    </div>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px'}}>
-                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Task Leader</label><select value={editData.taskLeader} onChange={ev => setEditData({...editData, taskLeader: ev.target.value})} style={inp}><option value="">Select</option>{superAdmins.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
-                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Task Manager</label><select value={editData.taskManager} onChange={ev => setEditData({...editData, taskManager: ev.target.value})} style={inp}><option value="">Select</option>{rms.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
-                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Assigned To</label><select value={editData.assignedUser} onChange={ev => setEditData({...editData, assignedUser: ev.target.value})} style={inp}><option value="">Select</option>{staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
-                    </div>
-                  </div>
-                )}
-                {editModal.type === 'client' && (
-                  <div style={{display: 'grid', gap: '16px'}}>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
-                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Group No</label><input value={editData.groupNo} disabled style={{...inp, background: '#f5f5f5'}} /></div>
-                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Client Code</label><input value={editData.fileNo} disabled style={{...inp, background: '#f5f5f5'}} /></div>
-                    </div>
-                    <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Client Name *</label><input value={editData.name || ''} onChange={ev => setEditData({...editData, name: ev.target.value})} style={inp} /></div>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
-                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>PAN</label><input value={editData.pan || ''} onChange={ev => setEditData({...editData, pan: ev.target.value.toUpperCase()})} maxLength={10} style={{...inp, textTransform: 'uppercase'}} /></div>
-                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>GSTIN</label><input value={editData.gstin || ''} onChange={ev => setEditData({...editData, gstin: ev.target.value.toUpperCase()})} maxLength={15} style={{...inp, textTransform: 'uppercase'}} /></div>
-                    </div>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
-                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Phone</label><input value={editData.phone || ''} onChange={ev => setEditData({...editData, phone: ev.target.value})} style={inp} /></div>
-                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Type</label><select value={editData.typeOfClient || ''} onChange={ev => setEditData({...editData, typeOfClient: ev.target.value})} style={inp}><option value="">Select</option>{TYPES.map(t => <option key={t}>{t}</option>)}</select></div>
-                    </div>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
-                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>State</label><select value={editData.state || ''} onChange={ev => setEditData({...editData, state: ev.target.value})} style={inp}><option value="">Select</option>{STATES.map(s => <option key={s}>{s}</option>)}</select></div>
-                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Reporting Manager</label><select value={editData.reportingManager || ''} onChange={ev => setEditData({...editData, reportingManager: ev.target.value})} style={inp}><option value="">Select</option>{rms.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}</select></div>
-                    </div>
-                  </div>
-                )}
-                {editModal.type === 'team' && (
-                  <div style={{display: 'grid', gap: '16px'}}>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
-                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Task Code</label><input value={editData.taskCode} disabled style={{...inp, background: '#f5f5f5'}} /></div>
-                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Client</label><input value={editData.clientName} disabled style={{...inp, background: '#f5f5f5'}} /></div>
-                    </div>
-                    <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Current Primary User</label><input value={editData.currentPrimary} disabled style={{...inp, background: '#f5f5f5'}} /></div>
-                    <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                      <input type="checkbox" checked={editData.changePrimary || false} onChange={ev => setEditData({...editData, changePrimary: ev.target.checked})} id="changePrimary" />
-                      <label htmlFor="changePrimary" style={{fontWeight: '500', fontSize: '13px'}}>Change Primary User</label>
-                    </div>
-                    {editData.changePrimary && (
-                      <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>New Primary User</label><select value={editData.newPrimary || ''} onChange={ev => setEditData({...editData, newPrimary: ev.target.value})} style={inp}><option value="">Select</option>{staff.filter(s => s.name !== editData.currentPrimary).map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
-                    )}
-                    <div><label style={{display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '13px'}}>Add Team Members</label><select multiple value={editData.addMembers||[]} onChange={ev => setEditData({...editData, addMembers: Array.from(ev.target.selectedOptions, o => o.value)})} style={{...inp, height: '100px'}}>{staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
-                  </div>
-                )}
-              </div>
-              <div style={{padding: '16px 20px', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'flex-end', gap: '12px'}}>
-                <button onClick={() => {setEditModal(null); setEditData(null);}} style={{padding: '8px 16px', background: '#f1f5f9', color: '#666', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500'}}>Cancel</button>
-                <button onClick={saveEdit} style={{padding: '8px 16px', background: themeColors.primary, color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500'}}>Save Changes</button>
-              </div>
-            </div>
           </div>
         )}
       </div>
